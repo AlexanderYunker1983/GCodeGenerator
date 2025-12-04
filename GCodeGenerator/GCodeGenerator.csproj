@@ -93,6 +93,7 @@
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="ViewModels\DrillPointsOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillLineOperationViewModel.cs" />
+    <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\MainView.xaml.cs">
@@ -109,6 +110,9 @@
     </Compile>
     <Compile Include="Views\DrillPointsOperationView.xaml.cs">
       <DependentUpon>DrillPointsOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DrillArrayOperationView.xaml.cs">
+      <DependentUpon>DrillArrayOperationView.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -149,6 +153,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillLineOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\DrillArrayOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

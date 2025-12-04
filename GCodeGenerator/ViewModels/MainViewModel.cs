@@ -24,6 +24,7 @@ namespace GCodeGenerator.ViewModels
             Operations = new ObservableCollection<OperationBase>();
             AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
             AddDrillLineCommand = new RelayCommand(AddDrillLine);
+            AddDrillArrayCommand = new RelayCommand(AddDrillArray);
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
@@ -81,6 +82,8 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand AddDrillLineCommand { get; }
 
+        public ICommand AddDrillArrayCommand { get; }
+
         public ICommand GenerateGCodeCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
@@ -123,6 +126,24 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
 
             using (var vm = GetViewModel<DrillLineOperationViewModel>())
+            {
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddDrillArray()
+        {
+            var op = new DrillPointsOperation();
+            var name = _localizationManager?.GetString("AddDrillArray");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+
+            using (var vm = GetViewModel<DrillArrayOperationViewModel>())
             {
                 vm.Operation = op;
                 vm.ShowAsync();

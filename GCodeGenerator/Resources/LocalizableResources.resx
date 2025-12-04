@@ -129,6 +129,9 @@
   <data name="AddDrillLine" xml:space="preserve">
     <value>Сверление по линии</value>
   </data>
+  <data name="AddDrillArray" xml:space="preserve">
+    <value>Сверление по массиву</value>
+  </data>
   <data name="GenerateGCode" xml:space="preserve">
     <value>Сгенерировать G-код</value>
   </data>

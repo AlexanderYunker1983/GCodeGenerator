@@ -51,6 +51,17 @@
                                            Margin="4,0,4,0"/>
                             </StackPanel>
                         </Button>
+
+                        <Button Command="{Binding AddDrillArrayCommand}"
+                                Margin="0,0,8,8">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- TODO: add image for drill-array operation -->
+                                <TextBlock Text="{DataBinding '$i18n.AddDrillArray'}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Margin="4,0,4,0"/>
+                            </StackPanel>
+                        </Button>
                     </WrapPanel>
                 </ScrollViewer>
             </TabItem>
