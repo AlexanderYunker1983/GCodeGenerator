@@ -11,7 +11,12 @@
         MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterOwner">
     <Grid>
-        <Viewport3D x:Name="Viewport">
+        <Viewport3D x:Name="Viewport" 
+                    MouseWheel="Viewport_MouseWheel"
+                    MouseDown="Viewport_MouseDown"
+                    MouseMove="Viewport_MouseMove"
+                    MouseUp="Viewport_MouseUp"
+                    MouseLeave="Viewport_MouseLeave">
             <Viewport3D.Camera>
                 <PerspectiveCamera x:Name="Camera" Position="50,50,50" LookDirection="-1,-1,-1" UpDirection="0,0,1" 
                                    FieldOfView="45"/>
