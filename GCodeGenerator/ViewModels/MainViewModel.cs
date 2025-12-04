@@ -25,6 +25,8 @@ namespace GCodeGenerator.ViewModels
             AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
             AddDrillLineCommand = new RelayCommand(AddDrillLine);
             AddDrillArrayCommand = new RelayCommand(AddDrillArray);
+            AddDrillRectCommand = new RelayCommand(AddDrillRect);
+            AddDrillCircleCommand = new RelayCommand(AddDrillCircle);
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
@@ -83,6 +85,10 @@ namespace GCodeGenerator.ViewModels
         public ICommand AddDrillLineCommand { get; }
 
         public ICommand AddDrillArrayCommand { get; }
+
+        public ICommand AddDrillRectCommand { get; }
+
+        public ICommand AddDrillCircleCommand { get; }
 
         public ICommand GenerateGCodeCommand { get; }
 
@@ -144,6 +150,42 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
 
             using (var vm = GetViewModel<DrillArrayOperationViewModel>())
+            {
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddDrillRect()
+        {
+            var op = new DrillPointsOperation();
+            var name = _localizationManager?.GetString("AddDrillRect");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+
+            using (var vm = GetViewModel<DrillRectOperationViewModel>())
+            {
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddDrillCircle()
+        {
+            var op = new DrillPointsOperation();
+            var name = _localizationManager?.GetString("AddDrillCircle");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+
+            using (var vm = GetViewModel<DrillCircleOperationViewModel>())
             {
                 vm.Operation = op;
                 vm.ShowAsync();

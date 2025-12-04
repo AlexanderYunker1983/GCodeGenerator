@@ -132,6 +132,12 @@
   <data name="AddDrillArray" xml:space="preserve">
     <value>Сверление по массиву</value>
   </data>
+  <data name="AddDrillRect" xml:space="preserve">
+    <value>Сверление по контуру прямоугольника</value>
+  </data>
+  <data name="AddDrillCircle" xml:space="preserve">
+    <value>Сверление по окружности</value>
+  </data>
   <data name="GenerateGCode" xml:space="preserve">
     <value>Сгенерировать G-код</value>
   </data>
