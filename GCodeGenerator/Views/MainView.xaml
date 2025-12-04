@@ -6,7 +6,7 @@
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
-        Title="{DataBinding '$i18n.MainTitle'}"
+        Title="{DataBinding DisplayName}"
         Height="600" Width="1200"
         MinHeight="600" MinWidth="1200">
     <Grid Margin="8">
