@@ -30,6 +30,7 @@ namespace GCodeGenerator.ViewModels
             AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
+            PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -82,6 +83,7 @@ namespace GCodeGenerator.ViewModels
                 _gCodePreview = value;
                 OnPropertyChanged();
                 ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
+                ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -100,6 +102,8 @@ namespace GCodeGenerator.ViewModels
         public ICommand GenerateGCodeCommand { get; }
 
         public ICommand SaveGCodeCommand { get; }
+
+        public ICommand PreviewGCodeCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
 
@@ -255,6 +259,18 @@ namespace GCodeGenerator.ViewModels
                         System.Windows.MessageBoxButton.OK,
                         System.Windows.MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private void PreviewGCode()
+        {
+            if (string.IsNullOrEmpty(GCodePreview))
+                return;
+
+            using (var vm = GetViewModel<PreviewViewModel>())
+            {
+                vm.GCodeText = GCodePreview;
+                vm.ShowAsync();
             }
         }
 

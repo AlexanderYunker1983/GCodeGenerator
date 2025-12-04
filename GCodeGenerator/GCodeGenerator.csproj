@@ -99,6 +99,7 @@
     <Compile Include="ViewModels\DrillCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillPackageOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
+    <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\MainView.xaml.cs">
       <DependentUpon>MainView.xaml</DependentUpon>
@@ -123,6 +124,9 @@
     </Compile>
     <Compile Include="Views\DrillPackageOperationView.xaml.cs">
       <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PreviewView.xaml.cs">
+      <DependentUpon>PreviewView.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -180,6 +184,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillPackageOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\PreviewView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

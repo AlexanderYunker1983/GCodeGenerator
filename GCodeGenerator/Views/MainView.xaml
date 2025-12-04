@@ -20,12 +20,21 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- Preview button above TabControl -->
+        <Button Content="{DataBinding '$i18n.PreviewGCode'}"
+                Command="{Binding PreviewGCodeCommand}"
+                Grid.Row="0" Grid.Column="0"
+                Margin="0,0,8,8"
+                Width="200"
+                HorizontalAlignment="Left"/>
+
         <!-- Left side: operation type selector -->
-        <TabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
+        <TabControl Grid.Row="2" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
@@ -137,7 +146,7 @@
         </TabControl>
 
         <!-- Top-right: operations list controls + generate & settings -->
-        <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,8">
+        <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="{DataBinding '$i18n.MoveUp'}"
                     Command="{Binding MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.MoveDown'}"
@@ -154,7 +163,7 @@
 
         <!-- Middle: operations list with fixed width -->
         <GroupBox Header="{DataBinding '$i18n.OperationsHeader'}"
-                  Grid.Row="1" Grid.Column="1" Margin="0,0,4,0">
+                  Grid.Row="2" Grid.Column="1" Margin="0,0,4,0">
             <ListBox x:Name="OperationsList"
                      ItemsSource="{Binding Operations}"
                      SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
@@ -171,7 +180,7 @@
 
         <!-- Right: G-code preview with initial width ~250 and resizable -->
         <GroupBox Header="{DataBinding '$i18n.GCodePreviewHeader'}"
-                  Grid.Row="1" Grid.Column="3">
+                  Grid.Row="2" Grid.Column="3">
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"

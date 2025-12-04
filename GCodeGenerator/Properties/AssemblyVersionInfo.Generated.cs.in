@@ -9,3 +9,4 @@ using System.Reflection;
 //
 [assembly: AssemblyVersion("${YBUILD_PRODUCT_VERSION_DOTNET}")]
 
+

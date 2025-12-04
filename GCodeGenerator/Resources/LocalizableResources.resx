@@ -237,4 +237,7 @@
   <data name="SaveGCode" xml:space="preserve">
     <value>Сохранить G-код</value>
   </data>
+  <data name="PreviewGCode" xml:space="preserve">
+    <value>Предварительный просмотр кода</value>
+  </data>
 </root>
