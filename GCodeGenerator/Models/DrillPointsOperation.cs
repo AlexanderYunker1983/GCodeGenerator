@@ -1,10 +1,10 @@
 using System.Collections.Generic;
-using System.Windows;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
-    /// Drilling holes in specified XY points with the same depth and tool.
+    /// Drilling holes operation with individual hole Z-parameters
+    /// and common XY feeds & safety settings.
     /// </summary>
     public class DrillPointsOperation : OperationBase
     {
@@ -13,19 +13,33 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>
-        /// Points in workpiece coordinates (X, Y).
+        /// Holes with full coordinates and Z parameters.
         /// </summary>
-        public List<Point> Points { get; } = new List<Point>();
+        public List<DrillHole> Holes { get; } = new List<DrillHole>();
 
-        public double SafeZ { get; set; } = 5.0;
+        /// <summary>
+        /// Rapid feed in XY plane (G0).
+        /// </summary>
+        public double FeedXYRapid { get; set; } = 1000.0;
 
-        public double DrillZ { get; set; } = -2.0;
+        /// <summary>
+        /// Working feed in XY plane (G1).
+        /// </summary>
+        public double FeedXYWork { get; set; } = 300.0;
 
-        public double Feed { get; set; } = 100.0;
+        /// <summary>
+        /// Safe Z height for moves between holes.
+        /// </summary>
+        public double SafeZBetweenHoles { get; set; } = 5.0;
+
+        /// <summary>
+        /// Number of decimal places for coordinates.
+        /// </summary>
+        public int Decimals { get; set; } = 3;
 
         public override string GetDescription()
         {
-            return $"Drill {Points.Count} point(s) to Z={DrillZ}";
+            return $"Drill {Holes.Count} hole(s)";
         }
     }
 }

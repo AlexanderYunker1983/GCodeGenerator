@@ -36,12 +36,36 @@ namespace GCodeGenerator.Services
 
                 if (operation is DrillPointsOperation drill)
                 {
-                    // Very primitive drill cycle using G0/G1
-                    foreach (var pt in drill.Points)
+                    var fmt = $"0.{new string('#', drill.Decimals)}";
+
+                    foreach (var hole in drill.Holes)
                     {
-                        AddLine($"G0 X{pt.X:0.###} Y{pt.Y:0.###} Z{drill.SafeZ:0.###}");
-                        AddLine($"G1 Z{drill.DrillZ:0.###} F{drill.Feed:0.###}");
-                        AddLine($"G0 Z{drill.SafeZ:0.###}");
+                        // 1. Move to XY of the hole using rapid feed (assume we are already at safe Z).
+                        AddLine($"G0 X{hole.X.ToString(fmt)} Y{hole.Y.ToString(fmt)} F{drill.FeedXYRapid.ToString(fmt)}");
+
+                        // 2. Peck drilling by StepDepth until TotalDepth is reached.
+                        var currentZ = hole.Z;
+                        var finalZ = hole.Z - hole.TotalDepth;
+
+                        while (currentZ > finalZ)
+                        {
+                            var nextZ = currentZ - hole.StepDepth;
+                            if (nextZ < finalZ)
+                                nextZ = finalZ;
+
+                            // Rapid to current start Z, then work feed to next depth.
+                            AddLine($"G0 Z{currentZ.ToString(fmt)} F{hole.FeedZRapid.ToString(fmt)}");
+                            AddLine($"G1 Z{nextZ.ToString(fmt)} F{hole.FeedZWork.ToString(fmt)}");
+
+                            currentZ = nextZ;
+
+                            // Retract only if we have more depth to drill.
+                            if (currentZ > finalZ)
+                                AddLine($"G0 Z{hole.RetractHeight.ToString(fmt)} F{hole.FeedZRapid.ToString(fmt)}");
+                        }
+
+                        // 3. After finishing the hole, move back to safe Z for travel to next hole.
+                        AddLine($"G0 Z{drill.SafeZBetweenHoles.ToString(fmt)} F{hole.FeedZRapid.ToString(fmt)}");
                     }
                 }
                 else

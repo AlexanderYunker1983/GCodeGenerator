@@ -1,0 +1,100 @@
+<Window x:Class="GCodeGenerator.Views.DrillPointsOperationView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
+        mc:Ignorable="d"
+        d:DataContext="{d:DesignInstance viewModels:DrillPointsOperationViewModel}"
+        Title="{Binding DisplayName}"
+        Width="1200" Height="600"
+        MinWidth="1200" MinHeight="600"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Global settings -->
+        <GroupBox Header="Общие параметры" Grid.Row="0" Margin="0,0,0,8">
+            <Grid Margin="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="60"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,4,4"
+                           Text="G0 (XY):" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,4,4" Width="80"
+                         Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Row="0" Grid.Column="3" Margin="8,0,4,4"
+                           Text="G1 (XY):" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,4,4" Width="80"
+                         Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,0"
+                           Text="Безопасная высота Z между отверстиями:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,4,0" Width="80"
+                         Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}"/>
+
+                <TextBlock Grid.Row="1" Grid.Column="3" Margin="8,4,4,0"
+                           Text="Знаков после запятой:" VerticalAlignment="Center"/>
+                <TextBox Grid.Row="1" Grid.Column="4" Margin="0,4,4,0" Width="60"
+                         Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Holes list -->
+        <GroupBox Header="Отверстия" Grid.Row="1">
+            <Grid Margin="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,4">
+                    <Button Content="Добавить" Command="{Binding AddHoleCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Удалить" Command="{Binding RemoveHoleCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Вверх" Command="{Binding MoveHoleUpCommand}" Margin="0,0,8,0"/>
+                    <Button Content="Вниз" Command="{Binding MoveHoleDownCommand}"/>
+                </StackPanel>
+
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding Holes}"
+                          SelectedItem="{Binding SelectedHole, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          Margin="0,4,0,0">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="X" Binding="{Binding X, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Y" Binding="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Z" Binding="{Binding Z, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Глубина" Binding="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Шаг" Binding="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="G0 Z" Binding="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="G1 Z" Binding="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="Отвод Z" Binding="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</Window>
+
+

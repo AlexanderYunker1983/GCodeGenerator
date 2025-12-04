@@ -96,14 +96,16 @@ namespace GCodeGenerator.ViewModels
             var name = _localizationManager?.GetString("DrillPointsName");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
-            // For now add a couple of demo points; later they will be edited in a dedicated window.
-            op.Points.Add(new System.Windows.Point(0, 0));
-            op.Points.Add(new System.Windows.Point(10, 0));
-            op.Points.Add(new System.Windows.Point(10, 10));
 
             Operations.Add(op);
             SelectedOperation = op;
             ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+
+            using (var vm = GetViewModel<DrillPointsOperationViewModel>())
+            {
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
         }
 
         private void GenerateGCode()
@@ -168,7 +170,14 @@ namespace GCodeGenerator.ViewModels
 
         private void EditSelectedOperation()
         {
-            // TODO: open settings window for SelectedOperation when implemented.
+            if (!(SelectedOperation is DrillPointsOperation drillOp))
+                return;
+
+            using (var vm = GetViewModel<DrillPointsOperationViewModel>())
+            {
+                vm.Operation = drillOp;
+                vm.ShowAsync();
+            }
         }
 
         private void UpdateOperationCommandsCanExecute()
