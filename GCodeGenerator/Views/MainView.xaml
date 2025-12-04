@@ -6,11 +6,17 @@
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
-        Title="{DataBinding '$i18n.MainTitle'}" Height="600" Width="900">
+        Title="{DataBinding '$i18n.MainTitle'}"
+        Height="600" Width="1200"
+        MinHeight="600" MinWidth="1200">
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="2*"/>
-            <ColumnDefinition Width="3*"/>
+            <!-- Left: operation type selector takes all free width -->
+            <ColumnDefinition Width="*" />
+            <!-- Middle: operations list has fixed comfortable width -->
+            <ColumnDefinition Width="350" />
+            <!-- Right: G-code preview starts at 400px and is resizable via splitter -->
+            <ColumnDefinition Width="Auto" MinWidth="400" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -18,18 +24,84 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="{DataBinding '$i18n.AddDrillPoints'}"
-                    Command="{Binding AddDrillPointsCommand}" Margin="0,0,8,0"/>
+        <!-- Left side: operation type selector -->
+        <TabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
+            <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                              VerticalScrollBarVisibility="Auto">
+                    <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                        <Button Command="{Binding AddDrillPointsCommand}"
+                                Margin="0,0,8,8">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- TODO: add image for drill-points operation -->
+                                <TextBlock Text="{DataBinding '$i18n.DrillPointsName'}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Margin="4,0,4,0"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+                </ScrollViewer>
+            </TabItem>
+            <TabItem Header="{DataBinding '$i18n.MillingTab'}">
+                <TabControl Margin="0,4,0,0">
+                    <TabItem Header="{DataBinding '$i18n.ProfileTab'}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                                <!-- TODO: add buttons for profile milling operations -->
+                            </WrapPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Header="{DataBinding '$i18n.PocketTab'}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                                <!-- TODO: add buttons for pocket milling operations -->
+                            </WrapPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Header="{DataBinding '$i18n.ShapesTab'}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                                <!-- TODO: add buttons for shape-based milling operations -->
+                            </WrapPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                    <TabItem Header="{DataBinding '$i18n.MiscTab'}">
+                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                                      VerticalScrollBarVisibility="Auto">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                                <!-- TODO: add buttons for miscellaneous operations -->
+                            </WrapPanel>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
+            </TabItem>
+        </TabControl>
+
+        <!-- Top-right: operations list controls + generate & settings -->
+        <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="{DataBinding '$i18n.MoveUp'}"
+                    Command="{Binding MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
+            <Button Content="{DataBinding '$i18n.MoveDown'}"
+                    Command="{Binding MoveOperationDownCommand}" Margin="0,0,8,0" Width="80"/>
+            <Button Content="{DataBinding '$i18n.DeleteOperation'}"
+                    Command="{Binding RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.GenerateGCode'}"
-                    Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0"/>
+                    Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0" Width="160"/>
             <Button Content="{DataBinding '$i18n.Settings'}"
-                    Command="{Binding OpenSettingsCommand}"/>
+                    Command="{Binding OpenSettingsCommand}" Width="120"/>
         </StackPanel>
 
+        <!-- Middle: operations list with fixed width -->
         <GroupBox Header="{DataBinding '$i18n.OperationsHeader'}"
-                  Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
-            <ListBox ItemsSource="{Binding Operations}">
+                  Grid.Row="1" Grid.Column="1" Margin="0,0,4,0">
+            <ListBox x:Name="OperationsList"
+                     ItemsSource="{Binding Operations}"
+                     SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
+                     MouseDoubleClick="OperationsList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Vertical">
@@ -44,8 +116,9 @@
             </ListBox>
         </GroupBox>
 
+        <!-- Right: G-code preview with initial width ~250 and resizable -->
         <GroupBox Header="{DataBinding '$i18n.GCodePreviewHeader'}"
-                  Grid.Row="1" Grid.Column="1">
+                  Grid.Row="1" Grid.Column="3">
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"

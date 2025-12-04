@@ -64,6 +64,33 @@
   <data name="GCodePreviewHeader" xml:space="preserve">
     <value>Просмотр G-кода</value>
   </data>
+  <data name="DrillingTab" xml:space="preserve">
+    <value>Сверление</value>
+  </data>
+  <data name="MillingTab" xml:space="preserve">
+    <value>Фрезерование</value>
+  </data>
+  <data name="ProfileTab" xml:space="preserve">
+    <value>Контур</value>
+  </data>
+  <data name="PocketTab" xml:space="preserve">
+    <value>Карман</value>
+  </data>
+  <data name="ShapesTab" xml:space="preserve">
+    <value>Формы</value>
+  </data>
+  <data name="MiscTab" xml:space="preserve">
+    <value>Разное</value>
+  </data>
+  <data name="MoveUp" xml:space="preserve">
+    <value>Вверх</value>
+  </data>
+  <data name="MoveDown" xml:space="preserve">
+    <value>Вниз</value>
+  </data>
+  <data name="DeleteOperation" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
 
   <!-- Settings window -->
   <data name="GCodeSettingsTitle" xml:space="preserve">
