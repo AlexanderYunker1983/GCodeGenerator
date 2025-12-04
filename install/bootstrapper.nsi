@@ -36,6 +36,7 @@ Section "$(ProductName) ${Y_PRODUCT_VERSION}" Product
     SetOutPath $INSTDIR
     File "${Y_FILE_PATH}\GCodeGenerator.exe"
     File "${Y_FILE_PATH}\GCodeGenerator.exe.config"
+	File "${Y_FILE_PATH}\*.dll"
     WriteUninstaller "$INSTDIR\Uninstall.exe"
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}" "DisplayName" "$(ProductName) ${Y_PRODUCT_VERSION}"
