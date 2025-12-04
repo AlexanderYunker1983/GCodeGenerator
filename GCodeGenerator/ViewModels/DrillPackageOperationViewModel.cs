@@ -65,7 +65,30 @@ namespace GCodeGenerator.ViewModels
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Holes.Any())
+                // Initialize from metadata if available, otherwise from holes
+                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("CenterX"))
+                {
+                    CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
+                    CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
+                    Z = Convert.ToDouble(_operation.Metadata["Z"]);
+                    RotationAngle = Convert.ToDouble(_operation.Metadata["RotationAngle"]);
+                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
+                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
+                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
+                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
+                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
+                    
+                    // Restore package selection
+                    if (_operation.Metadata.ContainsKey("PackageName"))
+                    {
+                        var packageName = _operation.Metadata["PackageName"] as string;
+                        if (!string.IsNullOrEmpty(packageName))
+                        {
+                            SelectedPackage = Packages.FirstOrDefault(p => p.Name == packageName);
+                        }
+                    }
+                }
+                else if (_operation.Holes.Any())
                 {
                     var first = _operation.Holes.First();
                     CenterX = first.X;
@@ -76,6 +99,7 @@ namespace GCodeGenerator.ViewModels
                     FeedZRapid = first.FeedZRapid;
                     FeedZWork = first.FeedZWork;
                     RetractHeight = first.RetractHeight;
+                    RotationAngle = 0;
                 }
                 else
                 {
@@ -293,21 +317,6 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        protected override void OnClosed(IDataContext context)
-        {
-            base.OnClosed(context);
-            if (_operation == null) return;
-
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            _operation.Decimals = Decimals;
-
-            _operation.Holes.Clear();
-            foreach (var hole in PreviewHoles)
-                _operation.Holes.Add(hole);
-        }
-
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
@@ -398,6 +407,39 @@ namespace GCodeGenerator.ViewModels
                     PreviewHoles.Add(hole);
                 }
             }
+        }
+
+        protected override void OnClosed(IDataContext context)
+        {
+            base.OnClosed(context);
+            if (_operation == null) return;
+
+            _operation.FeedXYRapid = FeedXYRapid;
+            _operation.FeedXYWork = FeedXYWork;
+            _operation.SafeZBetweenHoles = SafeZBetweenHoles;
+            _operation.Decimals = Decimals;
+
+            // Save operation-specific parameters to metadata.
+            if (_operation.Metadata == null)
+                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
+            
+            _operation.Metadata["CenterX"] = CenterX;
+            _operation.Metadata["CenterY"] = CenterY;
+            _operation.Metadata["Z"] = Z;
+            _operation.Metadata["RotationAngle"] = RotationAngle;
+            _operation.Metadata["TotalDepth"] = TotalDepth;
+            _operation.Metadata["StepDepth"] = StepDepth;
+            _operation.Metadata["FeedZRapid"] = FeedZRapid;
+            _operation.Metadata["FeedZWork"] = FeedZWork;
+            _operation.Metadata["RetractHeight"] = RetractHeight;
+            if (SelectedPackage != null)
+            {
+                _operation.Metadata["PackageName"] = SelectedPackage.Name;
+            }
+
+            _operation.Holes.Clear();
+            foreach (var hole in PreviewHoles)
+                _operation.Holes.Add(hole);
         }
     }
 }

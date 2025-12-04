@@ -10,6 +10,7 @@ namespace GCodeGenerator.Models
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, "Drill points")
         {
+            Metadata = new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -36,6 +37,11 @@ namespace GCodeGenerator.Models
         /// Number of decimal places for coordinates.
         /// </summary>
         public int Decimals { get; set; } = 3;
+
+        /// <summary>
+        /// Metadata for storing operation-specific parameters (e.g., line distance, array dimensions, circle radius, etc.)
+        /// </summary>
+        public Dictionary<string, object> Metadata { get; set; }
 
         public override string GetDescription()
         {

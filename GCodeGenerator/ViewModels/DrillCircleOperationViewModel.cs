@@ -32,7 +32,22 @@ namespace GCodeGenerator.ViewModels
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Holes.Any())
+                // Initialize from metadata if available, otherwise from holes
+                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("CenterX"))
+                {
+                    CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
+                    CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
+                    Z = Convert.ToDouble(_operation.Metadata["Z"]);
+                    Radius = Convert.ToDouble(_operation.Metadata["Radius"]);
+                    HoleCount = Convert.ToInt32(_operation.Metadata["HoleCount"]);
+                    StartAngleDeg = Convert.ToDouble(_operation.Metadata["StartAngleDeg"]);
+                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
+                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
+                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
+                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
+                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
+                }
+                else if (_operation.Holes.Any())
                 {
                     var first = _operation.Holes.First();
                     CenterX = first.X;
@@ -43,12 +58,19 @@ namespace GCodeGenerator.ViewModels
                     FeedZRapid = first.FeedZRapid;
                     FeedZWork = first.FeedZWork;
                     RetractHeight = first.RetractHeight;
+                    // Default values for missing parameters
+                    Radius = 10;
+                    HoleCount = _operation.Holes.Count;
+                    StartAngleDeg = 0;
                 }
                 else
                 {
                     CenterX = 0;
                     CenterY = 0;
                     Z = 0;
+                    Radius = 10;
+                    HoleCount = 2;
+                    StartAngleDeg = 0;
                     TotalDepth = 2;
                     StepDepth = 1;
                     FeedZRapid = 500;
@@ -280,6 +302,22 @@ namespace GCodeGenerator.ViewModels
             _operation.FeedXYWork = FeedXYWork;
             _operation.SafeZBetweenHoles = SafeZBetweenHoles;
             _operation.Decimals = Decimals;
+
+            // Save operation-specific parameters to metadata.
+            if (_operation.Metadata == null)
+                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
+            
+            _operation.Metadata["CenterX"] = CenterX;
+            _operation.Metadata["CenterY"] = CenterY;
+            _operation.Metadata["Z"] = Z;
+            _operation.Metadata["Radius"] = Radius;
+            _operation.Metadata["HoleCount"] = HoleCount;
+            _operation.Metadata["StartAngleDeg"] = StartAngleDeg;
+            _operation.Metadata["TotalDepth"] = TotalDepth;
+            _operation.Metadata["StepDepth"] = StepDepth;
+            _operation.Metadata["FeedZRapid"] = FeedZRapid;
+            _operation.Metadata["FeedZWork"] = FeedZWork;
+            _operation.Metadata["RetractHeight"] = RetractHeight;
 
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)

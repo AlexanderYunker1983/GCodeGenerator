@@ -32,7 +32,24 @@ namespace GCodeGenerator.ViewModels
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Holes.Any())
+                // Initialize from metadata if available, otherwise from holes
+                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("StartX"))
+                {
+                    StartX = Convert.ToDouble(_operation.Metadata["StartX"]);
+                    StartY = Convert.ToDouble(_operation.Metadata["StartY"]);
+                    StartZ = Convert.ToDouble(_operation.Metadata["StartZ"]);
+                    Distance = Convert.ToDouble(_operation.Metadata["Distance"]);
+                    HoleCount = Convert.ToInt32(_operation.Metadata["HoleCount"]);
+                    AngleDeg = Convert.ToDouble(_operation.Metadata["AngleDeg"]);
+                    RowPitch = Convert.ToDouble(_operation.Metadata["RowPitch"]);
+                    RowCount = Convert.ToInt32(_operation.Metadata["RowCount"]);
+                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
+                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
+                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
+                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
+                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
+                }
+                else if (_operation.Holes.Any())
                 {
                     var first = _operation.Holes.First();
                     StartX = first.X;
@@ -43,12 +60,23 @@ namespace GCodeGenerator.ViewModels
                     FeedZRapid = first.FeedZRapid;
                     FeedZWork = first.FeedZWork;
                     RetractHeight = first.RetractHeight;
+                    // Default values for missing parameters
+                    Distance = 10;
+                    HoleCount = 3;
+                    RowPitch = 10;
+                    RowCount = 2;
+                    AngleDeg = 0;
                 }
                 else
                 {
                     StartX = 0;
                     StartY = 0;
                     StartZ = 0;
+                    Distance = 10;
+                    HoleCount = 3;
+                    RowPitch = 10;
+                    RowCount = 2;
+                    AngleDeg = 0;
                     TotalDepth = 2;
                     StepDepth = 1;
                     FeedZRapid = 500;

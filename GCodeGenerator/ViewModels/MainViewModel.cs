@@ -312,10 +312,63 @@ namespace GCodeGenerator.ViewModels
             if (!(SelectedOperation is DrillPointsOperation drillOp))
                 return;
 
-            using (var vm = GetViewModel<DrillPointsOperationViewModel>())
+            // Определяем тип операции по имени
+            var operationName = drillOp.Name;
+            var addDrillLineName = _localizationManager?.GetString("AddDrillLine");
+            var addDrillArrayName = _localizationManager?.GetString("AddDrillArray");
+            var addDrillRectName = _localizationManager?.GetString("AddDrillRect");
+            var addDrillCircleName = _localizationManager?.GetString("AddDrillCircle");
+            var addDrillPackageName = _localizationManager?.GetString("AddDrillPackage");
+            var drillPointsName = _localizationManager?.GetString("DrillPointsName");
+
+            if (!string.IsNullOrEmpty(addDrillLineName) && operationName == addDrillLineName)
             {
-                vm.Operation = drillOp;
-                vm.ShowAsync();
+                using (var vm = GetViewModel<DrillLineOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (!string.IsNullOrEmpty(addDrillArrayName) && operationName == addDrillArrayName)
+            {
+                using (var vm = GetViewModel<DrillArrayOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (!string.IsNullOrEmpty(addDrillRectName) && operationName == addDrillRectName)
+            {
+                using (var vm = GetViewModel<DrillRectOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (!string.IsNullOrEmpty(addDrillCircleName) && operationName == addDrillCircleName)
+            {
+                using (var vm = GetViewModel<DrillCircleOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (!string.IsNullOrEmpty(addDrillPackageName) && operationName == addDrillPackageName)
+            {
+                using (var vm = GetViewModel<DrillPackageOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else
+            {
+                // По умолчанию открываем DrillPointsOperationViewModel
+                using (var vm = GetViewModel<DrillPointsOperationViewModel>())
+                {
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
             }
         }
 
