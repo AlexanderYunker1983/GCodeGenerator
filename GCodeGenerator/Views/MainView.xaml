@@ -6,8 +6,46 @@
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
-        Title="{Binding DisplayName}" Height="450" Width="800">
-    <Grid>
-        <TextBlock Text="{Binding DisplayName}" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" />
+        Title="{Binding DisplayName}" Height="600" Width="900">
+    <Grid Margin="8">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Content="Add drill points operation" Command="{Binding AddDrillPointsCommand}" Margin="0,0,8,0"/>
+            <Button Content="Generate G-code" Command="{Binding GenerateGCodeCommand}"/>
+        </StackPanel>
+
+        <GroupBox Header="Operations" Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+            <ListBox ItemsSource="{Binding Operations}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Vertical">
+                            <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Path=., ConverterCulture='en-US'}"
+                                       TextTrimming="CharacterEllipsis"
+                                       FontSize="11"
+                                       Foreground="Gray"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </GroupBox>
+
+        <GroupBox Header="G-code preview" Grid.Row="1" Grid.Column="1">
+            <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
+                     VerticalScrollBarVisibility="Auto"
+                     HorizontalScrollBarVisibility="Auto"
+                     AcceptsReturn="True"
+                     AcceptsTab="True"
+                     IsReadOnly="True"/>
+        </GroupBox>
     </Grid>
 </Window>
