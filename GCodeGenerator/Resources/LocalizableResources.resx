@@ -111,6 +111,9 @@
   <data name="AllowArcs" xml:space="preserve">
     <value>Разрешить дуги (G2/G3)</value>
   </data>
+  <data name="UsePaddedGCodes" xml:space="preserve">
+    <value>Формат команд G01/G00 вместо G1/G0</value>
+  </data>
 </root>
 
 

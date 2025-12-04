@@ -17,6 +17,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
@@ -44,6 +45,10 @@
         <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
                   Content="{DataBinding '$i18n.AllowArcs'}"
                   IsChecked="{Binding AllowArcs}"/>
+
+        <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                  Content="{DataBinding '$i18n.UsePaddedGCodes'}"
+                  IsChecked="{Binding UsePaddedGCodes}"/>
     </Grid>
 </Window>
 

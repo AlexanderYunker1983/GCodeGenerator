@@ -27,6 +27,7 @@ namespace GCodeGenerator.ViewModels
             LineNumberStep = _settings.LineNumberStep;
             UseComments = _settings.UseComments;
             AllowArcs = _settings.AllowArcs;
+            UsePaddedGCodes = _settings.UsePaddedGCodes;
         }
 
         private string _displayName;
@@ -107,6 +108,19 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private bool _usePaddedGCodes;
+
+        public bool UsePaddedGCodes
+        {
+            get => _usePaddedGCodes;
+            set
+            {
+                if (value == _usePaddedGCodes) return;
+                _usePaddedGCodes = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
         {
             base.OnClosed(context);
@@ -117,6 +131,7 @@ namespace GCodeGenerator.ViewModels
             _settings.LineNumberStep = LineNumberStep;
             _settings.UseComments = UseComments;
             _settings.AllowArcs = AllowArcs;
+            _settings.UsePaddedGCodes = UsePaddedGCodes;
         }
     }
 }

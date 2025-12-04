@@ -17,6 +17,11 @@ namespace GCodeGenerator.Models
         /// Allow arc moves (G2/G3). If false, arcs must be converted to linear moves.
         /// </summary>
         public bool AllowArcs { get; set; } = true;
+
+        /// <summary>
+        /// If true, G-codes are formatted with leading zero, e.g. G01 instead of G1.
+        /// </summary>
+        public bool UsePaddedGCodes { get; set; } = false;
     }
 }
 
