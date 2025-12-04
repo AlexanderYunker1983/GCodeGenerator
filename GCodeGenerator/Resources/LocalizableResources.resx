@@ -198,4 +198,43 @@
   <data name="UsePaddedGCodes" xml:space="preserve">
     <value>Формат команд G01/G00 вместо G1/G0</value>
   </data>
+  <data name="AddDrillPackage" xml:space="preserve">
+    <value>Сверление под стандартный корпус</value>
+  </data>
+  <data name="PackageParametersHeader" xml:space="preserve">
+    <value>Параметры корпуса</value>
+  </data>
+  <data name="PackageType" xml:space="preserve">
+    <value>Тип корпуса:</value>
+  </data>
+  <data name="RotationAngle" xml:space="preserve">
+    <value>Угол поворота (°):</value>
+  </data>
+  <data name="TotalDepth" xml:space="preserve">
+    <value>Глубина сверления:</value>
+  </data>
+  <data name="StepDepth" xml:space="preserve">
+    <value>Глубина за проход:</value>
+  </data>
+  <data name="FeedsAndZParametersHeader" xml:space="preserve">
+    <value>Подачи и Z-параметры</value>
+  </data>
+  <data name="Depth" xml:space="preserve">
+    <value>Глубина</value>
+  </data>
+  <data name="Step" xml:space="preserve">
+    <value>Шаг</value>
+  </data>
+  <data name="SafeZBetweenHoles" xml:space="preserve">
+    <value>Безопасная Z между отверстиями:</value>
+  </data>
+  <data name="RetractHeight" xml:space="preserve">
+    <value>Отвод Z:</value>
+  </data>
+  <data name="Decimals" xml:space="preserve">
+    <value>Знаков после запятой:</value>
+  </data>
+  <data name="SaveGCode" xml:space="preserve">
+    <value>Сохранить G-код</value>
+  </data>
 </root>

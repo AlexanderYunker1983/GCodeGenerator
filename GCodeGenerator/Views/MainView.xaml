@@ -84,6 +84,17 @@
                                            Margin="4,0,4,0"/>
                             </StackPanel>
                         </Button>
+
+                        <Button Command="{Binding AddDrillPackageCommand}"
+                                Margin="0,0,8,8">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <!-- TODO: add image for drill-package operation -->
+                                <TextBlock Text="{DataBinding '$i18n.AddDrillPackage'}"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Margin="4,0,4,0"/>
+                            </StackPanel>
+                        </Button>
                     </WrapPanel>
                 </ScrollViewer>
             </TabItem>
@@ -135,6 +146,8 @@
                     Command="{Binding RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.GenerateGCode'}"
                     Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0" Width="160"/>
+            <Button Content="{DataBinding '$i18n.SaveGCode'}"
+                    Command="{Binding SaveGCodeCommand}" Margin="0,0,8,0" Width="140"/>
             <Button Content="{DataBinding '$i18n.Settings'}"
                     Command="{Binding OpenSettingsCommand}" Width="120"/>
         </StackPanel>

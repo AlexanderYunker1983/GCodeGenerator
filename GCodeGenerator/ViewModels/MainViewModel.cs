@@ -27,7 +27,9 @@ namespace GCodeGenerator.ViewModels
             AddDrillArrayCommand = new RelayCommand(AddDrillArray);
             AddDrillRectCommand = new RelayCommand(AddDrillRect);
             AddDrillCircleCommand = new RelayCommand(AddDrillCircle);
+            AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
+            SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -77,6 +79,7 @@ namespace GCodeGenerator.ViewModels
                 if (Equals(value, _gCodePreview)) return;
                 _gCodePreview = value;
                 OnPropertyChanged();
+                ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
             }
         }
 
@@ -90,7 +93,11 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand AddDrillCircleCommand { get; }
 
+        public ICommand AddDrillPackageCommand { get; }
+
         public ICommand GenerateGCodeCommand { get; }
+
+        public ICommand SaveGCodeCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
 
@@ -192,6 +199,24 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private void AddDrillPackage()
+        {
+            var op = new DrillPointsOperation();
+            var name = _localizationManager?.GetString("AddDrillPackage");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+
+            using (var vm = GetViewModel<DrillPackageOperationViewModel>())
+            {
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
         private void GenerateGCode()
         {
             var program = _generator.Generate(new System.Collections.Generic.List<OperationBase>(Operations), _settings);
@@ -199,6 +224,36 @@ namespace GCodeGenerator.ViewModels
             foreach (var line in program.Lines)
                 sb.AppendLine(line);
             GCodePreview = sb.ToString();
+            ((RelayCommand)SaveGCodeCommand).RaiseCanExecuteChanged();
+        }
+
+        private void SaveGCode()
+        {
+            if (string.IsNullOrEmpty(GCodePreview))
+                return;
+
+            var saveDialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "G-code files (*.nc)|*.nc|All files (*.*)|*.*",
+                DefaultExt = "nc",
+                FileName = "program.nc"
+            };
+
+            if (saveDialog.ShowDialog() == true)
+            {
+                try
+                {
+                    System.IO.File.WriteAllText(saveDialog.FileName, GCodePreview, System.Text.Encoding.UTF8);
+                }
+                catch (System.Exception ex)
+                {
+                    System.Windows.MessageBox.Show(
+                        $"Ошибка при сохранении файла:\n{ex.Message}",
+                        "Ошибка",
+                        System.Windows.MessageBoxButton.OK,
+                        System.Windows.MessageBoxImage.Error);
+                }
+            }
         }
 
         private void OpenSettings()

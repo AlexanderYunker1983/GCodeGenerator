@@ -83,6 +83,7 @@
     <Compile Include="Models\DrillHole.cs" />
     <Compile Include="Models\DrillPointsOperation.cs" />
     <Compile Include="Models\GCodeProgram.cs" />
+    <Compile Include="Models\PackageDefinition.cs" />
     <Compile Include="Models\GCodeSettings.cs" />
     <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Models\OperationBase.cs" />
@@ -96,6 +97,7 @@
     <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillRectOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillCircleOperationViewModel.cs" />
+    <Compile Include="ViewModels\DrillPackageOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\MainView.xaml.cs">
@@ -118,6 +120,12 @@
     </Compile>
     <Compile Include="Views\DrillRectOperationView.xaml.cs">
       <DependentUpon>DrillRectOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DrillCircleOperationView.xaml.cs">
+      <DependentUpon>DrillCircleOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DrillPackageOperationView.xaml.cs">
+      <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DrillCircleOperationView.xaml.cs">
       <DependentUpon>DrillCircleOperationView.xaml</DependentUpon>
@@ -173,6 +181,18 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillCircleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\DrillPackageOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\DrillCircleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\DrillPackageOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
