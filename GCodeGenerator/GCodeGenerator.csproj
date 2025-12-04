@@ -88,7 +88,6 @@
     <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Models\OperationBase.cs" />
     <Compile Include="Models\OperationType.cs" />
-    <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
@@ -113,9 +112,6 @@
     <Compile Include="Views\DrillLineOperationView.xaml.cs">
       <DependentUpon>DrillLineOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillPointsOperationView.xaml.cs">
-      <DependentUpon>DrillPointsOperationView.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Views\DrillArrayOperationView.xaml.cs">
       <DependentUpon>DrillArrayOperationView.xaml</DependentUpon>
     </Compile>
@@ -127,9 +123,6 @@
     </Compile>
     <Compile Include="Views\DrillPackageOperationView.xaml.cs">
       <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
-    </Compile>
-    <Compile Include="Views\DrillCircleOperationView.xaml.cs">
-      <DependentUpon>DrillCircleOperationView.xaml</DependentUpon>
     </Compile>
   </ItemGroup>
   <ItemGroup>
@@ -179,14 +172,6 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillRectOperationView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\DrillCircleOperationView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\DrillPackageOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
