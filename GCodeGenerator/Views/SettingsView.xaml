@@ -6,7 +6,7 @@
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
-        Title="{Binding DisplayName}"
+        Title="{DataBinding '$i18n.GCodeSettingsTitle'}"
         SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize">
@@ -24,23 +24,26 @@
         </Grid.ColumnDefinitions>
 
         <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                  Content="Use line numbers (N...)" IsChecked="{Binding UseLineNumbers}"/>
+                  Content="{DataBinding '$i18n.UseLineNumbers'}"
+                  IsChecked="{Binding UseLineNumbers}"/>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,8,8,0"
-                   Text="Start line number:" VerticalAlignment="Center"/>
+                   Text="{DataBinding '$i18n.LineNumberStart'}" VerticalAlignment="Center"/>
         <TextBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Width="80"
                  Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
 
         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,8,8,0"
-                   Text="Line number step:" VerticalAlignment="Center"/>
+                   Text="{DataBinding '$i18n.LineNumberStep'}" VerticalAlignment="Center"/>
         <TextBox Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" Width="80"
                  Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
 
         <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                  Content="Generate comments" IsChecked="{Binding UseComments}"/>
+                  Content="{DataBinding '$i18n.GenerateComments'}"
+                  IsChecked="{Binding UseComments}"/>
 
         <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                  Content="Allow arc moves (G2/G3)" IsChecked="{Binding AllowArcs}"/>
+                  Content="{DataBinding '$i18n.AllowArcs'}"
+                  IsChecked="{Binding AllowArcs}"/>
     </Grid>
 </Window>
 

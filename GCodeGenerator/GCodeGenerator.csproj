@@ -86,8 +86,10 @@
     <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Models\OperationBase.cs" />
     <Compile Include="Models\OperationType.cs" />
+    <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
+    <Compile Include="LocalizationModule.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Compile Include="Views\MainView.xaml.cs">
@@ -132,7 +134,18 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="Resources\LocalizableResources.resx" />
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\YLocalization\YLocalization.csproj">
+      <Project>{195c9b8c-4f0d-df55-2190-c17baf73717d}</Project>
+      <Name>YLocalization</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\YMugenExtensions\YMugenExtensions.csproj">
+      <Project>{a0eeea4d-c6e4-5714-a1c9-307a7dac7cc5}</Project>
+      <Name>YMugenExtensions</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

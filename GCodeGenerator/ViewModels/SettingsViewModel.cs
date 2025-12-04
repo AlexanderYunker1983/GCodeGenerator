@@ -1,6 +1,7 @@
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
+using YLocalization;
 
 namespace GCodeGenerator.ViewModels
 {
@@ -9,9 +10,16 @@ namespace GCodeGenerator.ViewModels
         private readonly GCodeSettings _settings;
 
         public SettingsViewModel()
+            : this(null)
+        {
+        }
+
+        public SettingsViewModel(ILocalizationManager localizationManager)
         {
             _settings = GCodeSettingsStore.Current;
-            DisplayName = "G-code settings";
+
+            var title = localizationManager?.GetString("GCodeSettingsTitle");
+            DisplayName = string.IsNullOrEmpty(title) ? "Настройки G-кода" : title;
 
             // Initialize from shared settings
             UseLineNumbers = _settings.UseLineNumbers;

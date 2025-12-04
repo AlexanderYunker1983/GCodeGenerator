@@ -6,7 +6,7 @@
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
-        Title="{Binding DisplayName}" Height="600" Width="900">
+        Title="{DataBinding '$i18n.MainTitle'}" Height="600" Width="900">
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
@@ -19,12 +19,16 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
-            <Button Content="Add drill points operation" Command="{Binding AddDrillPointsCommand}" Margin="0,0,8,0"/>
-            <Button Content="Generate G-code" Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0"/>
-            <Button Content="Settings..." Command="{Binding OpenSettingsCommand}"/>
+            <Button Content="{DataBinding '$i18n.AddDrillPoints'}"
+                    Command="{Binding AddDrillPointsCommand}" Margin="0,0,8,0"/>
+            <Button Content="{DataBinding '$i18n.GenerateGCode'}"
+                    Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0"/>
+            <Button Content="{DataBinding '$i18n.Settings'}"
+                    Command="{Binding OpenSettingsCommand}"/>
         </StackPanel>
 
-        <GroupBox Header="Operations" Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+        <GroupBox Header="{DataBinding '$i18n.OperationsHeader'}"
+                  Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
             <ListBox ItemsSource="{Binding Operations}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -40,7 +44,8 @@
             </ListBox>
         </GroupBox>
 
-        <GroupBox Header="G-code preview" Grid.Row="1" Grid.Column="1">
+        <GroupBox Header="{DataBinding '$i18n.GCodePreviewHeader'}"
+                  Grid.Row="1" Grid.Column="1">
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
