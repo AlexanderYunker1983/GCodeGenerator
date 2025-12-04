@@ -92,6 +92,7 @@
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
+    <Compile Include="PlatformVariables.cs" />
     <Compile Include="ViewModels\DrillPointsOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillLineOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
@@ -135,6 +136,7 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Properties\AssemblyVersionInfo.Generated.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>

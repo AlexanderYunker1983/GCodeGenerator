@@ -37,7 +37,9 @@ namespace GCodeGenerator.ViewModels
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
 
             var title = _localizationManager?.GetString("MainTitle");
-            _displayName = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
+            var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
+            var version = PlatformVariables.ProgramVersion;
+            _displayName = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
         }
 
         private string _displayName;

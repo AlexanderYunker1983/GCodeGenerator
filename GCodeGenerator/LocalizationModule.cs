@@ -1,3 +1,4 @@
+using System.Reflection;
 using MugenMvvmToolkit;
 using MugenMvvmToolkit.Interfaces;
 using MugenMvvmToolkit.Interfaces.Models;
@@ -21,6 +22,13 @@ namespace GCodeGenerator
 
             var localizationManager = ioc.Get<ILocalizationManager>();
             localizationManager.AddAssembly("GCodeGenerator");
+
+            // Set ProgramVersion from assembly version
+            var version = Assembly.GetAssembly(GetType()).GetName().Version;
+            PlatformVariables.ProgramVersion = version.Build == 0 
+                ? $"{version.Major}.{version.Minor}" 
+                : $"{version.Major}.{version.Minor}.{version.Build}-Developer Version";
+            PlatformVariables.LocalizationManager = localizationManager;
 
             return true;
         }
