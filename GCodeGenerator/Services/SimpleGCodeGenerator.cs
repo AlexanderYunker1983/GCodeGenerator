@@ -51,7 +51,8 @@ namespace GCodeGenerator.Services
 
                 if (operation is DrillPointsOperation drill)
                 {
-                    var fmt = $"0.{new string('#', drill.Decimals)}";
+                    // Use '0' instead of '#' to always show specified decimal places, even for zeros
+                    var fmt = $"0.{new string('0', drill.Decimals)}";
                     var culture = CultureInfo.InvariantCulture;
 
                     foreach (var hole in drill.Holes)
