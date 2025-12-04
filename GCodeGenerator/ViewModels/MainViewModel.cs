@@ -12,7 +12,7 @@ namespace GCodeGenerator.ViewModels
     public class MainViewModel : ViewModelBase, IHasDisplayName
     {
         private readonly IGCodeGenerator _generator;
-        private readonly GCodeSettings _settings = new GCodeSettings();
+        private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
 
         public MainViewModel()
         {
@@ -21,6 +21,7 @@ namespace GCodeGenerator.ViewModels
             Operations = new ObservableCollection<OperationBase>();
             AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
+            OpenSettingsCommand = new RelayCommand(OpenSettings);
 
             DisplayName = "GCode Generator";
         }
@@ -57,6 +58,8 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand GenerateGCodeCommand { get; }
 
+        public ICommand OpenSettingsCommand { get; }
+
         private void AddDrillPoints()
         {
             var op = new DrillPointsOperation();
@@ -76,6 +79,14 @@ namespace GCodeGenerator.ViewModels
             foreach (var line in program.Lines)
                 sb.AppendLine(line);
             GCodePreview = sb.ToString();
+        }
+
+        private void OpenSettings()
+        {
+            using (var vm = GetViewModel<SettingsViewModel>())
+            {
+                vm.ShowAsync();
+            }
         }
     }
 }
