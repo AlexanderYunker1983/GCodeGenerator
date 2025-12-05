@@ -92,6 +92,10 @@ namespace GCodeGenerator.Services
                 {
                     GenerateProfileRectangle(profileRect, AddLine, g0, g1, settings);
                 }
+                else if (operation is ProfileCircleOperation profileCircle)
+                {
+                    GenerateProfileCircle(profileCircle, AddLine, g0, g1, settings);
+                }
                 else
                 {
                     // Stub for other types
@@ -359,6 +363,156 @@ namespace GCodeGenerator.Services
                 if (nextZ > finalZ)
                 {
                     // Retract to height above the depth we just processed
+                    var retractZAfterPass = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Update currentZ to the depth we just processed for the next pass
+                currentZ = nextZ;
+            }
+
+            // Final retract to safe Z
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+        }
+
+        private void GenerateProfileCircle(ProfileCircleOperation op, Action<string> addLine, string g0, string g1, GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            // Calculate tool radius offset
+            var toolRadius = op.ToolDiameter / 2.0;
+            var offset = 0.0;
+            if (op.ToolPathMode == ToolPathMode.Outside)
+                offset = toolRadius;
+            else if (op.ToolPathMode == ToolPathMode.Inside)
+                offset = -toolRadius;
+
+            // Calculate actual radius for tool path
+            var actualRadius = op.Radius + offset;
+
+            // Generate depth passes
+            var currentZ = op.ContourHeight;
+            var finalZ = op.ContourHeight - op.TotalDepth;
+            var passNumber = 0;
+
+            // Calculate start point on circle (at angle 0, which is right side)
+            var startX = op.CenterX + actualRadius;
+            var startY = op.CenterY;
+
+            while (currentZ > finalZ)
+            {
+                var nextZ = currentZ - op.StepDepth;
+                if (nextZ < finalZ)
+                    nextZ = finalZ;
+
+                passNumber++;
+
+                if (settings.UseComments)
+                    addLine($"(Pass {passNumber}, depth {nextZ.ToString(fmt, culture)})");
+
+                // Move to safe Z and then to start position
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                // Entry move
+                if (op.EntryMode == EntryMode.Vertical)
+                {
+                    // Vertical entry: rapid to already processed depth, then work feed to target depth
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Angled entry: ramp down along the circle
+                    var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
+                    var retractZ = currentZ + op.RetractHeight;
+                    
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    
+                    // Calculate ramp distance needed
+                    var rampDepth = retractZ - nextZ;
+                    var rampDistance = rampDepth / Math.Tan(entryAngleRad);
+                    
+                    // Calculate angle increment for ramp
+                    var circumference = 2 * Math.PI * actualRadius;
+                    var angleForRamp = (rampDistance / circumference) * 2 * Math.PI;
+                    
+                    // Start angle (0 = right side)
+                    var rampStartAngle = 0.0;
+                    var rampEndAngle = angleForRamp;
+                    if (op.Direction == MillingDirection.Clockwise)
+                        rampEndAngle = -angleForRamp;
+                    
+                    // Generate ramp points
+                    var rampSegments = Math.Max(4, (int)(Math.Abs(angleForRamp) / (Math.PI / 16)));
+                    for (int i = 1; i <= rampSegments; i++)
+                    {
+                        var t = (double)i / rampSegments;
+                        var angle = rampStartAngle + t * rampEndAngle;
+                        var x = op.CenterX + actualRadius * Math.Cos(angle);
+                        var y = op.CenterY + actualRadius * Math.Sin(angle);
+                        var z = retractZ - t * rampDepth;
+                        
+                        addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} Z{z.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    
+                    // After ramp, lift to safe height and move to start
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Mill the circle contour
+                if (settings.AllowArcs)
+                {
+                    // Use arc commands (G2/G3)
+                    var g2 = settings.UsePaddedGCodes ? "G02" : "G2";
+                    var g3 = settings.UsePaddedGCodes ? "G03" : "G3";
+                    
+                    // I and J are offsets from current position to center
+                    var i = op.CenterX - startX;
+                    var j = op.CenterY - startY;
+                    
+                    // Use G2 for clockwise, G3 for counter-clockwise
+                    var arcCommand = op.Direction == MillingDirection.Clockwise ? g2 : g3;
+                    
+                    // Split full circle into two semicircles to avoid issues with some controllers
+                    // First semicircle: from start (right) to opposite point (left)
+                    var midX = op.CenterX - actualRadius;
+                    var midY = op.CenterY;
+                    addLine($"{arcCommand} X{midX.ToString(fmt, culture)} Y{midY.ToString(fmt, culture)} I{i.ToString(fmt, culture)} J{j.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    
+                    // Second semicircle: from mid point back to start
+                    var i2 = op.CenterX - midX;
+                    var j2 = op.CenterY - midY;
+                    addLine($"{arcCommand} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} I{i2.ToString(fmt, culture)} J{j2.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Approximate circle with linear segments
+                    // Calculate number of segments based on max segment length
+                    var circumference = 2 * Math.PI * actualRadius;
+                    var numSegments = Math.Max(4, (int)Math.Ceiling(circumference / op.MaxSegmentLength));
+                    var angleStep = 2 * Math.PI / numSegments;
+                    
+                    if (op.Direction == MillingDirection.Clockwise)
+                        angleStep = -angleStep;
+                    
+                    // Generate segments
+                    for (int i = 1; i <= numSegments; i++)
+                    {
+                        var angle = i * angleStep;
+                        var x = op.CenterX + actualRadius * Math.Cos(angle);
+                        var y = op.CenterY + actualRadius * Math.Sin(angle);
+                        
+                        addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                }
+
+                // Retract (only if there are more passes to do)
+                if (nextZ > finalZ)
+                {
                     var retractZAfterPass = nextZ + op.RetractHeight;
                     addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                 }

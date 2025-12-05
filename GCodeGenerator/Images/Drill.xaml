@@ -1012,4 +1012,11 @@
                   Data="M 8,8 L 56,8 L 56,56 L 8,56 Z"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="ProfileCircle">
+        <Canvas Width="64" Height="64">
+            <Ellipse StrokeThickness="1" Stroke="#FF000000" 
+                     Width="48" Height="48" 
+                     Canvas.Left="8" Canvas.Top="8"/>
+        </Canvas>
+    </Viewbox>
 </ResourceDictionary>

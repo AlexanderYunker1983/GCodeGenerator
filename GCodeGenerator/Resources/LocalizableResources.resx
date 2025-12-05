@@ -243,4 +243,7 @@
   <data name="ProfileRectangleName" xml:space="preserve">
     <value>Контур прямоугольника</value>
   </data>
+  <data name="ProfileCircleName" xml:space="preserve">
+    <value>Контур окружности</value>
+  </data>
 </root>

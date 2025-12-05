@@ -18,6 +18,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations = new ObservableCollection<OperationBase>();
             
             AddProfileRectangleCommand = new RelayCommand(AddProfileRectangle);
+            AddProfileCircleCommand = new RelayCommand(AddProfileCircle);
             
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -50,6 +51,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ViewModels.MainViewModel MainViewModel { get; set; }
 
         public ICommand AddProfileRectangleCommand { get; }
+        public ICommand AddProfileCircleCommand { get; }
         
         public ICommand MoveOperationUpCommand { get; }
         public ICommand MoveOperationDownCommand { get; }
@@ -67,6 +69,24 @@ namespace GCodeGenerator.ViewModels.PocketMill
             SelectedOperation = op;
 
             using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
+            {
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddProfileCircle()
+        {
+            var op = new ProfileCircleOperation();
+            var name = _localizationManager?.GetString("ProfileCircleName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<ProfileCircleOperationViewModel>())
             {
                 vm.ProfileMillingOperationsViewModel = this;
                 vm.Operation = op;
@@ -131,14 +151,23 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         public void EditSelectedOperation()
         {
-            if (!(SelectedOperation is ProfileRectangleOperation profileOp))
-                return;
-
-            using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
+            if (SelectedOperation is ProfileRectangleOperation profileRectOp)
             {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = profileOp;
-                vm.ShowAsync();
+                using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
+                {
+                    vm.ProfileMillingOperationsViewModel = this;
+                    vm.Operation = profileRectOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is ProfileCircleOperation profileCircleOp)
+            {
+                using (var vm = GetViewModel<ProfileCircleOperationViewModel>())
+                {
+                    vm.ProfileMillingOperationsViewModel = this;
+                    vm.Operation = profileCircleOp;
+                    vm.ShowAsync();
+                }
             }
         }
 

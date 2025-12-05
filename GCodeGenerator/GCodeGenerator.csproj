@@ -97,6 +97,7 @@
     <Compile Include="Models\ReferencePointType.cs" />
     <Compile Include="Models\EntryMode.cs" />
     <Compile Include="Models\ProfileRectangleOperation.cs" />
+    <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
@@ -110,6 +111,7 @@
     <Compile Include="ViewModels\Drill\DrillCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\Drill\DrillPackageOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileRectangleOperationViewModel.cs" />
+    <Compile Include="ViewModels\PocketMill\ProfileCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -145,6 +147,9 @@
     </Compile>
     <Compile Include="Views\PocketMill\ProfileRectangleOperationView.xaml.cs">
       <DependentUpon>ProfileRectangleOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PocketMill\ProfileCircleOperationView.xaml.cs">
+      <DependentUpon>ProfileCircleOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PreviewView.xaml.cs">
       <DependentUpon>PreviewView.xaml</DependentUpon>
@@ -221,6 +226,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\PocketMill\ProfileRectangleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\PocketMill\ProfileCircleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
