@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
+        xmlns:views="clr-namespace:GCodeGenerator.Views"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Title="{DataBinding DisplayName}"
@@ -33,107 +34,10 @@
                 Width="200"
                 HorizontalAlignment="Left"/>
 
-        <!-- Left side: operation type selector -->
+        <!-- Left side: operation type selector inside TabControl -->
         <TabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                              VerticalScrollBarVisibility="Auto">
-                    <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
-                        <Button Command="{Binding AddDrillPointsCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentControl Content="{StaticResource DrillByCoords}" 
-                                                MaxWidth="64" MaxHeight="64"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="0,0,0,4"/>
-                                <TextBlock Text="{DataBinding '$i18n.DrillPointsName'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding AddDrillLineCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentControl Content="{StaticResource DrillByLine}" 
-                                                MaxWidth="64" MaxHeight="64"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="0,0,0,4"/>
-                                <TextBlock Text="{DataBinding '$i18n.AddDrillLine'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding AddDrillArrayCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentControl Content="{StaticResource DrillByMatrix}" 
-                                                MaxWidth="64" MaxHeight="64"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="0,0,0,4"/>
-                                <TextBlock Text="{DataBinding '$i18n.AddDrillArray'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding AddDrillRectCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentControl Content="{StaticResource DrillByRect}" 
-                                                MaxWidth="64" MaxHeight="64"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="0,0,0,4"/>
-                                <TextBlock Text="{DataBinding '$i18n.AddDrillRect'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding AddDrillCircleCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <ContentControl Content="{StaticResource DrillByCircle}" 
-                                                MaxWidth="64" MaxHeight="64"
-                                                HorizontalAlignment="Center"
-                                                VerticalAlignment="Center"
-                                                Margin="0,0,0,4"/>
-                                <TextBlock Text="{DataBinding '$i18n.AddDrillCircle'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-
-                        <Button Command="{Binding AddDrillPackageCommand}"
-                                Margin="0,0,8,8">
-                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Viewbox MaxWidth="43" MaxHeight="43"
-                                         HorizontalAlignment="Center"
-                                         VerticalAlignment="Center"
-                                         Margin="0,0,0,4">
-                                    <Viewbox Width="96" Height="96" Stretch="Uniform">
-                                        <Image Source="{StaticResource electronicsDrawingImage}" 
-                                               Width="64" Height="64"/>
-                                    </Viewbox>
-                                </Viewbox>
-                                <TextBlock Text="{DataBinding '$i18n.AddDrillPackage'}"
-                                           TextAlignment="Center"
-                                           TextWrapping="Wrap"
-                                           Margin="4,0,4,0"/>
-                            </StackPanel>
-                        </Button>
-                    </WrapPanel>
-                </ScrollViewer>
+                <views:DrillOperationsView DataContext="{Binding DrillOperations}"/>
             </TabItem>
             <TabItem Header="{DataBinding '$i18n.MillingTab'}" IsEnabled="False">
                 <TabControl Margin="0,4,0,0">
@@ -176,11 +80,11 @@
         <!-- Top-right: operations list controls + generate & settings -->
         <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="{DataBinding '$i18n.MoveUp'}"
-                    Command="{Binding MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
+                    Command="{Binding DrillOperations.MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.MoveDown'}"
-                    Command="{Binding MoveOperationDownCommand}" Margin="0,0,8,0" Width="80"/>
+                    Command="{Binding DrillOperations.MoveOperationDownCommand}" Margin="0,0,8,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.DeleteOperation'}"
-                    Command="{Binding RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
+                    Command="{Binding DrillOperations.RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.GenerateGCode'}"
                     Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0" Width="160"/>
             <Button Content="{DataBinding '$i18n.SaveGCode'}"
@@ -193,8 +97,8 @@
         <GroupBox Header="{DataBinding '$i18n.OperationsHeader'}"
                   Grid.Row="2" Grid.Column="1" Margin="0,0,4,0">
             <ListBox x:Name="OperationsList"
-                     ItemsSource="{Binding Operations}"
-                     SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
+                     ItemsSource="{Binding DrillOperations.Operations}"
+                     SelectedItem="{Binding DrillOperations.SelectedOperation, Mode=TwoWay}"
                      MouseDoubleClick="OperationsList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>

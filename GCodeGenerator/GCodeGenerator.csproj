@@ -95,6 +95,7 @@
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
+    <Compile Include="ViewModels\DrillOperationsViewModel.cs" />
     <Compile Include="ViewModels\DrillPointsOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillLineOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
@@ -127,6 +128,9 @@
     </Compile>
     <Compile Include="Views\DrillPackageOperationView.xaml.cs">
       <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\DrillOperationsView.xaml.cs">
+      <DependentUpon>DrillOperationsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PreviewView.xaml.cs">
       <DependentUpon>PreviewView.xaml</DependentUpon>
@@ -191,6 +195,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillPackageOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\DrillOperationsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

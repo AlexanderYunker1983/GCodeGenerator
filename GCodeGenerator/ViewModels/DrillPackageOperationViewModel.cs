@@ -55,7 +55,7 @@ namespace GCodeGenerator.ViewModels
             Packages.Add(new PackageDefinition("SOIC-16", 8, 1.27, 5.3));
         }
 
-        public MainViewModel MainViewModel { get; set; }
+        public DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 

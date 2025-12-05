@@ -22,7 +22,7 @@ namespace GCodeGenerator.ViewModels
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
 
-        public MainViewModel MainViewModel { get; set; }
+        public DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 

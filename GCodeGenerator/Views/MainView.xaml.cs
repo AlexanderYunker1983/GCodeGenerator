@@ -17,10 +17,11 @@ namespace GCodeGenerator.Views
         private void OperationsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is MainViewModel vm &&
-                vm.EditOperationCommand != null &&
-                vm.EditOperationCommand.CanExecute(null))
+                vm.DrillOperations != null &&
+                vm.DrillOperations.EditOperationCommand != null &&
+                vm.DrillOperations.EditOperationCommand.CanExecute(null))
             {
-                vm.EditOperationCommand.Execute(null);
+                vm.DrillOperations.EditOperationCommand.Execute(null);
             }
         }
     }

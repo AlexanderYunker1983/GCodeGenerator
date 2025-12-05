@@ -21,21 +21,14 @@ namespace GCodeGenerator.ViewModels
             _localizationManager = localizationManager;
             _generator = new SimpleGCodeGenerator();
 
-            Operations = new ObservableCollection<OperationBase>();
-            AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
-            AddDrillLineCommand = new RelayCommand(AddDrillLine);
-            AddDrillArrayCommand = new RelayCommand(AddDrillArray);
-            AddDrillRectCommand = new RelayCommand(AddDrillRect);
-            AddDrillCircleCommand = new RelayCommand(AddDrillCircle);
-            AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
-            GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => Operations.Count > 0);
+            DrillOperations = new DrillOperationsViewModel(localizationManager);
+            DrillOperations.Operations.CollectionChanged += (s, e) => 
+                ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            
+            GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => DrillOperations.Operations.Count > 0);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
             PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
             OpenSettingsCommand = new RelayCommand(OpenSettings);
-            MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
-            MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
-            RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
-            EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
 
             var title = _localizationManager?.GetString("MainTitle");
             var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
@@ -56,21 +49,7 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        public ObservableCollection<OperationBase> Operations { get; }
-
-        private OperationBase _selectedOperation;
-
-        public OperationBase SelectedOperation
-        {
-            get => _selectedOperation;
-            set
-            {
-                if (Equals(value, _selectedOperation)) return;
-                _selectedOperation = value;
-                OnPropertyChanged();
-                UpdateOperationCommandsCanExecute();
-            }
-        }
+        public DrillOperationsViewModel DrillOperations { get; }
 
         private string _gCodePreview;
 
@@ -87,18 +66,6 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        public ICommand AddDrillPointsCommand { get; }
-
-        public ICommand AddDrillLineCommand { get; }
-
-        public ICommand AddDrillArrayCommand { get; }
-
-        public ICommand AddDrillRectCommand { get; }
-
-        public ICommand AddDrillCircleCommand { get; }
-
-        public ICommand AddDrillPackageCommand { get; }
-
         public ICommand GenerateGCodeCommand { get; }
 
         public ICommand SaveGCodeCommand { get; }
@@ -107,131 +74,10 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand OpenSettingsCommand { get; }
 
-        public ICommand MoveOperationUpCommand { get; }
-
-        public ICommand MoveOperationDownCommand { get; }
-
-        public ICommand RemoveOperationCommand { get; }
-
-        public ICommand EditOperationCommand { get; }
-
-        private void AddDrillPoints()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("DrillPointsName");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillPointsOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
-
-        private void AddDrillLine()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("AddDrillLine");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillLineOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
-
-        private void AddDrillArray()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("AddDrillArray");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillArrayOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
-
-        private void AddDrillRect()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("AddDrillRect");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillRectOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
-
-        private void AddDrillCircle()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("AddDrillCircle");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillCircleOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
-
-        private void AddDrillPackage()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("AddDrillPackage");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            Operations.Add(op);
-            SelectedOperation = op;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-
-            using (var vm = GetViewModel<DrillPackageOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
-        }
 
         private void GenerateGCode()
         {
-            var program = _generator.Generate(new System.Collections.Generic.List<OperationBase>(Operations), _settings);
+            var program = _generator.Generate(new System.Collections.Generic.List<OperationBase>(DrillOperations.Operations), _settings);
             var sb = new StringBuilder();
             foreach (var line in program.Lines)
                 sb.AppendLine(line);
@@ -288,140 +134,5 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private bool CanModifySelectedOperation() => SelectedOperation != null;
-
-        private bool CanMoveSelectedOperationUp()
-        {
-            if (SelectedOperation == null) return false;
-            var index = Operations.IndexOf(SelectedOperation);
-            return index > 0;
-        }
-
-        private bool CanMoveSelectedOperationDown()
-        {
-            if (SelectedOperation == null) return false;
-            var index = Operations.IndexOf(SelectedOperation);
-            return index >= 0 && index < Operations.Count - 1;
-        }
-
-        private void MoveSelectedOperationUp()
-        {
-            if (!CanMoveSelectedOperationUp()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            Operations.Move(index, index - 1);
-            UpdateOperationCommandsCanExecute();
-        }
-
-        private void MoveSelectedOperationDown()
-        {
-            if (!CanMoveSelectedOperationDown()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            Operations.Move(index, index + 1);
-            UpdateOperationCommandsCanExecute();
-        }
-
-        private void RemoveSelectedOperation()
-        {
-            if (!CanModifySelectedOperation()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            if (index < 0) return;
-            Operations.RemoveAt(index);
-            SelectedOperation = index < Operations.Count ? Operations[index] : null;
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-            UpdateOperationCommandsCanExecute();
-        }
-
-        public void RemoveOperation(OperationBase operation)
-        {
-            if (operation == null) return;
-            var index = Operations.IndexOf(operation);
-            if (index < 0) return;
-            Operations.RemoveAt(index);
-            if (SelectedOperation == operation)
-            {
-                SelectedOperation = index < Operations.Count ? Operations[index] : null;
-            }
-            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
-            UpdateOperationCommandsCanExecute();
-        }
-
-        private void EditSelectedOperation()
-        {
-            if (!(SelectedOperation is DrillPointsOperation drillOp))
-                return;
-
-            // Определяем тип операции по имени
-            var operationName = drillOp.Name;
-            var addDrillLineName = _localizationManager?.GetString("AddDrillLine");
-            var addDrillArrayName = _localizationManager?.GetString("AddDrillArray");
-            var addDrillRectName = _localizationManager?.GetString("AddDrillRect");
-            var addDrillCircleName = _localizationManager?.GetString("AddDrillCircle");
-            var addDrillPackageName = _localizationManager?.GetString("AddDrillPackage");
-            var drillPointsName = _localizationManager?.GetString("DrillPointsName");
-
-            if (!string.IsNullOrEmpty(addDrillLineName) && operationName == addDrillLineName)
-            {
-                using (var vm = GetViewModel<DrillLineOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-            else if (!string.IsNullOrEmpty(addDrillArrayName) && operationName == addDrillArrayName)
-            {
-                using (var vm = GetViewModel<DrillArrayOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-            else if (!string.IsNullOrEmpty(addDrillRectName) && operationName == addDrillRectName)
-            {
-                using (var vm = GetViewModel<DrillRectOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-            else if (!string.IsNullOrEmpty(addDrillCircleName) && operationName == addDrillCircleName)
-            {
-                using (var vm = GetViewModel<DrillCircleOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-            else if (!string.IsNullOrEmpty(addDrillPackageName) && operationName == addDrillPackageName)
-            {
-                using (var vm = GetViewModel<DrillPackageOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-            else
-            {
-                // По умолчанию открываем DrillPointsOperationViewModel
-                using (var vm = GetViewModel<DrillPointsOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
-            }
-        }
-
-        private void UpdateOperationCommandsCanExecute()
-        {
-            (MoveOperationUpCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (MoveOperationDownCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-        }
     }
 }
