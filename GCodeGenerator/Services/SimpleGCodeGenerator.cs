@@ -243,72 +243,152 @@ namespace GCodeGenerator.Services
                         var edge1DirX = edge1Dx / edge1Length;
                         var edge1DirY = edge1Dy / edge1Length;
                         
-                        // Calculate entry point along the first edge (inside the contour)
-                        // Entry point is at a distance of rampDistance from start corner, moving along the edge
-                        var entryX = startCorner.X + edge1DirX * rampDistance;
-                        var entryY = startCorner.Y + edge1DirY * rampDistance;
-                        
-                        // Ramp down along the contour from start corner to entry point
-                        // This ensures we enter the contour at an angle, staying within the contour bounds
-                        addLine($"{g1} X{entryX.ToString(fmt, culture)} Y{entryY.ToString(fmt, culture)} Z{rampEndZ.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                        
-                        // If entry point is beyond the first corner, we need to continue along the contour
-                        if (rampDistance > edge1Length)
+                        // Check if ramp distance fits on first edge
+                        if (rampDistance <= edge1Length)
                         {
-                            // We've passed the first corner, continue along the next edge
-                            var remainingDistance = rampDistance - edge1Length;
-                            var edge2Start = rotatedCorners[cornerOrder[1]];
-                            var edge2End = rotatedCorners[cornerOrder[2]];
-                            var edge2Dx = edge2End.X - edge2Start.X;
-                            var edge2Dy = edge2End.Y - edge2Start.Y;
-                            var edge2Length = Math.Sqrt(edge2Dx * edge2Dx + edge2Dy * edge2Dy);
+                            // Ramp fits on first edge - simple case
+                            var entryX = startCorner.X + edge1DirX * rampDistance;
+                            var entryY = startCorner.Y + edge1DirY * rampDistance;
                             
-                            if (edge2Length > 0)
+                            // Ramp down along the first edge to entry point
+                            addLine($"{g1} X{entryX.ToString(fmt, culture)} Y{entryY.ToString(fmt, culture)} Z{rampEndZ.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            
+                            // After ramp reached target depth, lift to safe height and move to start corner
+                            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                            addLine($"{g0} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                            
+                            // Drop to target depth
+                            addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                            
+                            // Now mill the entire contour at target depth (including the ramp section)
+                            for (int i = 1; i < cornerOrder.Length; i++)
                             {
-                                var edge2DirX = edge2Dx / edge2Length;
-                                var edge2DirY = edge2Dy / edge2Length;
-                                
-                                // Continue along second edge
-                                var finalX = edge2Start.X + edge2DirX * remainingDistance;
-                                var finalY = edge2Start.Y + edge2DirY * remainingDistance;
-                                
-                                // Move to first corner at full depth
-                                addLine($"{g1} X{edge2Start.X.ToString(fmt, culture)} Y{edge2Start.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                                
-                                // Continue ramp along second edge
-                                addLine($"{g1} X{finalX.ToString(fmt, culture)} Y{finalY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                                
-                                // Return to start corner along the contour
-                                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                                var corner = rotatedCorners[cornerOrder[i]];
+                                addLine($"{g1} X{corner.X.ToString(fmt, culture)} Y{corner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                             }
-                            else
-                            {
-                                // Fallback: return to start corner
-                                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                            }
+                            
+                            // Close the contour (return to start)
+                            addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            
+                            // Contour is now complete, skip regular contour milling
                         }
                         else
                         {
-                            // Entry point is on the first edge, return to start corner
+                            // Ramp doesn't fit on first edge - continue on next edge(s)
+                            var remainingRampDistance = rampDistance;
+                            var rampCurrentZ = rampStartZ;
+                            var rampCurrentX = startCorner.X;
+                            var rampCurrentY = startCorner.Y;
+                            var edgeIndex = 0;
+                            
+                            // Continue ramping along edges until we reach target depth
+                            while (remainingRampDistance > 0 && rampCurrentZ > rampEndZ && edgeIndex < cornerOrder.Length)
+                            {
+                                var edgeStart = rotatedCorners[cornerOrder[edgeIndex]];
+                                var edgeEnd = rotatedCorners[cornerOrder[(edgeIndex + 1) % cornerOrder.Length]];
+                                var edgeDx = edgeEnd.X - edgeStart.X;
+                                var edgeDy = edgeEnd.Y - edgeStart.Y;
+                                var edgeLength = Math.Sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
+                                
+                                if (edgeLength > 0)
+                                {
+                                    var edgeDirX = edgeDx / edgeLength;
+                                    var edgeDirY = edgeDy / edgeLength;
+                                    
+                                    if (remainingRampDistance <= edgeLength)
+                                    {
+                                        // Final part of ramp fits on this edge
+                                        var finalX = rampCurrentX + edgeDirX * remainingRampDistance;
+                                        var finalY = rampCurrentY + edgeDirY * remainingRampDistance;
+                                        
+                                        // Calculate Z at this point
+                                        var distanceUsed = rampDistance - remainingRampDistance;
+                                        var depthAtPoint = rampStartZ - (distanceUsed / Math.Tan(entryAngleRad));
+                                        if (depthAtPoint < rampEndZ) depthAtPoint = rampEndZ;
+                                        
+                                        // Ramp to final point
+                                        addLine($"{g1} X{finalX.ToString(fmt, culture)} Y{finalY.ToString(fmt, culture)} Z{depthAtPoint.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                                        
+                                        rampCurrentX = finalX;
+                                        rampCurrentY = finalY;
+                                        rampCurrentZ = depthAtPoint;
+                                        remainingRampDistance = 0;
+                                    }
+                                    else
+                                    {
+                                        // Need to continue on next edge
+                                        // Calculate Z when we reach the end of this edge
+                                        var distanceUsed = rampDistance - remainingRampDistance;
+                                        var depthAtEnd = rampStartZ - ((distanceUsed + edgeLength) / Math.Tan(entryAngleRad));
+                                        if (depthAtEnd < rampEndZ) depthAtEnd = rampEndZ;
+                                        
+                                        // Ramp to end of this edge
+                                        addLine($"{g1} X{edgeEnd.X.ToString(fmt, culture)} Y{edgeEnd.Y.ToString(fmt, culture)} Z{depthAtEnd.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                                        
+                                        rampCurrentX = edgeEnd.X;
+                                        rampCurrentY = edgeEnd.Y;
+                                        rampCurrentZ = depthAtEnd;
+                                        remainingRampDistance -= edgeLength;
+                                        edgeIndex++;
+                                    }
+                                }
+                                else
+                                {
+                                    // Edge has zero length, skip to next
+                                    edgeIndex++;
+                                }
+                            }
+                            
+                            // After ramp is complete, ensure we're at target depth (where ramp should end)
+                            if (Math.Abs(rampCurrentZ - rampEndZ) > 0.001)
+                            {
+                                addLine($"{g1} Z{rampEndZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                                rampCurrentZ = rampEndZ;
+                            }
+                            
+                            // After ramp reached target depth, lift to safe height and move to start corner
+                            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                            addLine($"{g0} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                            
+                            // Drop to target depth
+                            addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                            
+                            // Now mill the entire contour at target depth (including the ramp section)
+                            for (int i = 1; i < cornerOrder.Length; i++)
+                            {
+                                var corner = rotatedCorners[cornerOrder[i]];
+                                addLine($"{g1} X{corner.X.ToString(fmt, culture)} Y{corner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            }
+                            
+                            // Close the contour (return to start)
                             addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            
+                            // Contour is now complete, skip the regular contour milling below
                         }
                     }
                     else
                     {
                         // Fallback to vertical if edge length is zero
-                        addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                        addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     }
                 }
 
-                // Mill the contour
-                for (int i = 1; i < cornerOrder.Length; i++)
+                // Mill the contour (only if not already completed during angled entry)
+                // For vertical entry, always mill the contour
+                // For angled entry, contour is already completed during ramp, so skip
+                if (op.EntryMode == EntryMode.Vertical)
                 {
-                    var corner = rotatedCorners[cornerOrder[i]];
-                    addLine($"{g1} X{corner.X.ToString(fmt, culture)} Y{corner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    // Mill the contour
+                    for (int i = 1; i < cornerOrder.Length; i++)
+                    {
+                        var corner = rotatedCorners[cornerOrder[i]];
+                        addLine($"{g1} X{corner.X.ToString(fmt, culture)} Y{corner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    
+                    // Close the contour (return to start)
+                    addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 }
-
-                // Close the contour (return to start)
-                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                // For angled entry, contour is already completed during ramp, so no need to mill it again
 
                 // Retract (only if there are more passes to do)
                 if (nextZ > finalZ)
