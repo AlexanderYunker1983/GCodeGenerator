@@ -38,11 +38,15 @@
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
                 <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                               VerticalScrollBarVisibility="Auto">
-                    <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                    <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
                         <Button Command="{Binding AddDrillPointsCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-points operation -->
+                                <ContentControl Content="{StaticResource DrillByCoords}" 
+                                                MaxWidth="64" MaxHeight="64"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,4"/>
                                 <TextBlock Text="{DataBinding '$i18n.DrillPointsName'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -53,7 +57,11 @@
                         <Button Command="{Binding AddDrillLineCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-line operation -->
+                                <ContentControl Content="{StaticResource DrillByLine}" 
+                                                MaxWidth="64" MaxHeight="64"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,4"/>
                                 <TextBlock Text="{DataBinding '$i18n.AddDrillLine'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -64,7 +72,11 @@
                         <Button Command="{Binding AddDrillArrayCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-array operation -->
+                                <ContentControl Content="{StaticResource DrillByMatrix}" 
+                                                MaxWidth="64" MaxHeight="64"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,4"/>
                                 <TextBlock Text="{DataBinding '$i18n.AddDrillArray'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -75,7 +87,11 @@
                         <Button Command="{Binding AddDrillRectCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-rectangle contour operation -->
+                                <ContentControl Content="{StaticResource DrillByRect}" 
+                                                MaxWidth="64" MaxHeight="64"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,4"/>
                                 <TextBlock Text="{DataBinding '$i18n.AddDrillRect'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -86,7 +102,11 @@
                         <Button Command="{Binding AddDrillCircleCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-circle operation -->
+                                <ContentControl Content="{StaticResource DrillByCircle}" 
+                                                MaxWidth="64" MaxHeight="64"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                Margin="0,0,0,4"/>
                                 <TextBlock Text="{DataBinding '$i18n.AddDrillCircle'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -97,7 +117,15 @@
                         <Button Command="{Binding AddDrillPackageCommand}"
                                 Margin="0,0,8,8">
                             <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- TODO: add image for drill-package operation -->
+                                <Viewbox MaxWidth="43" MaxHeight="43"
+                                         HorizontalAlignment="Center"
+                                         VerticalAlignment="Center"
+                                         Margin="0,0,0,4">
+                                    <Viewbox Width="96" Height="96" Stretch="Uniform">
+                                        <Image Source="{StaticResource electronicsDrawingImage}" 
+                                               Width="64" Height="64"/>
+                                    </Viewbox>
+                                </Viewbox>
                                 <TextBlock Text="{DataBinding '$i18n.AddDrillPackage'}"
                                            TextAlignment="Center"
                                            TextWrapping="Wrap"
@@ -128,7 +156,7 @@
                     <TabItem Header="{DataBinding '$i18n.ShapesTab'}">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
-                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
                                 <!-- TODO: add buttons for shape-based milling operations -->
                             </WrapPanel>
                         </ScrollViewer>
@@ -136,7 +164,7 @@
                     <TabItem Header="{DataBinding '$i18n.MiscTab'}">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
-                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
+                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
                                 <!-- TODO: add buttons for miscellaneous operations -->
                             </WrapPanel>
                         </ScrollViewer>
