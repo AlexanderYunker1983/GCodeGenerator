@@ -1,9 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Windows.Input;
 using System.Windows.Threading;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
@@ -11,20 +9,20 @@ using YLocalization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillLineOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class DrillRectOperationViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
 
-        public DrillLineOperationViewModel(ILocalizationManager localizationManager)
+        public DrillRectOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("AddDrillLine");
-            DisplayName = string.IsNullOrEmpty(title) ? "Сверление по линии" : title;
+            var title = _localizationManager?.GetString("AddDrillRect");
+            DisplayName = string.IsNullOrEmpty(title) ? "Сверление по контуру прямоугольника" : title;
 
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
 
-        public ViewModels.Drill.DrillOperationsViewModel MainViewModel { get; set; }
+        public DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 
@@ -46,6 +44,8 @@ namespace GCodeGenerator.ViewModels.Drill
                     Distance = Convert.ToDouble(_operation.Metadata["Distance"]);
                     HoleCount = Convert.ToInt32(_operation.Metadata["HoleCount"]);
                     AngleDeg = Convert.ToDouble(_operation.Metadata["AngleDeg"]);
+                    RowPitch = Convert.ToDouble(_operation.Metadata["RowPitch"]);
+                    RowCount = Convert.ToInt32(_operation.Metadata["RowCount"]);
                     TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
                     StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
                     FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
@@ -65,17 +65,20 @@ namespace GCodeGenerator.ViewModels.Drill
                     RetractHeight = first.RetractHeight;
                     // Default values for missing parameters
                     Distance = 10;
-                    HoleCount = _operation.Holes.Count;
+                    HoleCount = 3;
+                    RowPitch = 10;
+                    RowCount = 2;
                     AngleDeg = 0;
                 }
                 else
                 {
-                    // Default values.
                     StartX = 0;
                     StartY = 0;
                     StartZ = 0;
                     Distance = 10;
                     HoleCount = 3;
+                    RowPitch = 10;
+                    RowCount = 2;
                     AngleDeg = 0;
                     TotalDepth = 2;
                     StepDepth = 1;
@@ -159,14 +162,40 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        private int _holeCount = 3;
+        private int _holeCount = 4;
         public int HoleCount
         {
             get => _holeCount;
             set
             {
                 if (value == _holeCount) return;
-                _holeCount = Math.Max(1, value);
+                _holeCount = Math.Max(2, value);
+                OnPropertyChanged();
+                RebuildHoles();
+            }
+        }
+
+        private double _rowPitch;
+        public double RowPitch
+        {
+            get => _rowPitch;
+            set
+            {
+                if (value.Equals(_rowPitch)) return;
+                _rowPitch = value;
+                OnPropertyChanged();
+                RebuildHoles();
+            }
+        }
+
+        private int _rowCount = 2;
+        public int RowCount
+        {
+            get => _rowCount;
+            set
+            {
+                if (value == _rowCount) return;
+                _rowCount = Math.Max(2, value);
                 OnPropertyChanged();
                 RebuildHoles();
             }
@@ -311,29 +340,11 @@ namespace GCodeGenerator.ViewModels.Drill
                 return;
             }
 
-            // Save common parameters to operation.
             _operation.FeedXYRapid = FeedXYRapid;
             _operation.FeedXYWork = FeedXYWork;
             _operation.SafeZBetweenHoles = SafeZBetweenHoles;
             _operation.Decimals = Decimals;
 
-            // Save operation-specific parameters to metadata.
-            if (_operation.Metadata == null)
-                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
-            
-            _operation.Metadata["StartX"] = StartX;
-            _operation.Metadata["StartY"] = StartY;
-            _operation.Metadata["StartZ"] = StartZ;
-            _operation.Metadata["Distance"] = Distance;
-            _operation.Metadata["HoleCount"] = HoleCount;
-            _operation.Metadata["AngleDeg"] = AngleDeg;
-            _operation.Metadata["TotalDepth"] = TotalDepth;
-            _operation.Metadata["StepDepth"] = StepDepth;
-            _operation.Metadata["FeedZRapid"] = FeedZRapid;
-            _operation.Metadata["FeedZWork"] = FeedZWork;
-            _operation.Metadata["RetractHeight"] = RetractHeight;
-
-            // Save generated holes.
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 _operation.Holes.Add(hole);
@@ -358,27 +369,40 @@ namespace GCodeGenerator.ViewModels.Drill
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (HoleCount <= 0 || Distance == 0)
+            if (HoleCount <= 1 || Distance == 0 || RowCount <= 1)
                 return;
 
             var angleRad = AngleDeg * Math.PI / 180.0;
             var dx = Distance * Math.Cos(angleRad);
             var dy = Distance * Math.Sin(angleRad);
 
-            for (int i = 0; i < HoleCount; i++)
+            // Perpendicular direction for rows (90 degrees counter-clockwise)
+            var px = -Math.Sin(angleRad) * RowPitch;
+            var py =  Math.Cos(angleRad) * RowPitch;
+
+            for (int row = 0; row < RowCount; row++)
             {
-                var hole = new DrillHole
+                for (int col = 0; col < HoleCount; col++)
                 {
-                    X = StartX + dx * i,
-                    Y = StartY + dy * i,
-                    Z = StartZ,
-                    TotalDepth = TotalDepth,
-                    StepDepth = StepDepth,
-                    FeedZRapid = FeedZRapid,
-                    FeedZWork = FeedZWork,
-                    RetractHeight = RetractHeight
-                };
-                PreviewHoles.Add(hole);
+                    // Skip interior points; keep only outer rectangle contour.
+                    var isBorderRow = row == 0 || row == RowCount - 1;
+                    var isBorderCol = col == 0 || col == HoleCount - 1;
+                    if (!(isBorderRow || isBorderCol))
+                        continue;
+
+                    var hole = new DrillHole
+                    {
+                        X = StartX + dx * col + px * row,
+                        Y = StartY + dy * col + py * row,
+                        Z = StartZ,
+                        TotalDepth = TotalDepth,
+                        StepDepth = StepDepth,
+                        FeedZRapid = FeedZRapid,
+                        FeedZWork = FeedZWork,
+                        RetractHeight = RetractHeight
+                    };
+                    PreviewHoles.Add(hole);
+                }
             }
         }
     }

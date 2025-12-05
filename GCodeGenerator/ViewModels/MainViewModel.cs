@@ -1,6 +1,8 @@
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.ViewModels.Drill;
+using GCodeGenerator.ViewModels.PocketMill;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
 using System.Collections.ObjectModel;

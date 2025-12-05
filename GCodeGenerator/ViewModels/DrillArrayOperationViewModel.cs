@@ -7,7 +7,7 @@ using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
 using YLocalization;
 
-namespace GCodeGenerator.ViewModels
+namespace GCodeGenerator.ViewModels.Drill
 {
     public class DrillArrayOperationViewModel : CloseableViewModel, IHasDisplayName
     {
@@ -22,7 +22,7 @@ namespace GCodeGenerator.ViewModels
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
 
-        public DrillOperationsViewModel MainViewModel { get; set; }
+        public ViewModels.Drill.DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 

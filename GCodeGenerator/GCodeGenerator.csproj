@@ -101,15 +101,15 @@
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
-    <Compile Include="ViewModels\DrillOperationsViewModel.cs" />
-    <Compile Include="ViewModels\ProfileMillingOperationsViewModel.cs" />
-    <Compile Include="ViewModels\DrillPointsOperationViewModel.cs" />
-    <Compile Include="ViewModels\DrillLineOperationViewModel.cs" />
-    <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
-    <Compile Include="ViewModels\DrillRectOperationViewModel.cs" />
-    <Compile Include="ViewModels\DrillCircleOperationViewModel.cs" />
-    <Compile Include="ViewModels\DrillPackageOperationViewModel.cs" />
-    <Compile Include="ViewModels\ProfileRectangleOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillOperationsViewModel.cs" />
+    <Compile Include="ViewModels\PocketMill\ProfileMillingOperationsViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillPointsOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillLineOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillArrayOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillRectOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillCircleOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillPackageOperationViewModel.cs" />
+    <Compile Include="ViewModels\PocketMill\ProfileRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -119,31 +119,31 @@
     <Compile Include="Views\SettingsView.xaml.cs">
       <DependentUpon>SettingsView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillPointsOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillPointsOperationView.xaml.cs">
       <DependentUpon>DrillPointsOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillLineOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillLineOperationView.xaml.cs">
       <DependentUpon>DrillLineOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillArrayOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillArrayOperationView.xaml.cs">
       <DependentUpon>DrillArrayOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillRectOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillRectOperationView.xaml.cs">
       <DependentUpon>DrillRectOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillCircleOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillCircleOperationView.xaml.cs">
       <DependentUpon>DrillCircleOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillPackageOperationView.xaml.cs">
+    <Compile Include="Views\Drill\DrillPackageOperationView.xaml.cs">
       <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\DrillOperationsView.xaml.cs">
+    <Compile Include="Views\Drill\DrillOperationsView.xaml.cs">
       <DependentUpon>DrillOperationsView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\ProfileMillingOperationsView.xaml.cs">
+    <Compile Include="Views\PocketMill\ProfileMillingOperationsView.xaml.cs">
       <DependentUpon>ProfileMillingOperationsView.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Views\ProfileRectangleOperationView.xaml.cs">
+    <Compile Include="Views\PocketMill\ProfileRectangleOperationView.xaml.cs">
       <DependentUpon>ProfileRectangleOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PreviewView.xaml.cs">
@@ -188,39 +188,39 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillPointsOperationView.xaml">
+    <Page Include="Views\Drill\DrillPointsOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillLineOperationView.xaml">
+    <Page Include="Views\Drill\DrillLineOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillArrayOperationView.xaml">
+    <Page Include="Views\Drill\DrillArrayOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillRectOperationView.xaml">
+    <Page Include="Views\Drill\DrillRectOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillCircleOperationView.xaml">
+    <Page Include="Views\Drill\DrillCircleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillPackageOperationView.xaml">
+    <Page Include="Views\Drill\DrillPackageOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\DrillOperationsView.xaml">
+    <Page Include="Views\Drill\DrillOperationsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\ProfileMillingOperationsView.xaml">
+    <Page Include="Views\PocketMill\ProfileMillingOperationsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\ProfileRectangleOperationView.xaml">
+    <Page Include="Views\PocketMill\ProfileRectangleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

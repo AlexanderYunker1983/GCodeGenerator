@@ -29,7 +29,7 @@ namespace GCodeGenerator.ViewModels.Drill
             MoveHoleDownCommand = new RelayCommand(MoveSelectedHoleDown, CanMoveSelectedHoleDown);
         }
 
-        public ViewModels.Drill.DrillOperationsViewModel MainViewModel { get; set; }
+        public DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 

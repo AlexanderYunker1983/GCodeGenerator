@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Threading;
@@ -10,52 +9,20 @@ using YLocalization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillPackageOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class DrillCircleOperationViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
 
-        public DrillPackageOperationViewModel(ILocalizationManager localizationManager)
+        public DrillCircleOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("AddDrillPackage");
-            DisplayName = string.IsNullOrEmpty(title) ? "Сверление под стандартный корпус" : title;
+            var title = _localizationManager?.GetString("AddDrillCircle");
+            DisplayName = string.IsNullOrEmpty(title) ? "Сверление по окружности" : title;
 
             PreviewHoles = new ObservableCollection<DrillHole>();
-            Packages = new ObservableCollection<PackageDefinition>();
-
-            // Инициализация стандартных корпусов
-            InitializePackages();
-
-            // По умолчанию выбран DIP8
-            SelectedPackage = Packages.FirstOrDefault(p => p.Name == "DIP8");
         }
 
-        private void InitializePackages()
-        {
-            // DIP корпуса: шаг между выводами 2.54 мм, расстояние между рядами 7.62 мм (300 mil)
-            Packages.Add(new PackageDefinition("DIP8", 4, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP14", 7, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP16", 8, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP18", 9, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP20", 10, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP24", 12, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP28", 14, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP32", 16, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP40", 20, 2.54, 7.62));
-
-            // TO-220: 3 вывода в один ряд, шаг 2.54 мм
-            Packages.Add(new PackageDefinition("TO-220", 3, 2.54, 0));
-
-            // TO-92: 3 вывода в один ряд, шаг 2.54 мм
-            Packages.Add(new PackageDefinition("TO-92", 3, 2.54, 0));
-
-            // SOIC корпуса: шаг 1.27 мм, расстояние между рядами 5.3 мм (для SOIC-8)
-            Packages.Add(new PackageDefinition("SOIC-8", 4, 1.27, 5.3));
-            Packages.Add(new PackageDefinition("SOIC-14", 7, 1.27, 5.3));
-            Packages.Add(new PackageDefinition("SOIC-16", 8, 1.27, 5.3));
-        }
-
-        public ViewModels.Drill.DrillOperationsViewModel MainViewModel { get; set; }
+        public DrillOperationsViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 
@@ -74,22 +41,14 @@ namespace GCodeGenerator.ViewModels.Drill
                     CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
                     CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
                     Z = Convert.ToDouble(_operation.Metadata["Z"]);
-                    RotationAngle = Convert.ToDouble(_operation.Metadata["RotationAngle"]);
+                    Radius = Convert.ToDouble(_operation.Metadata["Radius"]);
+                    HoleCount = Convert.ToInt32(_operation.Metadata["HoleCount"]);
+                    StartAngleDeg = Convert.ToDouble(_operation.Metadata["StartAngleDeg"]);
                     TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
                     StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
                     FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
                     FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
                     RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
-                    
-                    // Restore package selection
-                    if (_operation.Metadata.ContainsKey("PackageName"))
-                    {
-                        var packageName = _operation.Metadata["PackageName"] as string;
-                        if (!string.IsNullOrEmpty(packageName))
-                        {
-                            SelectedPackage = Packages.FirstOrDefault(p => p.Name == packageName);
-                        }
-                    }
                 }
                 else if (_operation.Holes.Any())
                 {
@@ -102,14 +61,19 @@ namespace GCodeGenerator.ViewModels.Drill
                     FeedZRapid = first.FeedZRapid;
                     FeedZWork = first.FeedZWork;
                     RetractHeight = first.RetractHeight;
-                    RotationAngle = 0;
+                    // Default values for missing parameters
+                    Radius = 10;
+                    HoleCount = _operation.Holes.Count;
+                    StartAngleDeg = 0;
                 }
                 else
                 {
                     CenterX = 0;
                     CenterY = 0;
                     Z = 0;
-                    RotationAngle = 0;
+                    Radius = 10;
+                    HoleCount = 2;
+                    StartAngleDeg = 0;
                     TotalDepth = 2;
                     StepDepth = 1;
                     FeedZRapid = 500;
@@ -127,20 +91,6 @@ namespace GCodeGenerator.ViewModels.Drill
         }
 
         public ObservableCollection<DrillHole> PreviewHoles { get; }
-        public ObservableCollection<PackageDefinition> Packages { get; }
-
-        private PackageDefinition _selectedPackage;
-        public PackageDefinition SelectedPackage
-        {
-            get => _selectedPackage;
-            set
-            {
-                if (Equals(value, _selectedPackage)) return;
-                _selectedPackage = value;
-                OnPropertyChanged();
-                RebuildHoles();
-            }
-        }
 
         private string _displayName;
         public string DisplayName
@@ -193,14 +143,40 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        private double _rotationAngle;
-        public double RotationAngle
+        private double _radius;
+        public double Radius
         {
-            get => _rotationAngle;
+            get => _radius;
             set
             {
-                if (value.Equals(_rotationAngle)) return;
-                _rotationAngle = value;
+                if (value.Equals(_radius)) return;
+                _radius = value;
+                OnPropertyChanged();
+                RebuildHoles();
+            }
+        }
+
+        private int _holeCount = 2;
+        public int HoleCount
+        {
+            get => _holeCount;
+            set
+            {
+                if (value == _holeCount) return;
+                _holeCount = Math.Max(2, value);
+                OnPropertyChanged();
+                RebuildHoles();
+            }
+        }
+
+        private double _startAngleDeg;
+        public double StartAngleDeg
+        {
+            get => _startAngleDeg;
+            set
+            {
+                if (value.Equals(_startAngleDeg)) return;
+                _startAngleDeg = value;
                 OnPropertyChanged();
                 RebuildHoles();
             }
@@ -320,98 +296,6 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        private void RebuildHoles()
-        {
-            PreviewHoles.Clear();
-            if (SelectedPackage == null) return;
-
-            var angleRad = RotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(angleRad);
-            var sin = Math.Sin(angleRad);
-
-            if (SelectedPackage.RowSpacing > 0)
-            {
-                // Двухрядный корпус (DIP, SOIC)
-                var halfRowSpacing = SelectedPackage.RowSpacing / 2.0;
-                var totalPinLength = (SelectedPackage.PinsPerRow - 1) * SelectedPackage.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-
-                // Левый ряд (от вывода 1 до N/2)
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = -halfRowSpacing;
-                    var localY = -halfPinLength + i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-
-                // Правый ряд (от вывода N/2+1 до N)
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = halfRowSpacing;
-                    var localY = halfPinLength - i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
-            else
-            {
-                // Однорядный корпус (TO-220, TO-92)
-                var totalPinLength = (SelectedPackage.PinsPerRow - 1) * SelectedPackage.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = 0.0;
-                    var localY = -halfPinLength + i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
-        }
-
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -436,16 +320,14 @@ namespace GCodeGenerator.ViewModels.Drill
             _operation.Metadata["CenterX"] = CenterX;
             _operation.Metadata["CenterY"] = CenterY;
             _operation.Metadata["Z"] = Z;
-            _operation.Metadata["RotationAngle"] = RotationAngle;
+            _operation.Metadata["Radius"] = Radius;
+            _operation.Metadata["HoleCount"] = HoleCount;
+            _operation.Metadata["StartAngleDeg"] = StartAngleDeg;
             _operation.Metadata["TotalDepth"] = TotalDepth;
             _operation.Metadata["StepDepth"] = StepDepth;
             _operation.Metadata["FeedZRapid"] = FeedZRapid;
             _operation.Metadata["FeedZWork"] = FeedZWork;
             _operation.Metadata["RetractHeight"] = RetractHeight;
-            if (SelectedPackage != null)
-            {
-                _operation.Metadata["PackageName"] = SelectedPackage.Name;
-            }
 
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
@@ -467,6 +349,37 @@ namespace GCodeGenerator.ViewModels.Drill
                 }
             }
         }
+
+        private void RebuildHoles()
+        {
+            PreviewHoles.Clear();
+            if (HoleCount < 2 || Radius == 0)
+                return;
+
+            var startRad = StartAngleDeg * Math.PI / 180.0;
+            var stepRad = 2 * Math.PI / HoleCount;
+
+            for (int i = 0; i < HoleCount; i++)
+            {
+                var angle = startRad + stepRad * i;
+                var x = CenterX + Radius * Math.Cos(angle);
+                var y = CenterY + Radius * Math.Sin(angle);
+
+                var hole = new DrillHole
+                {
+                    X = x,
+                    Y = y,
+                    Z = Z,
+                    TotalDepth = TotalDepth,
+                    StepDepth = StepDepth,
+                    FeedZRapid = FeedZRapid,
+                    FeedZWork = FeedZWork,
+                    RetractHeight = RetractHeight
+                };
+                PreviewHoles.Add(hole);
+            }
+        }
     }
 }
+
 

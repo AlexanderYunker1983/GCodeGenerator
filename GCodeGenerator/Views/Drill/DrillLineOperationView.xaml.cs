@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace GCodeGenerator.Views
+namespace GCodeGenerator.Views.Drill
 {
     /// <summary>
     /// Interaction logic for DrillLineOperationView.xaml

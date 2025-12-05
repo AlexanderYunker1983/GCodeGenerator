@@ -5,6 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         xmlns:views="clr-namespace:GCodeGenerator.Views"
+        xmlns:drillViews="clr-namespace:GCodeGenerator.Views.Drill"
+        xmlns:pocketMillViews="clr-namespace:GCodeGenerator.Views.PocketMill"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Title="{DataBinding DisplayName}"
@@ -37,12 +39,12 @@
         <!-- Left side: operation type selector inside TabControl -->
         <TabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
-                <views:DrillOperationsView DataContext="{Binding DrillOperations}"/>
+                <drillViews:DrillOperationsView DataContext="{Binding DrillOperations}"/>
             </TabItem>
             <TabItem Header="{DataBinding '$i18n.MillingTab'}">
                 <TabControl Margin="0,4,0,0">
                     <TabItem Header="{DataBinding '$i18n.ProfileTab'}">
-                        <views:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
+                        <pocketMillViews:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
                     </TabItem>
                     <TabItem Header="{DataBinding '$i18n.PocketTab'}" IsEnabled="False">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
