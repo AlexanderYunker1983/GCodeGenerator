@@ -241,9 +241,32 @@ namespace GCodeGenerator.ViewModels
         private bool TryParseCoordinate(string line, char axis, out double value)
         {
             value = 0;
-            var axisStr = axis.ToString();
             var upperLine = line.ToUpperInvariant();
-            var index = upperLine.IndexOf(axisStr, StringComparison.OrdinalIgnoreCase);
+            var axisChar = char.ToUpperInvariant(axis);
+
+            // Find the axis letter, but make sure it's not part of another word
+            // (e.g., 'X' in "NEXT" should not match)
+            int index = -1;
+            for (int i = 0; i < upperLine.Length; i++)
+            {
+                if (upperLine[i] == axisChar)
+                {
+                    // Check that previous char is not a letter (to avoid matching in words)
+                    if (i == 0 || !char.IsLetter(upperLine[i - 1]))
+                    {
+                        // Check that next char is a digit, sign, or decimal point
+                        if (i + 1 < upperLine.Length)
+                        {
+                            var nextChar = upperLine[i + 1];
+                            if (char.IsDigit(nextChar) || nextChar == '-' || nextChar == '+' || nextChar == '.')
+                            {
+                                index = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
 
             if (index < 0) return false;
 
@@ -255,12 +278,15 @@ namespace GCodeGenerator.ViewModels
                 end++;
 
             // Parse digits and decimal point
+            bool hasDigit = false;
             while (end < line.Length && (char.IsDigit(line[end]) || line[end] == '.'))
             {
+                if (char.IsDigit(line[end]))
+                    hasDigit = true;
                 end++;
             }
 
-            if (end > start)
+            if (end > start && hasDigit)
             {
                 var valueStr = line.Substring(start, end - start);
                 return double.TryParse(valueStr, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
@@ -405,6 +431,9 @@ namespace GCodeGenerator.ViewModels
         {
             var modelGroup = new Model3DGroup();
 
+            // Always add coordinate axes first (even if no segments)
+            AddCoordinateAxes(modelGroup, segments);
+
             if (segments.Count == 0)
             {
                 TrajectoryModel = modelGroup;
@@ -540,6 +569,313 @@ namespace GCodeGenerator.ViewModels
             modelGroup.Children.Add(new AmbientLight(Color.FromRgb(80, 80, 80)));
 
             TrajectoryModel = modelGroup;
+        }
+
+        private void AddCoordinateAxes(Model3DGroup modelGroup, List<TrajectorySegment> segments)
+        {
+            // Calculate axis length based on model size or use default
+            double axisLength = 10.0;
+            double axisThickness = 0.15;
+            double arrowLength = 1.5;
+            double arrowRadius = 0.4;
+
+            if (segments.Count > 0)
+            {
+                var allPoints = new List<Point3D>();
+                foreach (var seg in segments)
+                {
+                    if (seg.InterpolatedPoints != null && seg.InterpolatedPoints.Count > 0)
+                        allPoints.AddRange(seg.InterpolatedPoints);
+                    else
+                    {
+                        allPoints.Add(seg.Start);
+                        allPoints.Add(seg.End);
+                    }
+                }
+
+                if (allPoints.Count > 0)
+                {
+                    var minX = allPoints.Min(p => p.X);
+                    var maxX = allPoints.Max(p => p.X);
+                    var minY = allPoints.Min(p => p.Y);
+                    var maxY = allPoints.Max(p => p.Y);
+                    var minZ = allPoints.Min(p => p.Z);
+                    var maxZ = allPoints.Max(p => p.Z);
+
+                    var sizeX = maxX - minX;
+                    var sizeY = maxY - minY;
+                    var sizeZ = maxZ - minZ;
+                    var maxSize = Math.Max(Math.Max(sizeX, sizeY), Math.Max(sizeZ, 1.0));
+
+                    axisLength = Math.Max(maxSize * 0.6, 10.0);
+                    axisThickness = Math.Max(maxSize * 0.01, 0.15);
+                    arrowLength = axisLength * 0.12;
+                    arrowRadius = axisThickness * 3;
+                }
+            }
+
+            var origin = new Point3D(0, 0, 0);
+
+            // X axis - Red
+            var xEnd = new Point3D(axisLength, 0, 0);
+            var xArrowStart = new Point3D(axisLength - arrowLength, 0, 0);
+            var xMaterial = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(200, 0, 0)));
+            AddAxisLine(modelGroup, origin, xArrowStart, axisThickness, xMaterial);
+            AddArrowHead(modelGroup, xArrowStart, xEnd, arrowRadius, xMaterial);
+            AddAxisLabel(modelGroup, new Point3D(axisLength + arrowLength * 0.5, 0, 0), "X", xMaterial, arrowRadius);
+
+            // Y axis - Green
+            var yEnd = new Point3D(0, axisLength, 0);
+            var yArrowStart = new Point3D(0, axisLength - arrowLength, 0);
+            var yMaterial = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(0, 180, 0)));
+            AddAxisLine(modelGroup, origin, yArrowStart, axisThickness, yMaterial);
+            AddArrowHead(modelGroup, yArrowStart, yEnd, arrowRadius, yMaterial);
+            AddAxisLabel(modelGroup, new Point3D(0, axisLength + arrowLength * 0.5, 0), "Y", yMaterial, arrowRadius);
+
+            // Z axis - Blue
+            var zEnd = new Point3D(0, 0, axisLength);
+            var zArrowStart = new Point3D(0, 0, axisLength - arrowLength);
+            var zMaterial = new DiffuseMaterial(new SolidColorBrush(Color.FromRgb(0, 80, 220)));
+            AddAxisLine(modelGroup, origin, zArrowStart, axisThickness, zMaterial);
+            AddArrowHead(modelGroup, zArrowStart, zEnd, arrowRadius, zMaterial);
+            AddAxisLabel(modelGroup, new Point3D(0, 0, axisLength + arrowLength * 0.5), "Z", zMaterial, arrowRadius);
+
+            // Origin marker - small white sphere
+            var originMaterial = new DiffuseMaterial(new SolidColorBrush(Colors.White));
+            var originSphere = new MeshGeometry3D();
+            CreateSphereGeometry(originSphere, origin, axisThickness * 2);
+            var originModel = new GeometryModel3D(originSphere, originMaterial);
+            modelGroup.Children.Add(originModel);
+        }
+
+        private void AddAxisLine(Model3DGroup modelGroup, Point3D start, Point3D end, double thickness, Material material)
+        {
+            var lineGeometry = new MeshGeometry3D();
+            CreateLineGeometry(lineGeometry, start, end, thickness);
+            if (lineGeometry.Positions.Count > 0)
+            {
+                var lineModel = new GeometryModel3D(lineGeometry, material);
+                lineModel.BackMaterial = material;
+                modelGroup.Children.Add(lineModel);
+            }
+        }
+
+        private void AddArrowHead(Model3DGroup modelGroup, Point3D baseCenter, Point3D tip, double radius, Material material)
+        {
+            // Create a cone for the arrow head
+            var coneGeometry = new MeshGeometry3D();
+            CreateConeGeometry(coneGeometry, baseCenter, tip, radius);
+            if (coneGeometry.Positions.Count > 0)
+            {
+                var coneModel = new GeometryModel3D(coneGeometry, material);
+                coneModel.BackMaterial = material;
+                modelGroup.Children.Add(coneModel);
+            }
+        }
+
+        private void AddAxisLabel(Model3DGroup modelGroup, Point3D position, string label, Material material, double size)
+        {
+            // Create a simple 3D representation for the axis label
+            // Using distinctive shapes: X = cross, Y = fork, Z = zigzag marker
+            var labelGeometry = new MeshGeometry3D();
+
+            switch (label)
+            {
+                case "X":
+                    // Create an X shape using two crossed bars
+                    CreateXShape(labelGeometry, position, size * 1.5);
+                    break;
+                case "Y":
+                    // Create a Y shape
+                    CreateYShape(labelGeometry, position, size * 1.5);
+                    break;
+                case "Z":
+                    // Create a Z shape
+                    CreateZShape(labelGeometry, position, size * 1.5);
+                    break;
+            }
+
+            if (labelGeometry.Positions.Count > 0)
+            {
+                var labelModel = new GeometryModel3D(labelGeometry, material);
+                labelModel.BackMaterial = material;
+                modelGroup.Children.Add(labelModel);
+            }
+        }
+
+        private void CreateXShape(MeshGeometry3D geometry, Point3D center, double size)
+        {
+            var thickness = size * 0.2;
+            var halfSize = size * 0.5;
+
+            // Two diagonal bars forming X
+            var bar1Start = new Point3D(center.X - halfSize, center.Y - halfSize, center.Z);
+            var bar1End = new Point3D(center.X + halfSize, center.Y + halfSize, center.Z);
+            var bar2Start = new Point3D(center.X - halfSize, center.Y + halfSize, center.Z);
+            var bar2End = new Point3D(center.X + halfSize, center.Y - halfSize, center.Z);
+
+            var tempGeom1 = new MeshGeometry3D();
+            var tempGeom2 = new MeshGeometry3D();
+            CreateLineGeometry(tempGeom1, bar1Start, bar1End, thickness);
+            CreateLineGeometry(tempGeom2, bar2Start, bar2End, thickness);
+
+            MergeGeometry(geometry, tempGeom1);
+            MergeGeometry(geometry, tempGeom2);
+        }
+
+        private void CreateYShape(MeshGeometry3D geometry, Point3D center, double size)
+        {
+            var thickness = size * 0.2;
+            var halfSize = size * 0.5;
+
+            // Y shape: two upper arms meeting at center, one stem going down
+            var armLeft = new Point3D(center.X - halfSize * 0.7, center.Y + halfSize, center.Z);
+            var armRight = new Point3D(center.X + halfSize * 0.7, center.Y + halfSize, center.Z);
+            var middle = new Point3D(center.X, center.Y, center.Z);
+            var bottom = new Point3D(center.X, center.Y - halfSize, center.Z);
+
+            var tempGeom1 = new MeshGeometry3D();
+            var tempGeom2 = new MeshGeometry3D();
+            var tempGeom3 = new MeshGeometry3D();
+            CreateLineGeometry(tempGeom1, armLeft, middle, thickness);
+            CreateLineGeometry(tempGeom2, armRight, middle, thickness);
+            CreateLineGeometry(tempGeom3, middle, bottom, thickness);
+
+            MergeGeometry(geometry, tempGeom1);
+            MergeGeometry(geometry, tempGeom2);
+            MergeGeometry(geometry, tempGeom3);
+        }
+
+        private void CreateZShape(MeshGeometry3D geometry, Point3D center, double size)
+        {
+            var thickness = size * 0.2;
+            var halfSize = size * 0.5;
+
+            // Z shape: top horizontal, diagonal, bottom horizontal
+            var topLeft = new Point3D(center.X - halfSize * 0.6, center.Y + halfSize * 0.5, center.Z);
+            var topRight = new Point3D(center.X + halfSize * 0.6, center.Y + halfSize * 0.5, center.Z);
+            var bottomLeft = new Point3D(center.X - halfSize * 0.6, center.Y - halfSize * 0.5, center.Z);
+            var bottomRight = new Point3D(center.X + halfSize * 0.6, center.Y - halfSize * 0.5, center.Z);
+
+            var tempGeom1 = new MeshGeometry3D();
+            var tempGeom2 = new MeshGeometry3D();
+            var tempGeom3 = new MeshGeometry3D();
+            CreateLineGeometry(tempGeom1, topLeft, topRight, thickness);
+            CreateLineGeometry(tempGeom2, topRight, bottomLeft, thickness);
+            CreateLineGeometry(tempGeom3, bottomLeft, bottomRight, thickness);
+
+            MergeGeometry(geometry, tempGeom1);
+            MergeGeometry(geometry, tempGeom2);
+            MergeGeometry(geometry, tempGeom3);
+        }
+
+        private void MergeGeometry(MeshGeometry3D target, MeshGeometry3D source)
+        {
+            if (source.Positions == null || source.Positions.Count == 0)
+                return;
+
+            var baseIndex = target.Positions?.Count ?? 0;
+
+            if (target.Positions == null)
+                target.Positions = new Point3DCollection();
+            if (target.TriangleIndices == null)
+                target.TriangleIndices = new Int32Collection();
+            if (target.Normals == null)
+                target.Normals = new Vector3DCollection();
+
+            foreach (var pos in source.Positions)
+                target.Positions.Add(pos);
+
+            if (source.Normals != null)
+            {
+                foreach (var norm in source.Normals)
+                    target.Normals.Add(norm);
+            }
+
+            if (source.TriangleIndices != null)
+            {
+                foreach (var idx in source.TriangleIndices)
+                    target.TriangleIndices.Add(idx + baseIndex);
+            }
+        }
+
+        private void CreateConeGeometry(MeshGeometry3D geometry, Point3D baseCenter, Point3D tip, double radius)
+        {
+            var positions = new List<Point3D>();
+            var indices = new List<int>();
+            var normals = new List<Vector3D>();
+
+            // Direction from base to tip
+            var direction = new Vector3D(tip.X - baseCenter.X, tip.Y - baseCenter.Y, tip.Z - baseCenter.Z);
+            var length = direction.Length;
+            if (length < 0.0001) return;
+            direction.Normalize();
+
+            // Find perpendicular vectors
+            Vector3D perp1;
+            var absX = Math.Abs(direction.X);
+            var absY = Math.Abs(direction.Y);
+            var absZ = Math.Abs(direction.Z);
+
+            if (absX <= absY && absX <= absZ)
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(1, 0, 0));
+            else if (absY <= absX && absY <= absZ)
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(0, 1, 0));
+            else
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(0, 0, 1));
+
+            perp1.Normalize();
+            var perp2 = Vector3D.CrossProduct(direction, perp1);
+            perp2.Normalize();
+
+            int segments = 16;
+
+            // Add tip vertex
+            positions.Add(tip);
+            normals.Add(direction);
+
+            // Add base circle vertices
+            for (int i = 0; i <= segments; i++)
+            {
+                var angle = i * 2 * Math.PI / segments;
+                var cos = Math.Cos(angle);
+                var sin = Math.Sin(angle);
+
+                var offset = perp1 * (radius * cos) + perp2 * (radius * sin);
+                var point = baseCenter + offset;
+                positions.Add(point);
+
+                // Calculate normal for cone surface
+                var toPoint = point - baseCenter;
+                var sideNormal = Vector3D.CrossProduct(Vector3D.CrossProduct(direction, toPoint), direction - toPoint);
+                sideNormal.Normalize();
+                normals.Add(sideNormal);
+            }
+
+            // Add base center
+            var baseCenterIndex = positions.Count;
+            positions.Add(baseCenter);
+            normals.Add(-direction);
+
+            // Create cone side triangles
+            for (int i = 1; i <= segments; i++)
+            {
+                indices.Add(0);        // tip
+                indices.Add(i);        // current base vertex
+                indices.Add(i + 1);    // next base vertex
+            }
+
+            // Create base cap triangles
+            for (int i = 1; i <= segments; i++)
+            {
+                indices.Add(baseCenterIndex);
+                indices.Add(i + 1);
+                indices.Add(i);
+            }
+
+            geometry.Positions = new Point3DCollection(positions);
+            geometry.TriangleIndices = new Int32Collection(indices);
+            geometry.Normals = new Vector3DCollection(normals);
         }
 
         private void CreateDashedLineSegments(Model3DGroup modelGroup, Point3D start, Point3D end,
