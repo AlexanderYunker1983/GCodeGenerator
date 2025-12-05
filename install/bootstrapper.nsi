@@ -72,10 +72,13 @@ Function .onInit
 FunctionEnd
 
 Section "Uninstall"
-    RMDir  "$INSTDIR"
+    ; Delete registry key first to remove from Programs and Features
+    DeleteRegKey HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}"
+    
+    ; Delete files and directories
     Delete "$DESKTOP\${SHORT_CUT}"
 	Delete "$SMPROGRAMS\${Y_PRODUCT}\*.*"
     RmDir  "$SMPROGRAMS\${Y_PRODUCT}"
+    RMDir /r "$INSTDIR"
 	RmDir  "$PROGRAMFILES\Yunker"
-    DeleteRegKey /ifempty HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}"
 SectionEnd
