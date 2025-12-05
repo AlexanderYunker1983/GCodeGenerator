@@ -31,7 +31,7 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Safe Z height for moves between holes.
         /// </summary>
-        public double SafeZBetweenHoles { get; set; } = 5.0;
+        public double SafeZBetweenHoles { get; set; } = 1.0;
 
         /// <summary>
         /// Number of decimal places for coordinates.

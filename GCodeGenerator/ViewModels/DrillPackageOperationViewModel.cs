@@ -111,7 +111,7 @@ namespace GCodeGenerator.ViewModels
                     StepDepth = 1;
                     FeedZRapid = 500;
                     FeedZWork = 200;
-                    RetractHeight = 5;
+                    RetractHeight = 0.3;
                 }
 
                 FeedXYRapid = _operation.FeedXYRapid;
@@ -280,7 +280,7 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private double _safeZBetweenHoles = 5;
+        private double _safeZBetweenHoles = 1;
         public double SafeZBetweenHoles
         {
             get => _safeZBetweenHoles;
@@ -292,7 +292,7 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private double _retractHeight = 5;
+        private double _retractHeight = 0.3;
         public double RetractHeight
         {
             get => _retractHeight;

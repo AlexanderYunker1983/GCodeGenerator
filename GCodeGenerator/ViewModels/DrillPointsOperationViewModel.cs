@@ -166,7 +166,7 @@ namespace GCodeGenerator.ViewModels
                     StepDepth = 1,
                     FeedZRapid = 500,
                     FeedZWork = 200,
-                    RetractHeight = 5
+                    RetractHeight = 0.3
                 };
             }
 
