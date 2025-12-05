@@ -128,6 +128,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillPointsOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -146,6 +147,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillLineOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -164,6 +166,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillArrayOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -182,6 +185,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillRectOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -200,6 +204,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillCircleOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -218,6 +223,7 @@ namespace GCodeGenerator.ViewModels
 
             using (var vm = GetViewModel<DrillPackageOperationViewModel>())
             {
+                vm.MainViewModel = this;
                 vm.Operation = op;
                 vm.ShowAsync();
             }
@@ -325,6 +331,20 @@ namespace GCodeGenerator.ViewModels
             UpdateOperationCommandsCanExecute();
         }
 
+        public void RemoveOperation(OperationBase operation)
+        {
+            if (operation == null) return;
+            var index = Operations.IndexOf(operation);
+            if (index < 0) return;
+            Operations.RemoveAt(index);
+            if (SelectedOperation == operation)
+            {
+                SelectedOperation = index < Operations.Count ? Operations[index] : null;
+            }
+            ((RelayCommand)GenerateGCodeCommand).RaiseCanExecuteChanged();
+            UpdateOperationCommandsCanExecute();
+        }
+
         private void EditSelectedOperation()
         {
             if (!(SelectedOperation is DrillPointsOperation drillOp))
@@ -343,6 +363,7 @@ namespace GCodeGenerator.ViewModels
             {
                 using (var vm = GetViewModel<DrillLineOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }
@@ -351,6 +372,7 @@ namespace GCodeGenerator.ViewModels
             {
                 using (var vm = GetViewModel<DrillArrayOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }
@@ -359,6 +381,7 @@ namespace GCodeGenerator.ViewModels
             {
                 using (var vm = GetViewModel<DrillRectOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }
@@ -367,6 +390,7 @@ namespace GCodeGenerator.ViewModels
             {
                 using (var vm = GetViewModel<DrillCircleOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }
@@ -375,6 +399,7 @@ namespace GCodeGenerator.ViewModels
             {
                 using (var vm = GetViewModel<DrillPackageOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }
@@ -384,6 +409,7 @@ namespace GCodeGenerator.ViewModels
                 // По умолчанию открываем DrillPointsOperationViewModel
                 using (var vm = GetViewModel<DrillPointsOperationViewModel>())
                 {
+                    vm.MainViewModel = this;
                     vm.Operation = drillOp;
                     vm.ShowAsync();
                 }

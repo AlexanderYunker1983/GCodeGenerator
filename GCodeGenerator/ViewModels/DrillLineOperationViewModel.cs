@@ -2,6 +2,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Threading;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
@@ -22,6 +23,8 @@ namespace GCodeGenerator.ViewModels
 
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
+
+        public MainViewModel MainViewModel { get; set; }
 
         private DrillPointsOperation _operation;
 
@@ -301,6 +304,13 @@ namespace GCodeGenerator.ViewModels
             base.OnClosed(context);
             if (_operation == null) return;
 
+            // Remove operation if no holes were created
+            if (PreviewHoles.Count == 0)
+            {
+                RemoveOperationFromMain();
+                return;
+            }
+
             // Save common parameters to operation.
             _operation.FeedXYRapid = FeedXYRapid;
             _operation.FeedXYWork = FeedXYWork;
@@ -327,6 +337,22 @@ namespace GCodeGenerator.ViewModels
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 _operation.Holes.Add(hole);
+        }
+
+        private void RemoveOperationFromMain()
+        {
+            if (MainViewModel != null)
+            {
+                var dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+                if (dispatcher.CheckAccess())
+                {
+                    MainViewModel.RemoveOperation(_operation);
+                }
+                else
+                {
+                    dispatcher.Invoke(() => MainViewModel.RemoveOperation(_operation));
+                }
+            }
         }
 
         private void RebuildHoles()

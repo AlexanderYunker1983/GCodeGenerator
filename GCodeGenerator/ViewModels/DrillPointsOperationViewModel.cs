@@ -1,6 +1,8 @@
+using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
+using System.Windows.Threading;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
@@ -27,6 +29,8 @@ namespace GCodeGenerator.ViewModels
             MoveHoleDownCommand = new RelayCommand(MoveSelectedHoleDown, CanMoveSelectedHoleDown);
         }
 
+        public MainViewModel MainViewModel { get; set; }
+
         private DrillPointsOperation _operation;
 
         public DrillPointsOperation Operation
@@ -45,6 +49,23 @@ namespace GCodeGenerator.ViewModels
                     foreach (var hole in _operation.Holes)
                         Holes.Add(hole);
                     SelectedHole = Holes.FirstOrDefault();
+                }
+                else
+                {
+                    // Create first default hole if list is empty
+                    var defaultHole = new DrillHole
+                    {
+                        X = 0,
+                        Y = 0,
+                        Z = 0,
+                        TotalDepth = 2,
+                        StepDepth = 1,
+                        FeedZRapid = 500,
+                        FeedZWork = 200,
+                        RetractHeight = 0.3
+                    };
+                    Holes.Add(defaultHole);
+                    SelectedHole = defaultHole;
                 }
             }
         }
@@ -131,9 +152,56 @@ namespace GCodeGenerator.ViewModels
             base.OnClosed(context);
             if (_operation == null) return;
 
+            // Remove operation if no holes were created or user deleted all holes
+            if (Holes.Count == 0)
+            {
+                RemoveOperationFromMain();
+                return;
+            }
+
+            // Remove operation if only default hole remains unchanged
+            if (IsOnlyDefaultHole())
+            {
+                RemoveOperationFromMain();
+                return;
+            }
+
+            // Save holes to operation
             _operation.Holes.Clear();
             foreach (var hole in Holes)
                 _operation.Holes.Add(hole);
+        }
+
+        private void RemoveOperationFromMain()
+        {
+            if (MainViewModel != null)
+            {
+                var dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
+                if (dispatcher.CheckAccess())
+                {
+                    MainViewModel.RemoveOperation(_operation);
+                }
+                else
+                {
+                    dispatcher.Invoke(() => MainViewModel.RemoveOperation(_operation));
+                }
+            }
+        }
+
+        private bool IsOnlyDefaultHole()
+        {
+            // Check if there's only one hole with default values (unchanged by user)
+            if (Holes.Count != 1) return false;
+            
+            var hole = Holes.First();
+            return hole.X == 0 && 
+                   hole.Y == 0 && 
+                   hole.Z == 0 && 
+                   hole.TotalDepth == 2 && 
+                   hole.StepDepth == 1 && 
+                   hole.FeedZRapid == 500 && 
+                   hole.FeedZWork == 200 && 
+                   Math.Abs(hole.RetractHeight - 0.3) < 0.001;
         }
 
         private void AddHole()
