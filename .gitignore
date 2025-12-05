@@ -263,3 +263,4 @@ __pycache__/
 **/*.Generated.cs
 _build_GCODEGENERATOR_VS17/
 _build_GCODEGENERATOR_NMake_VS17/
+build/

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -86,6 +88,10 @@ namespace GCodeGenerator.Services
                         AddLine($"{g0} Z{drill.SafeZBetweenHoles.ToString(fmt, culture)} F{hole.FeedZRapid.ToString(fmt, culture)}");
                     }
                 }
+                else if (operation is ProfileRectangleOperation profileRect)
+                {
+                    GenerateProfileRectangle(profileRect, AddLine, g0, g1, settings);
+                }
                 else
                 {
                     // Stub for other types
@@ -95,6 +101,229 @@ namespace GCodeGenerator.Services
 
             AddLine("M30");
             return program;
+        }
+
+        private void GenerateProfileRectangle(ProfileRectangleOperation op, Action<string> addLine, string g0, string g1, GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            // Calculate tool radius offset
+            var toolRadius = op.ToolDiameter / 2.0;
+            var offset = 0.0;
+            if (op.ToolPathMode == ToolPathMode.Outside)
+                offset = toolRadius;
+            else if (op.ToolPathMode == ToolPathMode.Inside)
+                offset = -toolRadius;
+
+            // Calculate center point based on reference point type
+            double centerX, centerY;
+            switch (op.ReferencePointType)
+            {
+                case ReferencePointType.Center:
+                    centerX = op.ReferencePointX;
+                    centerY = op.ReferencePointY;
+                    break;
+                case ReferencePointType.TopLeft:
+                    centerX = op.ReferencePointX + op.Width / 2.0;
+                    centerY = op.ReferencePointY - op.Height / 2.0;
+                    break;
+                case ReferencePointType.TopRight:
+                    centerX = op.ReferencePointX - op.Width / 2.0;
+                    centerY = op.ReferencePointY - op.Height / 2.0;
+                    break;
+                case ReferencePointType.BottomLeft:
+                    centerX = op.ReferencePointX + op.Width / 2.0;
+                    centerY = op.ReferencePointY + op.Height / 2.0;
+                    break;
+                case ReferencePointType.BottomRight:
+                    centerX = op.ReferencePointX - op.Width / 2.0;
+                    centerY = op.ReferencePointY + op.Height / 2.0;
+                    break;
+                default:
+                    centerX = op.ReferencePointX;
+                    centerY = op.ReferencePointY;
+                    break;
+            }
+
+            // Calculate rectangle corners (before rotation and offset)
+            var halfWidth = op.Width / 2.0 + offset;
+            var halfHeight = op.Height / 2.0 + offset;
+
+            var corners = new[]
+            {
+                new { X = -halfWidth, Y = -halfHeight },  // 0: Bottom-left (relative to center)
+                new { X = halfWidth, Y = -halfHeight },   // 1: Bottom-right
+                new { X = halfWidth, Y = halfHeight },     // 2: Top-right
+                new { X = -halfWidth, Y = halfHeight }     // 3: Top-left
+            };
+
+            // Apply rotation
+            var angleRad = op.RotationAngle * Math.PI / 180.0;
+            var cos = Math.Cos(angleRad);
+            var sin = Math.Sin(angleRad);
+
+            var rotatedCorners = corners.Select(c =>
+            {
+                var x = c.X * cos - c.Y * sin;
+                var y = c.X * sin + c.Y * cos;
+                return new { X = centerX + x, Y = centerY + y };
+            }).ToArray();
+
+            // Determine corner order based on direction
+            // Clockwise (viewed from above): 0->3->2->1 (Bottom-left -> Top-left -> Top-right -> Bottom-right)
+            // Counter-clockwise: 0->1->2->3 (Bottom-left -> Bottom-right -> Top-right -> Top-left)
+            int[] cornerOrder;
+            if (op.Direction == MillingDirection.Clockwise)
+            {
+                cornerOrder = new[] { 0, 3, 2, 1 }; // Clockwise: BL -> TL -> TR -> BR
+            }
+            else
+            {
+                cornerOrder = new[] { 0, 1, 2, 3 }; // Counter-clockwise: BL -> BR -> TR -> TL
+            }
+
+            // Generate depth passes
+            // currentZ represents already processed depth (or contour height if first pass)
+            var currentZ = op.ContourHeight;
+            var finalZ = op.ContourHeight - op.TotalDepth;
+            var passNumber = 0;
+
+            while (currentZ > finalZ)
+            {
+                var nextZ = currentZ - op.StepDepth;
+                if (nextZ < finalZ)
+                    nextZ = finalZ;
+
+                passNumber++;
+
+                if (settings.UseComments)
+                    addLine($"(Pass {passNumber}, depth {nextZ.ToString(fmt, culture)})");
+
+                // Move to safe Z and then to start position (all at safe height)
+                var startCorner = rotatedCorners[cornerOrder[0]];
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                // Entry move
+                if (op.EntryMode == EntryMode.Vertical)
+                {
+                    // Vertical entry: rapid to already processed depth, then work feed to target depth
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Angled entry: drop to retract height (from already processed depth), then ramp down along the contour
+                    var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
+                    
+                    // Retract height is relative to already processed depth
+                    // currentZ = already processed depth (or contour height if first pass)
+                    // retractZ = currentZ + RetractHeight (above processed depth by retract height)
+                    var retractZ = currentZ + op.RetractHeight;
+                    
+                    // Drop to retract height (above the already processed depth)
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    
+                    // Calculate ramp: from retract height to cutting depth
+                    var rampStartZ = retractZ;
+                    var rampEndZ = nextZ;
+                    var rampDepth = rampStartZ - rampEndZ;
+                    var rampDistance = rampDepth / Math.Tan(entryAngleRad);
+                    
+                    // Get first edge direction (along the contour)
+                    var edge1Start = rotatedCorners[cornerOrder[0]];
+                    var edge1End = rotatedCorners[cornerOrder[1]];
+                    var edge1Dx = edge1End.X - edge1Start.X;
+                    var edge1Dy = edge1End.Y - edge1Start.Y;
+                    var edge1Length = Math.Sqrt(edge1Dx * edge1Dx + edge1Dy * edge1Dy);
+                    
+                    if (edge1Length > 0)
+                    {
+                        var edge1DirX = edge1Dx / edge1Length;
+                        var edge1DirY = edge1Dy / edge1Length;
+                        
+                        // Calculate entry point along the first edge (inside the contour)
+                        // Entry point is at a distance of rampDistance from start corner, moving along the edge
+                        var entryX = startCorner.X + edge1DirX * rampDistance;
+                        var entryY = startCorner.Y + edge1DirY * rampDistance;
+                        
+                        // Ramp down along the contour from start corner to entry point
+                        // This ensures we enter the contour at an angle, staying within the contour bounds
+                        addLine($"{g1} X{entryX.ToString(fmt, culture)} Y{entryY.ToString(fmt, culture)} Z{rampEndZ.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        
+                        // If entry point is beyond the first corner, we need to continue along the contour
+                        if (rampDistance > edge1Length)
+                        {
+                            // We've passed the first corner, continue along the next edge
+                            var remainingDistance = rampDistance - edge1Length;
+                            var edge2Start = rotatedCorners[cornerOrder[1]];
+                            var edge2End = rotatedCorners[cornerOrder[2]];
+                            var edge2Dx = edge2End.X - edge2Start.X;
+                            var edge2Dy = edge2End.Y - edge2Start.Y;
+                            var edge2Length = Math.Sqrt(edge2Dx * edge2Dx + edge2Dy * edge2Dy);
+                            
+                            if (edge2Length > 0)
+                            {
+                                var edge2DirX = edge2Dx / edge2Length;
+                                var edge2DirY = edge2Dy / edge2Length;
+                                
+                                // Continue along second edge
+                                var finalX = edge2Start.X + edge2DirX * remainingDistance;
+                                var finalY = edge2Start.Y + edge2DirY * remainingDistance;
+                                
+                                // Move to first corner at full depth
+                                addLine($"{g1} X{edge2Start.X.ToString(fmt, culture)} Y{edge2Start.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                                
+                                // Continue ramp along second edge
+                                addLine($"{g1} X{finalX.ToString(fmt, culture)} Y{finalY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                                
+                                // Return to start corner along the contour
+                                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            }
+                            else
+                            {
+                                // Fallback: return to start corner
+                                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            }
+                        }
+                        else
+                        {
+                            // Entry point is on the first edge, return to start corner
+                            addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        }
+                    }
+                    else
+                    {
+                        // Fallback to vertical if edge length is zero
+                        addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                    }
+                }
+
+                // Mill the contour
+                for (int i = 1; i < cornerOrder.Length; i++)
+                {
+                    var corner = rotatedCorners[cornerOrder[i]];
+                    addLine($"{g1} X{corner.X.ToString(fmt, culture)} Y{corner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                }
+
+                // Close the contour (return to start)
+                addLine($"{g1} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                // Retract (only if there are more passes to do)
+                if (nextZ > finalZ)
+                {
+                    // Retract to height above the depth we just processed
+                    var retractZAfterPass = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Update currentZ to the depth we just processed for the next pass
+                currentZ = nextZ;
+            }
+
+            // Final retract to safe Z
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
         }
     }
 }

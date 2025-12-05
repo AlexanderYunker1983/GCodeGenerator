@@ -42,8 +42,16 @@ namespace GCodeGenerator.ViewModels
                 _selectedOperation = value;
                 OnPropertyChanged();
                 UpdateOperationCommandsCanExecute();
+                
+                // Notify parent ViewModel if needed
+                if (MainViewModel != null && value != null)
+                {
+                    MainViewModel.SelectedOperation = value;
+                }
             }
         }
+        
+        public MainViewModel MainViewModel { get; set; }
 
         public ICommand AddDrillPointsCommand { get; }
         public ICommand AddDrillLineCommand { get; }
@@ -180,7 +188,7 @@ namespace GCodeGenerator.ViewModels
             return index >= 0 && index < Operations.Count - 1;
         }
 
-        private void MoveSelectedOperationUp()
+        public void MoveSelectedOperationUp()
         {
             if (!CanMoveSelectedOperationUp()) return;
             var index = Operations.IndexOf(SelectedOperation);
@@ -188,7 +196,7 @@ namespace GCodeGenerator.ViewModels
             UpdateOperationCommandsCanExecute();
         }
 
-        private void MoveSelectedOperationDown()
+        public void MoveSelectedOperationDown()
         {
             if (!CanMoveSelectedOperationDown()) return;
             var index = Operations.IndexOf(SelectedOperation);
@@ -196,7 +204,7 @@ namespace GCodeGenerator.ViewModels
             UpdateOperationCommandsCanExecute();
         }
 
-        private void RemoveSelectedOperation()
+        public void RemoveSelectedOperation()
         {
             if (!CanModifySelectedOperation()) return;
             var index = Operations.IndexOf(SelectedOperation);
@@ -219,7 +227,7 @@ namespace GCodeGenerator.ViewModels
             UpdateOperationCommandsCanExecute();
         }
 
-        private void EditSelectedOperation()
+        public void EditSelectedOperation()
         {
             if (!(SelectedOperation is DrillPointsOperation drillOp))
                 return;

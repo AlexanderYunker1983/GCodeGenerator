@@ -240,4 +240,7 @@
   <data name="PreviewGCode" xml:space="preserve">
     <value>Предварительный просмотр кода</value>
   </data>
+  <data name="ProfileRectangleName" xml:space="preserve">
+    <value>Контур прямоугольника</value>
+  </data>
 </root>

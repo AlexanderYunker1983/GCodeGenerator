@@ -39,17 +39,12 @@
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
                 <views:DrillOperationsView DataContext="{Binding DrillOperations}"/>
             </TabItem>
-            <TabItem Header="{DataBinding '$i18n.MillingTab'}" IsEnabled="False">
+            <TabItem Header="{DataBinding '$i18n.MillingTab'}">
                 <TabControl Margin="0,4,0,0">
                     <TabItem Header="{DataBinding '$i18n.ProfileTab'}">
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
-                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
-                                <!-- TODO: add buttons for profile milling operations -->
-                            </WrapPanel>
-                        </ScrollViewer>
+                        <views:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.PocketTab'}">
+                    <TabItem Header="{DataBinding '$i18n.PocketTab'}" IsEnabled="False">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
@@ -57,7 +52,7 @@
                             </WrapPanel>
                         </ScrollViewer>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.ShapesTab'}">
+                    <TabItem Header="{DataBinding '$i18n.ShapesTab'}" IsEnabled="False">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
@@ -65,7 +60,7 @@
                             </WrapPanel>
                         </ScrollViewer>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.MiscTab'}">
+                    <TabItem Header="{DataBinding '$i18n.MiscTab'}" IsEnabled="False">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
@@ -80,11 +75,11 @@
         <!-- Top-right: operations list controls + generate & settings -->
         <StackPanel Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0,0,0,8">
             <Button Content="{DataBinding '$i18n.MoveUp'}"
-                    Command="{Binding DrillOperations.MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
+                    Command="{Binding MoveOperationUpCommand}" Margin="0,0,8,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.MoveDown'}"
-                    Command="{Binding DrillOperations.MoveOperationDownCommand}" Margin="0,0,8,0" Width="80"/>
+                    Command="{Binding MoveOperationDownCommand}" Margin="0,0,8,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.DeleteOperation'}"
-                    Command="{Binding DrillOperations.RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
+                    Command="{Binding RemoveOperationCommand}" Margin="16,0,16,0" Width="80"/>
             <Button Content="{DataBinding '$i18n.GenerateGCode'}"
                     Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0" Width="160"/>
             <Button Content="{DataBinding '$i18n.SaveGCode'}"
@@ -97,8 +92,8 @@
         <GroupBox Header="{DataBinding '$i18n.OperationsHeader'}"
                   Grid.Row="2" Grid.Column="1" Margin="0,0,4,0">
             <ListBox x:Name="OperationsList"
-                     ItemsSource="{Binding DrillOperations.Operations}"
-                     SelectedItem="{Binding DrillOperations.SelectedOperation, Mode=TwoWay}"
+                     ItemsSource="{Binding AllOperations}"
+                     SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
                      MouseDoubleClick="OperationsList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>

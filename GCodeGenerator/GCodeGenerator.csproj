@@ -83,6 +83,7 @@
     </Compile>
     <Compile Include="GCodeGeneratorMvvmApp.cs" />
     <Compile Include="Infrastructure\RelayCommand.cs" />
+    <Compile Include="Infrastructure\EnumToBooleanConverter.cs" />
     <Compile Include="Models\DrillHole.cs" />
     <Compile Include="Models\DrillPointsOperation.cs" />
     <Compile Include="Models\GCodeProgram.cs" />
@@ -91,17 +92,24 @@
     <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Models\OperationBase.cs" />
     <Compile Include="Models\OperationType.cs" />
+    <Compile Include="Models\ToolPathMode.cs" />
+    <Compile Include="Models\MillingDirection.cs" />
+    <Compile Include="Models\ReferencePointType.cs" />
+    <Compile Include="Models\EntryMode.cs" />
+    <Compile Include="Models\ProfileRectangleOperation.cs" />
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
     <Compile Include="ViewModels\DrillOperationsViewModel.cs" />
+    <Compile Include="ViewModels\ProfileMillingOperationsViewModel.cs" />
     <Compile Include="ViewModels\DrillPointsOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillLineOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillArrayOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillRectOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\DrillPackageOperationViewModel.cs" />
+    <Compile Include="ViewModels\ProfileRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -131,6 +139,12 @@
     </Compile>
     <Compile Include="Views\DrillOperationsView.xaml.cs">
       <DependentUpon>DrillOperationsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ProfileMillingOperationsView.xaml.cs">
+      <DependentUpon>ProfileMillingOperationsView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ProfileRectangleOperationView.xaml.cs">
+      <DependentUpon>ProfileRectangleOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PreviewView.xaml.cs">
       <DependentUpon>PreviewView.xaml</DependentUpon>
@@ -199,6 +213,14 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\DrillOperationsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\ProfileMillingOperationsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\ProfileRectangleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

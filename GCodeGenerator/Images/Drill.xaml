@@ -1006,4 +1006,10 @@
             </DrawingGroup>
         </DrawingImage.Drawing>
     </DrawingImage>
+    <Viewbox Stretch="Uniform" x:Key="ProfileRectangle">
+        <Canvas Width="64" Height="64">
+            <Path StrokeThickness="1" Stroke="#FF000000" 
+                  Data="M 8,8 L 56,8 L 56,56 L 8,56 Z"/>
+        </Canvas>
+    </Viewbox>
 </ResourceDictionary>
