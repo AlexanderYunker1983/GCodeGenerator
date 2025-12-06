@@ -20,7 +20,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Global settings -->
-        <GroupBox Header="Общие параметры" Grid.Row="0" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.GeneralParametersHeader'}" Grid.Row="0" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -38,29 +38,29 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,4,4"
-                           Text="G0 (XY):" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.FeedXYRapid'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,4,4" Width="80"
                          Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="3" Margin="8,0,4,4"
-                           Text="G1 (XY):" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.FeedXYWork'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,4,4" Width="80"
                          Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,0"
-                           Text="Безопасная высота Z между отверстиями:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.SafeZBetweenHolesLabel'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,4,0" Width="80"
                          Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="3" Margin="8,4,4,0"
-                           Text="Знаков после запятой:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.Decimals'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="4" Margin="0,4,4,0" Width="60"
                          Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
         <!-- Holes list -->
-        <GroupBox Header="Отверстия" Grid.Row="1">
+        <GroupBox Header="{DataBinding '$i18n.HolesHeader'}" Grid.Row="1">
             <Grid Margin="8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -68,10 +68,10 @@
                 </Grid.RowDefinitions>
 
                 <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,4">
-                    <Button Content="Добавить" Command="{Binding AddHoleCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Удалить" Command="{Binding RemoveHoleCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Вверх" Command="{Binding MoveHoleUpCommand}" Margin="0,0,8,0"/>
-                    <Button Content="Вниз" Command="{Binding MoveHoleDownCommand}"/>
+                    <Button Content="{DataBinding '$i18n.Add'}" Command="{Binding AddHoleCommand}" Margin="0,0,8,0"/>
+                    <Button Content="{DataBinding '$i18n.Remove'}" Command="{Binding RemoveHoleCommand}" Margin="0,0,8,0"/>
+                    <Button Content="{DataBinding '$i18n.Up'}" Command="{Binding MoveHoleUpCommand}" Margin="0,0,8,0"/>
+                    <Button Content="{DataBinding '$i18n.Down'}" Command="{Binding MoveHoleDownCommand}"/>
                 </StackPanel>
 
                 <DataGrid Grid.Row="1"
@@ -82,14 +82,14 @@
                           CanUserDeleteRows="False"
                           Margin="0,4,0,0">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="X" Binding="{Binding X, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Y" Binding="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Z" Binding="{Binding Z, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Глубина" Binding="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Шаг" Binding="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="G0 Z" Binding="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="G1 Z" Binding="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                        <DataGridTextColumn Header="Отвод Z" Binding="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.CoordinateX'}" Binding="{Binding X, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.CoordinateY'}" Binding="{Binding Y, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.StartZ'}" Binding="{Binding Z, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.Depth'}" Binding="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.Step'}" Binding="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.FeedZRapidLabel'}" Binding="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.FeedZWorkLabel'}" Binding="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.RetractHeight'}" Binding="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="*" />
                     </DataGrid.Columns>
                 </DataGrid>
             </Grid>

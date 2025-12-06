@@ -246,4 +246,217 @@
   <data name="ProfileCircleName" xml:space="preserve">
     <value>Контур окружности</value>
   </data>
+  <data name="ToolPathModeHeader" xml:space="preserve">
+    <value>Движение инструмента</value>
+  </data>
+  <data name="ToolPathModeOnLine" xml:space="preserve">
+    <value>По линии контура</value>
+  </data>
+  <data name="ToolPathModeOutside" xml:space="preserve">
+    <value>Снаружи контура</value>
+  </data>
+  <data name="ToolPathModeInside" xml:space="preserve">
+    <value>Внутри контура</value>
+  </data>
+  <data name="DirectionHeader" xml:space="preserve">
+    <value>Направление обхода</value>
+  </data>
+  <data name="DirectionClockwise" xml:space="preserve">
+    <value>По часовой стрелке</value>
+  </data>
+  <data name="DirectionCounterClockwise" xml:space="preserve">
+    <value>Против часовой стрелки</value>
+  </data>
+  <data name="RectangleDimensionsHeader" xml:space="preserve">
+    <value>Размеры прямоугольника</value>
+  </data>
+  <data name="Width" xml:space="preserve">
+    <value>Ширина:</value>
+  </data>
+  <data name="Height" xml:space="preserve">
+    <value>Высота:</value>
+  </data>
+  <data name="RotationAngleDeg" xml:space="preserve">
+    <value>Угол поворота (град):</value>
+  </data>
+  <data name="CuttingParametersHeader" xml:space="preserve">
+    <value>Параметры резания</value>
+  </data>
+  <data name="TotalDepthLabel" xml:space="preserve">
+    <value>Общая глубина:</value>
+  </data>
+  <data name="StepDepthLabel" xml:space="preserve">
+    <value>Глубина за проход:</value>
+  </data>
+  <data name="ToolDiameter" xml:space="preserve">
+    <value>Диаметр фрезы:</value>
+  </data>
+  <data name="PositioningHeader" xml:space="preserve">
+    <value>Позиционирование</value>
+  </data>
+  <data name="ContourHeightZ" xml:space="preserve">
+    <value>Высота контура (Z):</value>
+  </data>
+  <data name="CoordinateX" xml:space="preserve">
+    <value>X:</value>
+  </data>
+  <data name="CoordinateY" xml:space="preserve">
+    <value>Y:</value>
+  </data>
+  <data name="ReferencePoint" xml:space="preserve">
+    <value>Точка отсчета:</value>
+  </data>
+  <data name="ReferencePointCenter" xml:space="preserve">
+    <value>Центр</value>
+  </data>
+  <data name="ReferencePointTopLeft" xml:space="preserve">
+    <value>Левый верхний</value>
+  </data>
+  <data name="ReferencePointTopRight" xml:space="preserve">
+    <value>Правый верхний</value>
+  </data>
+  <data name="ReferencePointBottomLeft" xml:space="preserve">
+    <value>Левый нижний</value>
+  </data>
+  <data name="ReferencePointBottomRight" xml:space="preserve">
+    <value>Правый нижний</value>
+  </data>
+  <data name="FeedParametersHeader" xml:space="preserve">
+    <value>Параметры подачи</value>
+  </data>
+  <data name="FeedXYRapid" xml:space="preserve">
+    <value>G0 (XY):</value>
+  </data>
+  <data name="FeedXYWork" xml:space="preserve">
+    <value>G1 (XY):</value>
+  </data>
+  <data name="FeedZRapid" xml:space="preserve">
+    <value>G0 (Z):</value>
+  </data>
+  <data name="FeedZWork" xml:space="preserve">
+    <value>G1 (Z):</value>
+  </data>
+  <data name="ZHeightsHeader" xml:space="preserve">
+    <value>Высоты перемещения</value>
+  </data>
+  <data name="SafeZHeight" xml:space="preserve">
+    <value>Высота перемещения:</value>
+  </data>
+  <data name="RetractZHeight" xml:space="preserve">
+    <value>Высота отвода:</value>
+  </data>
+  <data name="ToolEntryHeader" xml:space="preserve">
+    <value>Подвод инструмента</value>
+  </data>
+  <data name="EntryModeVertical" xml:space="preserve">
+    <value>Вводить фрезу вертикально</value>
+  </data>
+  <data name="EntryModeAngled" xml:space="preserve">
+    <value>Подводить под углом</value>
+  </data>
+  <data name="EntryAngleDeg" xml:space="preserve">
+    <value>Угол подвода (град):</value>
+  </data>
+  <data name="SafeDistanceBetweenPasses" xml:space="preserve">
+    <value>Безопасное расстояние между проходами:</value>
+  </data>
+  <data name="CircleParametersHeader" xml:space="preserve">
+    <value>Параметры окружности</value>
+  </data>
+  <data name="CenterX" xml:space="preserve">
+    <value>Центр X:</value>
+  </data>
+  <data name="CenterY" xml:space="preserve">
+    <value>Центр Y:</value>
+  </data>
+  <data name="Radius" xml:space="preserve">
+    <value>Радиус:</value>
+  </data>
+  <data name="MaxSegmentLength" xml:space="preserve">
+    <value>Макс. длина сегмента (мм):</value>
+  </data>
+  <data name="GeneralParametersHeader" xml:space="preserve">
+    <value>Общие параметры</value>
+  </data>
+  <data name="HolesHeader" xml:space="preserve">
+    <value>Отверстия</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Добавить</value>
+  </data>
+  <data name="Remove" xml:space="preserve">
+    <value>Удалить</value>
+  </data>
+  <data name="Up" xml:space="preserve">
+    <value>Вверх</value>
+  </data>
+  <data name="Down" xml:space="preserve">
+    <value>Вниз</value>
+  </data>
+  <data name="SafeZBetweenHolesLabel" xml:space="preserve">
+    <value>Безопасная высота Z между отверстиями:</value>
+  </data>
+  <data name="LineParametersHeader" xml:space="preserve">
+    <value>Параметры линии</value>
+  </data>
+  <data name="StartX" xml:space="preserve">
+    <value>X₀:</value>
+  </data>
+  <data name="StartY" xml:space="preserve">
+    <value>Y₀:</value>
+  </data>
+  <data name="StartZ" xml:space="preserve">
+    <value>Z₀:</value>
+  </data>
+  <data name="DistanceBetweenHoles" xml:space="preserve">
+    <value>Расстояние между отверстиями:</value>
+  </data>
+  <data name="HoleCount" xml:space="preserve">
+    <value>Кол-во отверстий:</value>
+  </data>
+  <data name="AngleDegToX" xml:space="preserve">
+    <value>Угол (° к оси X):</value>
+  </data>
+  <data name="DrillingDepth" xml:space="preserve">
+    <value>Глубина сверления:</value>
+  </data>
+  <data name="FeedZRapidLabel" xml:space="preserve">
+    <value>G0 Z:</value>
+  </data>
+  <data name="FeedZWorkLabel" xml:space="preserve">
+    <value>G1 Z:</value>
+  </data>
+  <data name="PreviewHolesHeader" xml:space="preserve">
+    <value>Отверстия (предпросмотр)</value>
+  </data>
+  <data name="ArrayParametersHeader" xml:space="preserve">
+    <value>Параметры массива</value>
+  </data>
+  <data name="HolesInRow" xml:space="preserve">
+    <value>Отверстий в ряду:</value>
+  </data>
+  <data name="RowPitch" xml:space="preserve">
+    <value>Шаг между рядами:</value>
+  </data>
+  <data name="RowCount" xml:space="preserve">
+    <value>Кол-во рядов:</value>
+  </data>
+  <data name="RectangleParametersHeader" xml:space="preserve">
+    <value>Параметры прямоугольника</value>
+  </data>
+  <data name="CircleParametersDrillHeader" xml:space="preserve">
+    <value>Параметры окружности</value>
+  </data>
+  <data name="CenterXLabel" xml:space="preserve">
+    <value>Xc:</value>
+  </data>
+  <data name="CenterYLabel" xml:space="preserve">
+    <value>Yc:</value>
+  </data>
+  <data name="PointsOnCircle" xml:space="preserve">
+    <value>Точек на окружности:</value>
+  </data>
+  <data name="StartAngleDegToX" xml:space="preserve">
+    <value>Начальный угол (° к оси X):</value>
+  </data>
 </root>

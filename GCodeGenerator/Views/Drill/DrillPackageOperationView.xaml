@@ -44,11 +44,11 @@
                           DisplayMemberPath="Name"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="3" Margin="0,0,4,4"
-                           Text="Xc:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.CenterXLabel'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,8,4" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="6" Margin="0,0,4,4"
-                           Text="Yc:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.CenterYLabel'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="7" Margin="0,0,8,4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="9" Margin="0,0,4,4"
@@ -56,7 +56,7 @@
                 <TextBox Grid.Row="0" Grid.Column="10" Margin="0,0,0,4" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,4"
-                           Text="Z:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.StartZ'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,8,4" Text="{Binding Z, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="3" Margin="0,4,4,4"
@@ -95,13 +95,13 @@
                 </DataGrid>
 
                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
-                    <TextBlock Text="G0 (XY):" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedXYRapid'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="G0 Z:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedZRapidLabel'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="G1 Z:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedZWorkLabel'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
                     <TextBlock Text="{DataBinding '$i18n.SafeZBetweenHoles'}" Margin="0,0,0,4"/>

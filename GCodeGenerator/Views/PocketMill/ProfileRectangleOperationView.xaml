@@ -28,32 +28,32 @@
         </Grid.ColumnDefinitions>
 
         <!-- Движение инструмента -->
-        <GroupBox Header="Движение инструмента" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.ToolPathModeHeader'}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <StackPanel Margin="8">
-                <RadioButton Content="По линии контура" GroupName="ToolPathMode"
+                <RadioButton Content="{DataBinding '$i18n.ToolPathModeOnLine'}" GroupName="ToolPathMode"
                             IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.OnLine}}"
                             Margin="0,0,0,4"/>
-                <RadioButton Content="Снаружи контура" GroupName="ToolPathMode"
+                <RadioButton Content="{DataBinding '$i18n.ToolPathModeOutside'}" GroupName="ToolPathMode"
                             IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Outside}}"
                             Margin="0,0,0,4"/>
-                <RadioButton Content="Внутри контура" GroupName="ToolPathMode"
+                <RadioButton Content="{DataBinding '$i18n.ToolPathModeInside'}" GroupName="ToolPathMode"
                             IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Inside}}"/>
             </StackPanel>
         </GroupBox>
 
         <!-- Направление обхода -->
-        <GroupBox Header="Направление обхода" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.DirectionHeader'}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <StackPanel Margin="8">
-                <RadioButton Content="По часовой стрелке" GroupName="Direction"
+                <RadioButton Content="{DataBinding '$i18n.DirectionClockwise'}" GroupName="Direction"
                             IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.Clockwise}}"
                             Margin="0,0,0,4"/>
-                <RadioButton Content="Против часовой стрелки" GroupName="Direction"
+                <RadioButton Content="{DataBinding '$i18n.DirectionCounterClockwise'}" GroupName="Direction"
                             IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.CounterClockwise}}"/>
             </StackPanel>
         </GroupBox>
 
         <!-- Размеры прямоугольника -->
-        <GroupBox Header="Размеры прямоугольника" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.RectangleDimensionsHeader'}" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -65,17 +65,17 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Ширина:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.Width'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="Высота:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.Height'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="4" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="Угол поворота (град):" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.RotationAngleDeg'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="7" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
         <!-- Параметры резания -->
-        <GroupBox Header="Параметры резания" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.CuttingParametersHeader'}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -87,17 +87,17 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Общая глубина:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.TotalDepthLabel'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="Глубина за проход:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.StepDepthLabel'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="Диаметр фрезы:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.ToolDiameter'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
         <!-- Высота контура и координаты -->
-        <GroupBox Header="Позиционирование" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.PositioningHeader'}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -113,29 +113,29 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="150"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Высота контура (Z):" VerticalAlignment="Center" Margin="0,0,4,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DataBinding '$i18n.ContourHeightZ'}" VerticalAlignment="Center" Margin="0,0,4,4"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ContourHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="X:" VerticalAlignment="Center" Margin="8,0,4,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{DataBinding '$i18n.CoordinateX'}" VerticalAlignment="Center" Margin="8,0,4,4"/>
                 <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding ReferencePointX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="6" Text="Y:" VerticalAlignment="Center" Margin="8,0,4,4"/>
+                <TextBlock Grid.Row="0" Grid.Column="6" Text="{DataBinding '$i18n.CoordinateY'}" VerticalAlignment="Center" Margin="8,0,4,4"/>
                 <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding ReferencePointY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
                 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Точка отсчета:" VerticalAlignment="Center" Margin="0,4,4,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.ReferencePoint'}" VerticalAlignment="Center" Margin="0,4,4,0"/>
                 <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" 
                          SelectedValue="{Binding ReferencePointType, Mode=TwoWay}"
                          SelectedValuePath="Tag"
                          Margin="0,4,4,0">
-                    <ComboBoxItem Content="Центр" Tag="{x:Static models:ReferencePointType.Center}"/>
-                    <ComboBoxItem Content="Левый верхний" Tag="{x:Static models:ReferencePointType.TopLeft}"/>
-                    <ComboBoxItem Content="Правый верхний" Tag="{x:Static models:ReferencePointType.TopRight}"/>
-                    <ComboBoxItem Content="Левый нижний" Tag="{x:Static models:ReferencePointType.BottomLeft}"/>
-                    <ComboBoxItem Content="Правый нижний" Tag="{x:Static models:ReferencePointType.BottomRight}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.ReferencePointCenter'}" Tag="{x:Static models:ReferencePointType.Center}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.ReferencePointTopLeft'}" Tag="{x:Static models:ReferencePointType.TopLeft}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.ReferencePointTopRight'}" Tag="{x:Static models:ReferencePointType.TopRight}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.ReferencePointBottomLeft'}" Tag="{x:Static models:ReferencePointType.BottomLeft}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.ReferencePointBottomRight'}" Tag="{x:Static models:ReferencePointType.BottomRight}"/>
                 </ComboBox>
             </Grid>
         </GroupBox>
 
         <!-- Параметры подачи -->
-        <GroupBox Header="Параметры подачи" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.FeedParametersHeader'}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -150,19 +150,19 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="G0 (XY):" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.FeedXYRapid'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="G1 (XY):" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.FeedXYWork'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="G0 (Z):" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.FeedZRapid'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="7" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="9" Text="G1 (Z):" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="9" Text="{DataBinding '$i18n.FeedZWork'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="10" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
         <!-- Высоты перемещения -->
-        <GroupBox Header="Высоты перемещения" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.ZHeightsHeader'}" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -171,25 +171,25 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="100"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="Высота перемещения:" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="Высота отвода:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.RetractZHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
         <!-- Подвод инструмента -->
-        <GroupBox Header="Подвод инструмента" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2">
+        <GroupBox Header="{DataBinding '$i18n.ToolEntryHeader'}" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2">
             <Grid Margin="8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                    <RadioButton Content="Вводить фрезу вертикально" GroupName="EntryMode"
+                    <RadioButton Content="{DataBinding '$i18n.EntryModeVertical'}" GroupName="EntryMode"
                                 IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Vertical}}"
                                 Margin="0,0,0,4"/>
-                    <RadioButton Content="Подводить под углом" GroupName="EntryMode"
+                    <RadioButton Content="{DataBinding '$i18n.EntryModeAngled'}" GroupName="EntryMode"
                                 IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Angled}}"/>
                 </StackPanel>
                 <Grid Grid.Row="1" IsEnabled="{Binding IsAngledEntry}">
@@ -200,9 +200,9 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="100"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="Угол подвода (град):" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.EntryAngleDeg'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                     <TextBox Grid.Column="1" Text="{Binding EntryAngle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="Безопасное расстояние между проходами:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.SafeDistanceBetweenPasses'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                     <TextBox Grid.Column="4" Text="{Binding SafeDistanceBetweenPasses, UpdateSourceTrigger=PropertyChanged}"/>
                 </Grid>
             </Grid>

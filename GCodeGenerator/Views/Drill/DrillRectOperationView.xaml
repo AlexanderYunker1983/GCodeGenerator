@@ -16,7 +16,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Header="Параметры прямоугольника" Grid.Row="0" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.RectangleParametersHeader'}" Grid.Row="0" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -36,48 +36,48 @@
                 </Grid.RowDefinitions>
 
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,4,4"
-                           Text="X₀:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.StartX'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,8,4" Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="3" Margin="0,0,4,4"
-                           Text="Y₀:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.StartY'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,8,4" Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="6" Margin="0,0,4,4"
-                           Text="Z₀:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.StartZ'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="7" Margin="0,0,0,4" Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,4"
-                           Text="Расстояние между отверстиями:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.DistanceBetweenHoles'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,8,4" Text="{Binding Distance, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="3" Margin="0,4,4,4"
-                           Text="Отверстий в ряду:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.HolesInRow'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="4" Margin="0,4,8,4" Text="{Binding HoleCount, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="6" Margin="0,4,4,4"
-                           Text="Угол (° к оси X):" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.AngleDegToX'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="7" Margin="0,4,0,4" Text="{Binding AngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,4,4"
-                           Text="Шаг между рядами:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.RowPitch'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="1" Margin="0,4,8,4" Text="{Binding RowPitch, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="2" Grid.Column="3" Margin="0,4,4,4"
-                           Text="Кол-во рядов:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.RowCount'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="2" Grid.Column="4" Margin="0,4,8,4" Text="{Binding RowCount, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,4,4,4"
-                           Text="Глубина сверления:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.DrillingDepth'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="3" Grid.Column="1" Margin="0,4,8,4" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}"/>
 
                 <TextBlock Grid.Row="3" Grid.Column="3" Margin="0,4,4,4"
-                           Text="Глубина за проход:" VerticalAlignment="Center"/>
+                           Text="{DataBinding '$i18n.StepDepthLabel'}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="3" Grid.Column="4" Margin="0,4,8,4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
-        <GroupBox Header="Подачи и Z-параметры" Grid.Row="1">
+        <GroupBox Header="{DataBinding '$i18n.FeedsAndZParametersHeader'}" Grid.Row="1">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
@@ -94,31 +94,31 @@
                           CanUserDeleteRows="False"
                           IsReadOnly="True">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="X" Binding="{Binding X}" Width="*" />
-                        <DataGridTextColumn Header="Y" Binding="{Binding Y}" Width="*" />
-                        <DataGridTextColumn Header="Z" Binding="{Binding Z}" Width="*" />
-                        <DataGridTextColumn Header="Глубина" Binding="{Binding TotalDepth}" Width="*" />
-                        <DataGridTextColumn Header="Шаг" Binding="{Binding StepDepth}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.CoordinateX'}" Binding="{Binding X}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.CoordinateY'}" Binding="{Binding Y}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.StartZ'}" Binding="{Binding Z}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.Depth'}" Binding="{Binding TotalDepth}" Width="*" />
+                        <DataGridTextColumn Header="{DataBinding '$i18n.Step'}" Binding="{Binding StepDepth}" Width="*" />
                     </DataGrid.Columns>
                 </DataGrid>
 
                 <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
-                    <TextBlock Text="G0 (XY):" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedXYRapid'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="G0 Z:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedZRapidLabel'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="G1 Z:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.FeedZWorkLabel'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Безопасная Z между отверстиями:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.SafeZBetweenHoles'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Отвод Z:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.RetractHeight'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
 
-                    <TextBlock Text="Знаков после запятой:" Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.Decimals'}" Margin="0,0,0,4"/>
                     <TextBox Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
                 </StackPanel>
             </Grid>
