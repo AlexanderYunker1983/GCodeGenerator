@@ -8,7 +8,7 @@
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
         Title="{DataBinding '$i18n.GCodeSettingsTitle'}"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize">
     <Grid Margin="12">
         <Grid.RowDefinitions>

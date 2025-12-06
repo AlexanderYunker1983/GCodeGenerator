@@ -11,7 +11,8 @@
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Title="{DataBinding DisplayName}"
         Height="600" Width="1200"
-        MinHeight="600" MinWidth="1200">
+        MinHeight="600" MinWidth="1200"
+        WindowStartupLocation="CenterScreen">
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left: operation type selector takes all free width -->
