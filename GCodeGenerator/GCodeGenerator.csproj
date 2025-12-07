@@ -109,6 +109,7 @@
     <Compile Include="ViewModels\Drill\DrillArrayOperationViewModel.cs" />
     <Compile Include="ViewModels\Drill\DrillRectOperationViewModel.cs" />
     <Compile Include="ViewModels\Drill\DrillCircleOperationViewModel.cs" />
+    <Compile Include="ViewModels\Drill\DrillEllipseOperationViewModel.cs" />
     <Compile Include="ViewModels\Drill\DrillPackageOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileCircleOperationViewModel.cs" />
@@ -135,6 +136,9 @@
     </Compile>
     <Compile Include="Views\Drill\DrillCircleOperationView.xaml.cs">
       <DependentUpon>DrillCircleOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Drill\DrillEllipseOperationView.xaml.cs">
+      <DependentUpon>DrillEllipseOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\Drill\DrillPackageOperationView.xaml.cs">
       <DependentUpon>DrillPackageOperationView.xaml</DependentUpon>
@@ -210,6 +214,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\Drill\DrillCircleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Drill\DrillEllipseOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

@@ -138,6 +138,21 @@
   <data name="AddDrillCircle" xml:space="preserve">
     <value>Сверление по окружности</value>
   </data>
+  <data name="AddDrillEllipse" xml:space="preserve">
+    <value>Сверление по эллипсу</value>
+  </data>
+  <data name="EllipseParametersHeader" xml:space="preserve">
+    <value>Параметры эллипса</value>
+  </data>
+  <data name="RadiusX" xml:space="preserve">
+    <value>Радиус X:</value>
+  </data>
+  <data name="RadiusY" xml:space="preserve">
+    <value>Радиус Y:</value>
+  </data>
+  <data name="EllipseRotationAngle" xml:space="preserve">
+    <value>Угол поворота эллипса (°):</value>
+  </data>
   <data name="GenerateGCode" xml:space="preserve">
     <value>Сгенерировать G-код</value>
   </data>
