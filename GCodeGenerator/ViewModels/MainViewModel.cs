@@ -1,6 +1,5 @@
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using MugenMvvmToolkit.Interfaces.Models;
@@ -10,6 +9,7 @@ using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Windows.Input;
+using GCodeGenerator.GCodeGenerators;
 using YLocalization;
 
 namespace GCodeGenerator.ViewModels

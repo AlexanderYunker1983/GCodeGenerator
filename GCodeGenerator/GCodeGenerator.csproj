@@ -100,8 +100,14 @@
     <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Models\ProfileEllipseOperation.cs" />
     <Compile Include="Models\ProfilePolygonOperation.cs" />
-    <Compile Include="Services\IGCodeGenerator.cs" />
-    <Compile Include="Services\SimpleGCodeGenerator.cs" />
+    <Compile Include="GCodeGenerators\IGCodeGenerator.cs" />
+    <Compile Include="GCodeGenerators\IOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\DrillPointsOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\ProfileRectangleOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\ProfileCircleOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\ProfileEllipseOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\ProfilePolygonOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
     <Compile Include="ViewModels\Drill\DrillOperationsViewModel.cs" />

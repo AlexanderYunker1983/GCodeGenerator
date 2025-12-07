@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.GCodeGenerators
 {
     public interface IGCodeGenerator
     {
