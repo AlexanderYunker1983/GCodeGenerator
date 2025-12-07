@@ -40,6 +40,19 @@
                                    Margin="4,0,4,0"/>
                     </StackPanel>
                 </Button>
+                <Button Command="{Binding AddProfileEllipseCommand}" Margin="0,0,8,8">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ContentControl Content="{StaticResource ProfileEllipse}" 
+                                        MaxWidth="64" MaxHeight="64"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,0,4"/>
+                        <TextBlock Text="{DataBinding '$i18n.ProfileEllipseName'}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="4,0,4,0"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
         </ScrollViewer>
     </Grid>

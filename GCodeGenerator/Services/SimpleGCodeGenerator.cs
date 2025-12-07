@@ -96,6 +96,10 @@ namespace GCodeGenerator.Services
                 {
                     GenerateProfileCircle(profileCircle, AddLine, g0, g1, settings);
                 }
+                else if (operation is ProfileEllipseOperation profileEllipse)
+                {
+                    GenerateProfileEllipse(profileEllipse, AddLine, g0, g1, settings);
+                }
                 else
                 {
                     // Stub for other types
@@ -508,6 +512,158 @@ namespace GCodeGenerator.Services
                         
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
+                }
+
+                // Retract (only if there are more passes to do)
+                if (nextZ > finalZ)
+                {
+                    var retractZAfterPass = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Update currentZ to the depth we just processed for the next pass
+                currentZ = nextZ;
+            }
+
+            // Final retract to safe Z
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+        }
+
+        private void GenerateProfileEllipse(ProfileEllipseOperation op, Action<string> addLine, string g0, string g1, GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            // Calculate tool radius offset
+            var toolRadius = op.ToolDiameter / 2.0;
+            var offset = 0.0;
+            if (op.ToolPathMode == ToolPathMode.Outside)
+                offset = toolRadius;
+            else if (op.ToolPathMode == ToolPathMode.Inside)
+                offset = -toolRadius;
+
+            // Calculate actual radii for tool path
+            var actualRadiusX = op.RadiusX + offset;
+            var actualRadiusY = op.RadiusY + offset;
+
+            // Generate depth passes
+            var currentZ = op.ContourHeight;
+            var finalZ = op.ContourHeight - op.TotalDepth;
+            var passNumber = 0;
+
+            // Calculate start point on ellipse (at angle 0, which is right side)
+            var rotationRad = op.RotationAngle * Math.PI / 180.0;
+            var startAngle = 0.0;
+            var x_ellipse = actualRadiusX * Math.Cos(startAngle);
+            var y_ellipse = actualRadiusY * Math.Sin(startAngle);
+            var x_rotated = x_ellipse * Math.Cos(rotationRad) - y_ellipse * Math.Sin(rotationRad);
+            var y_rotated = x_ellipse * Math.Sin(rotationRad) + y_ellipse * Math.Cos(rotationRad);
+            var startX = op.CenterX + x_rotated;
+            var startY = op.CenterY + y_rotated;
+
+            while (currentZ > finalZ)
+            {
+                var nextZ = currentZ - op.StepDepth;
+                if (nextZ < finalZ)
+                    nextZ = finalZ;
+
+                passNumber++;
+
+                if (settings.UseComments)
+                    addLine($"(Pass {passNumber}, depth {nextZ.ToString(fmt, culture)})");
+
+                // Move to safe Z and then to start position
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                // Entry move
+                if (op.EntryMode == EntryMode.Vertical)
+                {
+                    // Vertical entry: rapid to already processed depth, then work feed to target depth
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Angled entry: ramp down along the ellipse
+                    var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
+                    var retractZ = currentZ + op.RetractHeight;
+                    
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    
+                    // Calculate ramp distance needed
+                    var rampDepth = retractZ - nextZ;
+                    var rampDistance = rampDepth / Math.Tan(entryAngleRad);
+                    
+                    // Approximate ellipse perimeter using Ramanujan's approximation
+                    var h = Math.Pow(actualRadiusX - actualRadiusY, 2) / Math.Pow(actualRadiusX + actualRadiusY, 2);
+                    var perimeter = Math.PI * (actualRadiusX + actualRadiusY) * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
+                    
+                    // Calculate angle increment for ramp
+                    var angleForRamp = (rampDistance / perimeter) * 2 * Math.PI;
+                    
+                    // Start angle (0 = right side)
+                    var rampStartAngle = 0.0;
+                    var rampEndAngle = angleForRamp;
+                    if (op.Direction == MillingDirection.Clockwise)
+                        rampEndAngle = -angleForRamp;
+                    
+                    // Generate ramp points
+                    var rampSegments = Math.Max(4, (int)(Math.Abs(angleForRamp) / (Math.PI / 16)));
+                    for (int i = 1; i <= rampSegments; i++)
+                    {
+                        var t = (double)i / rampSegments;
+                        var angle = rampStartAngle + t * rampEndAngle;
+                        
+                        // Parametric equation for ellipse
+                        x_ellipse = actualRadiusX * Math.Cos(angle);
+                        y_ellipse = actualRadiusY * Math.Sin(angle);
+                        
+                        // Apply rotation
+                        x_rotated = x_ellipse * Math.Cos(rotationRad) - y_ellipse * Math.Sin(rotationRad);
+                        y_rotated = x_ellipse * Math.Sin(rotationRad) + y_ellipse * Math.Cos(rotationRad);
+                        
+                        var x = op.CenterX + x_rotated;
+                        var y = op.CenterY + y_rotated;
+                        var z = retractZ - t * rampDepth;
+                        
+                        addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} Z{z.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    
+                    // After ramp, lift to safe height and move to start
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Mill the ellipse contour
+                // Ellipses cannot be represented with G2/G3 arcs, so always use linear approximation
+                // Calculate number of segments based on max segment length
+                var h_perimeter = Math.Pow(actualRadiusX - actualRadiusY, 2) / Math.Pow(actualRadiusX + actualRadiusY, 2);
+                var ellipsePerimeter = Math.PI * (actualRadiusX + actualRadiusY) * (1 + 3 * h_perimeter / (10 + Math.Sqrt(4 - 3 * h_perimeter)));
+                var numSegments = Math.Max(8, (int)Math.Ceiling(ellipsePerimeter / op.MaxSegmentLength));
+                var angleStep = 2 * Math.PI / numSegments;
+                
+                if (op.Direction == MillingDirection.Clockwise)
+                    angleStep = -angleStep;
+                
+                // Generate segments
+                for (int i = 1; i <= numSegments; i++)
+                {
+                    var angle = i * angleStep;
+                    
+                    // Parametric equation for ellipse
+                    x_ellipse = actualRadiusX * Math.Cos(angle);
+                    y_ellipse = actualRadiusY * Math.Sin(angle);
+                    
+                    // Apply rotation
+                    x_rotated = x_ellipse * Math.Cos(rotationRad) - y_ellipse * Math.Sin(rotationRad);
+                    y_rotated = x_ellipse * Math.Sin(rotationRad) + y_ellipse * Math.Cos(rotationRad);
+                    
+                    var x = op.CenterX + x_rotated;
+                    var y = op.CenterY + y_rotated;
+                    
+                    addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 }
 
                 // Retract (only if there are more passes to do)

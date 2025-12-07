@@ -1019,6 +1019,13 @@
                      Canvas.Left="8" Canvas.Top="8"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="ProfileEllipse">
+        <Canvas Width="64" Height="64">
+            <Ellipse StrokeThickness="1" Stroke="#FF000000" 
+                     Width="56" Height="32" 
+                     Canvas.Left="4" Canvas.Top="16"/>
+        </Canvas>
+    </Viewbox>
     <Viewbox x:Key="DrillByEllipse">
         <Canvas Width="1084.771" Height="1113.258">
 

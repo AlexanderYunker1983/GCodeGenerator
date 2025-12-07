@@ -261,6 +261,9 @@
   <data name="ProfileCircleName" xml:space="preserve">
     <value>Контур окружности</value>
   </data>
+  <data name="ProfileEllipseName" xml:space="preserve">
+    <value>Контур эллипса</value>
+  </data>
   <data name="ToolPathModeHeader" xml:space="preserve">
     <value>Движение инструмента</value>
   </data>

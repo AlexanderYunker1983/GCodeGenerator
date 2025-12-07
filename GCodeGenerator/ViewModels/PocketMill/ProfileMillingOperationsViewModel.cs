@@ -19,6 +19,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             
             AddProfileRectangleCommand = new RelayCommand(AddProfileRectangle);
             AddProfileCircleCommand = new RelayCommand(AddProfileCircle);
+            AddProfileEllipseCommand = new RelayCommand(AddProfileEllipse);
             
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -52,6 +53,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         public ICommand AddProfileRectangleCommand { get; }
         public ICommand AddProfileCircleCommand { get; }
+        public ICommand AddProfileEllipseCommand { get; }
         
         public ICommand MoveOperationUpCommand { get; }
         public ICommand MoveOperationDownCommand { get; }
@@ -87,6 +89,24 @@ namespace GCodeGenerator.ViewModels.PocketMill
             SelectedOperation = op;
 
             using (var vm = GetViewModel<ProfileCircleOperationViewModel>())
+            {
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddProfileEllipse()
+        {
+            var op = new ProfileEllipseOperation();
+            var name = _localizationManager?.GetString("ProfileEllipseName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<ProfileEllipseOperationViewModel>())
             {
                 vm.ProfileMillingOperationsViewModel = this;
                 vm.Operation = op;
@@ -166,6 +186,15 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 {
                     vm.ProfileMillingOperationsViewModel = this;
                     vm.Operation = profileCircleOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is ProfileEllipseOperation profileEllipseOp)
+            {
+                using (var vm = GetViewModel<ProfileEllipseOperationViewModel>())
+                {
+                    vm.ProfileMillingOperationsViewModel = this;
+                    vm.Operation = profileEllipseOp;
                     vm.ShowAsync();
                 }
             }
