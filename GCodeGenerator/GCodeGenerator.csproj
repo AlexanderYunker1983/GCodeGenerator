@@ -99,6 +99,7 @@
     <Compile Include="Models\ProfileRectangleOperation.cs" />
     <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Models\ProfileEllipseOperation.cs" />
+    <Compile Include="Models\ProfilePolygonOperation.cs" />
     <Compile Include="Services\IGCodeGenerator.cs" />
     <Compile Include="Services\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
@@ -115,6 +116,7 @@
     <Compile Include="ViewModels\PocketMill\ProfileRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileEllipseOperationViewModel.cs" />
+    <Compile Include="ViewModels\PocketMill\ProfilePolygonOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -160,6 +162,9 @@
     <Compile Include="Views\PocketMill\ProfileEllipseOperationView.xaml.cs">
       <DependentUpon>ProfileEllipseOperationView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\PocketMill\ProfilePolygonOperationView.xaml.cs">
+      <DependentUpon>ProfilePolygonOperationView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\PreviewView.xaml.cs">
       <DependentUpon>PreviewView.xaml</DependentUpon>
     </Compile>
@@ -190,7 +195,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <Page Include="Images\Drill.xaml">
+    <Page Include="Images\OperationImages.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -247,6 +252,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\PocketMill\ProfileEllipseOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\PocketMill\ProfilePolygonOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

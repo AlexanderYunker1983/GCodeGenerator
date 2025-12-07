@@ -53,6 +53,19 @@
                                    Margin="4,0,4,0"/>
                     </StackPanel>
                 </Button>
+                <Button Command="{Binding AddProfilePolygonCommand}" Margin="0,0,8,8">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ContentControl Content="{StaticResource ProfilePolygon}" 
+                                        MaxWidth="64" MaxHeight="64"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Margin="0,0,0,4"/>
+                        <TextBlock Text="{DataBinding '$i18n.ProfilePolygonName'}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="4,0,4,0"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
         </ScrollViewer>
     </Grid>

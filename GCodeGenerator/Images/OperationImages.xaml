@@ -1026,6 +1026,12 @@
                      Canvas.Left="4" Canvas.Top="16"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="ProfilePolygon">
+        <Canvas Width="64" Height="64">
+            <Path StrokeThickness="1" Stroke="#FF000000" 
+                  Data="M 32,8 L 52.784,20 L 52.784,44 L 32,56 L 11.216,44 L 11.216,20 Z"/>
+        </Canvas>
+    </Viewbox>
     <Viewbox x:Key="DrillByEllipse">
         <Canvas Width="1084.771" Height="1113.258">
 

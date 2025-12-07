@@ -5,7 +5,7 @@
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/GCodeGenerator;component/Images/Drill.xaml"/>
+                <ResourceDictionary Source="/GCodeGenerator;component/Images/OperationImages.xaml"/>
             </ResourceDictionary.MergedDictionaries>
             <infrastructure:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
         </ResourceDictionary>

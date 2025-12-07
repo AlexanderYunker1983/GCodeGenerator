@@ -100,6 +100,10 @@ namespace GCodeGenerator.Services
                 {
                     GenerateProfileEllipse(profileEllipse, AddLine, g0, g1, settings);
                 }
+                else if (operation is ProfilePolygonOperation profilePolygon)
+                {
+                    GenerateProfilePolygon(profilePolygon, AddLine, g0, g1, settings);
+                }
                 else
                 {
                     // Stub for other types
@@ -664,6 +668,139 @@ namespace GCodeGenerator.Services
                     var y = op.CenterY + y_rotated;
                     
                     addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                }
+
+                // Retract (only if there are more passes to do)
+                if (nextZ > finalZ)
+                {
+                    var retractZAfterPass = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Update currentZ to the depth we just processed for the next pass
+                currentZ = nextZ;
+            }
+
+            // Final retract to safe Z
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+        }
+
+        private void GenerateProfilePolygon(ProfilePolygonOperation op, Action<string> addLine, string g0, string g1, GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            // Calculate tool radius offset
+            var toolRadius = op.ToolDiameter / 2.0;
+            var offset = 0.0;
+            if (op.ToolPathMode == ToolPathMode.Outside)
+                offset = toolRadius;
+            else if (op.ToolPathMode == ToolPathMode.Inside)
+                offset = -toolRadius;
+
+            // Calculate actual radius for tool path
+            var actualRadius = op.Radius + offset;
+
+            // Generate depth passes
+            var currentZ = op.ContourHeight;
+            var finalZ = op.ContourHeight - op.TotalDepth;
+            var passNumber = 0;
+
+            // Calculate polygon vertices
+            var rotationRad = op.RotationAngle * Math.PI / 180.0;
+            var angleStep = 2 * Math.PI / op.NumberOfSides;
+            var vertices = new List<(double x, double y)>();
+            
+            for (int i = 0; i < op.NumberOfSides; i++)
+            {
+                var angle = i * angleStep + rotationRad;
+                var x = op.CenterX + actualRadius * Math.Cos(angle);
+                var y = op.CenterY + actualRadius * Math.Sin(angle);
+                vertices.Add((x, y));
+            }
+
+            // Start point is first vertex
+            var startX = vertices[0].x;
+            var startY = vertices[0].y;
+
+            while (currentZ > finalZ)
+            {
+                var nextZ = currentZ - op.StepDepth;
+                if (nextZ < finalZ)
+                    nextZ = finalZ;
+
+                passNumber++;
+
+                if (settings.UseComments)
+                    addLine($"(Pass {passNumber}, depth {nextZ.ToString(fmt, culture)})");
+
+                // Move to safe Z and then to start position
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                // Entry move
+                if (op.EntryMode == EntryMode.Vertical)
+                {
+                    // Vertical entry: rapid to already processed depth, then work feed to target depth
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Angled entry: ramp down along the first edge
+                    var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
+                    var retractZ = currentZ + op.RetractHeight;
+                    
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    
+                    // Calculate ramp distance needed
+                    var rampDepth = retractZ - nextZ;
+                    var rampDistance = rampDepth / Math.Tan(entryAngleRad);
+                    
+                    // Calculate edge length
+                    var edgeLength = Math.Sqrt(Math.Pow(vertices[1].x - vertices[0].x, 2) + Math.Pow(vertices[1].y - vertices[0].y, 2));
+                    var rampRatio = Math.Min(1.0, rampDistance / edgeLength);
+                    
+                    // Generate ramp points along first edge
+                    var rampSegments = Math.Max(4, (int)(rampRatio * 20));
+                    for (int i = 1; i <= rampSegments; i++)
+                    {
+                        var t = (double)i / rampSegments * rampRatio;
+                        var x = vertices[0].x + t * (vertices[1].x - vertices[0].x);
+                        var y = vertices[0].y + t * (vertices[1].y - vertices[0].y);
+                        var z = retractZ - t * rampDepth / rampRatio;
+                        
+                        addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} Z{z.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    
+                    // After ramp, lift to safe height and move to start
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Mill the polygon contour
+                if (op.Direction == MillingDirection.Clockwise)
+                {
+                    // Clockwise: go through vertices in reverse order
+                    for (int i = op.NumberOfSides - 1; i >= 0; i--)
+                    {
+                        var vertex = vertices[i];
+                        addLine($"{g1} X{vertex.x.ToString(fmt, culture)} Y{vertex.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    // Close the polygon
+                    addLine($"{g1} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    // Counter-clockwise: go through vertices in normal order
+                    for (int i = 1; i < op.NumberOfSides; i++)
+                    {
+                        var vertex = vertices[i];
+                        addLine($"{g1} X{vertex.x.ToString(fmt, culture)} Y{vertex.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    }
+                    // Close the polygon
+                    addLine($"{g1} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 }
 
                 // Retract (only if there are more passes to do)
