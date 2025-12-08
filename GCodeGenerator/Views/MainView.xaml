@@ -20,7 +20,7 @@
             <!-- Middle: operations list has fixed comfortable width -->
             <ColumnDefinition Width="350" />
             <!-- Right: G-code preview starts at 400px and is resizable via splitter -->
-            <ColumnDefinition Width="Auto" MinWidth="400" />
+            <ColumnDefinition Width="400" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
