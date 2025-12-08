@@ -97,6 +97,7 @@
     <Compile Include="Models\ReferencePointType.cs" />
     <Compile Include="Models\EntryMode.cs" />
     <Compile Include="Models\ProfileRectangleOperation.cs" />
+    <Compile Include="Models\ProfileRoundedRectangleOperation.cs" />
     <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Models\ProfileEllipseOperation.cs" />
     <Compile Include="Models\ProfilePolygonOperation.cs" />
@@ -104,6 +105,7 @@
     <Compile Include="GCodeGenerators\IOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\DrillPointsOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileRectangleOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\ProfileRoundedRectangleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileCircleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileEllipseOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfilePolygonOperationGenerator.cs" />
@@ -120,6 +122,7 @@
     <Compile Include="ViewModels\Drill\DrillEllipseOperationViewModel.cs" />
     <Compile Include="ViewModels\Drill\DrillPackageOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileRectangleOperationViewModel.cs" />
+    <Compile Include="ViewModels\PocketMill\ProfileRoundedRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileEllipseOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfilePolygonOperationViewModel.cs" />
@@ -161,6 +164,9 @@
     </Compile>
     <Compile Include="Views\PocketMill\ProfileRectangleOperationView.xaml.cs">
       <DependentUpon>ProfileRectangleOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\PocketMill\ProfileRoundedRectangleOperationView.xaml.cs">
+      <DependentUpon>ProfileRoundedRectangleOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PocketMill\ProfileCircleOperationView.xaml.cs">
       <DependentUpon>ProfileCircleOperationView.xaml</DependentUpon>
@@ -250,6 +256,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\PocketMill\ProfileRectangleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\PocketMill\ProfileRoundedRectangleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

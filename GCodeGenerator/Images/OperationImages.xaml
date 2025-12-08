@@ -1012,6 +1012,12 @@
                   Data="M 8,8 L 56,8 L 56,56 L 8,56 Z"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="ProfileRoundedRectangle">
+        <Canvas Width="64" Height="64">
+            <Path StrokeThickness="1" Stroke="#FF000000" 
+                  Data="M 20,8 L 44,8 C 50,8 56,14 56,20 L 56,44 C 56,50 50,56 44,56 L 20,56 C 14,56 8,50 8,44 L 8,20 C 8,14 14,8 20,8 Z"/>
+        </Canvas>
+    </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileCircle">
         <Canvas Width="64" Height="64">
             <Ellipse StrokeThickness="1" Stroke="#FF000000" 

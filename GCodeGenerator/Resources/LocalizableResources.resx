@@ -258,6 +258,9 @@
   <data name="ProfileRectangleName" xml:space="preserve">
     <value>Контур прямоугольника</value>
   </data>
+  <data name="ProfileRoundedRectangleName" xml:space="preserve">
+    <value>Контур скругленного прямоугольника</value>
+  </data>
   <data name="ProfileCircleName" xml:space="preserve">
     <value>Контур окружности</value>
   </data>
@@ -299,6 +302,21 @@
   </data>
   <data name="RectangleDimensionsHeader" xml:space="preserve">
     <value>Размеры прямоугольника</value>
+  </data>
+  <data name="RoundedRectangleRadiiHeader" xml:space="preserve">
+    <value>Радиусы скругления</value>
+  </data>
+  <data name="RadiusTopLeft" xml:space="preserve">
+    <value>Радиус левый верхний:</value>
+  </data>
+  <data name="RadiusTopRight" xml:space="preserve">
+    <value>Радиус правый верхний:</value>
+  </data>
+  <data name="RadiusBottomLeft" xml:space="preserve">
+    <value>Радиус левый нижний:</value>
+  </data>
+  <data name="RadiusBottomRight" xml:space="preserve">
+    <value>Радиус правый нижний:</value>
   </data>
   <data name="Width" xml:space="preserve">
     <value>Ширина:</value>

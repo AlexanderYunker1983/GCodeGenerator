@@ -18,6 +18,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations = new ObservableCollection<OperationBase>();
             
             AddProfileRectangleCommand = new RelayCommand(AddProfileRectangle);
+            AddProfileRoundedRectangleCommand = new RelayCommand(AddProfileRoundedRectangle);
             AddProfileCircleCommand = new RelayCommand(AddProfileCircle);
             AddProfileEllipseCommand = new RelayCommand(AddProfileEllipse);
             AddProfilePolygonCommand = new RelayCommand(AddProfilePolygon);
@@ -53,6 +54,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ViewModels.MainViewModel MainViewModel { get; set; }
 
         public ICommand AddProfileRectangleCommand { get; }
+        public ICommand AddProfileRoundedRectangleCommand { get; }
         public ICommand AddProfileCircleCommand { get; }
         public ICommand AddProfileEllipseCommand { get; }
         public ICommand AddProfilePolygonCommand { get; }
@@ -73,6 +75,24 @@ namespace GCodeGenerator.ViewModels.PocketMill
             SelectedOperation = op;
 
             using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
+            {
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+        }
+
+        private void AddProfileRoundedRectangle()
+        {
+            var op = new ProfileRoundedRectangleOperation();
+            var name = _localizationManager?.GetString("ProfileRoundedRectangleName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<ProfileRoundedRectangleOperationViewModel>())
             {
                 vm.ProfileMillingOperationsViewModel = this;
                 vm.Operation = op;
@@ -197,6 +217,15 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 {
                     vm.ProfileMillingOperationsViewModel = this;
                     vm.Operation = profileRectOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is ProfileRoundedRectangleOperation roundedOp)
+            {
+                using (var vm = GetViewModel<ProfileRoundedRectangleOperationViewModel>())
+                {
+                    vm.ProfileMillingOperationsViewModel = this;
+                    vm.Operation = roundedOp;
                     vm.ShowAsync();
                 }
             }
