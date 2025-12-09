@@ -22,6 +22,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager _localizationManager;
 
         public event Action OperationsChanged;
+        public event Action ShowAllRequested;
 
         public MainViewModel(ILocalizationManager localizationManager)
         {
@@ -52,6 +53,7 @@ namespace GCodeGenerator.ViewModels
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
             PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
             OpenSettingsCommand = new RelayCommand(OpenSettings);
+            ShowAllPreviewCommand = new RelayCommand(ShowAllPreview);
             
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -134,6 +136,8 @@ namespace GCodeGenerator.ViewModels
         public ICommand PreviewGCodeCommand { get; }
 
         public ICommand OpenSettingsCommand { get; }
+        
+        public ICommand ShowAllPreviewCommand { get; }
         
         public ICommand MoveOperationUpCommand { get; }
         
@@ -242,6 +246,11 @@ namespace GCodeGenerator.ViewModels
             {
                 vm.ShowAsync();
             }
+        }
+
+        private void ShowAllPreview()
+        {
+            ShowAllRequested?.Invoke();
         }
 
         public void NotifyOperationsChanged()

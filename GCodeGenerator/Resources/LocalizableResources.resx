@@ -507,4 +507,7 @@
   <data name="StartAngleDegToX" xml:space="preserve">
     <value>Начальный угол (° к оси X):</value>
   </data>
+  <data name="ShowAll" xml:space="preserve">
+    <value>Показать всё</value>
+  </data>
 </root>

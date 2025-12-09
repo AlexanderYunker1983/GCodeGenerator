@@ -20,6 +20,7 @@ namespace GCodeGenerator.Views
         private bool _isPanning;
         private Point _lastMouse;
         private const double GridStepMm = 10.0;
+        private const double FitPadding = 0.75; // 75% of available size
 
         public OperationsPreviewView()
         {
@@ -49,6 +50,7 @@ namespace GCodeGenerator.Views
             {
                 _mainVm.OperationsChanged += Redraw;
                 (_mainVm.AllOperations as INotifyCollectionChanged).CollectionChanged += OnOperationsCollectionChanged;
+                _mainVm.ShowAllRequested += FitAll;
             }
         }
 
@@ -58,12 +60,71 @@ namespace GCodeGenerator.Views
             {
                 _mainVm.OperationsChanged -= Redraw;
                 (_mainVm.AllOperations as INotifyCollectionChanged).CollectionChanged -= OnOperationsCollectionChanged;
+                _mainVm.ShowAllRequested -= FitAll;
             }
             _mainVm = null;
         }
 
         private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            Redraw();
+        }
+
+        public void FitAll()
+        {
+            if (_mainVm == null || PreviewCanvas == null || PreviewCanvas.ActualWidth < 1 || PreviewCanvas.ActualHeight < 1)
+                return;
+
+            var points = new List<Point>();
+            foreach (var op in _mainVm.AllOperations)
+            {
+                if (op is DrillPointsOperation drillOp)
+                {
+                    points.AddRange(drillOp.Holes.Select(h => new Point(h.X, h.Y)));
+                }
+                else if (op is ProfileRectangleOperation rectOp)
+                {
+                    points.AddRange(GetRectanglePoints(rectOp));
+                }
+                else if (op is ProfileRoundedRectangleOperation rrectOp)
+                {
+                    points.AddRange(GetRoundedRectanglePoints(rrectOp));
+                }
+                else if (op is ProfileCircleOperation circleOp)
+                {
+                    points.AddRange(GetCirclePoints(circleOp));
+                }
+                else if (op is ProfileEllipseOperation ellipseOp)
+                {
+                    points.AddRange(GetEllipsePoints(ellipseOp));
+                }
+                else if (op is ProfilePolygonOperation polyOp)
+                {
+                    points.AddRange(GetPolygonPoints(polyOp));
+                }
+            }
+
+            if (points.Count == 0)
+                return;
+
+            var minX = points.Min(p => p.X);
+            var maxX = points.Max(p => p.X);
+            var minY = points.Min(p => p.Y);
+            var maxY = points.Max(p => p.Y);
+
+            var width = maxX - minX;
+            var height = maxY - minY;
+            if (width < 1e-6) width = 1;
+            if (height < 1e-6) height = 1;
+
+            var scaleX = (PreviewCanvas.ActualWidth * FitPadding) / width;
+            var scaleY = (PreviewCanvas.ActualHeight * FitPadding) / height;
+            _zoom = Math.Min(scaleX, scaleY);
+
+            _offset = new Point(
+                PreviewCanvas.ActualWidth / 2.0 - (minX + maxX) / 2.0 * _zoom,
+                PreviewCanvas.ActualHeight / 2.0 + (minY + maxY) / 2.0 * _zoom);
+
             Redraw();
         }
 
