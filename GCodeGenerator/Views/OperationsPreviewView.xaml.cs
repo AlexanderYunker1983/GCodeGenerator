@@ -21,6 +21,7 @@ namespace GCodeGenerator.Views
         private Point _lastMouse;
         private const double GridStepMm = 10.0;
         private const double FitPadding = 0.75; // 75% of available size
+        private OperationBase _hoverOp;
 
         public OperationsPreviewView()
         {
@@ -68,6 +69,18 @@ namespace GCodeGenerator.Views
         private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             Redraw();
+        }
+
+        private OperationBase GetOperationFromSource(object source)
+        {
+            var fe = source as FrameworkElement;
+            while (fe != null)
+            {
+                if (fe.Tag is OperationBase op)
+                    return op;
+                fe = VisualTreeHelper.GetParent(fe) as FrameworkElement;
+            }
+            return null;
         }
 
         public void FitAll()
@@ -157,6 +170,19 @@ namespace GCodeGenerator.Views
             }
         }
 
+        private void PreviewCanvas_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var op = GetOperationFromSource(e.OriginalSource);
+            if (op == null) return;
+
+            _mainVm.SelectedOperation = op;
+
+            if (e.ClickCount >= 2 && _mainVm.EditOperationCommand?.CanExecute(null) == true)
+            {
+                _mainVm.EditOperationCommand.Execute(null);
+            }
+        }
+
         private void PreviewCanvas_OnMouseMove(object sender, MouseEventArgs e)
         {
             if (_isPanning && e.LeftButton == MouseButtonState.Pressed)
@@ -167,12 +193,30 @@ namespace GCodeGenerator.Views
                 _lastMouse = pos;
                 Redraw();
             }
+            else
+            {
+                var op = GetOperationFromSource(e.OriginalSource);
+                if (!ReferenceEquals(op, _hoverOp))
+                {
+                    _hoverOp = op;
+                    Redraw();
+                }
+            }
         }
 
         private void PreviewCanvas_OnMouseUp(object sender, MouseButtonEventArgs e)
         {
             _isPanning = false;
             PreviewCanvas.ReleaseMouseCapture();
+        }
+
+        private void PreviewCanvas_OnMouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_hoverOp != null)
+            {
+                _hoverOp = null;
+                Redraw();
+            }
         }
 
         private void PreviewCanvas_OnSizeChanged(object sender, SizeChangedEventArgs e)
@@ -191,36 +235,44 @@ namespace GCodeGenerator.Views
             if (_mainVm == null) return;
 
             var selected = _mainVm.SelectedOperation;
+            var hover = _hoverOp;
 
             foreach (var op in _mainVm.AllOperations)
             {
+                Brush StrokeFor(OperationBase operation, Brush normal)
+                {
+                    if (ReferenceEquals(operation, selected)) return Brushes.Red;
+                    if (ReferenceEquals(operation, hover)) return Brushes.Orange;
+                    return normal;
+                }
+
                 if (op is DrillPointsOperation drillOp)
                 {
-                    var holeBrush = ReferenceEquals(op, selected) ? Brushes.Red : Brushes.SteelBlue;
+                    var holeBrush = StrokeFor(op, Brushes.SteelBlue);
                     foreach (var hole in drillOp.Holes)
                     {
-                        DrawHole(hole.X, hole.Y, holeBrush);
+                        DrawHole(hole.X, hole.Y, holeBrush, op);
                     }
                 }
                 else if (op is ProfileRectangleOperation rectOp)
                 {
-                    DrawPolyline(GetRectanglePoints(rectOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
+                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
                 else if (op is ProfileRoundedRectangleOperation rrectOp)
                 {
-                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
+                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
                 else if (op is ProfileCircleOperation circleOp)
                 {
-                    DrawPolyline(GetCirclePoints(circleOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
+                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
                 else if (op is ProfileEllipseOperation ellipseOp)
                 {
-                    DrawPolyline(GetEllipsePoints(ellipseOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
+                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
                 else if (op is ProfilePolygonOperation polyOp)
                 {
-                    DrawPolyline(GetPolygonPoints(polyOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
+                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
             }
         }
@@ -296,7 +348,7 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(axisY);
         }
 
-        private void DrawHole(double x, double y, Brush brush)
+        private void DrawHole(double x, double y, Brush brush, OperationBase op)
         {
             var screen = WorldToScreen(new Point(x, y));
             var size = 5.0;
@@ -304,14 +356,15 @@ namespace GCodeGenerator.Views
             {
                 Width = size,
                 Height = size,
-                Fill = brush
+                Fill = brush,
+                Tag = op
             };
             Canvas.SetLeft(ellipse, screen.X - size / 2.0);
             Canvas.SetTop(ellipse, screen.Y - size / 2.0);
             PreviewCanvas.Children.Add(ellipse);
         }
 
-        private void DrawPolyline(IList<Point> worldPoints, Brush stroke)
+        private void DrawPolyline(IList<Point> worldPoints, Brush stroke, OperationBase op)
         {
             if (worldPoints == null || worldPoints.Count == 0)
                 return;
@@ -320,7 +373,8 @@ namespace GCodeGenerator.Views
             {
                 Stroke = stroke,
                 StrokeThickness = 1,
-                Points = new PointCollection(worldPoints.Select(WorldToScreen))
+                Points = new PointCollection(worldPoints.Select(WorldToScreen)),
+                Tag = op
             };
             PreviewCanvas.Children.Add(poly);
         }

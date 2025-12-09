@@ -13,6 +13,8 @@
                 MouseDown="PreviewCanvas_OnMouseDown"
                 MouseMove="PreviewCanvas_OnMouseMove"
                 MouseUp="PreviewCanvas_OnMouseUp"
+                MouseLeave="PreviewCanvas_OnMouseLeave"
+                PreviewMouseLeftButtonDown="PreviewCanvas_OnMouseLeftButtonDown"
                 SizeChanged="PreviewCanvas_OnSizeChanged"/>
     </Border>
 </UserControl>
