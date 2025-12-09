@@ -4,6 +4,7 @@ using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
+using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -19,6 +20,8 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
         private readonly ILocalizationManager _localizationManager;
+
+        public event Action OperationsChanged;
 
         public MainViewModel(ILocalizationManager localizationManager)
         {
@@ -179,6 +182,7 @@ namespace GCodeGenerator.ViewModels
             // Update command state after collection changes
             ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
+            NotifyOperationsChanged();
         }
 
         private void GenerateGCode()
@@ -238,6 +242,11 @@ namespace GCodeGenerator.ViewModels
             {
                 vm.ShowAsync();
             }
+        }
+
+        public void NotifyOperationsChanged()
+        {
+            OperationsChanged?.Invoke();
         }
         
         private bool CanModifySelectedOperation() => SelectedOperation != null;

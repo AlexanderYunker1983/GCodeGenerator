@@ -83,6 +83,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillLine()
@@ -101,6 +102,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillArray()
@@ -119,6 +121,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillRect()
@@ -137,6 +140,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillCircle()
@@ -155,6 +159,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillEllipse()
@@ -173,6 +178,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillPackage()
@@ -191,6 +197,7 @@ namespace GCodeGenerator.ViewModels.Drill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private bool CanModifySelectedOperation() => SelectedOperation != null;
@@ -327,6 +334,8 @@ namespace GCodeGenerator.ViewModels.Drill
                     vm.ShowAsync();
                 }
             }
+
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void UpdateOperationCommandsCanExecute()

@@ -168,6 +168,9 @@
     <Compile Include="Views\PocketMill\ProfileRoundedRectangleOperationView.xaml.cs">
       <DependentUpon>ProfileRoundedRectangleOperationView.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\OperationsPreviewView.xaml.cs">
+      <DependentUpon>OperationsPreviewView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\PocketMill\ProfileCircleOperationView.xaml.cs">
       <DependentUpon>ProfileCircleOperationView.xaml</DependentUpon>
     </Compile>
@@ -260,6 +263,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\PocketMill\ProfileRoundedRectangleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\OperationsPreviewView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

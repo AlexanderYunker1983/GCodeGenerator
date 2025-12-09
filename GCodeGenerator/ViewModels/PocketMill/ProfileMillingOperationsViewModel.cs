@@ -80,6 +80,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddProfileRoundedRectangle()
@@ -98,6 +99,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddProfileCircle()
@@ -116,6 +118,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddProfileEllipse()
@@ -134,6 +137,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddProfilePolygon()
@@ -152,6 +156,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 vm.Operation = op;
                 vm.ShowAsync();
             }
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private bool CanModifySelectedOperation() => SelectedOperation != null;
@@ -256,6 +261,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
                     vm.ShowAsync();
                 }
             }
+
+            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void UpdateOperationCommandsCanExecute()

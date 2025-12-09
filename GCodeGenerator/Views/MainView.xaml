@@ -26,7 +26,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="240"/>
         </Grid.RowDefinitions>
 
         <!-- Preview button above TabControl -->
@@ -118,5 +118,8 @@
                      AcceptsTab="True"
                      IsReadOnly="True"/>
         </GroupBox>
+
+        <!-- Bottom: 2D preview of operations -->
+        <views:OperationsPreviewView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding}"/>
     </Grid>
 </Window>
