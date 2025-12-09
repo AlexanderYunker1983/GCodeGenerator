@@ -190,34 +190,37 @@ namespace GCodeGenerator.Views
             DrawGrid();
             if (_mainVm == null) return;
 
+            var selected = _mainVm.SelectedOperation;
+
             foreach (var op in _mainVm.AllOperations)
             {
                 if (op is DrillPointsOperation drillOp)
                 {
+                    var holeBrush = ReferenceEquals(op, selected) ? Brushes.Red : Brushes.SteelBlue;
                     foreach (var hole in drillOp.Holes)
                     {
-                        DrawHole(hole.X, hole.Y);
+                        DrawHole(hole.X, hole.Y, holeBrush);
                     }
                 }
                 else if (op is ProfileRectangleOperation rectOp)
                 {
-                    DrawPolyline(GetRectanglePoints(rectOp), Brushes.DarkGreen);
+                    DrawPolyline(GetRectanglePoints(rectOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
                 }
                 else if (op is ProfileRoundedRectangleOperation rrectOp)
                 {
-                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), Brushes.DarkGreen);
+                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
                 }
                 else if (op is ProfileCircleOperation circleOp)
                 {
-                    DrawPolyline(GetCirclePoints(circleOp), Brushes.DarkGreen);
+                    DrawPolyline(GetCirclePoints(circleOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
                 }
                 else if (op is ProfileEllipseOperation ellipseOp)
                 {
-                    DrawPolyline(GetEllipsePoints(ellipseOp), Brushes.DarkGreen);
+                    DrawPolyline(GetEllipsePoints(ellipseOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
                 }
                 else if (op is ProfilePolygonOperation polyOp)
                 {
-                    DrawPolyline(GetPolygonPoints(polyOp), Brushes.DarkGreen);
+                    DrawPolyline(GetPolygonPoints(polyOp), ReferenceEquals(op, selected) ? Brushes.Red : Brushes.DarkGreen);
                 }
             }
         }
@@ -293,7 +296,7 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(axisY);
         }
 
-        private void DrawHole(double x, double y)
+        private void DrawHole(double x, double y, Brush brush)
         {
             var screen = WorldToScreen(new Point(x, y));
             var size = 5.0;
@@ -301,7 +304,7 @@ namespace GCodeGenerator.Views
             {
                 Width = size,
                 Height = size,
-                Fill = Brushes.SteelBlue
+                Fill = brush
             };
             Canvas.SetLeft(ellipse, screen.X - size / 2.0);
             Canvas.SetTop(ellipse, screen.Y - size / 2.0);

@@ -111,6 +111,7 @@ namespace GCodeGenerator.ViewModels
                 }
                 
                 UpdateOperationCommandsCanExecute();
+                NotifyOperationsChanged();
             }
         }
 
