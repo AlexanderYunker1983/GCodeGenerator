@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Shapes;
+using System.Windows.Controls.Primitives;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
 
@@ -359,6 +360,7 @@ namespace GCodeGenerator.Views
                 Fill = brush,
                 Tag = op
             };
+            ApplyTooltip(ellipse, op);
             Canvas.SetLeft(ellipse, screen.X - size / 2.0);
             Canvas.SetTop(ellipse, screen.Y - size / 2.0);
             PreviewCanvas.Children.Add(ellipse);
@@ -376,7 +378,17 @@ namespace GCodeGenerator.Views
                 Points = new PointCollection(worldPoints.Select(WorldToScreen)),
                 Tag = op
             };
+            ApplyTooltip(poly, op);
             PreviewCanvas.Children.Add(poly);
+        }
+
+        private void ApplyTooltip(FrameworkElement element, OperationBase op)
+        {
+            if (op == null) return;
+            element.ToolTip = op.Name;
+            ToolTipService.SetInitialShowDelay(element, 0);
+            ToolTipService.SetShowDuration(element, 60000);
+            ToolTipService.SetPlacement(element, PlacementMode.Mouse);
         }
 
         private Point WorldToScreen(Point world)
