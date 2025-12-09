@@ -334,36 +334,46 @@ namespace GCodeGenerator.Views
                 }
             }
 
-            var pts = new List<Point>();
             var maxSeg = Math.Max(0.001, op.MaxSegmentLength);
 
+            var corners = new[] { 0, 1, 2, 3 }.Select(Corner).ToArray();
+            var trims = new (double sx, double sy, double ex, double ey)[4];
             for (int i = 0; i < 4; i++)
             {
                 var next = (i + 1) % 4;
-                var startCorner = Corner(i);
-                var endCorner = Corner(next);
+                var start = corners[i];
+                var end = corners[next];
                 var rStart = radii[i];
                 var rEnd = radii[next];
-
-                var dx = endCorner.X - startCorner.X;
-                var dy = endCorner.Y - startCorner.Y;
+                var dx = end.X - start.X;
+                var dy = end.Y - start.Y;
                 var len = Math.Sqrt(dx * dx + dy * dy);
                 if (len < 1e-6) len = 1e-6;
                 var ux = dx / len;
                 var uy = dy / len;
+                var trimStart = (start.X + ux * rStart, start.Y + uy * rStart);
+                var trimEnd = (end.X - ux * rEnd, end.Y - uy * rEnd);
+                trims[i] = (trimStart.Item1, trimStart.Item2, trimEnd.Item1, trimEnd.Item2);
+            }
 
-                var startTrim = (startCorner.X + ux * rStart, startCorner.Y + uy * rStart);
-                var endTrim = (endCorner.X - ux * rEnd, endCorner.Y - uy * rEnd);
+            var pts = new List<Point>();
+            // start with first trimmed point
+            pts.Add(RotateTranslate(trims[0].sx, trims[0].sy, cx, cy, cos, sin));
 
-                pts.Add(RotateTranslate(startTrim.Item1, startTrim.Item2, cx, cy, cos, sin));
-                pts.Add(RotateTranslate(endTrim.Item1, endTrim.Item2, cx, cy, cos, sin));
+            for (int i = 0; i < 4; i++)
+            {
+                var next = (i + 1) % 4;
+                var trimEnd = trims[i];
+                var trimStartNext = trims[next];
+                var arcRadius = radii[next];
 
-                var arcRadius = rEnd;
+                pts.Add(RotateTranslate(trimEnd.ex, trimEnd.ey, cx, cy, cos, sin));
+
                 if (arcRadius > 0)
                 {
                     var center = ArcCenter(next, arcRadius);
-                    var startDir = (startTrim.Item1 - center.X, startTrim.Item2 - center.Y);
-                    var endDir = (endTrim.Item1 - center.X, endTrim.Item2 - center.Y);
+                    var startDir = (trimEnd.ex - center.X, trimEnd.ey - center.Y);
+                    var endDir = (trimStartNext.sx - center.X, trimStartNext.sy - center.Y);
                     var angleStart = Math.Atan2(startDir.Item2, startDir.Item1);
                     var angleEnd = Math.Atan2(endDir.Item2, endDir.Item1);
                     var sweep = angleEnd - angleStart;

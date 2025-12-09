@@ -253,7 +253,7 @@
     <value>Сохранить G-код</value>
   </data>
   <data name="PreviewGCode" xml:space="preserve">
-    <value>Предварительный просмотр кода</value>
+    <value>Просмотр траектории инструмента в 3D</value>
   </data>
   <data name="ProfileRectangleName" xml:space="preserve">
     <value>Контур прямоугольника</value>

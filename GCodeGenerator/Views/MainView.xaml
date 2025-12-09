@@ -26,17 +26,14 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="240"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Preview button above TabControl -->
-        <Button Content="{DataBinding '$i18n.PreviewGCode'}"
-                Command="{Binding PreviewGCodeCommand}"
-                Grid.Row="0" Grid.Column="0"
-                Margin="0,0,8,8"
-                Width="200"
+        <Button Content="{DataBinding '$i18n.Settings'}"
+                Command="{Binding OpenSettingsCommand}" Width="120"
+                Grid.Column="0" Grid.Row="0"
+                VerticalAlignment="Center"
                 HorizontalAlignment="Left"/>
-
         <!-- Left side: operation type selector inside TabControl -->
         <TabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
             <TabItem Header="{DataBinding '$i18n.DrillingTab'}">
@@ -87,8 +84,7 @@
                     Command="{Binding GenerateGCodeCommand}" Margin="0,0,8,0" Width="160"/>
             <Button Content="{DataBinding '$i18n.SaveGCode'}"
                     Command="{Binding SaveGCodeCommand}" Margin="0,0,8,0" Width="140"/>
-            <Button Content="{DataBinding '$i18n.Settings'}"
-                    Command="{Binding OpenSettingsCommand}" Width="120"/>
+            
         </StackPanel>
 
         <!-- Middle: operations list with fixed width -->
@@ -121,5 +117,15 @@
 
         <!-- Bottom: 2D preview of operations -->
         <views:OperationsPreviewView Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding}"/>
+
+        <!-- Preview button above TabControl -->
+        <Button Content="{DataBinding '$i18n.PreviewGCode'}"
+                Command="{Binding PreviewGCodeCommand}"
+                Grid.Row="3" Grid.Column="0" TabIndex="100"
+                Margin="11,18,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Padding="7,5"/>
+
     </Grid>
 </Window>
