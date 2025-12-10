@@ -51,6 +51,10 @@ namespace GCodeGenerator.ViewModels.Pocket
                     ReferencePointY = Convert.ToDouble(_operation.Metadata["ReferencePointY"]);
                     ReferencePointType = (ReferencePointType)_operation.Metadata["ReferencePointType"];
                     Direction = (MillingDirection)_operation.Metadata["Direction"];
+                    if (_operation.Metadata.ContainsKey("PocketStrategy"))
+                        PocketStrategy = (PocketStrategy)_operation.Metadata["PocketStrategy"];
+                    else
+                        PocketStrategy = _operation.PocketStrategy;
                     StepPercentOfTool = Convert.ToDouble(_operation.Metadata["StepPercentOfTool"]);
                     Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
                 }
@@ -73,6 +77,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                     ReferencePointY = _operation.ReferencePointY;
                     ReferencePointType = _operation.ReferencePointType;
                     Direction = _operation.Direction;
+                    PocketStrategy = _operation.PocketStrategy;
                     StepPercentOfTool = _operation.StepPercentOfTool;
                     Decimals = _operation.Decimals;
                 }
@@ -99,6 +104,18 @@ namespace GCodeGenerator.ViewModels.Pocket
             {
                 if (value == _direction) return;
                 _direction = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private PocketStrategy _pocketStrategy = PocketStrategy.Spiral;
+        public PocketStrategy PocketStrategy
+        {
+            get => _pocketStrategy;
+            set
+            {
+                if (value == _pocketStrategy) return;
+                _pocketStrategy = value;
                 OnPropertyChanged();
             }
         }
@@ -331,6 +348,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
 
             _operation.Direction = Direction;
+            _operation.PocketStrategy = PocketStrategy;
             _operation.Width = Width;
             _operation.Height = Height;
             _operation.RotationAngle = RotationAngle;
@@ -354,6 +372,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
 
             _operation.Metadata["Direction"] = Direction;
+            _operation.Metadata["PocketStrategy"] = PocketStrategy;
             _operation.Metadata["Width"] = Width;
             _operation.Metadata["Height"] = Height;
             _operation.Metadata["RotationAngle"] = RotationAngle;

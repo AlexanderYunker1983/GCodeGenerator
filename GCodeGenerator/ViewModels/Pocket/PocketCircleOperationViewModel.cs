@@ -35,6 +35,10 @@ namespace GCodeGenerator.ViewModels.Pocket
                 if (_operation.Metadata != null && _operation.Metadata.ContainsKey("Radius"))
                 {
                     Direction = (MillingDirection)_operation.Metadata["Direction"];
+                    if (_operation.Metadata.ContainsKey("PocketStrategy"))
+                        PocketStrategy = (PocketStrategy)_operation.Metadata["PocketStrategy"];
+                    else
+                        PocketStrategy = _operation.PocketStrategy;
                     CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
                     CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
                     Radius = Convert.ToDouble(_operation.Metadata["Radius"]);
@@ -54,6 +58,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 else
                 {
                     Direction = _operation.Direction;
+                    PocketStrategy = _operation.PocketStrategy;
                     CenterX = _operation.CenterX;
                     CenterY = _operation.CenterY;
                     Radius = _operation.Radius;
@@ -93,6 +98,18 @@ namespace GCodeGenerator.ViewModels.Pocket
             {
                 if (value == _direction) return;
                 _direction = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private PocketStrategy _pocketStrategy = PocketStrategy.Spiral;
+        public PocketStrategy PocketStrategy
+        {
+            get => _pocketStrategy;
+            set
+            {
+                if (value == _pocketStrategy) return;
+                _pocketStrategy = value;
                 OnPropertyChanged();
             }
         }
@@ -289,6 +306,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
 
             _operation.Direction = Direction;
+            _operation.PocketStrategy = PocketStrategy;
             _operation.CenterX = CenterX;
             _operation.CenterY = CenterY;
             _operation.Radius = Radius;
@@ -309,6 +327,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
 
             _operation.Metadata["Direction"] = Direction;
+            _operation.Metadata["PocketStrategy"] = PocketStrategy;
             _operation.Metadata["CenterX"] = CenterX;
             _operation.Metadata["CenterY"] = CenterY;
             _operation.Metadata["Radius"] = Radius;

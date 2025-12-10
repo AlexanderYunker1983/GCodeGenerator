@@ -130,6 +130,9 @@
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="180"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="20"/>
                     <ColumnDefinition Width="Auto"/>
@@ -139,11 +142,19 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
-                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.StepPercentOfTool'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.NoteSpiralFromCenter'}" Grid.ColumnSpan="5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.PocketStrategy'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <ComboBox Grid.Column="1" 
+                         SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
+                         SelectedValuePath="Tag"
+                         Margin="0,0,4,0">
+                    <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
+                </ComboBox>
+                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.StepPercentOfTool'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBox Grid.Column="4" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBox Grid.Column="7" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.NoteSpiralFromCenter'}" Grid.ColumnSpan="8" Margin="0,8,0,0" TextWrapping="Wrap"/>
             </Grid>
         </GroupBox>
     </Grid>
