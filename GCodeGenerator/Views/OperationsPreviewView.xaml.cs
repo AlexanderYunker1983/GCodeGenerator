@@ -284,23 +284,23 @@ namespace GCodeGenerator.Views
                 }
                 else if (op is ProfileRectangleOperation rectOp)
                 {
-                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op);
+                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is ProfileRoundedRectangleOperation rrectOp)
                 {
-                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op);
+                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is ProfileCircleOperation circleOp)
                 {
-                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op);
+                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is ProfileEllipseOperation ellipseOp)
                 {
-                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op);
+                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is ProfilePolygonOperation polyOp)
                 {
-                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op);
+                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is PocketRectangleOperation pocketRect)
                 {
@@ -312,7 +312,7 @@ namespace GCodeGenerator.Views
                         ReferencePointX = pocketRect.ReferencePointX,
                         ReferencePointY = pocketRect.ReferencePointY,
                         ReferencePointType = pocketRect.ReferencePointType
-                    }), StrokeFor(op, Brushes.DarkGreen), op);
+                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
                 else if (op is PocketCircleOperation pocketCircle)
                 {
@@ -321,7 +321,7 @@ namespace GCodeGenerator.Views
                         CenterX = pocketCircle.CenterX,
                         CenterY = pocketCircle.CenterY,
                         Radius = pocketCircle.Radius
-                    }), StrokeFor(op, Brushes.DarkGreen), op);
+                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
             }
         }
@@ -414,16 +414,33 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(ellipse);
         }
 
-        private void DrawPolyline(IList<Point> worldPoints, Brush stroke, OperationBase op)
+        private void DrawPolyline(IList<Point> worldPoints, Brush stroke, OperationBase op, bool fill = false)
         {
             if (worldPoints == null || worldPoints.Count == 0)
                 return;
+
+            var points = worldPoints.Select(WorldToScreen).ToList();
+
+            if (fill && points.Count >= 3)
+            {
+                var polygon = new Polygon
+                {
+                    Stroke = stroke,
+                    Fill = stroke.Clone(),
+                    Opacity = 0.25,
+                    StrokeThickness = 1,
+                    Points = new PointCollection(points),
+                    Tag = op
+                };
+                ApplyTooltip(polygon, op);
+                PreviewCanvas.Children.Add(polygon);
+            }
 
             var poly = new Polyline
             {
                 Stroke = stroke,
                 StrokeThickness = 1,
-                Points = new PointCollection(worldPoints.Select(WorldToScreen)),
+                Points = new PointCollection(points),
                 Tag = op
             };
             ApplyTooltip(poly, op);
