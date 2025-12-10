@@ -126,6 +126,7 @@
     <Compile Include="ViewModels\PocketMill\ProfileCircleOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfileEllipseOperationViewModel.cs" />
     <Compile Include="ViewModels\PocketMill\ProfilePolygonOperationViewModel.cs" />
+    <Compile Include="ViewModels\Pocket\PocketOperationsViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -170,6 +171,9 @@
     </Compile>
     <Compile Include="Views\OperationsPreviewView.xaml.cs">
       <DependentUpon>OperationsPreviewView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Pocket\PocketOperationsView.xaml.cs">
+      <DependentUpon>PocketOperationsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PocketMill\ProfileCircleOperationView.xaml.cs">
       <DependentUpon>ProfileCircleOperationView.xaml</DependentUpon>
@@ -267,6 +271,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\OperationsPreviewView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Pocket\PocketOperationsView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>

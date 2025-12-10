@@ -33,6 +33,7 @@ namespace GCodeGenerator.ViewModels
             DrillOperations.MainViewModel = this;
             ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager);
             ProfileMillingOperations.MainViewModel = this;
+            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager);
             
             AllOperations = new ObservableCollection<OperationBase>();
             
@@ -82,6 +83,8 @@ namespace GCodeGenerator.ViewModels
         public DrillOperationsViewModel DrillOperations { get; }
         
         public ProfileMillingOperationsViewModel ProfileMillingOperations { get; }
+
+        public Pocket.PocketOperationsViewModel PocketOperations { get; }
         
         public ObservableCollection<OperationBase> AllOperations { get; }
         

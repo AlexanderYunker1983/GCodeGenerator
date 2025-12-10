@@ -7,6 +7,7 @@
         xmlns:views="clr-namespace:GCodeGenerator.Views"
         xmlns:drillViews="clr-namespace:GCodeGenerator.Views.Drill"
         xmlns:pocketMillViews="clr-namespace:GCodeGenerator.Views.PocketMill"
+        xmlns:pocketViews="clr-namespace:GCodeGenerator.Views.Pocket"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Title="{DataBinding DisplayName}"
@@ -44,13 +45,8 @@
                     <TabItem Header="{DataBinding '$i18n.ProfileTab'}">
                         <pocketMillViews:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.PocketTab'}" IsEnabled="False">
-                        <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Auto">
-                            <WrapPanel Margin="4" ItemWidth="120" ItemHeight="100">
-                                <!-- TODO: add buttons for pocket milling operations -->
-                            </WrapPanel>
-                        </ScrollViewer>
+                    <TabItem Header="{DataBinding '$i18n.PocketTab'}">
+                        <pocketViews:PocketOperationsView DataContext="{Binding PocketOperations}"/>
                     </TabItem>
                     <TabItem Header="{DataBinding '$i18n.ShapesTab'}" IsEnabled="False">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
