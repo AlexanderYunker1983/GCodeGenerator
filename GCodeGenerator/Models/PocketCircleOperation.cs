@@ -12,6 +12,8 @@ namespace GCodeGenerator.Models
             Metadata = new Dictionary<string, object>();
         }
 
+        public PocketStrategy PocketStrategy { get; set; } = PocketStrategy.Spiral;
+
         public MillingDirection Direction { get; set; } = MillingDirection.Clockwise;
 
         public double CenterX { get; set; } = 0.0;

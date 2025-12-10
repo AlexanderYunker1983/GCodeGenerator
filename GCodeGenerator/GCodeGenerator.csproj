@@ -92,6 +92,7 @@
     <Compile Include="Models\GCodeSettingsStore.cs" />
     <Compile Include="Models\OperationBase.cs" />
     <Compile Include="Models\OperationType.cs" />
+    <Compile Include="Models\PocketStrategy.cs" />
     <Compile Include="Models\ToolPathMode.cs" />
     <Compile Include="Models\MillingDirection.cs" />
     <Compile Include="Models\ReferencePointType.cs" />
