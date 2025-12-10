@@ -284,23 +284,23 @@ namespace GCodeGenerator.Views
                 }
                 else if (op is ProfileRectangleOperation rectOp)
                 {
-                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op, false);
                 }
                 else if (op is ProfileRoundedRectangleOperation rrectOp)
                 {
-                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op, false);
                 }
                 else if (op is ProfileCircleOperation circleOp)
                 {
-                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op, false);
                 }
                 else if (op is ProfileEllipseOperation ellipseOp)
                 {
-                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op, false);
                 }
                 else if (op is ProfilePolygonOperation polyOp)
                 {
-                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op, false);
                 }
                 else if (op is PocketRectangleOperation pocketRect)
                 {
