@@ -68,11 +68,13 @@ namespace GCodeGenerator.GCodeGenerators
 
                 // ----------- генерация траектории ----------
                 if (op.PocketStrategy == PocketStrategy.Spiral)
-                    GenerateSpiral(addLine, g1,
+                    GenerateSpiral(addLine, g0, g1,
                                    fmt, culture,
                                    cx, cy, halfW, halfH,
                                    step, angleRad,
-                                   op.FeedXYWork);
+                                   op.FeedXYWork,
+                                   op.SafeZHeight, nextZ,
+                                   op.FeedZRapid, op.FeedZWork);
                 else
                     GenerateConcentricRectangles(addLine, g1,
                                                 fmt, culture,
@@ -94,19 +96,21 @@ namespace GCodeGenerator.GCodeGenerators
         /// Генерация траектории Archimedean‑спирали,
         /// ограниченной прямоугольником (halfW × halfH).
         /// При выходе спирали за пределы прямоугольника
-        /// движение продолжается по ближайшей стенке, а после окончания спирали –
-        /// полный обход внешнего прямоугольника.
+        /// движение продолжается по контуру до точки входа спирали обратно в контур.
+        /// После последней точки спирали выполняется полный обход внешнего прямоугольника.
         /// </summary>
-        private void GenerateSpiral(Action<string> addLine, string g1,
+        private void GenerateSpiral(Action<string> addLine, string g0, string g1,
                                     string fmt, CultureInfo culture,
                                     double cx, double cy,
                                     double halfW, double halfH,
                                     double step,
                                     double angleRad,
-                                    double feedXYWork)
+                                    double feedXYWork,
+                                    double safeZ, double currentZ,
+                                    double feedZRapid, double feedZWork)
         {
             // Максимальный радиус спирали – минимум от половин ширины/высоты
-            var maxRadius = Math.Min(halfW, halfH);
+            var maxRadius = Math.Sqrt(halfW * halfW + halfH * halfH);
 
             const double a = 0.0;                        // r(θ) = a + b·θ
             double b = step / (2 * Math.PI);             // радиальная скорость за один оборот
@@ -116,53 +120,361 @@ namespace GCodeGenerator.GCodeGenerators
 
             double θMax = (maxRadius - a) / b;
 
-            // Текущая точка – центр
-            double prevX = cx, prevY = cy;
-            addLine($"{g1} X{prevX.ToString(fmt, culture)} Y{prevY.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-
-            for (double θ = angleStep; θ <= θMax + 1e-9; θ += angleStep)
-            {
-                double r = a + b * θ;
-                double xTmp = cx + r * Math.Cos(θ);
-                double yTmp = cy + r * Math.Sin(θ);
-
-                // Если точка вне прямоугольника – «прокладываем» к ближайшему ребру
-                bool outside =
-                    (xTmp < cx - halfW) || (xTmp > cx + halfW) ||
-                    (yTmp < cy - halfH) || (yTmp > cy + halfH);
-
-                double x = xTmp, y = yTmp;
-                if (outside)
-                {
-                    // Приводим координаты к границам прямоугольника
-                    x = Math.Max(cx - halfW, Math.Min(cx + halfW, x));
-                    y = Math.Max(cy - halfH, Math.Min(cy + halfH, y));
-
-                    // При переходе на стенку добавляем точку (если она отличается от предыдущей)
-                    if (Math.Abs(x - prevX) > 1e-9 || Math.Abs(y - prevY) > 1e-9)
-                        addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                }
-                else
-                {
-                    // Внутри прямоугольника – обычный шаг спирали
-                    addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                }
-
-                prevX = x;
-                prevY = y;
-            }
-
-            // ----------- полный обход внешнего прямоугольника -------------
+            // Границы прямоугольника
             double left = cx - halfW;
             double right = cx + halfW;
             double bottom = cy - halfH;
             double top = cy + halfH;
 
-            addLine($"{g1} X{left.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-            addLine($"{g1} X{right.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-            addLine($"{g1} X{right.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-            addLine($"{g1} X{left.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-            addLine($"{g1} X{left.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+            // Функция проверки, находится ли точка внутри прямоугольника (строго внутри, не на границе)
+            bool IsInside(double x, double y)
+            {
+                double tolerance = 1e-6;
+                return x > left + tolerance && x < right - tolerance && y > bottom + tolerance && y < top - tolerance;
+            }
+            
+            // Функция проверки, находится ли точка на границе или внутри
+            bool IsOnOrInside(double x, double y)
+            {
+                return x >= left && x <= right && y >= bottom && y <= top;
+            }
+
+            // Функция нахождения точки пересечения отрезка с границей прямоугольника
+            bool FindIntersection(double x1, double y1, double x2, double y2,
+                                 out double ix, out double iy)
+            {
+                ix = x2;
+                iy = y2;
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+                if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9) return false;
+
+                double tMin = 0.0;
+                double tMax = 1.0;
+                bool found = false;
+
+                if (Math.Abs(dx) > 1e-9)
+                {
+                    double tLeft = (left - x1) / dx;
+                    double tRight = (right - x1) / dx;
+                    if (tLeft > tRight) { double tmp = tLeft; tLeft = tRight; tRight = tmp; }
+                    if (tLeft >= 0 && tLeft <= 1 && tLeft > tMin) { tMin = tLeft; found = true; }
+                    if (tRight >= 0 && tRight <= 1 && tRight < tMax) { tMax = tRight; found = true; }
+                }
+
+                if (Math.Abs(dy) > 1e-9)
+                {
+                    double tBottom = (bottom - y1) / dy;
+                    double tTop = (top - y1) / dy;
+                    if (tBottom > tTop) { double tmp = tBottom; tBottom = tTop; tTop = tmp; }
+                    if (tBottom >= 0 && tBottom <= 1 && tBottom > tMin) { tMin = tBottom; found = true; }
+                    if (tTop >= 0 && tTop <= 1 && tTop < tMax) { tMax = tTop; found = true; }
+                }
+
+                if (!found || tMin > tMax || tMin < 0 || tMin > 1) return false;
+
+                ix = x1 + tMin * dx;
+                iy = y1 + tMin * dy;
+                return true;
+            }
+
+            // Функция движения по контуру от точки (x1, y1) до точки (x2, y2)
+            // Проходит через все углы между этими точками (по кратчайшему пути)
+            // Возвращает true, если путь построен успешно; false - если нужен подъём инструмента
+            bool MoveAlongContour(double x1, double y1, double x2, double y2)
+            {
+                double tolerance = 1e-4;
+                
+                // Углы прямоугольника (против часовой стрелки)
+                var corners = new[]
+                {
+                    (left, bottom),   // 0: левый нижний
+                    (right, bottom),  // 1: правый нижний
+                    (right, top),     // 2: правый верхний
+                    (left, top),      // 3: левый верхний
+                };
+                
+                // Определяем, на какой стороне находится точка (0=низ, 1=право, 2=верх, 3=лево)
+                int GetSide(double px, double py)
+                {
+                    if (Math.Abs(py - bottom) < tolerance) return 0; // нижняя
+                    if (Math.Abs(px - right) < tolerance) return 1; // правая
+                    if (Math.Abs(py - top) < tolerance) return 2; // верхняя
+                    if (Math.Abs(px - left) < tolerance) return 3; // левая
+                    return -1;
+                }
+
+                int sideStart = GetSide(x1, y1);
+                int sideEnd = GetSide(x2, y2);
+                
+                if (sideStart < 0 || sideEnd < 0) return false;
+                if (sideStart == sideEnd)
+                {
+                    // На одной стороне - просто идём к конечной точке
+                    addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    return true;
+                }
+
+                // Вычисляем расстояние в обоих направлениях
+                double DistCCW()
+                {
+                    double dist = 0;
+                    double px = x1, py = y1;
+                    int side = sideStart;
+                    while (side != sideEnd)
+                    {
+                        int cornerIdx = (side + 1) % 4;
+                        dist += Math.Sqrt(Math.Pow(px - corners[cornerIdx].Item1, 2) + Math.Pow(py - corners[cornerIdx].Item2, 2));
+                        px = corners[cornerIdx].Item1;
+                        py = corners[cornerIdx].Item2;
+                        side = (side + 1) % 4;
+                    }
+                    dist += Math.Sqrt(Math.Pow(px - x2, 2) + Math.Pow(py - y2, 2));
+                    return dist;
+                }
+                
+                double DistCW()
+                {
+                    double dist = 0;
+                    double px = x1, py = y1;
+                    int side = sideStart;
+                    while (side != sideEnd)
+                    {
+                        int cornerIdx = side;
+                        dist += Math.Sqrt(Math.Pow(px - corners[cornerIdx].Item1, 2) + Math.Pow(py - corners[cornerIdx].Item2, 2));
+                        px = corners[cornerIdx].Item1;
+                        py = corners[cornerIdx].Item2;
+                        side = (side + 3) % 4;
+                    }
+                    dist += Math.Sqrt(Math.Pow(px - x2, 2) + Math.Pow(py - y2, 2));
+                    return dist;
+                }
+
+                bool ccw = DistCCW() <= DistCW();
+                
+                int currentSide = sideStart;
+                while (currentSide != sideEnd)
+                {
+                    int cornerIdx = ccw ? (currentSide + 1) % 4 : currentSide;
+                    addLine($"{g1} X{corners[cornerIdx].Item1.ToString(fmt, culture)} Y{corners[cornerIdx].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    currentSide = ccw ? (currentSide + 1) % 4 : (currentSide + 3) % 4;
+                }
+                
+                addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                return true;
+            }
+            
+            // Функция для перемещения с подъёмом инструмента
+            void MoveWithRetract(double x1, double y1, double x2, double y2)
+            {
+                addLine($"{g0} Z{safeZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+            }
+
+            // Сначала собираем все точки спирали
+            var spiralPoints = new System.Collections.Generic.List<(double x, double y)>();
+            spiralPoints.Add((cx, cy));
+            
+            for (double θ = angleStep; θ <= θMax + 1e-9; θ += angleStep)
+            {
+                double r = a + b * θ;
+                double xSpiral = cx + r * Math.Cos(θ);
+                double ySpiral = cy + r * Math.Sin(θ);
+                spiralPoints.Add((xSpiral, ySpiral));
+            }
+
+            // Функция clamp - ограничивает точку контуром
+            (double x, double y) Clamp(double x, double y)
+            {
+                return (Math.Max(left, Math.Min(right, x)), Math.Max(bottom, Math.Min(top, y)));
+            }
+
+            // Функция для нахождения точки пересечения отрезка с границей прямоугольника
+            // Находит ВСЕ пересечения и возвращает ближайшее к (x1, y1)
+            (double x, double y) FindBorderIntersection(double x1, double y1, double x2, double y2)
+            {
+                double dx = x2 - x1;
+                double dy = y2 - y1;
+                
+                var intersections = new System.Collections.Generic.List<(double t, double x, double y)>();
+
+                // Пересечение с левой стороной (x = left)
+                if (Math.Abs(dx) > 1e-9)
+                {
+                    double t = (left - x1) / dx;
+                    if (t > 1e-9 && t < 1 - 1e-9)
+                    {
+                        double yInt = y1 + t * dy;
+                        if (yInt >= bottom - 1e-9 && yInt <= top + 1e-9)
+                            intersections.Add((t, left, Math.Max(bottom, Math.Min(top, yInt))));
+                    }
+                }
+                
+                // Пересечение с правой стороной (x = right)
+                if (Math.Abs(dx) > 1e-9)
+                {
+                    double t = (right - x1) / dx;
+                    if (t > 1e-9 && t < 1 - 1e-9)
+                    {
+                        double yInt = y1 + t * dy;
+                        if (yInt >= bottom - 1e-9 && yInt <= top + 1e-9)
+                            intersections.Add((t, right, Math.Max(bottom, Math.Min(top, yInt))));
+                    }
+                }
+                
+                // Пересечение с нижней стороной (y = bottom)
+                if (Math.Abs(dy) > 1e-9)
+                {
+                    double t = (bottom - y1) / dy;
+                    if (t > 1e-9 && t < 1 - 1e-9)
+                    {
+                        double xInt = x1 + t * dx;
+                        if (xInt >= left - 1e-9 && xInt <= right + 1e-9)
+                            intersections.Add((t, Math.Max(left, Math.Min(right, xInt)), bottom));
+                    }
+                }
+                
+                // Пересечение с верхней стороной (y = top)
+                if (Math.Abs(dy) > 1e-9)
+                {
+                    double t = (top - y1) / dy;
+                    if (t > 1e-9 && t < 1 - 1e-9)
+                    {
+                        double xInt = x1 + t * dx;
+                        if (xInt >= left - 1e-9 && xInt <= right + 1e-9)
+                            intersections.Add((t, Math.Max(left, Math.Min(right, xInt)), top));
+                    }
+                }
+
+                if (intersections.Count == 0)
+                    return Clamp(x2, y2);
+
+                // Находим ближайшее пересечение
+                intersections.Sort((p1, p2) => p1.t.CompareTo(p2.t));
+                return (intersections[0].x, intersections[0].y);
+            }
+
+            // Теперь обрабатываем точки спирали
+            double prevX = cx, prevY = cy;
+            bool prevInside = true;
+            addLine($"{g1} X{prevX.ToString(fmt, culture)} Y{prevY.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+
+            double exitX = 0, exitY = 0;
+            bool hasExitPoint = false;
+
+            for (int i = 1; i < spiralPoints.Count; i++)
+            {
+                var point = spiralPoints[i];
+                double xSpiral = point.x;
+                double ySpiral = point.y;
+                bool currentInside = IsOnOrInside(xSpiral, ySpiral);
+
+                if (prevInside && currentInside)
+                {
+                    // Обе точки внутри - просто добавляем
+                    addLine($"{g1} X{xSpiral.ToString(fmt, culture)} Y{ySpiral.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    prevX = xSpiral;
+                    prevY = ySpiral;
+                }
+                else if (prevInside && !currentInside)
+                {
+                    // Выход из контура - находим точку выхода и запоминаем
+                    var exit = FindBorderIntersection(prevX, prevY, xSpiral, ySpiral);
+                    exitX = exit.x;
+                    exitY = exit.y;
+                    addLine($"{g1} X{exitX.ToString(fmt, culture)} Y{exitY.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    hasExitPoint = true;
+                    prevInside = false;
+                    prevX = xSpiral;
+                    prevY = ySpiral;
+                }
+                else if (!prevInside && currentInside)
+                {
+                    // Вход в контур - находим точку входа
+                    var prevPoint = spiralPoints[i - 1];
+                    var entry = FindBorderIntersection(prevPoint.x, prevPoint.y, xSpiral, ySpiral);
+                    
+                    if (hasExitPoint)
+                    {
+                        // Строим путь по контуру от точки выхода до точки входа
+                        // Если не удалось - поднимаем инструмент
+                        if (!MoveAlongContour(exitX, exitY, entry.x, entry.y))
+                        {
+                            MoveWithRetract(exitX, exitY, entry.x, entry.y);
+                        }
+                        hasExitPoint = false;
+                    }
+                    
+                    addLine($"{g1} X{xSpiral.ToString(fmt, culture)} Y{ySpiral.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    prevX = xSpiral;
+                    prevY = ySpiral;
+                    prevInside = true;
+                }
+                else
+                {
+                    // Обе точки снаружи - обновляем предыдущую точку, но не добавляем в траекторию
+                    prevX = xSpiral;
+                    prevY = ySpiral;
+                    prevInside = false;
+                }
+            }
+
+            // ----------- полный обход внешнего прямоугольника -------------
+            // От последней точки (точки выхода или последней точки внутри) делаем полный обход
+            double startX = hasExitPoint ? exitX : prevX;
+            double startY = hasExitPoint ? exitY : prevY;
+
+            // Определяем, на какой стороне находится текущая точка (0=низ, 1=право, 2=верх, 3=лево)
+            double eps = 1e-4;
+            int GetSideSimple(double x, double y)
+            {
+                if (Math.Abs(y - bottom) < eps) return 0; // нижняя
+                if (Math.Abs(x - right) < eps) return 1; // правая
+                if (Math.Abs(y - top) < eps) return 2; // верхняя
+                if (Math.Abs(x - left) < eps) return 3; // левая
+                return -1;
+            }
+
+            // Углы прямоугольника (против часовой стрелки, начиная с левого нижнего)
+            // Угол i находится между сторонами (i-1) и i
+            var rectCorners = new[]
+            {
+                (left, bottom),   // 0: между сторонами 3 (лево) и 0 (низ)
+                (right, bottom),  // 1: между сторонами 0 (низ) и 1 (право)
+                (right, top),     // 2: между сторонами 1 (право) и 2 (верх)
+                (left, top),      // 3: между сторонами 2 (верх) и 3 (лево)
+            };
+
+            int startSide = GetSideSimple(startX, startY);
+            
+            // Полный обход контура от текущей точки против часовой стрелки
+            if (startSide >= 0)
+            {
+                // Сначала идём к ближайшему углу на текущей стороне (против часовой стрелки)
+                // Угол (startSide + 1) % 4 - это угол в конце текущей стороны (против часовой)
+                int firstCorner = (startSide + 1) % 4;
+                addLine($"{g1} X{rectCorners[firstCorner].Item1.ToString(fmt, culture)} Y{rectCorners[firstCorner].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                
+                // Проходим оставшиеся 3 угла
+                for (int i = 1; i <= 3; i++)
+                {
+                    int cornerIdx = (firstCorner + i) % 4;
+                    addLine($"{g1} X{rectCorners[cornerIdx].Item1.ToString(fmt, culture)} Y{rectCorners[cornerIdx].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                }
+                
+                // Возвращаемся к начальной точке
+                addLine($"{g1} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+            }
+            else
+            {
+                // Если не на контуре - поднимаем инструмент и делаем полный обход
+                MoveWithRetract(startX, startY, left, bottom);
+                addLine($"{g1} X{right.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{right.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{left.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{left.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+            }
         }
 
 
