@@ -22,6 +22,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             AddPocketRectangleCommand = new RelayCommand(AddPocketRectangle);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, () => SelectedOperation != null);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, () => SelectedOperation != null);
+            AddPocketCircleCommand = new RelayCommand(AddPocketCircle);
         }
 
         public ViewModels.MainViewModel MainViewModel { get; set; }
@@ -47,6 +48,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         public ICommand AddPocketRectangleCommand { get; }
         public ICommand EditOperationCommand { get; }
         public ICommand RemoveOperationCommand { get; }
+        public ICommand AddPocketCircleCommand { get; }
 
         private string _displayName;
         public string DisplayName
@@ -71,6 +73,31 @@ namespace GCodeGenerator.ViewModels.Pocket
             SelectedOperation = op;
 
             using (var vm = GetViewModel<PocketRectangleOperationViewModel>())
+            {
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+
+            if (MainViewModel != null)
+            {
+                if (!MainViewModel.AllOperations.Contains(op))
+                    MainViewModel.AllOperations.Add(op);
+                MainViewModel.NotifyOperationsChanged();
+            }
+        }
+
+        private void AddPocketCircle()
+        {
+            var op = new PocketCircleOperation();
+            var name = _localizationManager?.GetString("PocketCircleName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<PocketCircleOperationViewModel>())
             {
                 vm.PocketOperationsViewModel = this;
                 vm.Operation = op;
@@ -115,6 +142,15 @@ namespace GCodeGenerator.ViewModels.Pocket
                 {
                     vm.PocketOperationsViewModel = this;
                     vm.Operation = pocketRect;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is PocketCircleOperation pocketCircle)
+            {
+                using (var vm = GetViewModel<PocketCircleOperationViewModel>())
+                {
+                    vm.PocketOperationsViewModel = this;
+                    vm.Operation = pocketCircle;
                     vm.ShowAsync();
                 }
             }

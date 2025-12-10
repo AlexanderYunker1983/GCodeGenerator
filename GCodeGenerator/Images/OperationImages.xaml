@@ -1028,6 +1028,16 @@
                   Data="M 24,24 L 40,24 L 40,40 L 24,40 Z"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="PocketCircle">
+        <Canvas Width="64" Height="64">
+            <Ellipse StrokeThickness="2" Stroke="#FF000000"
+                     Width="48" Height="48" Canvas.Left="8" Canvas.Top="8"/>
+            <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
+                     Width="36" Height="36" Canvas.Left="14" Canvas.Top="14"/>
+            <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
+                     Width="24" Height="24" Canvas.Left="20" Canvas.Top="20"/>
+        </Canvas>
+    </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileCircle">
         <Canvas Width="64" Height="64">
             <Ellipse StrokeThickness="1" Stroke="#FF000000" 

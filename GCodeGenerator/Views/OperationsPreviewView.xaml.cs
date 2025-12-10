@@ -129,6 +129,15 @@ namespace GCodeGenerator.Views
                     };
                     points.AddRange(GetRectanglePoints(rect));
                 }
+                else if (op is PocketCircleOperation pocketCircle)
+                {
+                    points.AddRange(GetCirclePoints(new ProfileCircleOperation
+                    {
+                        CenterX = pocketCircle.CenterX,
+                        CenterY = pocketCircle.CenterY,
+                        Radius = pocketCircle.Radius
+                    }));
+                }
             }
 
             if (points.Count == 0)
@@ -303,6 +312,15 @@ namespace GCodeGenerator.Views
                         ReferencePointX = pocketRect.ReferencePointX,
                         ReferencePointY = pocketRect.ReferencePointY,
                         ReferencePointType = pocketRect.ReferencePointType
+                    }), StrokeFor(op, Brushes.DarkGreen), op);
+                }
+                else if (op is PocketCircleOperation pocketCircle)
+                {
+                    DrawPolyline(GetCirclePoints(new ProfileCircleOperation
+                    {
+                        CenterX = pocketCircle.CenterX,
+                        CenterY = pocketCircle.CenterY,
+                        Radius = pocketCircle.Radius
                     }), StrokeFor(op, Brushes.DarkGreen), op);
                 }
             }

@@ -24,6 +24,19 @@
                                Margin="4,0,4,0"/>
                 </StackPanel>
             </Button>
+            <Button Command="{Binding AddPocketCircleCommand}" Margin="0,0,8,8" Width="120" Height="150">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ContentControl Content="{StaticResource PocketCircle}" 
+                                    MaxWidth="64" MaxHeight="64"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.PocketCircleName'}"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="4,0,4,0"/>
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Grid>
 </UserControl>

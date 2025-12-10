@@ -165,6 +165,9 @@
   <data name="PocketRectangleName" xml:space="preserve">
     <value>Карман прямоугольный</value>
   </data>
+  <data name="PocketCircleName" xml:space="preserve">
+    <value>Карман круглый</value>
+  </data>
   <data name="StepPercentOfTool" xml:space="preserve">
     <value>Шаг (% от диаметра):</value>
   </data>
