@@ -116,6 +116,19 @@ namespace GCodeGenerator.Views
                 {
                     points.AddRange(GetPolygonPoints(polyOp));
                 }
+                else if (op is PocketRectangleOperation pocketOp)
+                {
+                    var rect = new ProfileRectangleOperation
+                    {
+                        Width = pocketOp.Width,
+                        Height = pocketOp.Height,
+                        RotationAngle = pocketOp.RotationAngle,
+                        ReferencePointX = pocketOp.ReferencePointX,
+                        ReferencePointY = pocketOp.ReferencePointY,
+                        ReferencePointType = pocketOp.ReferencePointType
+                    };
+                    points.AddRange(GetRectanglePoints(rect));
+                }
             }
 
             if (points.Count == 0)
@@ -229,6 +242,11 @@ namespace GCodeGenerator.Views
 
         private void Redraw()
         {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(Redraw);
+                return;
+            }
             if (!IsLoaded || PreviewCanvas == null) return;
             PreviewCanvas.Children.Clear();
 

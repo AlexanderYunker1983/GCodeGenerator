@@ -35,12 +35,14 @@ namespace GCodeGenerator.ViewModels
             ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager);
             ProfileMillingOperations.MainViewModel = this;
             PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager);
+            PocketOperations.MainViewModel = this;
             
             AllOperations = new ObservableCollection<OperationBase>();
             
             // Subscribe to collection changes BEFORE initializing
             DrillOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             ProfileMillingOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
+            PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             
             // Subscribe to AllOperations changes to update command

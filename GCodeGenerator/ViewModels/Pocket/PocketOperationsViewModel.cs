@@ -77,7 +77,12 @@ namespace GCodeGenerator.ViewModels.Pocket
                 vm.ShowAsync();
             }
 
-            MainViewModel?.NotifyOperationsChanged();
+            if (MainViewModel != null)
+            {
+                if (!MainViewModel.AllOperations.Contains(op))
+                    MainViewModel.AllOperations.Add(op);
+                MainViewModel.NotifyOperationsChanged();
+            }
         }
 
         public void RemoveOperation(OperationBase operation)
@@ -88,7 +93,11 @@ namespace GCodeGenerator.ViewModels.Pocket
             Operations.RemoveAt(idx);
             if (SelectedOperation == operation)
                 SelectedOperation = idx < Operations.Count ? Operations[idx] : null;
-            MainViewModel?.NotifyOperationsChanged();
+            if (MainViewModel != null)
+            {
+                MainViewModel.AllOperations.Remove(operation);
+                MainViewModel.NotifyOperationsChanged();
+            }
             (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }

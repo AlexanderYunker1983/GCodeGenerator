@@ -372,6 +372,9 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["ReferencePointType"] = ReferencePointType;
             _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
             _operation.Metadata["Decimals"] = Decimals;
+
+            // notify preview update
+            PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }
 
         private void RemoveOperationFromMain()
