@@ -3,14 +3,28 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Pocket"
              mc:Ignorable="d"
-             d:DesignWidth="400" d:DesignHeight="200">
+             d:DataContext="{d:DesignInstance viewModels:PocketOperationsViewModel}">
     <Grid>
-        <TextBlock Text="Фрезерование карманов (в разработке)"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="16"
-                   Foreground="Gray"/>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+            <Button Command="{Binding AddPocketRectangleCommand}" Margin="0,0,8,8" Width="120" Height="150">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ContentControl Content="{StaticResource PocketRectangle}" 
+                                    MaxWidth="64" MaxHeight="64"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Margin="0,0,0,4"/>
+                    <TextBlock Text="{DataBinding '$i18n.PocketRectangleName'}"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap"
+                               Margin="4,0,4,0"/>
+                </StackPanel>
+            </Button>
+        </StackPanel>
     </Grid>
 </UserControl>
 

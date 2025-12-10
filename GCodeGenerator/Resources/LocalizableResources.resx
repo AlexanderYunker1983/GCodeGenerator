@@ -162,6 +162,18 @@
   <data name="OperationsHeader" xml:space="preserve">
     <value>Операции</value>
   </data>
+  <data name="PocketRectangleName" xml:space="preserve">
+    <value>Карман прямоугольный</value>
+  </data>
+  <data name="StepPercentOfTool" xml:space="preserve">
+    <value>Шаг (% от диаметра):</value>
+  </data>
+  <data name="CuttingStrategy" xml:space="preserve">
+    <value>Стратегия</value>
+  </data>
+  <data name="NoteSpiralFromCenter" xml:space="preserve">
+    <value>Обработка выполняется по спирали с центром в середине кармана.</value>
+  </data>
   <data name="GCodePreviewHeader" xml:space="preserve">
     <value>Просмотр G-кода</value>
   </data>

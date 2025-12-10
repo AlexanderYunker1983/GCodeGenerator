@@ -275,6 +275,18 @@ namespace GCodeGenerator.Views
                 {
                     DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op);
                 }
+                else if (op is PocketRectangleOperation pocketRect)
+                {
+                    DrawPolyline(GetRectanglePoints(new ProfileRectangleOperation
+                    {
+                        Width = pocketRect.Width,
+                        Height = pocketRect.Height,
+                        RotationAngle = pocketRect.RotationAngle,
+                        ReferencePointX = pocketRect.ReferencePointX,
+                        ReferencePointY = pocketRect.ReferencePointY,
+                        ReferencePointType = pocketRect.ReferencePointType
+                    }), StrokeFor(op, Brushes.DarkGreen), op);
+                }
             }
         }
 

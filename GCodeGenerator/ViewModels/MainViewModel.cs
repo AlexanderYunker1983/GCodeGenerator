@@ -2,6 +2,7 @@ using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
+using GCodeGenerator.ViewModels.Pocket;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
 using System;
@@ -40,6 +41,7 @@ namespace GCodeGenerator.ViewModels
             // Subscribe to collection changes BEFORE initializing
             DrillOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             ProfileMillingOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
+            PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             
             // Subscribe to AllOperations changes to update command
             AllOperations.CollectionChanged += (s, e) => ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
@@ -48,6 +50,8 @@ namespace GCodeGenerator.ViewModels
             foreach (var op in DrillOperations.Operations)
                 AllOperations.Add(op);
             foreach (var op in ProfileMillingOperations.Operations)
+                AllOperations.Add(op);
+            foreach (var op in PocketOperations.Operations)
                 AllOperations.Add(op);
             
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => AllOperations.Count > 0);
@@ -106,11 +110,14 @@ namespace GCodeGenerator.ViewModels
                         DrillOperations.SelectedOperation = value;
                     else if (ProfileMillingOperations.Operations.Contains(value))
                         ProfileMillingOperations.SelectedOperation = value;
+                    else if (PocketOperations.Operations.Contains(value))
+                        PocketOperations.SelectedOperation = value;
                 }
                 else
                 {
                     DrillOperations.SelectedOperation = null;
                     ProfileMillingOperations.SelectedOperation = null;
+                    PocketOperations.SelectedOperation = null;
                 }
                 
                 UpdateOperationCommandsCanExecute();
@@ -172,12 +179,25 @@ namespace GCodeGenerator.ViewModels
                         SelectedOperation = null;
                 }
             }
+            else if (e.Action == NotifyCollectionChangedAction.Replace)
+            {
+                foreach (OperationBase item in e.OldItems)
+                {
+                    AllOperations.Remove(item);
+                }
+                foreach (OperationBase item in e.NewItems)
+                {
+                    if (!AllOperations.Contains(item))
+                        AllOperations.Add(item);
+                }
+            }
             else if (e.Action == NotifyCollectionChangedAction.Reset)
             {
                 // Remove all items from this collection
                 var toRemove = AllOperations.Where(op => 
                     (sender == DrillOperations.Operations && DrillOperations.Operations.Contains(op)) ||
-                    (sender == ProfileMillingOperations.Operations && ProfileMillingOperations.Operations.Contains(op))
+                    (sender == ProfileMillingOperations.Operations && ProfileMillingOperations.Operations.Contains(op)) ||
+                    (sender == PocketOperations.Operations && PocketOperations.Operations.Contains(op))
                 ).ToList();
                 foreach (var item in toRemove)
                 {
@@ -364,6 +384,10 @@ namespace GCodeGenerator.ViewModels
             {
                 ProfileMillingOperations.RemoveSelectedOperation();
             }
+            else if (PocketOperations.Operations.Contains(operationToRemove))
+            {
+                PocketOperations.RemoveSelectedOperation();
+            }
             
             // SelectedOperation will be updated by OnOperationsCollectionChanged
             UpdateOperationCommandsCanExecute();
@@ -380,6 +404,10 @@ namespace GCodeGenerator.ViewModels
             else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
             {
                 ProfileMillingOperations.EditSelectedOperation();
+            }
+            else if (PocketOperations.Operations.Contains(SelectedOperation))
+            {
+                PocketOperations.EditSelectedOperation();
             }
         }
 
