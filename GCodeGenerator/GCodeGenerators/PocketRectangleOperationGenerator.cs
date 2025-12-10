@@ -52,10 +52,19 @@ namespace GCodeGenerator.GCodeGenerators
                 addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                 addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                var offset = 0.0;
-                var clockwise = op.Direction == MillingDirection.Clockwise;
+                var minHalf = Math.Min(halfW, halfH);
+                var offsets = new System.Collections.Generic.List<double>();
+                var maxOffset = minHalf - 1e-6;
+                for (double o = 0; o <= maxOffset; o += step)
+                    offsets.Add(o);
+                if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxOffset)
+                    offsets.Add(maxOffset);
+                offsets = offsets.OrderByDescending(v => v).ToList(); // from inner (small w/h) to outer
 
-                while (offset <= Math.Min(halfW, halfH))
+                var clockwise = op.Direction == MillingDirection.Clockwise;
+                (double X, double Y) lastPoint = (cx, cy);
+
+                foreach (var offset in offsets)
                 {
                     var w = halfW - offset;
                     var h = halfH - offset;
@@ -71,25 +80,21 @@ namespace GCodeGenerator.GCodeGenerators
                     };
 
                     if (clockwise)
-                    {
                         rect = new[] { rect[0], rect[3], rect[2], rect[1], rect[0] };
+
+                    // connect from last point to start of this loop with cutting move
+                    addLine($"{g1} X{rect[0].X.ToString(fmt, culture)} Y{rect[0].Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    lastPoint = rect[0];
+
+                    for (int i = 1; i < rect.Length; i++)
+                    {
+                        var p = rect[i];
+                        addLine($"{g1} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        lastPoint = p;
                     }
-
-                    addLine($"{g0} X{rect[0].X.ToString(fmt, culture)} Y{rect[0].Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-                    addLine($"{g1} X{rect[1].X.ToString(fmt, culture)} Y{rect[1].Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                    addLine($"{g1} X{rect[2].X.ToString(fmt, culture)} Y{rect[2].Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                    addLine($"{g1} X{rect[3].X.ToString(fmt, culture)} Y{rect[3].Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                    addLine($"{g1} X{rect[4].X.ToString(fmt, culture)} Y{rect[4].Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    offset += step;
                 }
 
                 addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                if (nextZ > finalZ)
-                {
-                    var retractZ = nextZ + op.RetractHeight;
-                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                }
 
                 currentZ = nextZ;
             }
