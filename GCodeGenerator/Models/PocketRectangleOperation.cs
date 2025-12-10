@@ -14,6 +14,7 @@ namespace GCodeGenerator.Models
 
         public MillingDirection Direction { get; set; } = MillingDirection.Clockwise;
 
+        public PocketStrategy PocketStrategy { get; set; } = PocketStrategy.Spiral;
         public double Width { get; set; } = 10.0;
 
         public double Height { get; set; } = 10.0;
