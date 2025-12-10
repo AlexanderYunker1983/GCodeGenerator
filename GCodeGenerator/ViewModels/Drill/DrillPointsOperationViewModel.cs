@@ -152,15 +152,8 @@ namespace GCodeGenerator.ViewModels.Drill
             base.OnClosed(context);
             if (_operation == null) return;
 
-            // Remove operation if no holes were created or user deleted all holes
+            // Remove operation only if no holes were created or user deleted all holes
             if (Holes.Count == 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
-            // Remove operation if only default hole remains unchanged
-            if (IsOnlyDefaultHole())
             {
                 RemoveOperationFromMain();
                 return;
@@ -186,22 +179,6 @@ namespace GCodeGenerator.ViewModels.Drill
                     dispatcher.Invoke(() => MainViewModel.RemoveOperation(_operation));
                 }
             }
-        }
-
-        private bool IsOnlyDefaultHole()
-        {
-            // Check if there's only one hole with default values (unchanged by user)
-            if (Holes.Count != 1) return false;
-            
-            var hole = Holes.First();
-            return hole.X == 0 && 
-                   hole.Y == 0 && 
-                   hole.Z == 0 && 
-                   hole.TotalDepth == 2 && 
-                   hole.StepDepth == 1 && 
-                   hole.FeedZRapid == 500 && 
-                   hole.FeedZWork == 200 && 
-                   Math.Abs(hole.RetractHeight - 0.3) < 0.001;
         }
 
         private void AddHole()
