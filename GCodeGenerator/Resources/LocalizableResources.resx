@@ -138,6 +138,9 @@
   <data name="AddDrillCircle" xml:space="preserve">
     <value>Сверление по окружности</value>
   </data>
+  <data name="AddDrillArc" xml:space="preserve">
+    <value>Сверление по дуге</value>
+  </data>
   <data name="AddDrillEllipse" xml:space="preserve">
     <value>Сверление по эллипсу</value>
   </data>
@@ -530,6 +533,12 @@
   </data>
   <data name="StartAngleDegToX" xml:space="preserve">
     <value>Начальный угол (° к оси X):</value>
+  </data>
+  <data name="EndAngleDegToX" xml:space="preserve">
+    <value>Конечный угол (° к оси X):</value>
+  </data>
+  <data name="ArcParametersDrillHeader" xml:space="preserve">
+    <value>Параметры дуги</value>
   </data>
   <data name="ShowAll" xml:space="preserve">
     <value>Показать всё</value>

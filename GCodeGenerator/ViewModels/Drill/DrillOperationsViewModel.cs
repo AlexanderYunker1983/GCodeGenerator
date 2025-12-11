@@ -22,6 +22,7 @@ namespace GCodeGenerator.ViewModels.Drill
             AddDrillArrayCommand = new RelayCommand(AddDrillArray);
             AddDrillRectCommand = new RelayCommand(AddDrillRect);
             AddDrillCircleCommand = new RelayCommand(AddDrillCircle);
+            AddDrillArcCommand = new RelayCommand(AddDrillArc);
             AddDrillEllipseCommand = new RelayCommand(AddDrillEllipse);
             AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
             
@@ -60,6 +61,7 @@ namespace GCodeGenerator.ViewModels.Drill
         public ICommand AddDrillArrayCommand { get; }
         public ICommand AddDrillRectCommand { get; }
         public ICommand AddDrillCircleCommand { get; }
+        public ICommand AddDrillArcCommand { get; }
         public ICommand AddDrillEllipseCommand { get; }
         public ICommand AddDrillPackageCommand { get; }
         public ICommand MoveOperationUpCommand { get; }
@@ -154,6 +156,25 @@ namespace GCodeGenerator.ViewModels.Drill
             SelectedOperation = op;
 
             using (var vm = GetViewModel<DrillCircleOperationViewModel>())
+            {
+                vm.MainViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+            MainViewModel?.NotifyOperationsChanged();
+        }
+
+        private void AddDrillArc()
+        {
+            var op = new DrillPointsOperation();
+            var name = _localizationManager?.GetString("AddDrillArc");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<DrillArcOperationViewModel>())
             {
                 vm.MainViewModel = this;
                 vm.Operation = op;
@@ -266,6 +287,7 @@ namespace GCodeGenerator.ViewModels.Drill
             var addDrillArrayName = _localizationManager?.GetString("AddDrillArray");
             var addDrillRectName = _localizationManager?.GetString("AddDrillRect");
             var addDrillCircleName = _localizationManager?.GetString("AddDrillCircle");
+            var addDrillArcName = _localizationManager?.GetString("AddDrillArc");
             var addDrillEllipseName = _localizationManager?.GetString("AddDrillEllipse");
             var addDrillPackageName = _localizationManager?.GetString("AddDrillPackage");
             var drillPointsName = _localizationManager?.GetString("DrillPointsName");
@@ -300,6 +322,15 @@ namespace GCodeGenerator.ViewModels.Drill
             else if (!string.IsNullOrEmpty(addDrillCircleName) && operationName == addDrillCircleName)
             {
                 using (var vm = GetViewModel<DrillCircleOperationViewModel>())
+                {
+                    vm.MainViewModel = this;
+                    vm.Operation = drillOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (!string.IsNullOrEmpty(addDrillArcName) && operationName == addDrillArcName)
+            {
+                using (var vm = GetViewModel<DrillArcOperationViewModel>())
                 {
                     vm.MainViewModel = this;
                     vm.Operation = drillOp;
