@@ -107,7 +107,7 @@
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
                      Style="{StaticResource MetroTextBox}"
                      Background="{DynamicResource ControlBackgroundBrush}"
-                     Foreground="{DynamicResource IdealForegroundColorBrush}"
+                     Foreground="{DynamicResource TextBrush}"
                      BorderBrush="{DynamicResource TextBoxBorderBrush}"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"

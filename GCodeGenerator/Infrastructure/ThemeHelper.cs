@@ -9,6 +9,8 @@ namespace GCodeGenerator.Infrastructure
     /// </summary>
     public static class ThemeHelper
     {
+        public static event EventHandler ThemeChanged;
+
         public static void ApplyTheme(bool useDarkTheme)
         {
             var application = Application.Current;
@@ -24,6 +26,7 @@ namespace GCodeGenerator.Infrastructure
             if (accent != null && appTheme != null)
             {
                 ThemeManager.ChangeAppStyle(application, accent, appTheme);
+                ThemeChanged?.Invoke(null, EventArgs.Empty);
             }
         }
     }

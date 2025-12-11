@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Shapes;
 using System.Windows.Controls.Primitives;
+using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
 
@@ -28,7 +29,9 @@ namespace GCodeGenerator.Views
         {
             InitializeComponent();
             Loaded += OnLoaded;
+            Unloaded += OnUnloaded;
             DataContextChanged += OnDataContextChanged;
+            ThemeHelper.ThemeChanged += OnThemeChanged;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -260,6 +263,16 @@ namespace GCodeGenerator.Views
             Redraw();
         }
 
+        private void OnThemeChanged(object sender, EventArgs e)
+        {
+            Redraw();
+        }
+
+        private void OnUnloaded(object sender, RoutedEventArgs e)
+        {
+            ThemeHelper.ThemeChanged -= OnThemeChanged;
+        }
+
         private void Redraw()
         {
             if (!Dispatcher.CheckAccess())
@@ -358,7 +371,7 @@ namespace GCodeGenerator.Views
             var startX = Math.Floor(minX / GridStepMm) * GridStepMm;
             var startY = Math.Floor(minY / GridStepMm) * GridStepMm;
 
-            var gridBrushBase = TryFindResource("IdealForegroundColorBrush") as Brush ?? Brushes.Gray;
+            var gridBrushBase = TryFindResource("TextBrush") as Brush ?? Brushes.Gray;
             var gridBrush = gridBrushBase.CloneCurrentValue();
 
             for (double x = startX; x <= maxX; x += GridStepMm)
