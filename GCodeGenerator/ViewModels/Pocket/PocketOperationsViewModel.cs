@@ -23,6 +23,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             EditOperationCommand = new RelayCommand(EditSelectedOperation, () => SelectedOperation != null);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, () => SelectedOperation != null);
             AddPocketCircleCommand = new RelayCommand(AddPocketCircle);
+            AddPocketEllipseCommand = new RelayCommand(AddPocketEllipse);
         }
 
         public ViewModels.MainViewModel MainViewModel { get; set; }
@@ -49,6 +50,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         public ICommand EditOperationCommand { get; }
         public ICommand RemoveOperationCommand { get; }
         public ICommand AddPocketCircleCommand { get; }
+        public ICommand AddPocketEllipseCommand { get; }
 
         private string _displayName;
         public string DisplayName
@@ -112,6 +114,31 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private void AddPocketEllipse()
+        {
+            var op = new PocketEllipseOperation();
+            var name = _localizationManager?.GetString("PocketEllipseName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<PocketEllipseOperationViewModel>())
+            {
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+
+            if (MainViewModel != null)
+            {
+                if (!MainViewModel.AllOperations.Contains(op))
+                    MainViewModel.AllOperations.Add(op);
+                MainViewModel.NotifyOperationsChanged();
+            }
+        }
+
         public void RemoveOperation(OperationBase operation)
         {
             if (operation == null) return;
@@ -151,6 +178,15 @@ namespace GCodeGenerator.ViewModels.Pocket
                 {
                     vm.PocketOperationsViewModel = this;
                     vm.Operation = pocketCircle;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is PocketEllipseOperation pocketEllipse)
+            {
+                using (var vm = GetViewModel<PocketEllipseOperationViewModel>())
+                {
+                    vm.PocketOperationsViewModel = this;
+                    vm.Operation = pocketEllipse;
                     vm.ShowAsync();
                 }
             }

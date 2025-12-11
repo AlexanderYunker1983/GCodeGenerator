@@ -300,6 +300,15 @@
   <data name="ProfilePolygonName" xml:space="preserve">
     <value>Контур многоугольника</value>
   </data>
+  <data name="PocketCircleName" xml:space="preserve">
+    <value>Карман круглый</value>
+  </data>
+  <data name="PocketEllipseName" xml:space="preserve">
+    <value>Карман эллиптический</value>
+  </data>
+  <data name="PocketRectangleName" xml:space="preserve">
+    <value>Карман прямоугольный</value>
+  </data>
   <data name="PolygonParametersHeader" xml:space="preserve">
     <value>Параметры многоугольника</value>
   </data>
@@ -314,6 +323,18 @@
   </data>
   <data name="PolygonRotationAngle" xml:space="preserve">
     <value>Угол поворота многоугольника (°):</value>
+  </data>
+  <data name="EllipseParametersHeader" xml:space="preserve">
+    <value>Параметры эллипса</value>
+  </data>
+  <data name="RadiusX" xml:space="preserve">
+    <value>Полуось X:</value>
+  </data>
+  <data name="RadiusY" xml:space="preserve">
+    <value>Полуось Y:</value>
+  </data>
+  <data name="EllipseRotationAngle" xml:space="preserve">
+    <value>Угол поворота эллипса (° к оси X):</value>
   </data>
   <data name="ToolPathModeHeader" xml:space="preserve">
     <value>Движение инструмента</value>

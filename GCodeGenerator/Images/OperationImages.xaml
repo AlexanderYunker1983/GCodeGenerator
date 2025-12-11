@@ -1038,6 +1038,21 @@
                      Width="24" Height="24" Canvas.Left="20" Canvas.Top="20"/>
         </Canvas>
     </Viewbox>
+    <Viewbox Stretch="Uniform" x:Key="PocketEllipse">
+        <Canvas Width="64" Height="64">
+            <!-- Outer black ellipse -->
+            <Ellipse StrokeThickness="2" Stroke="#FF000000"
+                     Width="56" Height="32"
+                     Canvas.Left="4" Canvas.Top="16"/>
+            <!-- Concentric blue ellipses -->
+            <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
+                     Width="44" Height="26"
+                     Canvas.Left="10" Canvas.Top="19"/>
+            <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
+                     Width="32" Height="20"
+                     Canvas.Left="16" Canvas.Top="22"/>
+        </Canvas>
+    </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileCircle">
         <Canvas Width="64" Height="64">
             <Ellipse StrokeThickness="1" Stroke="#FF000000" 

@@ -138,6 +138,17 @@ namespace GCodeGenerator.Views
                         Radius = pocketCircle.Radius
                     }));
                 }
+                else if (op is PocketEllipseOperation pocketEllipse)
+                {
+                    points.AddRange(GetEllipsePoints(new ProfileEllipseOperation
+                    {
+                        CenterX = pocketEllipse.CenterX,
+                        CenterY = pocketEllipse.CenterY,
+                        RadiusX = pocketEllipse.RadiusX,
+                        RadiusY = pocketEllipse.RadiusY,
+                        RotationAngle = pocketEllipse.RotationAngle
+                    }));
+                }
             }
 
             if (points.Count == 0)
@@ -321,6 +332,17 @@ namespace GCodeGenerator.Views
                         CenterX = pocketCircle.CenterX,
                         CenterY = pocketCircle.CenterY,
                         Radius = pocketCircle.Radius
+                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
+                }
+                else if (op is PocketEllipseOperation pocketEllipse)
+                {
+                    DrawPolyline(GetEllipsePoints(new ProfileEllipseOperation
+                    {
+                        CenterX = pocketEllipse.CenterX,
+                        CenterY = pocketEllipse.CenterY,
+                        RadiusX = pocketEllipse.RadiusX,
+                        RadiusY = pocketEllipse.RadiusY,
+                        RotationAngle = pocketEllipse.RotationAngle
                     }), StrokeFor(op, Brushes.DarkGreen), op, true);
                 }
             }

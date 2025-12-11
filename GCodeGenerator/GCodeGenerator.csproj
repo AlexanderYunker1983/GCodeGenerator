@@ -100,6 +100,7 @@
     <Compile Include="Models\ProfileRectangleOperation.cs" />
     <Compile Include="Models\PocketRectangleOperation.cs" />
     <Compile Include="Models\PocketCircleOperation.cs" />
+    <Compile Include="Models\PocketEllipseOperation.cs" />
     <Compile Include="Models\ProfileRoundedRectangleOperation.cs" />
     <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Models\ProfileEllipseOperation.cs" />
@@ -110,6 +111,7 @@
     <Compile Include="GCodeGenerators\ProfileRectangleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\PocketRectangleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\PocketCircleOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\PocketEllipseOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileRoundedRectangleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileCircleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileEllipseOperationGenerator.cs" />
@@ -136,6 +138,7 @@
     <Compile Include="ViewModels\Pocket\PocketOperationsViewModel.cs" />
     <Compile Include="ViewModels\Pocket\PocketRectangleOperationViewModel.cs" />
     <Compile Include="ViewModels\Pocket\PocketCircleOperationViewModel.cs" />
+    <Compile Include="ViewModels\Pocket\PocketEllipseOperationViewModel.cs" />
     <Compile Include="ViewModels\SettingsViewModel.cs" />
     <Compile Include="ViewModels\PreviewViewModel.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
@@ -195,6 +198,9 @@
     </Compile>
     <Compile Include="Views\Pocket\PocketCircleOperationView.xaml.cs">
       <DependentUpon>PocketCircleOperationView.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\Pocket\PocketEllipseOperationView.xaml.cs">
+      <DependentUpon>PocketEllipseOperationView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\PocketMill\ProfileCircleOperationView.xaml.cs">
       <DependentUpon>ProfileCircleOperationView.xaml</DependentUpon>
@@ -304,6 +310,18 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\Pocket\PocketOperationsView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Pocket\PocketRectangleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Pocket\PocketCircleOperationView.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\Pocket\PocketEllipseOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
