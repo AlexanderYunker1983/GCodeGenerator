@@ -4,7 +4,7 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1001.797 L 918.139,261.600" />
                 </Canvas>
@@ -14,72 +14,72 @@
                           Data="F1 M 323.860,768.015 C 323.860,754.389 312.814,743.342 299.187,743.342 C 285.561,743.342 274.514,754.389 274.514,768.015 C 274.514,781.642 285.561,792.688 299.187,792.688 C 312.814,792.688 323.860,781.642 323.860,768.015 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 835.895,1094.868 L 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
@@ -112,72 +112,72 @@
                           Data="F1 M 323.860,768.015 C 323.860,754.389 312.814,743.342 299.187,743.342 C 285.561,743.342 274.514,754.389 274.514,768.015 C 274.514,781.642 285.561,792.688 299.187,792.688 C 312.814,792.688 323.860,781.642 323.860,768.015 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
@@ -220,72 +220,72 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 835.895,1094.868 L 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
@@ -372,42 +372,42 @@
                           Data="F1 M 640.786,817.899 C 640.786,804.273 629.740,793.226 616.113,793.226 C 602.486,793.226 591.440,804.273 591.440,817.899 C 591.440,831.526 602.486,842.573 616.113,842.573 C 629.740,842.573 640.786,831.526 640.786,817.899 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 118.107,453.936 L 472.092,345.920" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 166.114,611.262 L 520.099,503.246" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 214.121,768.589 L 568.106,660.573" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 262.128,925.915 L 616.113,817.899" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 616.113,817.899 L 472.092,345.920" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 354.097,381.925 L 498.118,853.905" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 380.123,889.910 L 236.102,417.931" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 118.107,453.936 L 262.128,925.915" />
                 </Canvas>
@@ -418,72 +418,72 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 835.895,1094.868 L 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
@@ -550,22 +550,22 @@
                           Data="F1 M 640.786,817.899 C 640.786,804.273 629.740,793.226 616.113,793.226 C 602.486,793.226 591.440,804.273 591.440,817.899 C 591.440,831.526 602.486,842.573 616.113,842.573 C 629.740,842.573 640.786,831.526 640.786,817.899 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 118.107,453.936 L 472.092,345.920" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 262.128,925.915 L 616.113,817.899" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 616.113,817.899 L 472.092,345.920" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 118.107,453.936 L 262.128,925.915" />
                 </Canvas>
@@ -576,72 +576,72 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
@@ -653,12 +653,12 @@
                           Data="F1 M 678.816,468.162 C 678.816,454.536 667.769,443.489 654.143,443.489 C 640.516,443.489 629.470,454.536 629.470,468.162 C 629.470,481.789 640.516,492.836 654.143,492.836 C 667.769,492.836 678.816,481.789 678.816,468.162 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 684.753,590.576 C 684.753,446.939 568.312,330.498 424.675,330.498 C 281.037,330.498 164.596,446.939 164.596,590.576 C 164.596,734.214 281.037,850.655 424.675,850.655 C 568.312,850.655 684.753,734.214 684.753,590.576 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 654.143,468.162 L 424.675,590.576" />
                 </Canvas>
@@ -735,19 +735,19 @@
     </DrawingImage>
     <Viewbox Stretch="Uniform" x:Key="ProfileRectangle">
         <Canvas Width="64" Height="64">
-            <Path StrokeThickness="1" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Path StrokeThickness="1" Stroke="{DynamicResource TextBrush}"
                   Data="M 8,8 L 56,8 L 56,56 L 8,56 Z" />
         </Canvas>
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileRoundedRectangle">
         <Canvas Width="64" Height="64">
-            <Path StrokeThickness="1" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Path StrokeThickness="1" Stroke="{DynamicResource TextBrush}"
                   Data="M 20,8 L 44,8 C 50,8 56,14 56,20 L 56,44 C 56,50 50,56 44,56 L 20,56 C 14,56 8,50 8,44 L 8,20 C 8,14 14,8 20,8 Z" />
         </Canvas>
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="PocketRectangle">
         <Canvas Width="64" Height="64">
-            <Path StrokeThickness="2" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Path StrokeThickness="2" Stroke="{DynamicResource TextBrush}"
                   Data="M 8,8 L 56,8 L 56,56 L 8,56 Z" />
             <Path StrokeThickness="1" Stroke="#FF007FFF"
                   Data="M 16,16 L 48,16 L 48,48 L 16,48 Z" />
@@ -757,7 +757,7 @@
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="PocketCircle">
         <Canvas Width="64" Height="64">
-            <Ellipse StrokeThickness="2" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Ellipse StrokeThickness="2" Stroke="{DynamicResource TextBrush}"
                      Width="48" Height="48" Canvas.Left="8" Canvas.Top="8" />
             <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
                      Width="36" Height="36" Canvas.Left="14" Canvas.Top="14" />
@@ -767,7 +767,7 @@
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="PocketEllipse">
         <Canvas Width="64" Height="64">
-            <Ellipse StrokeThickness="2" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Ellipse StrokeThickness="2" Stroke="{DynamicResource TextBrush}"
                      Width="56" Height="32"
                      Canvas.Left="4" Canvas.Top="16" />
             <Ellipse StrokeThickness="1" Stroke="#FF007FFF"
@@ -780,21 +780,21 @@
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileCircle">
         <Canvas Width="64" Height="64">
-            <Ellipse StrokeThickness="1" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Ellipse StrokeThickness="1" Stroke="{DynamicResource TextBrush}"
                      Width="48" Height="48"
                      Canvas.Left="8" Canvas.Top="8" />
         </Canvas>
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfileEllipse">
         <Canvas Width="64" Height="64">
-            <Ellipse StrokeThickness="1" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Ellipse StrokeThickness="1" Stroke="{DynamicResource TextBrush}"
                      Width="56" Height="32"
                      Canvas.Left="4" Canvas.Top="16" />
         </Canvas>
     </Viewbox>
     <Viewbox Stretch="Uniform" x:Key="ProfilePolygon">
         <Canvas Width="64" Height="64">
-            <Path StrokeThickness="1" Stroke="{DynamicResource IdealForegroundColorBrush}"
+            <Path StrokeThickness="1" Stroke="{DynamicResource TextBrush}"
                   Data="M 32,8 L 52.784,20 L 52.784,44 L 32,56 L 11.216,44 L 11.216,20 Z" />
         </Canvas>
     </Viewbox>
@@ -802,79 +802,79 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 835.895,1094.868 L 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 579.882,562.320 C 534.938,491.691 392.881,501.647 262.589,584.557 C 132.296,667.467 63.108,791.936 108.052,862.564 C 152.996,933.193 295.053,923.237 425.345,840.327 C 555.638,757.417 624.826,632.949 579.882,562.320 Z" />
                 </Canvas>
@@ -924,7 +924,7 @@
                           Data="F1 M 615.505,638.188 C 615.505,624.561 604.458,613.515 590.832,613.515 C 577.205,613.515 566.159,624.561 566.159,638.188 C 566.159,651.815 577.205,662.861 590.832,662.861 C 604.458,662.861 615.505,651.815 615.505,638.188 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 343.967,712.442 L 474.601,515.265" />
                 </Canvas>
@@ -955,104 +955,104 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 701.532,568.354 L 482.955,385.617" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 482.955,385.617 L 215.411,483.541" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 215.411,483.541 L 166.444,764.203" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 166.444,764.203 L 385.022,946.941" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 385.022,946.941 L 652.565,849.016" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 652.565,849.016 L 701.532,568.354" />
                 </Canvas>
@@ -1158,89 +1158,89 @@
         <Canvas Width="1084.771" Height="1113.258">
             <Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 918.139,1084.041 L 835.895,1094.868" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1094.868 L 844.119,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 844.119,1084.041 L 835.895,1073.213" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 835.895,1073.213 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 918.139,1084.041" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,179.356 L 24.282,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 24.282,261.600 L 13.455,253.376" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,253.376 L 2.627,261.600" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 2.627,261.600 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                    <Path Fill="{DynamicResource TextBrush}"
                           Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 13.455,1084.041 L 13.455,179.356" />
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413"
                                Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">
                         Y
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <TextBlock Foreground="{DynamicResource IdealForegroundColorBrush}"
+                    <TextBlock Foreground="{DynamicResource TextBrush}"
                                RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342"
                                Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">
                         X
                     </TextBlock>
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 689.853,850.857 C 676.595,580.215 490.467,348.937 228.921,278.113" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 65.547,881.439 L 228.921,278.113" />
                 </Canvas>
                 <Canvas>
-                    <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                    <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                           Data="F1 M 65.547,881.439 L 689.853,850.857" />
                 </Canvas>
@@ -1276,130 +1276,130 @@
                 </Canvas>
                 <Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 795.409,845.686 L 809.628,927.412" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 809.628,927.412 L 798.469,919.642" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 798.469,919.642 L 787.991,928.307" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 787.991,928.307 L 795.409,845.686" />
                     </Canvas>
                     <Canvas>
-                        <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                        <Path Fill="{DynamicResource TextBrush}"
                               Data=" M 809.628,927.412 L 795.409,845.686 L 787.991,928.307 L 798.469,919.642 L 809.628,927.412 Z" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 801.244,1084.041 L 789.792,1001.881" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 789.792,1001.881 L 800.682,1010.023" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 800.682,1010.023 L 811.447,1001.717" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 811.447,1001.717 L 801.244,1084.041" />
                     </Canvas>
                     <Canvas>
-                        <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                        <Path Fill="{DynamicResource TextBrush}"
                               Data=" M 801.244,1084.041 L 811.447,1001.717 L 800.682,1010.023 L 789.792,1001.881 L 801.244,1084.041 Z" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 801.244,1084.041 C 801.244,1004.553 799.299,925.078 795.409,845.686" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 689.853,850.857 L 828.268,844.076" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 918.139,1084.041 L 768.346,1084.041" />
                     </Canvas>
                 </Canvas>
                 <Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 261.044,159.482 L 342.771,173.696" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 342.771,173.696 L 331.690,181.575" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 331.690,181.575 L 336.308,194.364" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 336.308,194.364 L 261.044,159.482" />
                     </Canvas>
                     <Canvas>
-                        <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                        <Path Fill="{DynamicResource TextBrush}"
                               Data=" M 331.690,181.575 L 342.771,173.696 L 261.044,159.482 L 336.308,194.364 L 331.690,181.575 Z" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 968.540,1084.041 L 954.543,1002.276" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 954.543,1002.276 L 965.680,1010.076" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 965.680,1010.076 L 976.182,1001.440" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 976.182,1001.440 L 968.540,1084.041" />
                     </Canvas>
                     <Canvas>
-                        <Path Fill="{DynamicResource IdealForegroundColorBrush}"
+                        <Path Fill="{DynamicResource TextBrush}"
                               Data=" M 968.540,1084.041 L 976.182,1001.440 L 965.680,1010.076 L 954.543,1002.276 L 968.540,1084.041 Z" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 968.540,1084.041 C 968.540,651.452 678.595,272.550 261.044,159.482" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 228.921,278.113 L 269.643,127.728" />
                     </Canvas>
                     <Canvas>
-                        <Path StrokeThickness="4.5" Stroke="{DynamicResource IdealForegroundColorBrush}"
+                        <Path StrokeThickness="4.5" Stroke="{DynamicResource TextBrush}"
                               StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"
                               Data="F1 M 918.139,1084.041 L 1001.438,1084.041" />
                     </Canvas>
