@@ -142,16 +142,30 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                    // Начнём с первой линии – сразу перейдём в её начало после вычисления
-
-                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
-
-                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ);
+                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ, zigZag: false);
 
                     // Завершающий полный проход по контуру, начиная с последней точки
+                    GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                    currentZ = nextZ;
+                }
+            }
+            else if (op.PocketStrategy == PocketStrategy.ZigZag)
+            {
+                // ---------- Зигзаг ----------
+                while (currentZ > finalZ)
+                {
+                    double nextZ = currentZ - op.StepDepth;
+                    if (nextZ < finalZ) nextZ = finalZ;
+                    pass++;
+
+                    if (settings.UseComments)
+                        addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
+
+                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ, zigZag: true);
+
                     GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
 
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
@@ -242,7 +256,7 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         private (double x, double y) GenerateLines(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
-                                                   PocketCircleOperation op, double effectiveRadius, double step, double cutZ)
+                                                   PocketCircleOperation op, double effectiveRadius, double step, double cutZ, bool zigZag)
         {
             // Вектор направления линии и нормали
             double dirAng = op.LineAngleDeg * Math.PI / 180.0;
@@ -263,6 +277,8 @@ namespace GCodeGenerator.GCodeGenerators
             (double x, double y) lastHit = (op.CenterX + effectiveRadius * Math.Cos(dirAng), op.CenterY + effectiveRadius * Math.Sin(dirAng));
             bool first = true;
 
+            var segments = new System.Collections.Generic.List<(double sx, double sy, double ex, double ey, double angStart, double angEnd)>();
+
             foreach (var t in offsets)
             {
                 double under = effectiveRadius * effectiveRadius - t * t;
@@ -274,14 +290,65 @@ namespace GCodeGenerator.GCodeGenerators
                 double ex = op.CenterX + nx * t + dirX * halfChord;
                 double ey = op.CenterY + ny * t + dirY * halfChord;
 
-                // Подъём и подход к старту линии
-                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g0} X{sx.ToString(fmt, culture)} Y{sy.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-                addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                double angS = Math.Atan2(sy - op.CenterY, sx - op.CenterX);
+                double angE = Math.Atan2(ey - op.CenterY, ex - op.CenterX);
+                segments.Add((sx, sy, ex, ey, angS, angE));
+            }
 
-                addLine($"{g1} X{ex.ToString(fmt, culture)} Y{ey.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            if (segments.Count == 0) return lastHit;
 
-                lastHit = (ex, ey);
+            // Выполнение
+            // Подъём и подход только перед первой линией (в прямом направлении)
+            var firstSeg = segments[0];
+            var firstStartX = firstSeg.sx;
+            var firstStartY = firstSeg.sy;
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g0} X{firstStartX.ToString(fmt, culture)} Y{firstStartY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+            double prevEndAng = firstSeg.angEnd;
+            bool firstLineDone = false;
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var seg = segments[i];
+                bool reverse = zigZag && (i % 2 == 1);
+
+                double startX = reverse ? seg.ex : seg.sx;
+                double startY = reverse ? seg.ey : seg.sy;
+                double endX = reverse ? seg.sx : seg.ex;
+                double endY = reverse ? seg.sy : seg.ey;
+                double startAng = reverse ? seg.angEnd : seg.angStart;
+                double endAng = reverse ? seg.angStart : seg.angEnd;
+
+                if (i > 0 && !zigZag)
+                {
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+                else if (i > 0 && zigZag)
+                {
+                    // уже на глубине, переходим по дуге от предыдущего конца к новому старту
+                    MoveAlongCircle(addLine, g1, fmt, culture, op, effectiveRadius, prevEndAng, startAng);
+                }
+
+                addLine($"{g1} X{endX.ToString(fmt, culture)} Y{endY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                // Переход по окружности до следующей линии, оставаясь на глубине
+                if (zigZag && i + 1 < segments.Count)
+                {
+                    var nextSeg = segments[i + 1];
+                    double nextStartAng = ((i + 1) % 2 == 1)
+                        ? nextSeg.angEnd
+                        : nextSeg.angStart;
+
+                    MoveAlongCircle(addLine, g1, fmt, culture, op, effectiveRadius, endAng, nextStartAng);
+                }
+
+                lastHit = (endX, endY);
+                prevEndAng = endAng;
+                firstLineDone = true;
             }
 
             return lastHit;
@@ -315,6 +382,26 @@ namespace GCodeGenerator.GCodeGenerators
                 double x = op.CenterX + effectiveRadius * Math.Cos(ang);
                 double y = op.CenterY + effectiveRadius * Math.Sin(ang);
 
+                addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+        }
+
+        private void MoveAlongCircle(Action<string> addLine, string g1, string fmt, CultureInfo culture,
+                                     PocketCircleOperation op, double radius, double angStart, double angEnd)
+        {
+            // Нормализуем разницу углов
+            double delta = angEnd - angStart;
+            while (delta > Math.PI) delta -= 2 * Math.PI;
+            while (delta < -Math.PI) delta += 2 * Math.PI;
+
+            int segs = Math.Max(12, (int)Math.Ceiling(Math.Abs(delta) * radius / (op.ToolDiameter * 0.5)));
+            double step = delta / segs;
+
+            for (int i = 1; i <= segs; i++)
+            {
+                double ang = angStart + step * i;
+                double x = op.CenterX + radius * Math.Cos(ang);
+                double y = op.CenterY + radius * Math.Sin(ang);
                 addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             }
         }

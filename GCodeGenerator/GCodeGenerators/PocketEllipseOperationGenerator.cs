@@ -180,6 +180,33 @@ namespace GCodeGenerator.GCodeGenerators
                     currentZ = nextZ;
                 }
             }
+            else if (op.PocketStrategy == PocketStrategy.ZigZag)
+            {
+                while (currentZ > finalZ)
+                {
+                    double nextZ = currentZ - op.StepDepth;
+                    if (nextZ < finalZ) nextZ = finalZ;
+                    pass++;
+
+                    if (settings.UseComments)
+                        addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, nextZ, zigZag: true);
+
+                    // Завершающий полный проход по контуру
+                    GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                    currentZ = nextZ;
+                }
+            }
             else   /* PocketStrategy.Concentric – концентрические эллипсы */
             {
                 while (currentZ > finalZ)
@@ -292,7 +319,7 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         private (double x, double y) GenerateLines(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
-                                    PocketEllipseOperation op, double effRx, double effRy, double step, double cutZ)
+                                    PocketEllipseOperation op, double effRx, double effRy, double step, double cutZ, bool zigZag = false)
         {
             // В локальных координатах эллипса (с учётом RotationAngle)
             double rot = op.RotationAngle * Math.PI / 180.0;
@@ -312,12 +339,11 @@ namespace GCodeGenerator.GCodeGenerators
             if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxOffset - 1e-6)
                 offsets.Add(maxOffset);
 
+            var segments = new System.Collections.Generic.List<(double sx, double sy, double ex, double ey, double angStart, double angEnd)>();
             (double x, double y) lastHit = (op.CenterX + effRx * cosRot, op.CenterY + effRx * sinRot); // fallback
-            bool first = true;
 
             foreach (var t in offsets)
             {
-                // Линия в локальных координатах: p = n*t + dir*s. Эллипс: (x/effRx)^2 + (y/effRy)^2 = 1
                 double A = (dirX * dirX) / (effRx * effRx) + (dirY * dirY) / (effRy * effRy);
                 double B = 2 * (dirX * nx * t / (effRx * effRx) + dirY * ny * t / (effRy * effRy));
                 double C = (nx * nx * t * t) / (effRx * effRx) + (ny * ny * t * t) / (effRy * effRy) - 1;
@@ -333,7 +359,6 @@ namespace GCodeGenerator.GCodeGenerators
                 double exLocal = nx * t + dirX * s2;
                 double eyLocal = ny * t + dirY * s2;
 
-                // В мир с учётом поворота эллипса
                 (double wx, double wy) ToWorld(double lx, double ly)
                     => (op.CenterX + lx * cosRot - ly * sinRot,
                         op.CenterY + lx * sinRot + ly * cosRot);
@@ -341,14 +366,58 @@ namespace GCodeGenerator.GCodeGenerators
                 var sWorld = ToWorld(sxLocal, syLocal);
                 var eWorld = ToWorld(exLocal, eyLocal);
 
-                // Подъём, быстрый подход и спуск
-                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g0} X{sWorld.wx.ToString(fmt, culture)} Y{sWorld.wy.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-                addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g1} X{eWorld.wx.ToString(fmt, culture)} Y{eWorld.wy.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                double angS = Math.Atan2(syLocal / effRy, sxLocal / effRx);
+                double angE = Math.Atan2(eyLocal / effRy, exLocal / effRx);
 
-                lastHit = (eWorld.wx, eWorld.wy);
-                first = false;
+                segments.Add((sWorld.wx, sWorld.wy, eWorld.wx, eWorld.wy, angS, angE));
+            }
+
+            if (segments.Count == 0) return lastHit;
+
+            // Подъём и подход только перед первой линией
+            var firstSeg = segments[0];
+            double firstStartX = firstSeg.sx;
+            double firstStartY = firstSeg.sy;
+            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g0} X{firstStartX.ToString(fmt, culture)} Y{firstStartY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+            double prevEndAng = firstSeg.angEnd;
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var seg = segments[i];
+                bool reverse = zigZag && (i % 2 == 1);
+
+                double startX = reverse ? seg.ex : seg.sx;
+                double startY = reverse ? seg.ey : seg.sy;
+                double endX = reverse ? seg.sx : seg.ex;
+                double endY = reverse ? seg.sy : seg.ey;
+                double startAng = reverse ? seg.angEnd : seg.angStart;
+                double endAng = reverse ? seg.angStart : seg.angEnd;
+
+                if (i > 0 && !zigZag)
+                {
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+                else if (i > 0 && zigZag)
+                {
+                    MoveAlongEllipse(addLine, g1, fmt, culture, op, effRx, effRy, prevEndAng, startAng);
+                }
+
+                addLine($"{g1} X{endX.ToString(fmt, culture)} Y{endY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                if (zigZag && i + 1 < segments.Count)
+                {
+                    var nextSeg = segments[i + 1];
+                    double nextStartAng = ((i + 1) % 2 == 1) ? nextSeg.angEnd : nextSeg.angStart;
+                    MoveAlongEllipse(addLine, g1, fmt, culture, op, effRx, effRy, endAng, nextStartAng);
+                }
+
+                lastHit = (endX, endY);
+                prevEndAng = endAng;
             }
 
             return lastHit;
@@ -384,6 +453,37 @@ namespace GCodeGenerator.GCodeGenerators
             for (int i = 1; i <= segments; i++)
             {
                 double t = startAng + angleStep * i;
+                double xEllipse = effRx * Math.Cos(t);
+                double yEllipse = effRy * Math.Sin(t);
+
+                double x = op.CenterX + xEllipse * cosRot - yEllipse * sinRot;
+                double y = op.CenterY + xEllipse * sinRot + yEllipse * cosRot;
+
+                addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+        }
+
+        private void MoveAlongEllipse(Action<string> addLine, string g1, string fmt, CultureInfo culture,
+                                      PocketEllipseOperation op, double effRx, double effRy,
+                                      double angStart, double angEnd)
+        {
+            double rot = op.RotationAngle * Math.PI / 180.0;
+            double cosRot = Math.Cos(rot);
+            double sinRot = Math.Sin(rot);
+
+            double delta = angEnd - angStart;
+            while (delta > Math.PI) delta -= 2 * Math.PI;
+            while (delta < -Math.PI) delta += 2 * Math.PI;
+
+            // Оценка длины дуги через псевдо-периметр
+            double h = Math.Pow(effRx - effRy, 2) / Math.Pow(effRx + effRy, 2);
+            double per = Math.PI * (effRx + effRy) * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
+            int segs = Math.Max(12, (int)Math.Ceiling(Math.Abs(delta) / (2 * Math.PI) * per / (op.ToolDiameter * 0.5)));
+            double step = delta / segs;
+
+            for (int i = 1; i <= segs; i++)
+            {
+                double t = angStart + step * i;
                 double xEllipse = effRx * Math.Cos(t);
                 double yEllipse = effRy * Math.Sin(t);
 

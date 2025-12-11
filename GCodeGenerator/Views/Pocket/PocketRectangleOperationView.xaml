@@ -186,6 +186,7 @@
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyRadial'}" Tag="{x:Static models:PocketStrategy.Radial}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyZigZag'}" Tag="{x:Static models:PocketStrategy.ZigZag}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyLines'}" Tag="{x:Static models:PocketStrategy.Lines}"/>
                 </ComboBox>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.StepPercentOfTool'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
@@ -197,7 +198,7 @@
                         <Style TargetType="StackPanel">
                             <Setter Property="Visibility" Value="Collapsed"/>
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLinesStrategy}" Value="True">
+                                <DataTrigger Binding="{Binding IsLinesOrZigZagStrategy}" Value="True">
                                     <Setter Property="Visibility" Value="Visible"/>
                                 </DataTrigger>
                             </Style.Triggers>

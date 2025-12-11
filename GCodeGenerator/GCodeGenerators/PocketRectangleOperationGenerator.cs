@@ -117,6 +117,45 @@ namespace GCodeGenerator.GCodeGenerators
                                                 onlyOuter: true,
                                                 startPoint: new Point(lastHit.x, lastHit.y));
                 }
+                else if (op.PocketStrategy == PocketStrategy.ZigZag)
+                {
+                    var segments = GenerateLineSegments(cx, cy, halfW, halfH, step, angleRad, op.LineAngleDeg);
+                    if (segments.Count > 0)
+                    {
+                        // Начало — первая линия, в прямом направлении
+                        addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                        addLine($"{g0} X{segments[0].start.X.ToString(fmt, culture)} Y{segments[0].start.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                        addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                        for (int i = 0; i < segments.Count; i++)
+                        {
+                            var seg = segments[i];
+                            bool reverse = (i % 2 == 1);
+                            var start = reverse ? seg.end : seg.start;
+                            var end = reverse ? seg.start : seg.end;
+
+                            addLine($"{g1} X{end.X.ToString(fmt, culture)} Y{end.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                            if (i + 1 < segments.Count)
+                            {
+                                var nextSeg = segments[i + 1];
+                                var nextStart = (i % 2 == 0) ? nextSeg.end : nextSeg.start; // следующий старт по контуру, чтобы развернуться
+                                TravelAlongRectangle(addLine, g1, fmt, culture, end, nextStart, cx, cy, halfW, halfH, op.Direction, op.FeedXYWork);
+                            }
+                        }
+
+                        var last = segments[segments.Count - 1];
+                        var lastEnd = (segments.Count % 2 == 0) ? last.end : last.start;
+                        GenerateConcentricRectangles(addLine, g1,
+                                                    fmt, culture,
+                                                    cx, cy, halfW, halfH,
+                                                    op.Direction,
+                                                    step, angleRad,
+                                                    op.FeedXYWork,
+                                                    onlyOuter: true,
+                                                    startPoint: lastEnd);
+                    }
+                }
                 else
                     GenerateConcentricRectangles(addLine, g1,
                                                 fmt, culture,
@@ -625,6 +664,130 @@ namespace GCodeGenerator.GCodeGenerators
             }
 
             return lastHitWorld;
+        }
+
+        private System.Collections.Generic.List<(Point start, Point end)> GenerateLineSegments(double cx, double cy,
+                                     double halfW, double halfH,
+                                     double step,
+                                     double angleRadRect,
+                                     double lineAngleDeg)
+        {
+            double angleLocal = lineAngleDeg * Math.PI / 180.0 - angleRadRect;
+            double dirX = Math.Cos(angleLocal);
+            double dirY = Math.Sin(angleLocal);
+            double nx = -dirY;
+            double ny = dirX;
+
+            (double wx, double wy) ToWorld(double lx, double ly)
+                => (cx + lx * Math.Cos(angleRadRect) - ly * Math.Sin(angleRadRect),
+                    cy + lx * Math.Sin(angleRadRect) + ly * Math.Cos(angleRadRect));
+
+            var corners = new[]
+            {
+                (-halfW, -halfH),
+                ( halfW, -halfH),
+                ( halfW,  halfH),
+                (-halfW,  halfH)
+            };
+            double minProj = corners.Min(c => c.Item1 * nx + c.Item2 * ny);
+            double maxProj = corners.Max(c => c.Item1 * nx + c.Item2 * ny);
+
+            var offsets = new System.Collections.Generic.List<double>();
+            for (double t = minProj; t <= maxProj + 1e-9; t += step)
+                offsets.Add(t);
+            if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxProj - 1e-6)
+                offsets.Add(maxProj);
+
+            var segments = new System.Collections.Generic.List<(Point start, Point end)>();
+
+            foreach (var t in offsets)
+            {
+                var pts = new System.Collections.Generic.List<(double x, double y, double s)>();
+
+                if (Math.Abs(dirX) > 1e-9)
+                {
+                    foreach (var sign in new[] { -1.0, 1.0 })
+                    {
+                        double s = (sign * halfW - nx * t) / dirX;
+                        double y = ny * t + dirY * s;
+                        if (y >= -halfH - 1e-6 && y <= halfH + 1e-6)
+                            pts.Add((sign * halfW, y, s));
+                    }
+                }
+                if (Math.Abs(dirY) > 1e-9)
+                {
+                    foreach (var sign in new[] { -1.0, 1.0 })
+                    {
+                        double s = (sign * halfH - ny * t) / dirY;
+                        double x = nx * t + dirX * s;
+                        if (x >= -halfW - 1e-6 && x <= halfW + 1e-6)
+                            pts.Add((x, sign * halfH, s));
+                    }
+                }
+
+                if (pts.Count < 2)
+                    continue;
+
+                var ordered = pts.OrderBy(p => p.s).ToList();
+                var pStart = ordered.First();
+                var pEnd = ordered.Last();
+
+                var sWorld = ToWorld(pStart.x, pStart.y);
+                var eWorld = ToWorld(pEnd.x, pEnd.y);
+
+                segments.Add((new Point(sWorld.wx, sWorld.wy), new Point(eWorld.wx, eWorld.wy)));
+            }
+
+            return segments;
+        }
+
+        private void TravelAlongRectangle(Action<string> addLine, string g1,
+                                          string fmt, CultureInfo culture,
+                                          Point from, Point to,
+                                          double cx, double cy,
+                                          double halfW, double halfH,
+                                          MillingDirection direction,
+                                          double feedXYWork)
+        {
+            var corners = new[]
+            {
+                new Point(cx - halfW, cy - halfH), // 0 bottom-left
+                new Point(cx + halfW, cy - halfH), // 1 bottom-right
+                new Point(cx + halfW, cy + halfH), // 2 top-right
+                new Point(cx - halfW, cy + halfH)  // 3 top-left
+            };
+
+            int Side(Point p)
+            {
+                double eps = 1e-4;
+                if (Math.Abs(p.Y - (cy - halfH)) < eps) return 0; // bottom
+                if (Math.Abs(p.X - (cx + halfW)) < eps) return 1; // right
+                if (Math.Abs(p.Y - (cy + halfH)) < eps) return 2; // top
+                return 3; // left
+            }
+
+            int startSide = Side(from);
+            int endSide = Side(to);
+            int step = direction == MillingDirection.Clockwise ? -1 : 1;
+
+            // Добавляем промежуточные углы
+            var path = new System.Collections.Generic.List<Point>();
+            path.Add(from);
+
+            int s = startSide;
+            while (s != endSide)
+            {
+                s = (s + step + 4) % 4;
+                path.Add(corners[s]);
+            }
+
+            path.Add(to);
+
+            for (int i = 1; i < path.Count; i++)
+            {
+                var p = path[i];
+                addLine($"{g1} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+            }
         }
 
         private (double x, double y) GenerateLines(Action<string> addLine,

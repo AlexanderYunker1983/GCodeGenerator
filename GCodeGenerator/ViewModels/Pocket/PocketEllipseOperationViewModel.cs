@@ -119,10 +119,12 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _pocketStrategy = value;
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IsLinesStrategy));
+                OnPropertyChanged(nameof(IsLinesOrZigZagStrategy));
             }
         }
 
         public bool IsLinesStrategy => PocketStrategy == PocketStrategy.Lines;
+        public bool IsLinesOrZigZagStrategy => PocketStrategy == PocketStrategy.Lines || PocketStrategy == PocketStrategy.ZigZag;
 
         private double _centerX = 0.0;
         public double CenterX

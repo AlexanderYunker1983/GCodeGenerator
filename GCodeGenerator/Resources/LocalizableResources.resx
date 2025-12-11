@@ -192,6 +192,9 @@
   <data name="PocketStrategyLines" xml:space="preserve">
     <value>Линии</value>
   </data>
+  <data name="PocketStrategyZigZag" xml:space="preserve">
+    <value>Зигзаг</value>
+  </data>
   <data name="LineAngleDegToX" xml:space="preserve">
     <value>Угол линии (° к оси X):</value>
   </data>

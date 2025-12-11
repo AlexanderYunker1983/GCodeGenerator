@@ -5,6 +5,7 @@
         Concentric,
         Spiral,
         Radial,
+        ZigZag,
         Lines,
     }
 }
