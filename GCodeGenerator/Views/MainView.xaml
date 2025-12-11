@@ -49,7 +49,7 @@
                     <TabItem Header="{DataBinding '$i18n.PocketTab'}">
                         <pocketViews:PocketOperationsView DataContext="{Binding PocketOperations}"/>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.ShapesTab'}" IsEnabled="False">
+                    <TabItem Header="{DataBinding '$i18n.ShapesTab'}" IsEnabled="False" Visibility="Collapsed">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
@@ -57,7 +57,7 @@
                             </WrapPanel>
                         </ScrollViewer>
                     </TabItem>
-                    <TabItem Header="{DataBinding '$i18n.MiscTab'}" IsEnabled="False">
+                    <TabItem Header="{DataBinding '$i18n.MiscTab'}" IsEnabled="False" Visibility="Collapsed">
                         <ScrollViewer HorizontalScrollBarVisibility="Disabled"
                                       VerticalScrollBarVisibility="Auto">
                             <WrapPanel Margin="4" ItemWidth="120" ItemHeight="150">
