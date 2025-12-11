@@ -105,6 +105,10 @@
         <GroupBox Header="{DataBinding '$i18n.GCodePreviewHeader'}"
                   Grid.Row="2" Grid.Column="2">
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
+                     Style="{StaticResource MetroTextBox}"
+                     Background="{DynamicResource ControlBackgroundBrush}"
+                     Foreground="{DynamicResource IdealForegroundColorBrush}"
+                     BorderBrush="{DynamicResource TextBoxBorderBrush}"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
                      AcceptsReturn="True"

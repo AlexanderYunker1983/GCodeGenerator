@@ -120,7 +120,7 @@
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.FeedZRapid'}" VerticalAlignment="Center" Margin="0,8,4,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,4,0"/>
                 <TextBlock Grid.Row="1" Grid.Column="3" Text="{DataBinding '$i18n.FeedZWork'}" VerticalAlignment="Center" Margin="8,8,4,0"/>
-                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,4,0"/>
             </Grid>
         </GroupBox>
 

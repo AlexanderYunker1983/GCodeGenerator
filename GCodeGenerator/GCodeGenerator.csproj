@@ -99,6 +99,7 @@
     </Compile>
     <Compile Include="GCodeGeneratorMvvmApp.cs" />
     <Compile Include="Infrastructure\RelayCommand.cs" />
+    <Compile Include="Infrastructure\ThemeHelper.cs" />
     <Compile Include="Infrastructure\EnumToBooleanConverter.cs" />
     <Compile Include="Models\DrillHole.cs" />
     <Compile Include="Models\DrillPointsOperation.cs" />

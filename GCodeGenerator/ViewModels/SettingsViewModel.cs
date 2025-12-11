@@ -1,3 +1,4 @@
+using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
@@ -28,6 +29,7 @@ namespace GCodeGenerator.ViewModels
             UseComments = _settings.UseComments;
             AllowArcs = _settings.AllowArcs;
             UsePaddedGCodes = _settings.UsePaddedGCodes;
+            UseDarkTheme = _settings.UseDarkTheme;
         }
 
         private string _displayName;
@@ -121,6 +123,20 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private bool _useDarkTheme;
+
+        public bool UseDarkTheme
+        {
+            get => _useDarkTheme;
+            set
+            {
+                if (value == _useDarkTheme) return;
+                _useDarkTheme = value;
+                OnPropertyChanged();
+                ThemeHelper.ApplyTheme(value);
+            }
+        }
+
         protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
         {
             base.OnClosed(context);
@@ -132,6 +148,8 @@ namespace GCodeGenerator.ViewModels
             _settings.UseComments = UseComments;
             _settings.AllowArcs = AllowArcs;
             _settings.UsePaddedGCodes = UsePaddedGCodes;
+            _settings.UseDarkTheme = UseDarkTheme;
+            GCodeSettingsStore.Save();
         }
     }
 }

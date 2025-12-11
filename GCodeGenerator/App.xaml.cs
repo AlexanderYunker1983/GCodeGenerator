@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Reflection;
 using System.Windows;
+using GCodeGenerator.Infrastructure;
+using GCodeGenerator.Models;
 using MugenMvvmToolkit;
 using MugenMvvmToolkit.Interfaces;
 using MugenMvvmToolkit.Models;
@@ -17,6 +19,12 @@ namespace GCodeGenerator
         {
             // ReSharper disable once ObjectCreationAsStatement
             new BootstrapperEx(this, new AutofacContainer());
+        }
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            base.OnStartup(e);
+            ThemeHelper.ApplyTheme(GCodeSettingsStore.Current.UseDarkTheme);
         }
     }
 

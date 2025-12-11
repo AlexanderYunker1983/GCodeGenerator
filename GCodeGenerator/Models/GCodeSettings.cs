@@ -22,6 +22,11 @@ namespace GCodeGenerator.Models
         /// If true, G-codes are formatted with leading zero, e.g. G01 instead of G1.
         /// </summary>
         public bool UsePaddedGCodes { get; set; } = false;
+
+        /// <summary>
+        /// Enables dark (night) MahApps theme across the app.
+        /// </summary>
+        public bool UseDarkTheme { get; set; }
     }
 }
 

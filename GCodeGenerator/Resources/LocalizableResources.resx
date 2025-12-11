@@ -235,7 +235,7 @@
     <value>Удалить</value>
   </data>
   <data name="GCodeSettingsTitle" xml:space="preserve">
-    <value>Настройки G-кода</value>
+    <value>Настройки</value>
   </data>
   <data name="UseLineNumbers" xml:space="preserve">
     <value>Использовать номера строк (N...)</value>
@@ -254,6 +254,15 @@
   </data>
   <data name="UsePaddedGCodes" xml:space="preserve">
     <value>Формат команд G01/G00 вместо G1/G0</value>
+  </data>
+  <data name="DarkTheme" xml:space="preserve">
+    <value>Ночной режим (тёмная тема)</value>
+  </data>
+  <data name="ToggleOn" xml:space="preserve">
+    <value>Вкл</value>
+  </data>
+  <data name="ToggleOff" xml:space="preserve">
+    <value>Выкл</value>
   </data>
   <data name="AddDrillPackage" xml:space="preserve">
     <value>Сверление под стандартный корпус</value>

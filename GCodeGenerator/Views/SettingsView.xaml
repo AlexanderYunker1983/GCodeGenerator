@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
         Title="{DataBinding '$i18n.GCodeSettingsTitle'}"
@@ -12,6 +13,7 @@
         ResizeMode="NoResize">
     <Grid Margin="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -29,12 +31,16 @@
                   IsChecked="{Binding UseLineNumbers}"/>
 
         <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,8,8,0"
-                   Text="{DataBinding '$i18n.LineNumberStart'}" VerticalAlignment="Center"/>
+                   Text="{DataBinding '$i18n.LineNumberStart'}"
+                   Foreground="{DynamicResource IdealForegroundColorBrush}"
+                   VerticalAlignment="Center"/>
         <TextBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Width="80"
                  Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
 
         <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,8,8,0"
-                   Text="{DataBinding '$i18n.LineNumberStep'}" VerticalAlignment="Center"/>
+                   Text="{DataBinding '$i18n.LineNumberStep'}"
+                   Foreground="{DynamicResource IdealForegroundColorBrush}"
+                   VerticalAlignment="Center"/>
         <TextBox Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" Width="80"
                  Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
 
@@ -49,6 +55,12 @@
         <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
                   Content="{DataBinding '$i18n.UsePaddedGCodes'}"
                   IsChecked="{Binding UsePaddedGCodes}"/>
+
+        <mah:ToggleSwitch Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
+                          Header="{DataBinding '$i18n.DarkTheme'}"
+                          OnLabel="{DataBinding '$i18n.ToggleOn'}"
+                          OffLabel="{DataBinding '$i18n.ToggleOff'}"
+                          IsChecked="{Binding UseDarkTheme}"/>
     </Grid>
 </Window>
 

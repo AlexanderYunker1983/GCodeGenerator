@@ -26,5 +26,20 @@ namespace GCodeGenerator.Properties
                 return defaultInstance;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UseDarkTheme
+        {
+            get
+            {
+                return ((bool)(this["UseDarkTheme"]));
+            }
+            set
+            {
+                this["UseDarkTheme"] = value;
+            }
+        }
     }
 }

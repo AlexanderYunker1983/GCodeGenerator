@@ -358,6 +358,9 @@ namespace GCodeGenerator.Views
             var startX = Math.Floor(minX / GridStepMm) * GridStepMm;
             var startY = Math.Floor(minY / GridStepMm) * GridStepMm;
 
+            var gridBrushBase = TryFindResource("IdealForegroundColorBrush") as Brush ?? Brushes.Gray;
+            var gridBrush = gridBrushBase.CloneCurrentValue();
+
             for (double x = startX; x <= maxX; x += GridStepMm)
             {
                 var p1 = WorldToScreen(new Point(x, minY));
@@ -368,7 +371,7 @@ namespace GCodeGenerator.Views
                     Y1 = p1.Y,
                     X2 = p2.X,
                     Y2 = p2.Y,
-                    Stroke = Brushes.Black,
+                    Stroke = gridBrush,
                     StrokeThickness = 0.5,
                     StrokeDashArray = new DoubleCollection { 2, 2 },
                     Opacity = 0.6
@@ -386,7 +389,7 @@ namespace GCodeGenerator.Views
                     Y1 = p1.Y,
                     X2 = p2.X,
                     Y2 = p2.Y,
-                    Stroke = Brushes.Black,
+                    Stroke = gridBrush,
                     StrokeThickness = 0.5,
                     StrokeDashArray = new DoubleCollection { 2, 2 },
                     Opacity = 0.6
@@ -396,13 +399,16 @@ namespace GCodeGenerator.Views
 
             // axes
             var origin = WorldToScreen(new Point(0, 0));
+            var axisBrush = gridBrushBase.CloneCurrentValue();
+            axisBrush.Opacity = 0.8;
+
             var axisX = new Line
             {
                 X1 = 0,
                 Y1 = origin.Y,
                 X2 = PreviewCanvas.ActualWidth,
                 Y2 = origin.Y,
-                Stroke = Brushes.Gray,
+                Stroke = axisBrush,
                 StrokeThickness = 1
             };
             PreviewCanvas.Children.Add(axisX);
@@ -413,7 +419,7 @@ namespace GCodeGenerator.Views
                 Y1 = 0,
                 X2 = origin.X,
                 Y2 = PreviewCanvas.ActualHeight,
-                Stroke = Brushes.Gray,
+                Stroke = axisBrush,
                 StrokeThickness = 1
             };
             PreviewCanvas.Children.Add(axisY);

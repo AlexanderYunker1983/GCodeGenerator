@@ -5,9 +5,11 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="220">
-    <Border BorderBrush="#FFCCCCCC" BorderThickness="1" Background="White">
+    <Border BorderBrush="{DynamicResource TextBoxBorderBrush}"
+            BorderThickness="1"
+            Background="{DynamicResource ControlBackgroundBrush}">
         <Canvas x:Name="PreviewCanvas"
-                Background="White"
+                Background="{DynamicResource ControlBackgroundBrush}"
                 ClipToBounds="True"
                 MouseWheel="PreviewCanvas_OnMouseWheel"
                 MouseDown="PreviewCanvas_OnMouseDown"
