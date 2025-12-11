@@ -23,6 +23,8 @@ Name "$(ProductName)"
 
 ; Pages
 !insertmacro MUI_PAGE_WELCOME
+!insertmacro MUI_PAGE_COMPONENTS
+!insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 
@@ -41,8 +43,13 @@ Section "$(ProductName) ${Y_PRODUCT_VERSION}" Product
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}" "DisplayName" "$(ProductName) ${Y_PRODUCT_VERSION}"
     WriteRegStr HKLM "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\${Y_PRODUCT}" "DisplayIcon" "$INSTDIR\GCodeGenerator.exe"
- 
+SectionEnd
+
+Section "$(DesktopShortcutSection)" DesktopShortcut
     CreateShortCut "$DESKTOP\${SHORT_CUT}" "$INSTDIR\GCodeGenerator.exe"
+SectionEnd
+
+Section "$(StartMenuShortcutsSection)" StartMenuShortcuts
 	CreateDirectory "$SMPROGRAMS\${Y_PRODUCT}"
 	CreateShortCut "$SMPROGRAMS\${Y_PRODUCT}\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
     CreateShortCut "$SMPROGRAMS\${Y_PRODUCT}\${SHORT_CUT}" "$INSTDIR\GCodeGenerator.exe"
@@ -50,6 +57,8 @@ SectionEnd
 
 !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
     !insertmacro MUI_DESCRIPTION_TEXT ${Product} "$(ProductDescription)"
+    !insertmacro MUI_DESCRIPTION_TEXT ${DesktopShortcut} "$(DesktopShortcutDesc)"
+    !insertmacro MUI_DESCRIPTION_TEXT ${StartMenuShortcuts} "$(StartMenuShortcutsDesc)"
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 Function .onInstSuccess
@@ -69,6 +78,16 @@ Function .onInit
 	SectionGetFlags ${Product} $R0
 	IntOp $R0 $R0 | ${SF_RO}
 	SectionSetFlags ${Product} $R0
+    ; Включаем дополнительные секции по умолчанию
+	SectionGetFlags ${DesktopShortcut} $R0
+	IntOp $R0 $R0 & ~${SF_RO}
+	IntOp $R0 $R0 | ${SF_SELECTED}
+	SectionSetFlags ${DesktopShortcut} $R0
+
+	SectionGetFlags ${StartMenuShortcuts} $R0
+	IntOp $R0 $R0 & ~${SF_RO}
+	IntOp $R0 $R0 | ${SF_SELECTED}
+	SectionSetFlags ${StartMenuShortcuts} $R0
 FunctionEnd
 
 Section "Uninstall"
