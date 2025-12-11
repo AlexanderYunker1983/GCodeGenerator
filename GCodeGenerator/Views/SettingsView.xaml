@@ -30,18 +30,19 @@
                   Content="{DataBinding '$i18n.UseLineNumbers'}"
                   IsChecked="{Binding UseLineNumbers}"/>
 
-        <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,8,8,0"
-                   Text="{DataBinding '$i18n.LineNumberStart'}"
-                   Foreground="{DynamicResource IdealForegroundColorBrush}"
+        <Label Grid.Row="1" Grid.Column="0" Margin="0,8,8,0"
+                   Content="{DataBinding '$i18n.LineNumberStart'}"
                    VerticalAlignment="Center"/>
+
         <TextBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Width="80"
+                 Style="{StaticResource MetroTextBox}"
                  Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
 
-        <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,8,8,0"
-                   Text="{DataBinding '$i18n.LineNumberStep'}"
-                   Foreground="{DynamicResource IdealForegroundColorBrush}"
-                   VerticalAlignment="Center"/>
+        <Label Grid.Row="2" Grid.Column="0" Margin="0,8,8,0"
+               Content="{DataBinding '$i18n.LineNumberStep'}"
+               VerticalAlignment="Center"/>
         <TextBox Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" Width="80"
+                 Style="{StaticResource MetroTextBox}"
                  Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
 
         <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
