@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Globalization;
 using System.Linq;
+using System.Windows;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -75,6 +76,24 @@ namespace GCodeGenerator.GCodeGenerators
                                    op.FeedXYWork,
                                    op.SafeZHeight, nextZ,
                                    op.FeedZRapid, op.FeedZWork);
+                else if (op.PocketStrategy == PocketStrategy.Radial)
+                {
+                    var lastHit = GenerateRadial(addLine, g1,
+                                   fmt, culture,
+                                   cx, cy, halfW, halfH,
+                                   step, angleRad,
+                                   op.Direction,
+                                   op.FeedXYWork);
+                    // Завершающий полный проход по контуру с учётом последней точки
+                    GenerateConcentricRectangles(addLine, g1,
+                                                fmt, culture,
+                                                cx, cy, halfW, halfH,
+                                                op.Direction,
+                                                step, angleRad,
+                                                op.FeedXYWork,
+                                                onlyOuter: true,
+                                                startPoint: new Point(lastHit.x, lastHit.y));
+                }
                 else
                     GenerateConcentricRectangles(addLine, g1,
                                                 fmt, culture,
@@ -479,6 +498,113 @@ namespace GCodeGenerator.GCodeGenerators
 
 
         /// <summary>
+        /// Радиальные линии для прямоугольного кармана.
+        /// Центр → граница, шаг по контуру, возврат в центр.
+        /// </summary>
+        private (double x, double y) GenerateRadial(Action<string> addLine,
+                                    string g1,
+                                    string fmt, CultureInfo culture,
+                                    double cx, double cy,
+                                    double halfW, double halfH,
+                                    double step,
+                                    double angleRad,
+                                    MillingDirection direction,
+                                    double feedXYWork)
+        {
+            double perimeter = 4 * (halfW + halfH);
+            int segments = Math.Max(16, (int)Math.Ceiling(perimeter / step));
+            double angleStep = 2 * Math.PI / segments * ((direction == MillingDirection.Clockwise) ? -1 : 1);
+
+            double cos = Math.Cos(angleRad);
+            double sin = Math.Sin(angleRad);
+
+            (double lx, double ly) ToLocal(double x, double y)
+                => ((x - cx) * cos + (y - cy) * sin,
+                    -(x - cx) * sin + (y - cy) * cos);
+
+            (double wx, double wy) ToWorld(double x, double y)
+                => (cx + x * cos - y * sin,
+                    cy + x * sin + y * cos);
+
+            double ParamOnPerimeter(double x, double y)
+            {
+                double eps = 1e-6;
+                if (Math.Abs(x - halfW) < eps) // right, bottom->top
+                    return (y + halfH);
+                if (Math.Abs(y - halfH) < eps) // top, right->left
+                    return 2 * halfH + (halfW - x);
+                if (Math.Abs(x + halfW) < eps) // left, top->bottom
+                    return 2 * halfH + 2 * halfW + (halfH - y);
+                // bottom, left->right
+                return 2 * (halfH + halfW) + 2 * halfH + (x + halfW);
+            }
+
+            (double x, double y) PointFromParam(double s)
+            {
+                double per = 4 * (halfW + halfH);
+                s = (s % per + per) % per;
+                if (s <= 2 * halfH) // right
+                    return (halfW, -halfH + s);
+                s -= 2 * halfH;
+                if (s <= 2 * halfW) // top
+                    return (halfW - s, halfH);
+                s -= 2 * halfW;
+                if (s <= 2 * halfH) // left
+                    return (-halfW, halfH - s);
+                s -= 2 * halfH; // bottom
+                return (-halfW + s, -halfH);
+            }
+
+            (double x, double y) RayIntersection(double dx, double dy)
+            {
+                double t = double.PositiveInfinity;
+                if (Math.Abs(dx) > 1e-9)
+                {
+                    double tx = dx > 0 ? halfW / dx : -halfW / dx;
+                    if (tx > 0) t = Math.Min(t, tx);
+                }
+                if (Math.Abs(dy) > 1e-9)
+                {
+                    double ty = dy > 0 ? halfH / dy : -halfH / dy;
+                    if (ty > 0) t = Math.Min(t, ty);
+                }
+                if (double.IsInfinity(t)) t = 0;
+                return (dx * t, dy * t);
+            }
+
+            double dirSign = direction == MillingDirection.Clockwise ? -1.0 : 1.0;
+
+            (double x, double y) lastHitWorld = (cx + halfW * cos - (-halfH) * sin, cy + halfW * sin + (-halfH) * cos); // fallback
+
+            for (int i = 0; i < segments; i++)
+            {
+                double angW = angleStep * i;
+                double dxW = Math.Cos(angW);
+                double dyW = Math.Sin(angW);
+
+                // В локальные координаты прямоугольника
+                double dxL = dxW * cos + dyW * sin;
+                double dyL = -dxW * sin + dyW * cos;
+
+                var hitLocal = RayIntersection(dxL, dyL);
+                var hitWorld = ToWorld(hitLocal.x, hitLocal.y);
+
+                double s0 = ParamOnPerimeter(hitLocal.x, hitLocal.y);
+                double s1 = s0 + dirSign * step;
+                var p2Local = PointFromParam(s1);
+                var p2World = ToWorld(p2Local.x, p2Local.y);
+
+                addLine($"{g1} X{hitWorld.wx.ToString(fmt, culture)} Y{hitWorld.wy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{p2World.wx.ToString(fmt, culture)} Y{p2World.wy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+
+                lastHitWorld = p2World;
+            }
+
+            return lastHitWorld;
+        }
+
+        /// <summary>
         /// Классический алгоритм «концентрические прямоугольники».
         /// </summary>
         private void GenerateConcentricRectangles(Action<string> addLine,
@@ -489,7 +615,9 @@ namespace GCodeGenerator.GCodeGenerators
                                                   MillingDirection direction,
                                                   double step,
                                                   double angleRad,
-                                                  double feedXYWork)
+                                                  double feedXYWork,
+                                                  bool onlyOuter = false,
+                                                  Point? startPoint = null)
         {
             var minHalf = Math.Min(halfW, halfH);
             var offsets = new System.Collections.Generic.List<double>();
@@ -498,7 +626,10 @@ namespace GCodeGenerator.GCodeGenerators
                 offsets.Add(o);
             if (offsets.Count == 0 || offsets.Last() < maxOffset)
                 offsets.Add(maxOffset);
-            offsets = offsets.OrderByDescending(v => v).ToList(); // от внутреннего к наружному
+            offsets = offsets.OrderBy(v => v).ToList(); // от наружного к внутреннему (0 – внешний)
+
+            if (onlyOuter && offsets.Count > 0)
+                offsets = new System.Collections.Generic.List<double> { 0.0 }; // только внешний контур
 
             var clockwise = direction == MillingDirection.Clockwise;
 
@@ -513,27 +644,70 @@ namespace GCodeGenerator.GCodeGenerators
                 var h = halfH - offset;
                 if (w <= 0 || h <= 0) break;
 
-                var rect = new[]
+                var corners = new[]
                 {
-                    Rot(-w, -h),
-                    Rot( w, -h),
-                    Rot( w,  h),
-                    Rot(-w,  h),
-                    Rot(-w, -h)
+                    Rot(-w, -h), // bottom-left
+                    Rot( w, -h), // bottom-right
+                    Rot( w,  h), // top-right
+                    Rot(-w,  h), // top-left
                 };
 
-                if (clockwise)
-                    rect = new[] { rect[0], rect[3], rect[2], rect[1], rect[0] };
+                int[] order = clockwise ? new[] { 0, 3, 2, 1, 0 } : new[] { 0, 1, 2, 3, 0 };
+
+                var poly = order.Select(idx => new Point(corners[idx].X, corners[idx].Y)).ToList();
+
+                if (startPoint.HasValue)
+                {
+                    var sp = startPoint.Value;
+                    // Найти ближайший сегмент и вставить startPoint
+                    int bestEdge = 0;
+                    double bestDist = double.MaxValue;
+                    for (int i = 0; i < poly.Count - 1; i++)
+                    {
+                        var a = poly[i];
+                        var b = poly[i + 1];
+                        double dist = DistancePointToSegment(sp.X, sp.Y, a.X, a.Y, b.X, b.Y);
+                        if (dist < bestDist)
+                        {
+                            bestDist = dist;
+                            bestEdge = i;
+                        }
+                    }
+
+                    // Вставим startPoint в найденное место
+                    poly.Insert(bestEdge + 1, new Point(sp.X, sp.Y));
+
+                    // Повернём список, чтобы startPoint был первым
+                    int startIdx = bestEdge + 1;
+                    poly = poly.Skip(startIdx).Concat(poly.Take(startIdx)).ToList();
+                    // Замкнём контур
+                    if (!(poly.Count > 0 && poly[0].X == poly[poly.Count - 1].X && poly[0].Y == poly[poly.Count - 1].Y))
+                        poly.Add(poly[0]);
+                }
 
                 // Соединяем с последней точкой
-                addLine($"{g1} X{rect[0].X.ToString(fmt, culture)} Y{rect[0].Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{poly[0].X.ToString(fmt, culture)} Y{poly[0].Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
 
-                for (int i = 1; i < rect.Length; i++)
+                for (int i = 1; i < poly.Count; i++)
                 {
-                    var p = rect[i];
+                    var p = poly[i];
                     addLine($"{g1} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
                 }
             }
+        }
+
+        private double DistancePointToSegment(double px, double py, double x1, double y1, double x2, double y2)
+        {
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
+                return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
+
+            double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+            t = Math.Max(0, Math.Min(1, t));
+            double projX = x1 + t * dx;
+            double projY = y1 + t * dy;
+            return Math.Sqrt(Math.Pow(px - projX, 2) + Math.Pow(py - projY, 2));
         }
 
         /// <summary>

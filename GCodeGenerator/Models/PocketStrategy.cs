@@ -4,5 +4,6 @@
     {
         Concentric,
         Spiral,
+        Radial,
     }
 }

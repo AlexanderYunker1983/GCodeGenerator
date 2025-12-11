@@ -147,6 +147,7 @@
                          Margin="0,0,0,8">
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyRadial'}" Tag="{x:Static models:PocketStrategy.Radial}"/>
                 </ComboBox>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.StepPercentOfTool'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
