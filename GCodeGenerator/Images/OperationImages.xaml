@@ -1269,4 +1269,644 @@
             </Canvas>
         </Canvas>
     </Viewbox>
+    <Viewbox x:Key="DrillByHex">
+        <Canvas Width="1084.771" Height="1113.258">
+
+            <Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 918.139,1084.041 L 835.895,1094.868"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 835.895,1094.868 L 844.119,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 844.119,1084.041 L 835.895,1073.213"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 835.895,1073.213 L 918.139,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/HATCH/<Контур> -->
+                    <Path Fill="#ff000000" Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,1084.041 L 918.139,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,179.356 L 24.282,261.600"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 24.282,261.600 L 13.455,253.376"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,253.376 L 2.627,261.600"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 2.627,261.600 L 13.455,179.356"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/HATCH/<Контур> -->
+                    <Path Fill="#ff000000" Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,1084.041 L 13.455,179.356"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/MTEXT/Y -->
+                    <TextBlock Foreground="#ff000000" RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413" Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">Y</TextBlock>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/MTEXT/X -->
+                    <TextBlock Foreground="#ff000000" RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342" Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">X</TextBlock>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 701.532,568.354 L 482.955,385.617"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 482.955,385.617 L 215.411,483.541"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 215.411,483.541 L 166.444,764.203"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 166.444,764.203 L 385.022,946.941"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 385.022,946.941 L 652.565,849.016"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 652.565,849.016 L 701.532,568.354"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 507.628,385.617 C 507.628,371.990 496.581,360.943 482.955,360.943 C 469.328,360.943 458.282,371.990 458.282,385.617 C 458.282,399.243 469.328,410.290 482.955,410.290 C 496.581,410.290 507.628,399.243 507.628,385.617 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 507.628,385.617 C 507.628,371.990 496.581,360.943 482.955,360.943 C 469.328,360.943 458.282,371.990 458.282,385.617 C 458.282,399.243 469.328,410.290 482.955,410.290 C 496.581,410.290 507.628,399.243 507.628,385.617 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 580.443,446.492 C 580.443,432.865 569.396,421.819 555.770,421.819 C 542.143,421.819 531.096,432.865 531.096,446.492 C 531.096,460.119 542.143,471.165 555.770,471.165 C 569.396,471.165 580.443,460.119 580.443,446.492 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 653.258,507.368 C 653.258,493.741 642.211,482.694 628.584,482.694 C 614.958,482.694 603.911,493.741 603.911,507.368 C 603.911,520.994 614.958,532.041 628.584,532.041 C 642.211,532.041 653.258,520.994 653.258,507.368 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 726.073,568.243 C 726.073,554.616 715.026,543.570 701.399,543.570 C 687.773,543.570 676.726,554.616 676.726,568.243 C 676.726,581.870 687.773,592.916 701.399,592.916 C 715.026,592.916 726.073,581.870 726.073,568.243 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 709.923,661.681 C 709.923,648.054 698.876,637.008 685.249,637.008 C 671.623,637.008 660.576,648.054 660.576,661.681 C 660.576,675.308 671.623,686.354 685.249,686.354 C 698.876,686.354 709.923,675.308 709.923,661.681 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 693.610,755.178 C 693.610,741.552 682.564,730.505 668.937,730.505 C 655.310,730.505 644.264,741.552 644.264,755.178 C 644.264,768.805 655.310,779.851 668.937,779.851 C 682.564,779.851 693.610,768.805 693.610,755.178 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 677.298,848.675 C 677.298,835.049 666.251,824.002 652.625,824.002 C 638.998,824.002 627.952,835.049 627.952,848.675 C 627.952,862.302 638.998,873.349 652.625,873.349 C 666.251,873.349 677.298,862.302 677.298,848.675 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 588.436,881.519 C 588.436,867.892 577.389,856.846 563.763,856.846 C 550.136,856.846 539.090,867.892 539.090,881.519 C 539.090,895.146 550.136,906.192 563.763,906.192 C 577.389,906.192 588.436,895.146 588.436,881.519 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 499.309,914.141 C 499.309,900.514 488.262,889.468 474.636,889.468 C 461.009,889.468 449.962,900.514 449.962,914.141 C 449.962,927.767 461.009,938.814 474.636,938.814 C 488.262,938.814 499.309,927.767 499.309,914.141 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 410.182,946.763 C 410.182,933.136 399.135,922.089 385.508,922.089 C 371.882,922.089 360.835,933.136 360.835,946.763 C 360.835,960.389 371.882,971.436 385.508,971.436 C 399.135,971.436 410.182,960.389 410.182,946.763 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 337.278,886.398 C 337.278,872.771 326.231,861.725 312.604,861.725 C 298.978,861.725 287.931,872.771 287.931,886.398 C 287.931,900.025 298.978,911.071 312.604,911.071 C 326.231,911.071 337.278,900.025 337.278,886.398 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 264.463,825.522 C 264.463,811.896 253.416,800.849 239.790,800.849 C 226.163,800.849 215.116,811.896 215.116,825.522 C 215.116,839.149 226.163,850.196 239.790,850.196 C 253.416,850.196 264.463,839.149 264.463,825.522 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 191.648,764.647 C 191.648,751.020 180.601,739.974 166.975,739.974 C 153.348,739.974 142.302,751.020 142.302,764.647 C 142.302,778.274 153.348,789.320 166.975,789.320 C 180.601,789.320 191.648,778.274 191.648,764.647 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 207.311,671.387 C 207.311,657.761 196.264,646.714 182.638,646.714 C 169.011,646.714 157.965,657.761 157.965,671.387 C 157.965,685.014 169.011,696.060 182.638,696.060 C 196.264,696.060 207.311,685.014 207.311,671.387 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 223.623,577.890 C 223.623,564.263 212.577,553.217 198.950,553.217 C 185.323,553.217 174.277,564.263 174.277,577.890 C 174.277,591.517 185.323,602.563 198.950,602.563 C 212.577,602.563 223.623,591.517 223.623,577.890 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 239.936,484.393 C 239.936,470.766 228.889,459.719 215.262,459.719 C 201.636,459.719 190.589,470.766 190.589,484.393 C 190.589,498.019 201.636,509.066 215.262,509.066 C 228.889,509.066 239.936,498.019 239.936,484.393 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 328.400,451.217 C 328.400,437.590 317.353,426.543 303.726,426.543 C 290.100,426.543 279.053,437.590 279.053,451.217 C 279.053,464.843 290.100,475.890 303.726,475.890 C 317.353,475.890 328.400,464.843 328.400,451.217 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 417.527,418.595 C 417.527,404.968 406.480,393.922 392.854,393.922 C 379.227,393.922 368.180,404.968 368.180,418.595 C 368.180,432.221 379.227,443.268 392.854,443.268 C 406.480,443.268 417.527,432.221 417.527,418.595 Z"/>
+
+                </Canvas>
+
+            </Canvas>
+        </Canvas>
+    </Viewbox>
+    <Viewbox x:Key="DrillByArc">
+        <Canvas Width="1084.771" Height="1113.258">
+
+            <Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 918.139,1084.041 L 835.895,1094.868"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 835.895,1094.868 L 844.119,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 844.119,1084.041 L 835.895,1073.213"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 835.895,1073.213 L 918.139,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/HATCH/<Контур> -->
+                    <Path Fill="#ff000000" Data=" M 918.139,1084.041 L 835.895,1073.213 L 844.119,1084.041 L 835.895,1094.868 L 918.139,1084.041 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,1084.041 L 918.139,1084.041"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,179.356 L 24.282,261.600"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 24.282,261.600 L 13.455,253.376"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,253.376 L 2.627,261.600"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 2.627,261.600 L 13.455,179.356"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/HATCH/<Контур> -->
+                    <Path Fill="#ff000000" Data=" M 24.282,261.600 L 13.455,179.356 L 2.627,261.600 L 13.455,253.376 L 24.282,261.600 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 13.455,1084.041 L 13.455,179.356"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/MTEXT/Y -->
+                    <TextBlock Foreground="#ff000000" RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="37.413" Canvas.Top="-13.358" FontSize="120.26" FontFamily="Myriad Pro">Y</TextBlock>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/MTEXT/X -->
+                    <TextBlock Foreground="#ff000000" RenderTransform="1.000,0.000,-0.259,0.966,0.000,0.000" Canvas.Left="1024.342" Canvas.Top="973.629" FontSize="120.26" FontFamily="Myriad Pro">X</TextBlock>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/ARC/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 689.853,850.857 C 676.595,580.215 490.467,348.937 228.921,278.113"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 65.547,881.439 L 228.921,278.113"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/LINE/<Контур> -->
+                    <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 65.547,881.439 L 689.853,850.857"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 714.526,850.857 C 714.526,837.230 703.479,826.183 689.853,826.183 C 676.226,826.183 665.179,837.230 665.179,850.857 C 665.179,864.483 676.226,875.530 689.853,875.530 C 703.479,875.530 714.526,864.483 714.526,850.857 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 714.526,850.857 C 714.526,837.230 703.479,826.183 689.853,826.183 C 676.226,826.183 665.179,837.230 665.179,850.857 C 665.179,864.483 676.226,875.530 689.853,875.530 C 703.479,875.530 714.526,864.483 714.526,850.857 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 674.450,659.249 C 674.450,645.622 663.403,634.575 649.776,634.575 C 636.150,634.575 625.103,645.622 625.103,659.249 C 625.103,672.875 636.150,683.922 649.776,683.922 C 663.403,683.922 674.450,672.875 674.450,659.249 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 577.072,489.433 C 577.072,475.807 566.025,464.760 552.398,464.760 C 538.772,464.760 527.725,475.807 527.725,489.433 C 527.725,503.060 538.772,514.107 552.398,514.107 C 566.025,514.107 577.072,503.060 577.072,489.433 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 431.942,358.067 C 431.942,344.440 420.896,333.393 407.269,333.393 C 393.642,333.393 382.596,344.440 382.596,358.067 C 382.596,371.693 393.642,382.740 407.269,382.740 C 420.896,382.740 431.942,371.693 431.942,358.067 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <!-- 0/CIRCLE/<Контур> -->
+                    <Path StrokeThickness="15.3" Stroke="#ff007fff" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 253.296,278.033 C 253.296,264.406 242.250,253.360 228.623,253.360 C 214.997,253.360 203.950,264.406 203.950,278.033 C 203.950,291.659 214.997,302.706 228.623,302.706 C 242.250,302.706 253.296,291.659 253.296,278.033 Z"/>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 795.409,845.686 L 809.628,927.412"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 809.628,927.412 L 798.469,919.642"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 798.469,919.642 L 787.991,928.307"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 787.991,928.307 L 795.409,845.686"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/HATCH/<Контур> -->
+                        <Path Fill="#ff000000" Data=" M 809.628,927.412 L 795.409,845.686 L 787.991,928.307 L 798.469,919.642 L 809.628,927.412 Z"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 801.244,1084.041 L 789.792,1001.881"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 789.792,1001.881 L 800.682,1010.023"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 800.682,1010.023 L 811.447,1001.717"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 811.447,1001.717 L 801.244,1084.041"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/HATCH/<Контур> -->
+                        <Path Fill="#ff000000" Data=" M 801.244,1084.041 L 811.447,1001.717 L 800.682,1010.023 L 789.792,1001.881 L 801.244,1084.041 Z"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/ARC/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 801.244,1084.041 C 801.244,1004.553 799.299,925.078 795.409,845.686"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 689.853,850.857 L 828.268,844.076"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 918.139,1084.041 L 768.346,1084.041"/>
+
+                    </Canvas>
+
+                </Canvas>
+
+                <Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 261.044,159.482 L 342.771,173.696"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 342.771,173.696 L 331.690,181.575"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 331.690,181.575 L 336.308,194.364"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 336.308,194.364 L 261.044,159.482"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/HATCH/<Контур> -->
+                        <Path Fill="#ff000000" Data=" M 331.690,181.575 L 342.771,173.696 L 261.044,159.482 L 336.308,194.364 L 331.690,181.575 Z"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 968.540,1084.041 L 954.543,1002.276"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 954.543,1002.276 L 965.680,1010.076"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 965.680,1010.076 L 976.182,1001.440"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 976.182,1001.440 L 968.540,1084.041"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/HATCH/<Контур> -->
+                        <Path Fill="#ff000000" Data=" M 968.540,1084.041 L 976.182,1001.440 L 965.680,1010.076 L 954.543,1002.276 L 968.540,1084.041 Z"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/ARC/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 968.540,1084.041 C 968.540,651.452 678.595,272.550 261.044,159.482"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 228.921,278.113 L 269.643,127.728"/>
+
+                    </Canvas>
+
+                    <Canvas>
+
+                        <!-- 0/DIMENSION/LINE/<Контур> -->
+                        <Path StrokeThickness="4.5" Stroke="#ff000000" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" Data="F1 M 918.139,1084.041 L 1001.438,1084.041"/>
+
+                    </Canvas>
+
+                </Canvas>
+
+            </Canvas>
+        </Canvas>
+    </Viewbox>
 </ResourceDictionary>
