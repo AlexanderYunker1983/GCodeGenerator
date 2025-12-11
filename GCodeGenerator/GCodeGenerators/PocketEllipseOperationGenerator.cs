@@ -153,6 +153,33 @@ namespace GCodeGenerator.GCodeGenerators
                     currentZ = nextZ;
                 }
             }
+            else if (op.PocketStrategy == PocketStrategy.Lines)
+            {
+                while (currentZ > finalZ)
+                {
+                    double nextZ = currentZ - op.StepDepth;
+                    if (nextZ < finalZ) nextZ = finalZ;
+                    pass++;
+
+                    if (settings.UseComments)
+                        addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, nextZ);
+
+                    // Завершающий полный проход по контуру
+                    GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                    currentZ = nextZ;
+                }
+            }
             else   /* PocketStrategy.Concentric – концентрические эллипсы */
             {
                 while (currentZ > finalZ)
@@ -259,6 +286,69 @@ namespace GCodeGenerator.GCodeGenerators
                 addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                 lastHit = p2;
+            }
+
+            return lastHit;
+        }
+
+        private (double x, double y) GenerateLines(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
+                                    PocketEllipseOperation op, double effRx, double effRy, double step, double cutZ)
+        {
+            // В локальных координатах эллипса (с учётом RotationAngle)
+            double rot = op.RotationAngle * Math.PI / 180.0;
+            double cosRot = Math.Cos(rot);
+            double sinRot = Math.Sin(rot);
+
+            double dirAng = op.LineAngleDeg * Math.PI / 180.0 - rot; // локальный угол
+            double dirX = Math.Cos(dirAng);
+            double dirY = Math.Sin(dirAng);
+            double nx = -dirY;
+            double ny = dirX;
+
+            double maxOffset = Math.Max(effRx, effRy);
+            var offsets = new System.Collections.Generic.List<double>();
+            for (double t = -maxOffset; t <= maxOffset + 1e-9; t += step)
+                offsets.Add(t);
+            if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxOffset - 1e-6)
+                offsets.Add(maxOffset);
+
+            (double x, double y) lastHit = (op.CenterX + effRx * cosRot, op.CenterY + effRx * sinRot); // fallback
+            bool first = true;
+
+            foreach (var t in offsets)
+            {
+                // Линия в локальных координатах: p = n*t + dir*s. Эллипс: (x/effRx)^2 + (y/effRy)^2 = 1
+                double A = (dirX * dirX) / (effRx * effRx) + (dirY * dirY) / (effRy * effRy);
+                double B = 2 * (dirX * nx * t / (effRx * effRx) + dirY * ny * t / (effRy * effRy));
+                double C = (nx * nx * t * t) / (effRx * effRx) + (ny * ny * t * t) / (effRy * effRy) - 1;
+
+                double disc = B * B - 4 * A * C;
+                if (disc < 0) continue;
+                double sqrtD = Math.Sqrt(disc);
+                double s1 = (-B - sqrtD) / (2 * A);
+                double s2 = (-B + sqrtD) / (2 * A);
+
+                double sxLocal = nx * t + dirX * s1;
+                double syLocal = ny * t + dirY * s1;
+                double exLocal = nx * t + dirX * s2;
+                double eyLocal = ny * t + dirY * s2;
+
+                // В мир с учётом поворота эллипса
+                (double wx, double wy) ToWorld(double lx, double ly)
+                    => (op.CenterX + lx * cosRot - ly * sinRot,
+                        op.CenterY + lx * sinRot + ly * cosRot);
+
+                var sWorld = ToWorld(sxLocal, syLocal);
+                var eWorld = ToWorld(exLocal, eyLocal);
+
+                // Подъём, быстрый подход и спуск
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{sWorld.wx.ToString(fmt, culture)} Y{sWorld.wy.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} X{eWorld.wx.ToString(fmt, culture)} Y{eWorld.wy.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                lastHit = (eWorld.wx, eWorld.wy);
+                first = false;
             }
 
             return lastHit;

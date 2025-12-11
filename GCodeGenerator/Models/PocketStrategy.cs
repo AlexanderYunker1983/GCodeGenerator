@@ -5,5 +5,6 @@
         Concentric,
         Spiral,
         Radial,
+        Lines,
     }
 }

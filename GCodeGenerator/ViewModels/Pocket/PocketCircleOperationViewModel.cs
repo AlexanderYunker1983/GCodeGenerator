@@ -54,6 +54,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                     RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
                     StepPercentOfTool = Convert.ToDouble(_operation.Metadata["StepPercentOfTool"]);
                     Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
+                    if (_operation.Metadata.ContainsKey("LineAngleDeg"))
+                        LineAngleDeg = Convert.ToDouble(_operation.Metadata["LineAngleDeg"]);
                 }
                 else
                 {
@@ -74,6 +76,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                     RetractHeight = _operation.RetractHeight;
                     StepPercentOfTool = _operation.StepPercentOfTool;
                     Decimals = _operation.Decimals;
+                    LineAngleDeg = _operation.LineAngleDeg;
                 }
             }
         }
@@ -111,8 +114,11 @@ namespace GCodeGenerator.ViewModels.Pocket
                 if (value == _pocketStrategy) return;
                 _pocketStrategy = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsLinesStrategy));
             }
         }
+
+        public bool IsLinesStrategy => PocketStrategy == PocketStrategy.Lines;
 
         private double _centerX = 0.0;
         public double CenterX
@@ -294,6 +300,18 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private double _lineAngleDeg = 0.0;
+        public double LineAngleDeg
+        {
+            get => _lineAngleDeg;
+            set
+            {
+                if (value.Equals(_lineAngleDeg)) return;
+                _lineAngleDeg = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -322,6 +340,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.RetractHeight = RetractHeight;
             _operation.StepPercentOfTool = StepPercentOfTool;
             _operation.Decimals = Decimals;
+            _operation.LineAngleDeg = LineAngleDeg;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
@@ -343,6 +362,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["RetractHeight"] = RetractHeight;
             _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
             _operation.Metadata["Decimals"] = Decimals;
+            _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
 
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }

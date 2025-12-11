@@ -32,7 +32,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("Width"))
+            if (_operation.Metadata != null && _operation.Metadata.ContainsKey("Width"))
                 {
                     Width = Convert.ToDouble(_operation.Metadata["Width"]);
                     Height = Convert.ToDouble(_operation.Metadata["Height"]);
@@ -57,6 +57,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                         PocketStrategy = _operation.PocketStrategy;
                     StepPercentOfTool = Convert.ToDouble(_operation.Metadata["StepPercentOfTool"]);
                     Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
+                    if (_operation.Metadata.ContainsKey("LineAngleDeg"))
+                        LineAngleDeg = Convert.ToDouble(_operation.Metadata["LineAngleDeg"]);
                 }
                 else
                 {
@@ -80,6 +82,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                     PocketStrategy = _operation.PocketStrategy;
                     StepPercentOfTool = _operation.StepPercentOfTool;
                     Decimals = _operation.Decimals;
+                    LineAngleDeg = _operation.LineAngleDeg;
                 }
             }
         }
@@ -117,8 +120,11 @@ namespace GCodeGenerator.ViewModels.Pocket
                 if (value == _pocketStrategy) return;
                 _pocketStrategy = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(IsLinesStrategy));
             }
         }
+
+        public bool IsLinesStrategy => PocketStrategy == PocketStrategy.Lines;
 
         private double _width = 10.0;
         public double Width
@@ -336,6 +342,18 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private double _lineAngleDeg = 0.0;
+        public double LineAngleDeg
+        {
+            get => _lineAngleDeg;
+            set
+            {
+                if (value.Equals(_lineAngleDeg)) return;
+                _lineAngleDeg = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -367,6 +385,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.ReferencePointType = ReferencePointType;
             _operation.StepPercentOfTool = StepPercentOfTool;
             _operation.Decimals = Decimals;
+            _operation.LineAngleDeg = LineAngleDeg;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
@@ -391,6 +410,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["ReferencePointType"] = ReferencePointType;
             _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
             _operation.Metadata["Decimals"] = Decimals;
+            _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
 
             // notify preview update
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();

@@ -130,6 +130,35 @@ namespace GCodeGenerator.GCodeGenerators
                     currentZ = nextZ;
                 }
             }
+            else if (op.PocketStrategy == PocketStrategy.Lines)
+            {
+                // ---------- Последовательные линии ----------
+                while (currentZ > finalZ)
+                {
+                    double nextZ = currentZ - op.StepDepth;
+                    if (nextZ < finalZ) nextZ = finalZ;
+                    pass++;
+
+                    if (settings.UseComments)
+                        addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    // Начнём с первой линии – сразу перейдём в её начало после вычисления
+
+                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                    var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ);
+
+                    // Завершающий полный проход по контуру, начиная с последней точки
+                    GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
+
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                    currentZ = nextZ;
+                }
+            }
             else   /* PocketStrategy.Concentric – классический алгоритм */
             {
                 while (currentZ > finalZ)
@@ -207,6 +236,52 @@ namespace GCodeGenerator.GCodeGenerators
                 addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                 lastHit = (x2, y2);
+            }
+
+            return lastHit;
+        }
+
+        private (double x, double y) GenerateLines(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
+                                                   PocketCircleOperation op, double effectiveRadius, double step, double cutZ)
+        {
+            // Вектор направления линии и нормали
+            double dirAng = op.LineAngleDeg * Math.PI / 180.0;
+            double dirX = Math.Cos(dirAng);
+            double dirY = Math.Sin(dirAng);
+            double nx = -dirY; // нормаль (перпендикуляр)
+            double ny = dirX;
+
+            double minT = -effectiveRadius;
+            double maxT = effectiveRadius;
+
+            var offsets = new System.Collections.Generic.List<double>();
+            for (double t = minT; t <= maxT + 1e-9; t += step)
+                offsets.Add(t);
+            if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxT - 1e-6)
+                offsets.Add(maxT);
+
+            (double x, double y) lastHit = (op.CenterX + effectiveRadius * Math.Cos(dirAng), op.CenterY + effectiveRadius * Math.Sin(dirAng));
+            bool first = true;
+
+            foreach (var t in offsets)
+            {
+                double under = effectiveRadius * effectiveRadius - t * t;
+                if (under < 0) continue;
+                double halfChord = Math.Sqrt(under);
+
+                double sx = op.CenterX + nx * t - dirX * halfChord;
+                double sy = op.CenterY + ny * t - dirY * halfChord;
+                double ex = op.CenterX + nx * t + dirX * halfChord;
+                double ey = op.CenterY + ny * t + dirY * halfChord;
+
+                // Подъём и подход к старту линии
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{sx.ToString(fmt, culture)} Y{sy.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                addLine($"{g1} X{ex.ToString(fmt, culture)} Y{ey.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                lastHit = (ex, ey);
             }
 
             return lastHit;

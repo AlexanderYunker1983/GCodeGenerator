@@ -148,12 +148,26 @@
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyRadial'}" Tag="{x:Static models:PocketStrategy.Radial}"/>
+                    <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyLines'}" Tag="{x:Static models:PocketStrategy.Lines}"/>
                 </ComboBox>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.StepPercentOfTool'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
                 <TextBlock Grid.Row="1" Grid.Column="3" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
                 <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}"/>
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="{DataBinding '$i18n.NoteSpiralFromCenter'}" Grid.ColumnSpan="5" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,6,0,0">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsLinesStrategy}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+                    <TextBlock Text="{DataBinding '$i18n.LineAngleDegToX'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBox Width="80" Text="{Binding LineAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
             </Grid>
         </GroupBox>
     </Grid>

@@ -325,14 +325,6 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Page Include="Views\Pocket\PocketRectangleOperationView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
-    <Page Include="Views\Pocket\PocketCircleOperationView.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <SubType>Designer</SubType>
-    </Page>
     <Page Include="Views\PocketMill\ProfileCircleOperationView.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

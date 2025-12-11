@@ -49,6 +49,11 @@ namespace GCodeGenerator.Models
 
         public int Decimals { get; set; } = 3;
 
+        /// <summary>
+        /// Угол линий для стратегии Lines (градусы к оси X).
+        /// </summary>
+        public double LineAngleDeg { get; set; } = 0.0;
+
         public Dictionary<string, object> Metadata { get; set; }
 
         public override string GetDescription()

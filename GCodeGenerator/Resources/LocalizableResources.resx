@@ -189,6 +189,12 @@
   <data name="PocketStrategyConcentric" xml:space="preserve">
     <value>Концентрические линии</value>
   </data>
+  <data name="PocketStrategyLines" xml:space="preserve">
+    <value>Линии</value>
+  </data>
+  <data name="LineAngleDegToX" xml:space="preserve">
+    <value>Угол линии (° к оси X):</value>
+  </data>
   <data name="PocketStrategyRadial" xml:space="preserve">
     <value>Радиальные линии</value>
   </data>

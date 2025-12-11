@@ -94,6 +94,29 @@ namespace GCodeGenerator.GCodeGenerators
                                                 onlyOuter: true,
                                                 startPoint: new Point(lastHit.x, lastHit.y));
                 }
+                else if (op.PocketStrategy == PocketStrategy.Lines)
+                {
+                    var lastHit = GenerateLines(addLine, g0, g1,
+                                   fmt, culture,
+                                   cx, cy, halfW, halfH,
+                                   step, angleRad,
+                                   op.Direction,
+                                   op.LineAngleDeg,
+                                   op.FeedXYRapid,
+                                   op.FeedXYWork,
+                                   nextZ,
+                                   op.SafeZHeight,
+                                   op.FeedZRapid);
+
+                    GenerateConcentricRectangles(addLine, g1,
+                                                fmt, culture,
+                                                cx, cy, halfW, halfH,
+                                                op.Direction,
+                                                step, angleRad,
+                                                op.FeedXYWork,
+                                                onlyOuter: true,
+                                                startPoint: new Point(lastHit.x, lastHit.y));
+                }
                 else
                     GenerateConcentricRectangles(addLine, g1,
                                                 fmt, culture,
@@ -602,6 +625,102 @@ namespace GCodeGenerator.GCodeGenerators
             }
 
             return lastHitWorld;
+        }
+
+        private (double x, double y) GenerateLines(Action<string> addLine,
+                                    string g0, string g1,
+                                    string fmt, CultureInfo culture,
+                                    double cx, double cy,
+                                    double halfW, double halfH,
+                                    double step,
+                                    double angleRadRect,
+                                    MillingDirection direction,
+                                    double lineAngleDeg,
+                                    double feedXYRapid,
+                                    double feedXYWork,
+                                    double cutZ,
+                                    double safeZ,
+                                    double feedZRapid)
+        {
+            double angleLocal = lineAngleDeg * Math.PI / 180.0 - angleRadRect;
+            double dirX = Math.Cos(angleLocal);
+            double dirY = Math.Sin(angleLocal);
+            double nx = -dirY;
+            double ny = dirX;
+
+            // Вспомогательные функции
+            (double wx, double wy) ToWorld(double lx, double ly)
+                => (cx + lx * Math.Cos(angleRadRect) - ly * Math.Sin(angleRadRect),
+                    cy + lx * Math.Sin(angleRadRect) + ly * Math.Cos(angleRadRect));
+
+            // Минимальный/максимальный оффсет по нормали
+            var corners = new[]
+            {
+                (-halfW, -halfH),
+                ( halfW, -halfH),
+                ( halfW,  halfH),
+                (-halfW,  halfH)
+            };
+            double minProj = corners.Min(c => c.Item1 * nx + c.Item2 * ny);
+            double maxProj = corners.Max(c => c.Item1 * nx + c.Item2 * ny);
+
+            var offsets = new System.Collections.Generic.List<double>();
+            for (double t = minProj; t <= maxProj + 1e-9; t += step)
+                offsets.Add(t);
+            if (offsets.Count == 0 || offsets[offsets.Count - 1] < maxProj - 1e-6)
+                offsets.Add(maxProj);
+
+            (double x, double y) lastHit = ToWorld(halfW, -halfH); // fallback
+            bool first = true;
+
+            foreach (var t in offsets)
+            {
+                // Пересечения прямой p = n*t + dir*s с прямоугольником в локальных координатах
+                var pts = new System.Collections.Generic.List<(double x, double y, double s)>();
+
+                // x = ±halfW
+                if (Math.Abs(dirX) > 1e-9)
+                {
+                    foreach (var sign in new[] { -1.0, 1.0 })
+                    {
+                        double s = (sign * halfW - nx * t) / dirX;
+                        double y = ny * t + dirY * s;
+                        if (y >= -halfH - 1e-6 && y <= halfH + 1e-6)
+                            pts.Add((sign * halfW, y, s));
+                    }
+                }
+                // y = ±halfH
+                if (Math.Abs(dirY) > 1e-9)
+                {
+                    foreach (var sign in new[] { -1.0, 1.0 })
+                    {
+                        double s = (sign * halfH - ny * t) / dirY;
+                        double x = nx * t + dirX * s;
+                        if (x >= -halfW - 1e-6 && x <= halfW + 1e-6)
+                            pts.Add((x, sign * halfH, s));
+                    }
+                }
+
+                if (pts.Count < 2)
+                    continue;
+
+                // выбрать две крайние точки по s (минимум и максимум)
+                var ordered = pts.OrderBy(p => p.s).ToList();
+                var pStart = ordered.First();
+                var pEnd = ordered.Last();
+
+                var sWorld = ToWorld(pStart.x, pStart.y);
+                var eWorld = ToWorld(pEnd.x, pEnd.y);
+
+                addLine($"{g0} Z{safeZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{sWorld.wx.ToString(fmt, culture)} Y{sWorld.wy.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{cutZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} X{eWorld.wx.ToString(fmt, culture)} Y{eWorld.wy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+
+                lastHit = (eWorld.wx, eWorld.wy);
+            }
+
+            return lastHit;
         }
 
         /// <summary>
