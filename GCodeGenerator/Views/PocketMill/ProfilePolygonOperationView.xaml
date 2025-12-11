@@ -8,9 +8,10 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:ProfilePolygonOperationViewModel}"
         Title="{Binding DisplayName}"
-        Width="1000" Height="800"
-        MinWidth="1000" MinHeight="800"
-        WindowStartupLocation="CenterOwner">
+        Width="780" Height="560"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -193,5 +194,6 @@
             </Grid>
         </GroupBox>
     </Grid>
+    </ScrollViewer>
 </Window>
 

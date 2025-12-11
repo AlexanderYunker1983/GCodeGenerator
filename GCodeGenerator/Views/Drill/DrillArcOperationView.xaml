@@ -9,7 +9,7 @@
         Title="{Binding DisplayName}"
         Width="1000" Height="600"
         MinWidth="900" MinHeight="500"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterScreen">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

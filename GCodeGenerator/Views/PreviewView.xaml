@@ -9,7 +9,7 @@
         Title="{Binding DisplayName}"
         Width="1000" Height="700"
         MinWidth="800" MinHeight="600"
-        WindowStartupLocation="CenterOwner">
+        WindowStartupLocation="CenterScreen">
     <Grid>
         <Viewport3D x:Name="Viewport" 
                     MouseWheel="Viewport_MouseWheel"

@@ -8,9 +8,10 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:PocketRectangleOperationViewModel}"
         Title="{Binding DisplayName}"
-        Width="900" Height="720"
-        MinWidth="900" MinHeight="720"
-        WindowStartupLocation="CenterOwner">
+        Width="780" Height="560"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterScreen">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -128,21 +129,19 @@
                     <ColumnDefinition Width="20"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.FeedXYRapid'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.FeedXYWork'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.FeedZRapid'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="9" Text="{DataBinding '$i18n.FeedZWork'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="10" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="{DataBinding '$i18n.FeedXYRapid'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                <TextBlock Grid.Row="0" Grid.Column="3" Text="{DataBinding '$i18n.FeedXYWork'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="{DataBinding '$i18n.FeedZRapid'}" VerticalAlignment="Center" Margin="0,8,4,0"/>
+                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,4,0"/>
+                <TextBlock Grid.Row="1" Grid.Column="3" Text="{DataBinding '$i18n.FeedZWork'}" VerticalAlignment="Center" Margin="8,8,4,0"/>
+                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
             </Grid>
         </GroupBox>
 
@@ -210,6 +209,7 @@
             </Grid>
         </GroupBox>
     </Grid>
+    </ScrollViewer>
 </Window>
 
 
