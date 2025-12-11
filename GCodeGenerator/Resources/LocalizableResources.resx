@@ -141,6 +141,9 @@
   <data name="AddDrillArc" xml:space="preserve">
     <value>Сверление по дуге</value>
   </data>
+  <data name="AddDrillPolygon" xml:space="preserve">
+    <value>Сверление по правильному многоугольнику</value>
+  </data>
   <data name="AddDrillEllipse" xml:space="preserve">
     <value>Сверление по эллипсу</value>
   </data>
@@ -300,8 +303,14 @@
   <data name="PolygonParametersHeader" xml:space="preserve">
     <value>Параметры многоугольника</value>
   </data>
+  <data name="PolygonParametersDrillHeader" xml:space="preserve">
+    <value>Параметры многоугольника</value>
+  </data>
   <data name="NumberOfSides" xml:space="preserve">
     <value>Количество сторон:</value>
+  </data>
+  <data name="HolesPerSide" xml:space="preserve">
+    <value>Отверстий на сторону:</value>
   </data>
   <data name="PolygonRotationAngle" xml:space="preserve">
     <value>Угол поворота многоугольника (°):</value>
