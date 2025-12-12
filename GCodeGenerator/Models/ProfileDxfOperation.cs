@@ -24,6 +24,8 @@ namespace GCodeGenerator.Models
 
         public List<DxfPolyline> Polylines { get; set; } = new List<DxfPolyline>();
 
+        public string DxfFilePath { get; set; }
+
         public double TotalDepth { get; set; } = 2.0;
 
         public double StepDepth { get; set; } = 1.0;

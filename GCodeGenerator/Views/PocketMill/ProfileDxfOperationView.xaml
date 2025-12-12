@@ -31,10 +31,14 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
                     <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.DxfFileLabel'}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBox Grid.Column="1" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
                     <Button Grid.Column="2" Content="{DataBinding '$i18n.DxfImportButton'}" Command="{Binding ImportDxfCommand}" Width="120"/>
-                    <TextBlock Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
+                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
                                Text="{Binding ImportInfo}" Foreground="Gray" TextWrapping="Wrap"/>
                 </Grid>
             </GroupBox>
@@ -111,10 +115,10 @@
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="100"/>
                     </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.RetractZHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.SafeZHeight'}" VerticalAlignment="Top" Margin="0,0,4,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0" VerticalAlignment="Top"/>
+                    <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.RetractZHeight'}" VerticalAlignment="Top" Margin="8,0,4,0"/>
+                    <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top"/>
                 </Grid>
             </GroupBox>
         </Grid>

@@ -15,7 +15,17 @@ namespace GCodeGenerator.ViewModels.PocketMill
     public class ProfileDxfOperationViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
-        public ProfileDxfOperation Operation { get; set; }
+        private ProfileDxfOperation _operation;
+        public ProfileDxfOperation Operation 
+        { 
+            get => _operation;
+            set 
+            {
+                if (Equals(value, _operation)) return;
+                _operation = value;
+                UpdateOperationData();
+            }
+        }
         public ProfileMillingOperationsViewModel ProfileMillingOperationsViewModel { get; set; }
 
         public ICommand ImportDxfCommand { get; }
@@ -35,6 +45,44 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             if (Operation == null)
                 Operation = new ProfileDxfOperation();
+            else
+            {
+                UpdateOperationData();
+            }
+        }
+
+        private void UpdateOperationData()
+        {
+            if (Operation == null)
+                return;
+
+            // Загружаем сохраненный путь к файлу
+            FilePath = Operation.DxfFilePath;
+            
+            // Показываем информацию об импорте, если данные уже загружены
+            if (Operation.Polylines != null && Operation.Polylines.Count > 0)
+            {
+                var lineCount = Operation.Polylines.Sum(p => p?.Points?.Count > 1 ? p.Points.Count - 1 : 0);
+                var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
+                ImportInfo = string.Format(infoTemplate, lineCount);
+            }
+            else
+            {
+                ImportInfo = null;
+            }
+            
+            // Уведомляем об изменении всех свойств, которые зависят от Operation
+            OnPropertyChanged(nameof(TotalDepth));
+            OnPropertyChanged(nameof(StepDepth));
+            OnPropertyChanged(nameof(ToolDiameter));
+            OnPropertyChanged(nameof(ContourHeight));
+            OnPropertyChanged(nameof(FeedXYRapid));
+            OnPropertyChanged(nameof(FeedXYWork));
+            OnPropertyChanged(nameof(FeedZRapid));
+            OnPropertyChanged(nameof(FeedZWork));
+            OnPropertyChanged(nameof(SafeZHeight));
+            OnPropertyChanged(nameof(RetractHeight));
+            OnPropertyChanged(nameof(Decimals));
         }
 
         private string _displayName;
@@ -162,6 +210,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 }
 
                 Operation.Polylines = polylines;
+                Operation.DxfFilePath = dialog.FileName;
                 FilePath = dialog.FileName;
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
