@@ -66,6 +66,7 @@ namespace GCodeGenerator.ViewModels
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
+            NewProgramCommand = new RelayCommand(CreateNewProgram);
 
             var title = _localizationManager?.GetString("MainTitle");
             var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
@@ -159,6 +160,8 @@ namespace GCodeGenerator.ViewModels
         public ICommand RemoveOperationCommand { get; }
         
         public ICommand EditOperationCommand { get; }
+
+        public ICommand NewProgramCommand { get; }
 
 
         private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -376,6 +379,42 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)MoveOperationDownCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)RemoveOperationCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)EditOperationCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void CreateNewProgram()
+        {
+            var hasOperations = AllOperations.Count > 0;
+            var hasGCode = !string.IsNullOrWhiteSpace(GCodePreview);
+            if (!hasOperations && !hasGCode)
+                return;
+
+            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ??
+                          "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
+            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
+
+            var result = System.Windows.MessageBox.Show(
+                message,
+                title,
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            if (result != System.Windows.MessageBoxResult.Yes)
+                return;
+
+            // Clear all operations in specific collections first
+            DrillOperations?.Operations.Clear();
+            ProfileMillingOperations?.Operations.Clear();
+            PocketOperations?.Operations.Clear();
+
+            AllOperations.Clear();
+            SelectedOperation = null;
+            GCodePreview = string.Empty;
+
+            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
+            UpdateOperationCommandsCanExecute();
+            NotifyOperationsChanged();
         }
 
         private void SyncOperationCollectionsOrder()

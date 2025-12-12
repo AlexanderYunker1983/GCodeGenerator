@@ -42,6 +42,7 @@
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="0" Padding="3" Margin="0,0,3,0"
+                    Command="{Binding NewProgramCommand}"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource NewFileImage}" Width="24" Height="24"/>

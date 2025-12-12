@@ -303,6 +303,12 @@
   <data name="SaveGCode" xml:space="preserve">
     <value>Сохранить G-код</value>
   </data>
+  <data name="ConfirmNewProjectMessage" xml:space="preserve">
+    <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
+  </data>
+  <data name="ConfirmNewProjectTitle" xml:space="preserve">
+    <value>Подтверждение</value>
+  </data>
   <data name="PreviewGCode" xml:space="preserve">
     <value>Просмотр траектории инструмента в 3D</value>
   </data>
