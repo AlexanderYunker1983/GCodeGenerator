@@ -443,6 +443,41 @@ namespace GCodeGenerator.ViewModels.Pocket
                     // (дуги могут быть частью полилинии, которая будет обработана как LWPOLYLINE/POLYLINE)
                     continue;
                 }
+                else if (string.Equals(code, "ELLIPSE", StringComparison.OrdinalIgnoreCase))
+                {
+                    double? centerX = null, centerY = null;
+                    double? majorEndX = null, majorEndY = null;
+                    double? ratio = null;
+                    double? startParam = null, endParam = null;
+                    while (i + 1 < lines.Length)
+                    {
+                        var groupCode = lines[i].Trim();
+                        var value = lines[i + 1].Trim();
+                        i += 2;
+
+                        switch (groupCode)
+                        {
+                            case "10": centerX = Parse(value); break;
+                            case "20": centerY = Parse(value); break;
+                            case "11": majorEndX = Parse(value); break;
+                            case "21": majorEndY = Parse(value); break;
+                            case "40": ratio = Parse(value); break;
+                            case "41": startParam = Parse(value); break;
+                            case "42": endParam = Parse(value); break;
+                            case "0": i -= 2; goto EndEllipse;
+                        }
+                    }
+                EndEllipse:
+                    if (centerX.HasValue && centerY.HasValue && majorEndX.HasValue && majorEndY.HasValue && 
+                        ratio.HasValue && ratio.Value > 0 && startParam.HasValue && endParam.HasValue)
+                    {
+                        var ellipsePoints = ApproximateEllipse(centerX.Value, centerY.Value,
+                            majorEndX.Value, majorEndY.Value, ratio.Value,
+                            startParam.Value, endParam.Value);
+                        allPolylines.Add(new DxfPolyline { Points = ellipsePoints });
+                    }
+                    continue;
+                }
                 else if (string.Equals(code, "LWPOLYLINE", StringComparison.OrdinalIgnoreCase) ||
                          string.Equals(code, "POLYLINE", StringComparison.OrdinalIgnoreCase))
                 {
@@ -585,6 +620,48 @@ namespace GCodeGenerator.ViewModels.Pocket
                 {
                     X = centerX + radius * Math.Cos(angle),
                     Y = centerY + radius * Math.Sin(angle)
+                });
+            }
+            return points;
+        }
+
+        private List<DxfPoint> ApproximateEllipse(double centerX, double centerY,
+            double majorEndX, double majorEndY, double ratio,
+            double startParam, double endParam)
+        {
+            // Вычисляем большую и малую полуоси
+            double majorRadius = Math.Sqrt(Math.Pow(majorEndX - centerX, 2) + Math.Pow(majorEndY - centerY, 2));
+            double minorRadius = majorRadius * ratio;
+
+            // Вычисляем угол поворота большой оси
+            double rotationAngle = Math.Atan2(majorEndY - centerY, majorEndX - centerX);
+
+            // Нормализуем параметры
+            while (endParam < startParam)
+                endParam += 2.0 * Math.PI;
+
+            const int minSegments = 32;
+            var paramSpan = endParam - startParam;
+            var segments = Math.Max(minSegments, (int)(paramSpan / (Math.PI / 16.0)));
+
+            var points = new List<DxfPoint>();
+            for (int i = 0; i <= segments; i++)
+            {
+                var param = startParam + paramSpan * i / segments;
+                // Параметрическое уравнение эллипса
+                double x = majorRadius * Math.Cos(param);
+                double y = minorRadius * Math.Sin(param);
+                
+                // Поворачиваем на угол rotationAngle
+                double cosRot = Math.Cos(rotationAngle);
+                double sinRot = Math.Sin(rotationAngle);
+                double rotatedX = x * cosRot - y * sinRot;
+                double rotatedY = x * sinRot + y * cosRot;
+                
+                points.Add(new DxfPoint
+                {
+                    X = centerX + rotatedX,
+                    Y = centerY + rotatedY
                 });
             }
             return points;
