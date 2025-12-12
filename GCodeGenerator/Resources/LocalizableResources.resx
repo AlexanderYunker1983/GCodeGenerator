@@ -366,6 +366,33 @@
   <data name="CoolantStopEnabled" xml:space="preserve">
     <value>Выключать СОЖ в конце программы (M9)</value>
   </data>
+  <data name="ProfileDxfName" xml:space="preserve">
+    <value>Импорт DXF</value>
+  </data>
+  <data name="DxfImportHeader" xml:space="preserve">
+    <value>Импорт DXF</value>
+  </data>
+  <data name="DxfFileLabel" xml:space="preserve">
+    <value>Файл DXF</value>
+  </data>
+  <data name="DxfImportButton" xml:space="preserve">
+    <value>Импортировать</value>
+  </data>
+  <data name="DxfImportDialogTitle" xml:space="preserve">
+    <value>Выберите файл DXF</value>
+  </data>
+  <data name="DxfImportNoLines" xml:space="preserve">
+    <value>В файле не найдено линий для импорта.</value>
+  </data>
+  <data name="DxfImportInfo" xml:space="preserve">
+    <value>Импортировано линий: {0}</value>
+  </data>
+  <data name="DxfImportFailed" xml:space="preserve">
+    <value>Ошибка импорта DXF:</value>
+  </data>
+  <data name="DecimalsLabel" xml:space="preserve">
+    <value>Знаков после запятой</value>
+  </data>
   <data name="ConfirmNewProjectMessage" xml:space="preserve">
     <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
   </data>

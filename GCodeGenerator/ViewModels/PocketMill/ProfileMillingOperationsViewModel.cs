@@ -22,6 +22,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             AddProfileCircleCommand = new RelayCommand(AddProfileCircle);
             AddProfileEllipseCommand = new RelayCommand(AddProfileEllipse);
             AddProfilePolygonCommand = new RelayCommand(AddProfilePolygon);
+            AddProfileDxfCommand = new RelayCommand(AddProfileDxf);
             
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
@@ -58,6 +59,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ICommand AddProfileCircleCommand { get; }
         public ICommand AddProfileEllipseCommand { get; }
         public ICommand AddProfilePolygonCommand { get; }
+        public ICommand AddProfileDxfCommand { get; }
         
         public ICommand MoveOperationUpCommand { get; }
         public ICommand MoveOperationDownCommand { get; }
@@ -151,6 +153,25 @@ namespace GCodeGenerator.ViewModels.PocketMill
             SelectedOperation = op;
 
             using (var vm = GetViewModel<ProfilePolygonOperationViewModel>())
+            {
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+            MainViewModel?.NotifyOperationsChanged();
+        }
+
+        private void AddProfileDxf()
+        {
+            var op = new ProfileDxfOperation();
+            var name = _localizationManager?.GetString("ProfileDxfName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<ProfileDxfOperationViewModel>())
             {
                 vm.ProfileMillingOperationsViewModel = this;
                 vm.Operation = op;
@@ -258,6 +279,15 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 {
                     vm.ProfileMillingOperationsViewModel = this;
                     vm.Operation = profilePolygonOp;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is ProfileDxfOperation profileDxfOp)
+            {
+                using (var vm = GetViewModel<ProfileDxfOperationViewModel>())
+                {
+                    vm.ProfileMillingOperationsViewModel = this;
+                    vm.Operation = profileDxfOp;
                     vm.ShowAsync();
                 }
             }

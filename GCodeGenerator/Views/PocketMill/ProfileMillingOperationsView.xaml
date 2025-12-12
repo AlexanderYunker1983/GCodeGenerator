@@ -79,6 +79,14 @@
                                    Margin="4,0,4,0"/>
                     </StackPanel>
                 </Button>
+                <Button Command="{Binding AddProfileDxfCommand}" Margin="0,0,8,8">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="{DataBinding '$i18n.ProfileDxfName'}"
+                                   TextAlignment="Center"
+                                   TextWrapping="Wrap"
+                                   Margin="4,0,4,0"/>
+                    </StackPanel>
+                </Button>
             </WrapPanel>
         </ScrollViewer>
     </Grid>

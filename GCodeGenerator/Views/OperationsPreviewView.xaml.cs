@@ -119,6 +119,14 @@ namespace GCodeGenerator.Views
                 {
                     points.AddRange(GetPolygonPoints(polyOp));
                 }
+                else if (op is ProfileDxfOperation dxfOp)
+                {
+                    foreach (var poly in dxfOp.Polylines ?? Enumerable.Empty<DxfPolyline>())
+                    {
+                        if (poly?.Points == null) continue;
+                        points.AddRange(poly.Points.Select(p => new Point(p.X, p.Y)));
+                    }
+                }
                 else if (op is PocketRectangleOperation pocketOp)
                 {
                     var rect = new ProfileRectangleOperation
@@ -325,6 +333,15 @@ namespace GCodeGenerator.Views
                 else if (op is ProfilePolygonOperation polyOp)
                 {
                     DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op, false);
+                }
+                else if (op is ProfileDxfOperation dxfOp)
+                {
+                    foreach (var poly in dxfOp.Polylines ?? Enumerable.Empty<DxfPolyline>())
+                    {
+                        if (poly?.Points == null || poly.Points.Count < 2) continue;
+                        var pts = poly.Points.Select(p => new Point(p.X, p.Y)).ToList();
+                        DrawPolyline(pts, StrokeFor(op, Brushes.DarkGreen), op, false);
+                    }
                 }
                 else if (op is PocketRectangleOperation pocketRect)
                 {

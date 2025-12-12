@@ -571,6 +571,7 @@ namespace GCodeGenerator.ViewModels
                 case Models.ProfileCircleOperation profileCircle:
                 case Models.ProfileEllipseOperation profileEllipse:
                 case Models.ProfilePolygonOperation profilePolygon:
+                case Models.ProfileDxfOperation profileDxf:
                     ProfileMillingOperations?.Operations.Add(operation);
                     break;
                 case Models.PocketRectangleOperation pocketRect:
