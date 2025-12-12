@@ -15,8 +15,9 @@ namespace GCodeGenerator.Models
 
         /// <summary>
         /// Holes with full coordinates and Z parameters.
+        /// Setter is needed for JSON deserialization of saved projects.
         /// </summary>
-        public List<DrillHole> Holes { get; } = new List<DrillHole>();
+        public List<DrillHole> Holes { get; set; } = new List<DrillHole>();
 
         /// <summary>
         /// Rapid feed in XY plane (G0).

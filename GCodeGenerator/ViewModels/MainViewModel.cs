@@ -6,10 +6,13 @@ using GCodeGenerator.ViewModels.Pocket;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Web.Script.Serialization;
 using System.Windows.Input;
 using GCodeGenerator.GCodeGenerators;
 using YLocalization;
@@ -21,6 +24,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
         private readonly ILocalizationManager _localizationManager;
+        private readonly JavaScriptSerializer _serializer = new JavaScriptSerializer();
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
@@ -67,6 +71,8 @@ namespace GCodeGenerator.ViewModels
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
             NewProgramCommand = new RelayCommand(CreateNewProgram);
+            SaveProjectCommand = new RelayCommand(SaveProject, CanSaveProject);
+            OpenProjectCommand = new RelayCommand(OpenProject);
 
             var title = _localizationManager?.GetString("MainTitle");
             var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
@@ -162,6 +168,10 @@ namespace GCodeGenerator.ViewModels
         public ICommand EditOperationCommand { get; }
 
         public ICommand NewProgramCommand { get; }
+
+        public ICommand SaveProjectCommand { get; }
+
+        public ICommand OpenProjectCommand { get; }
 
 
         private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -379,6 +389,7 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)MoveOperationDownCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)RemoveOperationCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)EditOperationCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)SaveProjectCommand)?.RaiseCanExecuteChanged();
         }
 
         private void CreateNewProgram()
@@ -417,6 +428,168 @@ namespace GCodeGenerator.ViewModels
             NotifyOperationsChanged();
         }
 
+        private bool CanSaveProject() => AllOperations.Count > 0;
+
+        private void SaveProject()
+        {
+            if (!CanSaveProject()) return;
+
+            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
+            var title = _localizationManager?.GetString("SaveProjectTitle") ?? "Сохранить проект";
+
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = filter,
+                DefaultExt = "ygc",
+                Title = title,
+                FileName = "project.ygc"
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            try
+            {
+                var project = new ProjectData
+                {
+                    Operations = AllOperations.Select(op => new SerializableOperation
+                    {
+                        Type = op.GetType().AssemblyQualifiedName,
+                        Data = _serializer.Serialize(op)
+                    }).ToList()
+                };
+
+                var json = _serializer.Serialize(project);
+                File.WriteAllText(dialog.FileName, json, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                var message = _localizationManager?.GetString("ErrorSavingProject") ?? "Ошибка при сохранении проекта:";
+                System.Windows.MessageBox.Show($"{message}\n{ex.Message}", title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private void OpenProject()
+        {
+            if (!ConfirmResetIfNeeded())
+                return;
+
+            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
+            var title = _localizationManager?.GetString("OpenProjectTitle") ?? "Открыть проект";
+
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = filter,
+                DefaultExt = "ygc",
+                Title = title
+            };
+
+            if (dialog.ShowDialog() != true)
+                return;
+
+            try
+            {
+                var json = File.ReadAllText(dialog.FileName, Encoding.UTF8);
+                var project = _serializer.Deserialize<ProjectData>(json);
+                if (project?.Operations == null)
+                {
+                    ShowInvalidProjectMessage(title);
+                    return;
+                }
+
+                LoadOperationsFromProject(project);
+            }
+            catch (Exception ex)
+            {
+                var message = _localizationManager?.GetString("ErrorOpeningProject") ?? "Ошибка при загрузке проекта:";
+                System.Windows.MessageBox.Show($"{message}\n{ex.Message}", title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private bool ConfirmResetIfNeeded()
+        {
+            var hasOperations = AllOperations.Count > 0;
+            var hasGCode = !string.IsNullOrWhiteSpace(GCodePreview);
+            if (!hasOperations && !hasGCode)
+                return true;
+
+            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ??
+                          "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
+            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
+
+            var result = System.Windows.MessageBox.Show(
+                message,
+                title,
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+
+            return result == System.Windows.MessageBoxResult.Yes;
+        }
+
+        private void LoadOperationsFromProject(ProjectData project)
+        {
+            // Clear current data
+            DrillOperations?.Operations.Clear();
+            ProfileMillingOperations?.Operations.Clear();
+            PocketOperations?.Operations.Clear();
+            AllOperations.Clear();
+            SelectedOperation = null;
+            GCodePreview = string.Empty;
+
+            foreach (var opDto in project.Operations)
+            {
+                if (string.IsNullOrWhiteSpace(opDto?.Type) || string.IsNullOrWhiteSpace(opDto.Data))
+                    continue;
+
+                var type = Type.GetType(opDto.Type);
+                if (type == null)
+                    continue;
+
+                var operation = _serializer.Deserialize(opDto.Data, type) as OperationBase;
+                if (operation == null)
+                    continue;
+
+                AddOperationToCollections(operation);
+            }
+
+            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
+            UpdateOperationCommandsCanExecute();
+            NotifyOperationsChanged();
+        }
+
+        private void AddOperationToCollections(OperationBase operation)
+        {
+            switch (operation)
+            {
+                case Models.DrillPointsOperation drill:
+                    DrillOperations?.Operations.Add(drill);
+                    break;
+                case Models.ProfileRectangleOperation profileRect:
+                case Models.ProfileRoundedRectangleOperation profileRounded:
+                case Models.ProfileCircleOperation profileCircle:
+                case Models.ProfileEllipseOperation profileEllipse:
+                case Models.ProfilePolygonOperation profilePolygon:
+                    ProfileMillingOperations?.Operations.Add(operation);
+                    break;
+                case Models.PocketRectangleOperation pocketRect:
+                case Models.PocketCircleOperation pocketCircle:
+                case Models.PocketEllipseOperation pocketEllipse:
+                    PocketOperations?.Operations.Add(operation);
+                    break;
+                default:
+                    AllOperations.Add(operation);
+                    break;
+            }
+        }
+
+        private void ShowInvalidProjectMessage(string title)
+        {
+            var message = _localizationManager?.GetString("InvalidProjectFile") ?? "Невозможно прочитать файл проекта.";
+            System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+
         private void SyncOperationCollectionsOrder()
         {
             SyncCollectionOrder(AllOperations, DrillOperations?.Operations);
@@ -437,6 +610,17 @@ namespace GCodeGenerator.ViewModels
                     target.Move(currentIndex, desiredIndex);
                 }
             }
+        }
+
+        private class ProjectData
+        {
+            public List<SerializableOperation> Operations { get; set; }
+        }
+
+        private class SerializableOperation
+        {
+            public string Type { get; set; }
+            public string Data { get; set; }
         }
 
     }

@@ -303,6 +303,24 @@
   <data name="SaveGCode" xml:space="preserve">
     <value>Сохранить G-код</value>
   </data>
+  <data name="SaveProjectTitle" xml:space="preserve">
+    <value>Сохранить проект</value>
+  </data>
+  <data name="OpenProjectTitle" xml:space="preserve">
+    <value>Открыть проект</value>
+  </data>
+  <data name="ProjectFileFilter" xml:space="preserve">
+    <value>Проекты GCodeGenerator (*.ygc)|*.ygc|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="ErrorSavingProject" xml:space="preserve">
+    <value>Ошибка при сохранении проекта:</value>
+  </data>
+  <data name="ErrorOpeningProject" xml:space="preserve">
+    <value>Ошибка при загрузке проекта:</value>
+  </data>
+  <data name="InvalidProjectFile" xml:space="preserve">
+    <value>Невозможно прочитать файл проекта.</value>
+  </data>
   <data name="ConfirmNewProjectMessage" xml:space="preserve">
     <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
   </data>

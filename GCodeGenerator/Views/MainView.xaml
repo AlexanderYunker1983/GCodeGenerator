@@ -49,12 +49,14 @@
             </Button>
 
             <Button Grid.Column="1" Padding="3" Margin="0,0,3,0"
+                    Command="{Binding OpenProjectCommand}"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource OpenFileImage}" Width="24" Height="24"/>
             </Button>
 
             <Button Grid.Column="2" Padding="3" Margin="0,0,3,0"
+                    Command="{Binding SaveProjectCommand}"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource SaveFileImage}" Width="24" Height="24"/>
