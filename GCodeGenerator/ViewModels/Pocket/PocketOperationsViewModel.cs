@@ -24,6 +24,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, () => SelectedOperation != null);
             AddPocketCircleCommand = new RelayCommand(AddPocketCircle);
             AddPocketEllipseCommand = new RelayCommand(AddPocketEllipse);
+            AddPocketDxfCommand = new RelayCommand(AddPocketDxf);
         }
 
         public ViewModels.MainViewModel MainViewModel { get; set; }
@@ -51,6 +52,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         public ICommand RemoveOperationCommand { get; }
         public ICommand AddPocketCircleCommand { get; }
         public ICommand AddPocketEllipseCommand { get; }
+        public ICommand AddPocketDxfCommand { get; }
 
         private string _displayName;
         public string DisplayName
@@ -161,6 +163,31 @@ namespace GCodeGenerator.ViewModels.Pocket
             RemoveOperation(SelectedOperation);
         }
 
+        private void AddPocketDxf()
+        {
+            var op = new PocketDxfOperation();
+            var name = _localizationManager?.GetString("PocketDxfName");
+            if (!string.IsNullOrEmpty(name))
+                op.Name = name;
+
+            Operations.Add(op);
+            SelectedOperation = op;
+
+            using (var vm = GetViewModel<PocketDxfOperationViewModel>())
+            {
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = op;
+                vm.ShowAsync();
+            }
+
+            if (MainViewModel != null)
+            {
+                if (!MainViewModel.AllOperations.Contains(op))
+                    MainViewModel.AllOperations.Add(op);
+                MainViewModel.NotifyOperationsChanged();
+            }
+        }
+
         public void EditSelectedOperation()
         {
             if (SelectedOperation is PocketRectangleOperation pocketRect)
@@ -187,6 +214,15 @@ namespace GCodeGenerator.ViewModels.Pocket
                 {
                     vm.PocketOperationsViewModel = this;
                     vm.Operation = pocketEllipse;
+                    vm.ShowAsync();
+                }
+            }
+            else if (SelectedOperation is PocketDxfOperation pocketDxf)
+            {
+                using (var vm = GetViewModel<PocketDxfOperationViewModel>())
+                {
+                    vm.PocketOperationsViewModel = this;
+                    vm.Operation = pocketDxf;
                     vm.ShowAsync();
                 }
             }

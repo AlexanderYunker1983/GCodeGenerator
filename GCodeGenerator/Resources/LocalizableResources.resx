@@ -690,4 +690,13 @@
   <data name="ShowAll" xml:space="preserve">
     <value>Показать всё</value>
   </data>
+  <data name="PocketDxfName" xml:space="preserve">
+    <value>Импорт DXF</value>
+  </data>
+  <data name="DxfImportContoursInfo" xml:space="preserve">
+    <value>Импортировано замкнутых контуров: {0}</value>
+  </data>
+  <data name="DxfImportNoClosedContours" xml:space="preserve">
+    <value>В файле не найдено замкнутых контуров для импорта.</value>
+  </data>
 </root>

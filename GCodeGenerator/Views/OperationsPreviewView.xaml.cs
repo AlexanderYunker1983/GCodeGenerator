@@ -160,6 +160,14 @@ namespace GCodeGenerator.Views
                         RotationAngle = pocketEllipse.RotationAngle
                     }));
                 }
+                else if (op is PocketDxfOperation pocketDxf)
+                {
+                    foreach (var contour in pocketDxf.ClosedContours ?? Enumerable.Empty<DxfPolyline>())
+                    {
+                        if (contour?.Points == null) continue;
+                        points.AddRange(contour.Points.Select(p => new Point(p.X, p.Y)));
+                    }
+                }
             }
 
             if (points.Count == 0)
@@ -363,6 +371,15 @@ namespace GCodeGenerator.Views
                         CenterY = pocketCircle.CenterY,
                         Radius = pocketCircle.Radius
                     }), StrokeFor(op, Brushes.DarkGreen), op, true);
+                }
+                else if (op is PocketDxfOperation pocketDxf)
+                {
+                    foreach (var contour in pocketDxf.ClosedContours ?? Enumerable.Empty<DxfPolyline>())
+                    {
+                        if (contour?.Points == null || contour.Points.Count < 3) continue;
+                        var pts = contour.Points.Select(p => new Point(p.X, p.Y)).ToList();
+                        DrawPolyline(pts, StrokeFor(op, Brushes.DarkGreen), op, true);
+                    }
                 }
                 else if (op is PocketEllipseOperation pocketEllipse)
                 {
