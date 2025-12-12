@@ -103,11 +103,27 @@ namespace GCodeGenerator.GCodeGenerators
                         AddLine(startCmd);
                 }
 
+                AddCoolantStart();
+
                 if (settings.SpindleDelayEnabled && settings.SpindleDelaySeconds > 0)
                 {
                     var delayMs = settings.SpindleDelaySeconds * 1000.0;
                     AddLine($"{g4} P{delayMs.ToString(CultureInfo.InvariantCulture)}");
                 }
+            }
+
+            void AddCoolantStart()
+            {
+                if (!settings.CoolantControlEnabled || !settings.CoolantStartEnabled)
+                    return;
+                AddLine(FormatM("M8"));
+            }
+
+            void AddCoolantStop()
+            {
+                if (!settings.CoolantControlEnabled || !settings.CoolantStopEnabled)
+                    return;
+                AddLine(FormatM("M9"));
             }
 
             AddSpindlePreamble();
@@ -123,6 +139,8 @@ namespace GCodeGenerator.GCodeGenerators
                     generator.Generate(operation, AddLine, g0, g1, settings);
                 }
             }
+
+            AddCoolantStop();
 
             if (settings.SpindleControlEnabled && settings.SpindleStopEnabled)
                 AddLine(FormatM("M5"));

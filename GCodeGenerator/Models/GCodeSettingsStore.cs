@@ -28,7 +28,10 @@ namespace GCodeGenerator.Models
                 SpindleStartCommand = settings.SpindleStartCommand,
                 SpindleStopEnabled = settings.SpindleStopEnabled,
                 SpindleDelayEnabled = settings.SpindleDelayEnabled,
-                SpindleDelaySeconds = settings.SpindleDelaySeconds
+                SpindleDelaySeconds = settings.SpindleDelaySeconds,
+                CoolantControlEnabled = settings.CoolantControlEnabled,
+                CoolantStartEnabled = settings.CoolantStartEnabled,
+                CoolantStopEnabled = settings.CoolantStopEnabled
             };
         }
 
@@ -52,6 +55,9 @@ namespace GCodeGenerator.Models
             Properties.Settings.Default.SpindleStopEnabled = Current.SpindleStopEnabled;
             Properties.Settings.Default.SpindleDelayEnabled = Current.SpindleDelayEnabled;
             Properties.Settings.Default.SpindleDelaySeconds = Current.SpindleDelaySeconds;
+            Properties.Settings.Default.CoolantControlEnabled = Current.CoolantControlEnabled;
+            Properties.Settings.Default.CoolantStartEnabled = Current.CoolantStartEnabled;
+            Properties.Settings.Default.CoolantStopEnabled = Current.CoolantStopEnabled;
             Properties.Settings.Default.Save();
         }
     }

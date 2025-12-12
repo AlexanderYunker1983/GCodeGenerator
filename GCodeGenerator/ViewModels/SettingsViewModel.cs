@@ -38,6 +38,9 @@ namespace GCodeGenerator.ViewModels
             SpindleStopEnabled = _settings.SpindleStopEnabled;
             SpindleDelayEnabled = _settings.SpindleDelayEnabled;
             SpindleDelaySeconds = _settings.SpindleDelaySeconds;
+            CoolantControlEnabled = _settings.CoolantControlEnabled;
+            CoolantStartEnabled = _settings.CoolantStartEnabled;
+            CoolantStopEnabled = _settings.CoolantStopEnabled;
         }
 
         private string _displayName;
@@ -241,6 +244,42 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private bool _coolantControlEnabled;
+        public bool CoolantControlEnabled
+        {
+            get => _coolantControlEnabled;
+            set
+            {
+                if (value == _coolantControlEnabled) return;
+                _coolantControlEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _coolantStartEnabled;
+        public bool CoolantStartEnabled
+        {
+            get => _coolantStartEnabled;
+            set
+            {
+                if (value == _coolantStartEnabled) return;
+                _coolantStartEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _coolantStopEnabled;
+        public bool CoolantStopEnabled
+        {
+            get => _coolantStopEnabled;
+            set
+            {
+                if (value == _coolantStopEnabled) return;
+                _coolantStopEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
         {
             base.OnClosed(context);
@@ -261,6 +300,9 @@ namespace GCodeGenerator.ViewModels
             _settings.SpindleStopEnabled = SpindleStopEnabled;
             _settings.SpindleDelayEnabled = SpindleDelayEnabled;
             _settings.SpindleDelaySeconds = SpindleDelaySeconds;
+            _settings.CoolantControlEnabled = CoolantControlEnabled;
+            _settings.CoolantStartEnabled = CoolantStartEnabled;
+            _settings.CoolantStopEnabled = CoolantStopEnabled;
             GCodeSettingsStore.Save();
         }
     }

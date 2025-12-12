@@ -251,5 +251,50 @@ namespace GCodeGenerator.Properties
                 this["SpindleDelaySeconds"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CoolantControlEnabled
+        {
+            get
+            {
+                return ((bool)(this["CoolantControlEnabled"]));
+            }
+            set
+            {
+                this["CoolantControlEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CoolantStartEnabled
+        {
+            get
+            {
+                return ((bool)(this["CoolantStartEnabled"]));
+            }
+            set
+            {
+                this["CoolantStartEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool CoolantStopEnabled
+        {
+            get
+            {
+                return ((bool)(this["CoolantStopEnabled"]));
+            }
+            set
+            {
+                this["CoolantStopEnabled"] = value;
+            }
+        }
     }
 }

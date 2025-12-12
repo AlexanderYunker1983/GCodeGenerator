@@ -102,6 +102,26 @@
             </StackPanel>
         </TabItem>
 
+        <TabItem Header="{DataBinding '$i18n.CoolantSettingsTab'}">
+            <StackPanel Margin="8">
+                <CheckBox
+                    Content="{DataBinding '$i18n.CoolantControlEnabled'}"
+                    IsChecked="{Binding CoolantControlEnabled}"/>
+
+                <Separator Margin="0,8,0,8"/>
+
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.CoolantStartEnabled'}"
+                          IsChecked="{Binding CoolantStartEnabled}"
+                          IsEnabled="{Binding CoolantControlEnabled}"/>
+
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.CoolantStopEnabled'}"
+                          IsChecked="{Binding CoolantStopEnabled}"
+                          IsEnabled="{Binding CoolantControlEnabled}"/>
+            </StackPanel>
+        </TabItem>
+
         <TabItem Header="{DataBinding '$i18n.InterfaceSettingsTab'}">
             <StackPanel Margin="8">
                 <mah:ToggleSwitch

@@ -67,6 +67,21 @@ namespace GCodeGenerator.Models
         /// Delay duration in seconds for spindle spin-up.
         /// </summary>
         public double SpindleDelaySeconds { get; set; } = 2.0;
+
+        /// <summary>
+        /// Master flag: include coolant commands (M8/M9) in generated G-code.
+        /// </summary>
+        public bool CoolantControlEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Turn coolant on at program start (M8).
+        /// </summary>
+        public bool CoolantStartEnabled { get; set; } = true;
+
+        /// <summary>
+        /// Turn coolant off at program end (M9).
+        /// </summary>
+        public bool CoolantStopEnabled { get; set; } = true;
     }
 }
 

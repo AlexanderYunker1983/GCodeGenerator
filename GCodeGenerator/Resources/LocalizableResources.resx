@@ -354,6 +354,18 @@
   <data name="SpindleDelaySeconds" xml:space="preserve">
     <value>Задержка после включения, сек</value>
   </data>
+  <data name="CoolantSettingsTab" xml:space="preserve">
+    <value>СОЖ</value>
+  </data>
+  <data name="CoolantControlEnabled" xml:space="preserve">
+    <value>Добавлять код управления СОЖ</value>
+  </data>
+  <data name="CoolantStartEnabled" xml:space="preserve">
+    <value>Включать СОЖ в начале программы (M8)</value>
+  </data>
+  <data name="CoolantStopEnabled" xml:space="preserve">
+    <value>Выключать СОЖ в конце программы (M9)</value>
+  </data>
   <data name="ConfirmNewProjectMessage" xml:space="preserve">
     <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
   </data>
