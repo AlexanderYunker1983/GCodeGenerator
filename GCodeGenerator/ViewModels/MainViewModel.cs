@@ -289,86 +289,43 @@ namespace GCodeGenerator.ViewModels
         private bool CanMoveSelectedOperationUp()
         {
             if (SelectedOperation == null) return false;
+            if (AllOperations.Count < 2) return false;
             var index = AllOperations.IndexOf(SelectedOperation);
-            if (index <= 0) return false;
-            
-            // Check if operation can be moved in its own collection
-            if (DrillOperations.Operations.Contains(SelectedOperation))
-            {
-                var drillIndex = DrillOperations.Operations.IndexOf(SelectedOperation);
-                return drillIndex > 0;
-            }
-            else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
-            {
-                var profileIndex = ProfileMillingOperations.Operations.IndexOf(SelectedOperation);
-                return profileIndex > 0;
-            }
-            return false;
+            return index > 0;
         }
 
         private bool CanMoveSelectedOperationDown()
         {
             if (SelectedOperation == null) return false;
             var index = AllOperations.IndexOf(SelectedOperation);
-            if (index < 0 || index >= AllOperations.Count - 1) return false;
-            
-            // Check if operation can be moved in its own collection
-            if (DrillOperations.Operations.Contains(SelectedOperation))
-            {
-                var drillIndex = DrillOperations.Operations.IndexOf(SelectedOperation);
-                return drillIndex >= 0 && drillIndex < DrillOperations.Operations.Count - 1;
-            }
-            else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
-            {
-                var profileIndex = ProfileMillingOperations.Operations.IndexOf(SelectedOperation);
-                return profileIndex >= 0 && profileIndex < ProfileMillingOperations.Operations.Count - 1;
-            }
-            return false;
+            return index >= 0 && index < AllOperations.Count - 1;
         }
 
         private void MoveSelectedOperationUp()
         {
             if (!CanMoveSelectedOperationUp()) return;
-            
-            if (DrillOperations.Operations.Contains(SelectedOperation))
-            {
-                DrillOperations.MoveSelectedOperationUp();
-            }
-            else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
-            {
-                ProfileMillingOperations.MoveSelectedOperationUp();
-            }
-            
-            // Update AllOperations order
+
             var allIndex = AllOperations.IndexOf(SelectedOperation);
             if (allIndex > 0)
             {
                 AllOperations.Move(allIndex, allIndex - 1);
+                SyncOperationCollectionsOrder();
             }
-            
+
             UpdateOperationCommandsCanExecute();
         }
 
         private void MoveSelectedOperationDown()
         {
             if (!CanMoveSelectedOperationDown()) return;
-            
-            if (DrillOperations.Operations.Contains(SelectedOperation))
-            {
-                DrillOperations.MoveSelectedOperationDown();
-            }
-            else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
-            {
-                ProfileMillingOperations.MoveSelectedOperationDown();
-            }
-            
-            // Update AllOperations order
+
             var allIndex = AllOperations.IndexOf(SelectedOperation);
             if (allIndex >= 0 && allIndex < AllOperations.Count - 1)
             {
                 AllOperations.Move(allIndex, allIndex + 1);
+                SyncOperationCollectionsOrder();
             }
-            
+
             UpdateOperationCommandsCanExecute();
         }
 
@@ -419,6 +376,28 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)MoveOperationDownCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)RemoveOperationCommand)?.RaiseCanExecuteChanged();
             ((RelayCommand)EditOperationCommand)?.RaiseCanExecuteChanged();
+        }
+
+        private void SyncOperationCollectionsOrder()
+        {
+            SyncCollectionOrder(AllOperations, DrillOperations?.Operations);
+            SyncCollectionOrder(AllOperations, ProfileMillingOperations?.Operations);
+            SyncCollectionOrder(AllOperations, PocketOperations?.Operations);
+        }
+
+        private static void SyncCollectionOrder(ObservableCollection<OperationBase> sourceOrder, ObservableCollection<OperationBase> target)
+        {
+            if (sourceOrder == null || target == null) return;
+
+            var desiredOrder = sourceOrder.Where(target.Contains).ToList();
+            for (int desiredIndex = 0; desiredIndex < desiredOrder.Count; desiredIndex++)
+            {
+                var currentIndex = target.IndexOf(desiredOrder[desiredIndex]);
+                if (currentIndex >= 0 && currentIndex != desiredIndex)
+                {
+                    target.Move(currentIndex, desiredIndex);
+                }
+            }
         }
 
     }
