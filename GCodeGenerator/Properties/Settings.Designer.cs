@@ -41,5 +41,215 @@ namespace GCodeGenerator.Properties
                 this["UseDarkTheme"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseLineNumbers
+        {
+            get
+            {
+                return ((bool)(this["UseLineNumbers"]));
+            }
+            set
+            {
+                this["UseLineNumbers"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int LineNumberStart
+        {
+            get
+            {
+                return ((int)(this["LineNumberStart"]));
+            }
+            set
+            {
+                this["LineNumberStart"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("10")]
+        public int LineNumberStep
+        {
+            get
+            {
+                return ((int)(this["LineNumberStep"]));
+            }
+            set
+            {
+                this["LineNumberStep"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool UseComments
+        {
+            get
+            {
+                return ((bool)(this["UseComments"]));
+            }
+            set
+            {
+                this["UseComments"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool AllowArcs
+        {
+            get
+            {
+                return ((bool)(this["AllowArcs"]));
+            }
+            set
+            {
+                this["AllowArcs"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool UsePaddedGCodes
+        {
+            get
+            {
+                return ((bool)(this["UsePaddedGCodes"]));
+            }
+            set
+            {
+                this["UsePaddedGCodes"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool SpindleControlEnabled
+        {
+            get
+            {
+                return ((bool)(this["SpindleControlEnabled"]));
+            }
+            set
+            {
+                this["SpindleControlEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool SpindleSpeedEnabled
+        {
+            get
+            {
+                return ((bool)(this["SpindleSpeedEnabled"]));
+            }
+            set
+            {
+                this["SpindleSpeedEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("12000")]
+        public int SpindleSpeedRpm
+        {
+            get
+            {
+                return ((int)(this["SpindleSpeedRpm"]));
+            }
+            set
+            {
+                this["SpindleSpeedRpm"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool SpindleStartEnabled
+        {
+            get
+            {
+                return ((bool)(this["SpindleStartEnabled"]));
+            }
+            set
+            {
+                this["SpindleStartEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("M3")]
+        public string SpindleStartCommand
+        {
+            get
+            {
+                return ((string)(this["SpindleStartCommand"]));
+            }
+            set
+            {
+                this["SpindleStartCommand"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool SpindleStopEnabled
+        {
+            get
+            {
+                return ((bool)(this["SpindleStopEnabled"]));
+            }
+            set
+            {
+                this["SpindleStopEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SpindleDelayEnabled
+        {
+            get
+            {
+                return ((bool)(this["SpindleDelayEnabled"]));
+            }
+            set
+            {
+                this["SpindleDelayEnabled"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
+        public double SpindleDelaySeconds
+        {
+            get
+            {
+                return ((double)(this["SpindleDelaySeconds"]));
+            }
+            set
+            {
+                this["SpindleDelaySeconds"] = value;
+            }
+        }
     }
 }

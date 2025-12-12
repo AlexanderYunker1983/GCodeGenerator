@@ -8,61 +8,110 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
         Title="{DataBinding '$i18n.GCodeSettingsTitle'}"
-        SizeToContent="WidthAndHeight"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="NoResize">
-    <Grid Margin="12">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        ResizeMode="NoResize"
+        Width="640"
+        Height="480">
+    <mah:MetroTabControl Margin="8">
+        <TabItem Header="{DataBinding '$i18n.CodeGenerationSettingsTab'}">
+            <StackPanel Margin="8">
+                <CheckBox
+                    Content="{DataBinding '$i18n.UseLineNumbers'}"
+                    IsChecked="{Binding UseLineNumbers}"/>
 
-        <CheckBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2"
-                  Content="{DataBinding '$i18n.UseLineNumbers'}"
-                  IsChecked="{Binding UseLineNumbers}"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Label Content="{DataBinding '$i18n.LineNumberStart'}" Width="180" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
 
-        <Label Grid.Row="1" Grid.Column="0" Margin="0,8,8,0"
-                   Content="{DataBinding '$i18n.LineNumberStart'}"
-                   VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Label Content="{DataBinding '$i18n.LineNumberStep'}" Width="180" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
 
-        <TextBox Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Width="80"
-                 Style="{StaticResource MetroTextBox}"
-                 Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
+                <CheckBox Margin="0,8,0,0"
+                          Content="{DataBinding '$i18n.GenerateComments'}"
+                          IsChecked="{Binding UseComments}"/>
 
-        <Label Grid.Row="2" Grid.Column="0" Margin="0,8,8,0"
-               Content="{DataBinding '$i18n.LineNumberStep'}"
-               VerticalAlignment="Center"/>
-        <TextBox Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" Width="80"
-                 Style="{StaticResource MetroTextBox}"
-                 Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
+                <CheckBox Margin="0,8,0,0"
+                          Content="{DataBinding '$i18n.AllowArcs'}"
+                          IsChecked="{Binding AllowArcs}"/>
 
-        <CheckBox Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                  Content="{DataBinding '$i18n.GenerateComments'}"
-                  IsChecked="{Binding UseComments}"/>
+                <CheckBox Margin="0,8,0,0"
+                          Content="{DataBinding '$i18n.UsePaddedGCodes'}"
+                          IsChecked="{Binding UsePaddedGCodes}"/>
+            </StackPanel>
+        </TabItem>
 
-        <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                  Content="{DataBinding '$i18n.AllowArcs'}"
-                  IsChecked="{Binding AllowArcs}"/>
+        <TabItem Header="{DataBinding '$i18n.SpindleSettingsTab'}">
+            <StackPanel Margin="8">
+                <CheckBox
+                    Content="{DataBinding '$i18n.SpindleControlEnabled'}"
+                    IsChecked="{Binding SpindleControlEnabled}"/>
 
-        <CheckBox Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                  Content="{DataBinding '$i18n.UsePaddedGCodes'}"
-                  IsChecked="{Binding UsePaddedGCodes}"/>
+                <Separator Margin="0,8,0,8"/>
 
-        <mah:ToggleSwitch Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0"
-                          Header="{DataBinding '$i18n.DarkTheme'}"
-                          OnLabel="{DataBinding '$i18n.ToggleOn'}"
-                          OffLabel="{DataBinding '$i18n.ToggleOff'}"
-                          IsChecked="{Binding UseDarkTheme}"/>
-    </Grid>
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.SpindleSpeedEnabled'}"
+                          IsChecked="{Binding SpindleSpeedEnabled}"
+                          IsEnabled="{Binding SpindleControlEnabled}"/>
+                <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
+                            IsEnabled="{Binding SpindleControlEnabled}">
+                    <Label Content="{DataBinding '$i18n.SpindleSpeedRpm'}" Width="200" VerticalAlignment="Center"/>
+                    <TextBox Width="100"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.SpindleStartEnabled'}"
+                          IsChecked="{Binding SpindleStartEnabled}"
+                          IsEnabled="{Binding SpindleControlEnabled}"/>
+                <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
+                            IsEnabled="{Binding SpindleControlEnabled}">
+                    <Label Content="{DataBinding '$i18n.SpindleStartCommand'}" Width="200" VerticalAlignment="Center"/>
+                    <ComboBox Width="100"
+                              SelectedValuePath="Content"
+                              SelectedValue="{Binding SpindleStartCommand}"
+                              Style="{StaticResource MetroComboBox}">
+                        <ComboBoxItem Content="M3"/>
+                        <ComboBoxItem Content="M4"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.SpindleStopEnabled'}"
+                          IsChecked="{Binding SpindleStopEnabled}"
+                          IsEnabled="{Binding SpindleControlEnabled}"/>
+
+                <CheckBox Margin="12,8,0,4"
+                          Content="{DataBinding '$i18n.SpindleDelayEnabled'}"
+                          IsChecked="{Binding SpindleDelayEnabled}"
+                          IsEnabled="{Binding SpindleControlEnabled}"/>
+                <StackPanel Orientation="Horizontal" Margin="36,0,0,0"
+                            IsEnabled="{Binding SpindleControlEnabled}">
+                    <Label Content="{DataBinding '$i18n.SpindleDelaySeconds'}" Width="200" VerticalAlignment="Center"/>
+                    <TextBox Width="100"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="{DataBinding '$i18n.InterfaceSettingsTab'}">
+            <StackPanel Margin="8">
+                <mah:ToggleSwitch
+                    Header="{DataBinding '$i18n.DarkTheme'}"
+                    OnLabel="{DataBinding '$i18n.ToggleOn'}"
+                    OffLabel="{DataBinding '$i18n.ToggleOff'}"
+                    IsChecked="{Binding UseDarkTheme}"/>
+            </StackPanel>
+        </TabItem>
+    </mah:MetroTabControl>
 </Window>
 
 

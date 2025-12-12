@@ -321,6 +321,39 @@
   <data name="InvalidProjectFile" xml:space="preserve">
     <value>Невозможно прочитать файл проекта.</value>
   </data>
+  <data name="CodeGenerationSettingsTab" xml:space="preserve">
+    <value>Генерация кода</value>
+  </data>
+  <data name="SpindleSettingsTab" xml:space="preserve">
+    <value>Шпиндель</value>
+  </data>
+  <data name="InterfaceSettingsTab" xml:space="preserve">
+    <value>Интерфейс</value>
+  </data>
+  <data name="SpindleControlEnabled" xml:space="preserve">
+    <value>Добавлять код управления шпинделем</value>
+  </data>
+  <data name="SpindleSpeedEnabled" xml:space="preserve">
+    <value>Устанавливать скорость шпинделя</value>
+  </data>
+  <data name="SpindleSpeedRpm" xml:space="preserve">
+    <value>Скорость шпинделя, об/мин</value>
+  </data>
+  <data name="SpindleStartEnabled" xml:space="preserve">
+    <value>Включать шпиндель перед операциями</value>
+  </data>
+  <data name="SpindleStartCommand" xml:space="preserve">
+    <value>Команда включения (M3/M4)</value>
+  </data>
+  <data name="SpindleStopEnabled" xml:space="preserve">
+    <value>Выключать шпиндель после операций (M5)</value>
+  </data>
+  <data name="SpindleDelayEnabled" xml:space="preserve">
+    <value>Добавлять задержку после включения (G4)</value>
+  </data>
+  <data name="SpindleDelaySeconds" xml:space="preserve">
+    <value>Задержка после включения, сек</value>
+  </data>
   <data name="ConfirmNewProjectMessage" xml:space="preserve">
     <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
   </data>

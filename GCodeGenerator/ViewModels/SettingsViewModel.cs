@@ -30,6 +30,14 @@ namespace GCodeGenerator.ViewModels
             AllowArcs = _settings.AllowArcs;
             UsePaddedGCodes = _settings.UsePaddedGCodes;
             UseDarkTheme = _settings.UseDarkTheme;
+            SpindleControlEnabled = _settings.SpindleControlEnabled;
+            SpindleSpeedEnabled = _settings.SpindleSpeedEnabled;
+            SpindleSpeedRpm = _settings.SpindleSpeedRpm;
+            SpindleStartEnabled = _settings.SpindleStartEnabled;
+            SpindleStartCommand = _settings.SpindleStartCommand;
+            SpindleStopEnabled = _settings.SpindleStopEnabled;
+            SpindleDelayEnabled = _settings.SpindleDelayEnabled;
+            SpindleDelaySeconds = _settings.SpindleDelaySeconds;
         }
 
         private string _displayName;
@@ -137,6 +145,102 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private bool _spindleControlEnabled;
+        public bool SpindleControlEnabled
+        {
+            get => _spindleControlEnabled;
+            set
+            {
+                if (value == _spindleControlEnabled) return;
+                _spindleControlEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _spindleSpeedEnabled;
+        public bool SpindleSpeedEnabled
+        {
+            get => _spindleSpeedEnabled;
+            set
+            {
+                if (value == _spindleSpeedEnabled) return;
+                _spindleSpeedEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _spindleSpeedRpm;
+        public int SpindleSpeedRpm
+        {
+            get => _spindleSpeedRpm;
+            set
+            {
+                if (value == _spindleSpeedRpm) return;
+                _spindleSpeedRpm = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _spindleStartEnabled;
+        public bool SpindleStartEnabled
+        {
+            get => _spindleStartEnabled;
+            set
+            {
+                if (value == _spindleStartEnabled) return;
+                _spindleStartEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _spindleStartCommand;
+        public string SpindleStartCommand
+        {
+            get => _spindleStartCommand;
+            set
+            {
+                if (value == _spindleStartCommand) return;
+                _spindleStartCommand = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _spindleStopEnabled;
+        public bool SpindleStopEnabled
+        {
+            get => _spindleStopEnabled;
+            set
+            {
+                if (value == _spindleStopEnabled) return;
+                _spindleStopEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _spindleDelayEnabled;
+        public bool SpindleDelayEnabled
+        {
+            get => _spindleDelayEnabled;
+            set
+            {
+                if (value == _spindleDelayEnabled) return;
+                _spindleDelayEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _spindleDelaySeconds;
+        public double SpindleDelaySeconds
+        {
+            get => _spindleDelaySeconds;
+            set
+            {
+                if (value.Equals(_spindleDelaySeconds)) return;
+                _spindleDelaySeconds = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
         {
             base.OnClosed(context);
@@ -149,6 +253,14 @@ namespace GCodeGenerator.ViewModels
             _settings.AllowArcs = AllowArcs;
             _settings.UsePaddedGCodes = UsePaddedGCodes;
             _settings.UseDarkTheme = UseDarkTheme;
+            _settings.SpindleControlEnabled = SpindleControlEnabled;
+            _settings.SpindleSpeedEnabled = SpindleSpeedEnabled;
+            _settings.SpindleSpeedRpm = SpindleSpeedRpm;
+            _settings.SpindleStartEnabled = SpindleStartEnabled;
+            _settings.SpindleStartCommand = SpindleStartCommand;
+            _settings.SpindleStopEnabled = SpindleStopEnabled;
+            _settings.SpindleDelayEnabled = SpindleDelayEnabled;
+            _settings.SpindleDelaySeconds = SpindleDelaySeconds;
             GCodeSettingsStore.Save();
         }
     }
