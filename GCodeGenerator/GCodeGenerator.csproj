@@ -258,6 +258,10 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <Page Include="Images\Images.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Images\OperationImages.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
