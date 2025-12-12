@@ -245,7 +245,7 @@ namespace GCodeGenerator.ViewModels
 
             var saveDialog = new Microsoft.Win32.SaveFileDialog
             {
-                Filter = "G-code files (*.nc)|*.nc|All files (*.*)|*.*",
+                Filter = "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
                 DefaultExt = "nc",
                 FileName = "program.nc"
             };
