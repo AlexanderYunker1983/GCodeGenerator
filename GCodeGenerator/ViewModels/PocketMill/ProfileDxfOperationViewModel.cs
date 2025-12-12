@@ -417,34 +417,48 @@ namespace GCodeGenerator.ViewModels.PocketMill
             double majorEndX, double majorEndY, double ratio,
             double startParam, double endParam)
         {
-            // Вычисляем большую и малую полуоси
-            double majorRadius = Math.Sqrt(Math.Pow(majorEndX - centerX, 2) + Math.Pow(majorEndY - centerY, 2));
+            // В DXF: (11, 21) - это конечная точка большой оси ОТНОСИТЕЛЬНО ЦЕНТРА (вектор от центра)
+            // Это стандарт для DXF ELLIPSE - координаты задаются относительно центра
+            // Используем (11, 21) напрямую как вектор от центра
+            double majorRadius = Math.Sqrt(majorEndX * majorEndX + majorEndY * majorEndY);
+            
+            // Проверяем, что радиус не нулевой
+            if (majorRadius < 1e-9)
+                return new List<DxfPoint>();
+            
+            // Малая полуось = большая полуось * соотношение
             double minorRadius = majorRadius * ratio;
 
-            // Вычисляем угол поворота большой оси
-            double rotationAngle = Math.Atan2(majorEndY - centerY, majorEndX - centerX);
+            // Вычисляем угол поворота большой оси (направление вектора)
+            double rotationAngle = Math.Atan2(majorEndY, majorEndX);
 
-            // Нормализуем параметры
-            while (endParam < startParam)
-                endParam += 2.0 * Math.PI;
+            // Нормализуем параметры (в DXF параметры заданы в радианах)
+            double normalizedStartParam = startParam;
+            double normalizedEndParam = endParam;
+            while (normalizedEndParam < normalizedStartParam)
+                normalizedEndParam += 2.0 * Math.PI;
 
             const int minSegments = 32;
-            var paramSpan = endParam - startParam;
+            var paramSpan = normalizedEndParam - normalizedStartParam;
             var segments = Math.Max(minSegments, (int)(paramSpan / (Math.PI / 16.0)));
 
             var points = new List<DxfPoint>();
+            double cosRot = Math.Cos(rotationAngle);
+            double sinRot = Math.Sin(rotationAngle);
+            
             for (int i = 0; i <= segments; i++)
             {
-                var param = startParam + paramSpan * i / segments;
-                // Параметрическое уравнение эллипса
-                double x = majorRadius * Math.Cos(param);
-                double y = minorRadius * Math.Sin(param);
+                var param = normalizedStartParam + paramSpan * i / segments;
+                // Параметрическое уравнение эллипса в локальной системе координат
+                // где большая ось направлена по оси X, малая по оси Y
+                // x = a * cos(t), y = b * sin(t), где a = majorRadius, b = minorRadius
+                double xLocal = majorRadius * Math.Cos(param);
+                double yLocal = minorRadius * Math.Sin(param);
                 
-                // Поворачиваем на угол rotationAngle
-                double cosRot = Math.Cos(rotationAngle);
-                double sinRot = Math.Sin(rotationAngle);
-                double rotatedX = x * cosRot - y * sinRot;
-                double rotatedY = x * sinRot + y * cosRot;
+                // Поворачиваем на угол rotationAngle (чтобы совместить локальную ось X с направлением большой оси)
+                // и переносим в центр
+                double rotatedX = xLocal * cosRot - yLocal * sinRot;
+                double rotatedY = xLocal * sinRot + yLocal * cosRot;
                 
                 points.Add(new DxfPoint
                 {
