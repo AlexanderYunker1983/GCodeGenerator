@@ -367,7 +367,7 @@
     <value>Выключать СОЖ в конце программы (M9)</value>
   </data>
   <data name="ProfileDxfName" xml:space="preserve">
-    <value>Импорт DXF</value>
+    <value>Импорт DXF - контур</value>
   </data>
   <data name="DxfImportHeader" xml:space="preserve">
     <value>Импорт DXF</value>
@@ -691,7 +691,7 @@
     <value>Показать всё</value>
   </data>
   <data name="PocketDxfName" xml:space="preserve">
-    <value>Импорт DXF</value>
+    <value>Импорт DXF - карманы</value>
   </data>
   <data name="DxfImportContoursInfo" xml:space="preserve">
     <value>Импортировано замкнутых контуров: {0}</value>

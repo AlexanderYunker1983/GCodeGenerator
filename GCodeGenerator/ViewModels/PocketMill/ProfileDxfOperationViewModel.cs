@@ -41,7 +41,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
 
             var title = _localizationManager?.GetString("ProfileDxfName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF" : title;
+            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - контур" : title;
 
             if (Operation == null)
                 Operation = new ProfileDxfOperation();

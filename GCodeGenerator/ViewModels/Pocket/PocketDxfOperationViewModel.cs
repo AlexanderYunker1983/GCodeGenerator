@@ -23,7 +23,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _localizationManager = localizationManager;
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
             var title = _localizationManager?.GetString("PocketDxfName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF карман" : title;
+            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - карманы" : title;
 
             if (Operation == null)
                 Operation = new PocketDxfOperation();
