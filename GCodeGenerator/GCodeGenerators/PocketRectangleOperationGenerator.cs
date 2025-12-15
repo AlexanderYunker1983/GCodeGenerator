@@ -31,9 +31,12 @@ namespace GCodeGenerator.GCodeGenerators
             GetCenter(op.ReferencePointType, op.ReferencePointX, op.ReferencePointY,
                       op.Width, op.Height, out double cx, out double cy);
 
-            double halfW = op.Width / 2.0 - toolRadius;
-            double halfH = op.Height / 2.0 - toolRadius;
-            if (halfW <= 0 || halfH <= 0) return;
+            double baseHalfW = op.Width / 2.0;
+            double baseHalfH = op.Height / 2.0;
+            if (baseHalfW <= toolRadius || baseHalfH <= toolRadius) return;
+
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
 
             // ----------- ориентация ----------
             var angleRad = op.RotationAngle * Math.PI / 180.0;
@@ -66,6 +69,20 @@ namespace GCodeGenerator.GCodeGenerators
                 // Понижение и начало резки
                 addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                 addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                // ----------- уклон стенки ----------
+                var depthFromTop = op.ContourHeight - nextZ;
+                var offset = depthFromTop * taperTan;
+                var effectiveToolRadius = toolRadius + offset;
+
+                var halfW = baseHalfW - effectiveToolRadius;
+                var halfH = baseHalfH - effectiveToolRadius;
+                if (halfW <= 0 || halfH <= 0)
+                {
+                    if (settings.UseComments)
+                        addLine("(Taper offset too large, stopping)");
+                    break;
+                }
 
                 // ----------- генерация траектории ----------
                 if (op.PocketStrategy == PocketStrategy.Spiral)

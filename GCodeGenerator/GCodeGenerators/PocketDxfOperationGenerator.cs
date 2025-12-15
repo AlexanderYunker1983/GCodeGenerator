@@ -37,6 +37,9 @@ namespace GCodeGenerator.GCodeGenerators
             var finalZ = op.ContourHeight - op.TotalDepth;
             var pass = 0;
 
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
+
             // Обрабатываем каждый замкнутый контур
             foreach (var contour in op.ClosedContours)
             {
@@ -60,6 +63,16 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ) nextZ = finalZ;
                     pass++;
 
+                    var depthFromTop = op.ContourHeight - nextZ;
+                    var offset = depthFromTop * taperTan;
+                    var effectiveToolRadius = toolRadius + offset;
+                    if (effectiveToolRadius <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
+
                     if (settings.UseComments)
                         addLine($"(Contour pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
@@ -70,28 +83,28 @@ namespace GCodeGenerator.GCodeGenerators
                     switch (op.PocketStrategy)
                     {
                         case PocketStrategy.Spiral:
-                            GenerateSpiralContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateSpiralContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         case PocketStrategy.Concentric:
-                            GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         case PocketStrategy.Radial:
-                            GenerateRadialContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateRadialContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         case PocketStrategy.Lines:
-                            GenerateLinesContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateLinesContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         case PocketStrategy.ZigZag:
-                            GenerateZigZagContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateZigZagContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         default:
                             // По умолчанию используем концентрические контуры
-                            GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, toolRadius, step,
+                            GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                     }

@@ -56,6 +56,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                     Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
                     if (_operation.Metadata.ContainsKey("LineAngleDeg"))
                         LineAngleDeg = Convert.ToDouble(_operation.Metadata["LineAngleDeg"]);
+                    if (_operation.Metadata.ContainsKey("WallTaperAngleDeg"))
+                        WallTaperAngleDeg = Math.Max(0, Convert.ToDouble(_operation.Metadata["WallTaperAngleDeg"]));
                 }
                 else
                 {
@@ -77,6 +79,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                     StepPercentOfTool = _operation.StepPercentOfTool;
                     Decimals = _operation.Decimals;
                     LineAngleDeg = _operation.LineAngleDeg;
+                    WallTaperAngleDeg = Math.Max(0, _operation.WallTaperAngleDeg);
                 }
             }
         }
@@ -314,6 +317,19 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private double _wallTaperAngleDeg = 0.0;
+        public double WallTaperAngleDeg
+        {
+            get => _wallTaperAngleDeg;
+            set
+            {
+                var v = Math.Max(0, value);
+                if (v.Equals(_wallTaperAngleDeg)) return;
+                _wallTaperAngleDeg = v;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -343,6 +359,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.StepPercentOfTool = StepPercentOfTool;
             _operation.Decimals = Decimals;
             _operation.LineAngleDeg = LineAngleDeg;
+            _operation.WallTaperAngleDeg = WallTaperAngleDeg;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
@@ -365,6 +382,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
             _operation.Metadata["Decimals"] = Decimals;
             _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
+            _operation.Metadata["WallTaperAngleDeg"] = WallTaperAngleDeg;
 
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }

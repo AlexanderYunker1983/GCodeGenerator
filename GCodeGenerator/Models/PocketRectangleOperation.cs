@@ -59,6 +59,11 @@ namespace GCodeGenerator.Models
         /// </summary>
         public double LineAngleDeg { get; set; } = 0.0;
 
+        /// <summary>
+        /// Уклон стенки, градусы (0 – вертикально). Положительные значения дают сужение внутрь к низу.
+        /// </summary>
+        public double WallTaperAngleDeg { get; set; } = 0.0;
+
         public Dictionary<string, object> Metadata { get; set; }
 
         public override string GetDescription()

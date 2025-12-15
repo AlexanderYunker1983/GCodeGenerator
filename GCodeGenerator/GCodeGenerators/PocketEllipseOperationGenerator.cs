@@ -32,9 +32,12 @@ namespace GCodeGenerator.GCodeGenerators
             if (step < 1e-6) step = op.ToolDiameter * 0.4;
 
             // Эффективные радиусы с учетом радиуса фрезы
-            double effectiveRadiusX = op.RadiusX - toolRadius;
-            double effectiveRadiusY = op.RadiusY - toolRadius;
-            if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0) return;      // фреза слишком крупная
+            double baseRadiusX = op.RadiusX - toolRadius;
+            double baseRadiusY = op.RadiusY - toolRadius;
+            if (baseRadiusX <= 0 || baseRadiusY <= 0) return;      // фреза слишком крупная
+
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
 
             double currentZ = op.ContourHeight;
             double finalZ = op.ContourHeight - op.TotalDepth;
@@ -67,6 +70,18 @@ namespace GCodeGenerator.GCodeGenerators
                     // Понижение на текущую глубину и начало резки
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                    // Уклон стенки
+                    double depthFromTop = op.ContourHeight - nextZ;
+                    double offset = depthFromTop * taperTan;
+                    double effectiveRadiusX = baseRadiusX - offset;
+                    double effectiveRadiusY = baseRadiusY - offset;
+                    if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
 
                     // Спираль Архимеда для эллипса
                     // Используем параметрическое уравнение эллипса: x = a*cos(t), y = b*sin(t)
@@ -134,6 +149,17 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ) nextZ = finalZ;
                     pass++;
 
+                    double depthFromTop = op.ContourHeight - nextZ;
+                    double offset = depthFromTop * taperTan;
+                    double effectiveRadiusX = baseRadiusX - offset;
+                    double effectiveRadiusY = baseRadiusY - offset;
+                    if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
+
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
@@ -160,6 +186,17 @@ namespace GCodeGenerator.GCodeGenerators
                     double nextZ = currentZ - op.StepDepth;
                     if (nextZ < finalZ) nextZ = finalZ;
                     pass++;
+
+                    double depthFromTop = op.ContourHeight - nextZ;
+                    double offset = depthFromTop * taperTan;
+                    double effectiveRadiusX = baseRadiusX - offset;
+                    double effectiveRadiusY = baseRadiusY - offset;
+                    if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
 
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
@@ -188,6 +225,17 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ) nextZ = finalZ;
                     pass++;
 
+                    double depthFromTop = op.ContourHeight - nextZ;
+                    double offset = depthFromTop * taperTan;
+                    double effectiveRadiusX = baseRadiusX - offset;
+                    double effectiveRadiusY = baseRadiusY - offset;
+                    if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
+
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
@@ -214,6 +262,17 @@ namespace GCodeGenerator.GCodeGenerators
                     double nextZ = currentZ - op.StepDepth;
                     if (nextZ < finalZ) nextZ = finalZ;
                     pass++;
+
+                    double depthFromTop = op.ContourHeight - nextZ;
+                    double offset = depthFromTop * taperTan;
+                    double effectiveRadiusX = baseRadiusX - offset;
+                    double effectiveRadiusY = baseRadiusY - offset;
+                    if (effectiveRadiusX <= 0 || effectiveRadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Taper offset too large, stopping)");
+                        break;
+                    }
 
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");

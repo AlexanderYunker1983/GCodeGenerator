@@ -62,24 +62,30 @@
 
         <!-- Параметры резания -->
         <GroupBox Header="{DataBinding '$i18n.CuttingParametersHeader'}" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.TotalDepthLabel'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.StepDepthLabel'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.ToolDiameter'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
+            <StackPanel Margin="8">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.TotalDepthLabel'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                    <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.StepDepthLabel'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                    <TextBlock Grid.Column="6" Text="{DataBinding '$i18n.ToolDiameter'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                    <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="{DataBinding '$i18n.WallTaperAngleDeg'}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+            </StackPanel>
         </GroupBox>
 
         <!-- Позиционирование -->
