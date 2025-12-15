@@ -9,14 +9,18 @@
         Title="{Binding DisplayName}"
         Width="1000" Height="700"
         MinWidth="800" MinHeight="600"
-        WindowStartupLocation="CenterScreen">
-    <Grid>
-        <Viewport3D x:Name="Viewport" 
-                    MouseWheel="Viewport_MouseWheel"
-                    MouseDown="Viewport_MouseDown"
-                    MouseMove="Viewport_MouseMove"
-                    MouseUp="Viewport_MouseUp"
-                    MouseLeave="Viewport_MouseLeave">
+        WindowStartupLocation="CenterScreen"
+        PreviewMouseWheel="Viewport_MouseWheel"
+        PreviewMouseDown="Viewport_MouseDown"
+        PreviewMouseMove="Viewport_MouseMove"
+        PreviewMouseUp="Viewport_MouseUp">
+    <Grid x:Name="MainGrid"
+          Background="Transparent"
+          IsHitTestVisible="True"
+          MouseDown="Viewport_MouseDown"
+          MouseMove="Viewport_MouseMove"
+          MouseUp="Viewport_MouseUp">
+        <Viewport3D x:Name="Viewport" IsHitTestVisible="False">
             <Viewport3D.Camera>
                 <PerspectiveCamera x:Name="Camera" Position="50,50,50" LookDirection="-1,-1,-1" UpDirection="0,0,1" 
                                    FieldOfView="45"/>

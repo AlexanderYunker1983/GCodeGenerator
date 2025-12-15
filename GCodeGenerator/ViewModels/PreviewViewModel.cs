@@ -431,8 +431,43 @@ namespace GCodeGenerator.ViewModels
         {
             var modelGroup = new Model3DGroup();
 
+            // Calculate bounding box to determine model scale (needed for axes thickness)
+            var allPointsForBounds = new List<Point3D>();
+            foreach (var seg in segments)
+            {
+                if (seg.InterpolatedPoints != null && seg.InterpolatedPoints.Count > 0)
+                    allPointsForBounds.AddRange(seg.InterpolatedPoints);
+                else
+                {
+                    allPointsForBounds.Add(seg.Start);
+                    allPointsForBounds.Add(seg.End);
+                }
+            }
+
+            // Calculate bounding box
+            double minX = 0, maxX = 0, minY = 0, maxY = 0, minZ = 0, maxZ = 0;
+            double sizeX = 0, sizeY = 0, sizeZ = 0, maxSize = 1.0;
+            double rapidThicknessForAxes = 0.05; // Default
+
+            if (allPointsForBounds.Count > 0)
+            {
+                minX = allPointsForBounds.Min(p => p.X);
+                maxX = allPointsForBounds.Max(p => p.X);
+                minY = allPointsForBounds.Min(p => p.Y);
+                maxY = allPointsForBounds.Max(p => p.Y);
+                minZ = allPointsForBounds.Min(p => p.Z);
+                maxZ = allPointsForBounds.Max(p => p.Z);
+
+                sizeX = maxX - minX;
+                sizeY = maxY - minY;
+                sizeZ = maxZ - minZ;
+                maxSize = Math.Max(Math.Max(sizeX, sizeY), Math.Max(sizeZ, 1.0));
+                var baseThickness = maxSize * 0.008;
+                rapidThicknessForAxes = Math.Max(baseThickness * 0.4, 0.05);
+            }
+
             // Always add coordinate axes first (even if no segments)
-            AddCoordinateAxes(modelGroup, segments);
+            AddCoordinateAxes(modelGroup, segments, rapidThicknessForAxes);
 
             if (segments.Count == 0)
             {
@@ -440,36 +475,10 @@ namespace GCodeGenerator.ViewModels
                 return;
             }
 
-            // Calculate bounding box to determine model scale
-            var allPoints = new List<Point3D>();
-            foreach (var seg in segments)
-            {
-                if (seg.InterpolatedPoints != null && seg.InterpolatedPoints.Count > 0)
-                    allPoints.AddRange(seg.InterpolatedPoints);
-                else
-                {
-                    allPoints.Add(seg.Start);
-                    allPoints.Add(seg.End);
-                }
-            }
-
-            var minX = allPoints.Min(p => p.X);
-            var maxX = allPoints.Max(p => p.X);
-            var minY = allPoints.Min(p => p.Y);
-            var maxY = allPoints.Max(p => p.Y);
-            var minZ = allPoints.Min(p => p.Z);
-            var maxZ = allPoints.Max(p => p.Z);
-
-            var sizeX = maxX - minX;
-            var sizeY = maxY - minY;
-            var sizeZ = maxZ - minZ;
-            var maxSize = Math.Max(Math.Max(sizeX, sizeY), Math.Max(sizeZ, 1.0));
-
             // Calculate adaptive thickness based on model size
-            var baseThickness = maxSize * 0.008;
-            var rapidThickness = Math.Max(baseThickness * 0.4, 0.05);   // Thin for rapids
-            var workThickness = Math.Max(baseThickness * 1.5, 0.15);   // Thicker for work moves
-            var arcThickness = Math.Max(baseThickness * 1.2, 0.12);    // Slightly thinner for arcs
+            var rapidThickness = rapidThicknessForAxes;   // Use same thickness as axes
+            var workThickness = rapidThickness;   // Same thickness as rapids for work moves
+            var arcThickness = rapidThickness;    // Same thickness as rapids for arcs
 
             // Dash parameters scaled to model
             var dashLength = Math.Max(maxSize * 0.03, RapidDashLength);
@@ -498,35 +507,47 @@ namespace GCodeGenerator.ViewModels
             arcCCWMaterial.Children.Add(new DiffuseMaterial(arcCCWBrush));
             arcCCWMaterial.Children.Add(new EmissiveMaterial(new SolidColorBrush(Color.FromArgb(60, 180, 200, 0))));
 
-            // Build geometry for each segment
+            // OPTIMIZATION: Group segments by material type and batch geometry
+            // This dramatically reduces the number of GeometryModel3D objects from thousands to just a few
+            var rapidGeometry = new MeshGeometry3D();
+            var linearGeometry = new MeshGeometry3D();
+            var arcCWGeometry = new MeshGeometry3D();
+            var arcCCWGeometry = new MeshGeometry3D();
+
+            // Process all segments and add geometry to appropriate batch
             foreach (var segment in segments)
             {
                 Material material;
                 double thickness;
+                MeshGeometry3D targetGeometry;
 
                 switch (segment.MoveType)
                 {
                     case MoveType.Rapid:
                         material = rapidMaterial;
                         thickness = rapidThickness;
-                        // Create dashed line for rapids
-                        CreateDashedLineSegments(modelGroup, segment.Start, segment.End,
-                            thickness, material, dashLength, gapLength);
+                        targetGeometry = rapidGeometry;
+                        // Create dashed line segments for rapids
+                        AddDashedLineGeometry(targetGeometry, segment.Start, segment.End,
+                            thickness, dashLength, gapLength);
                         continue; // Skip normal line creation
 
                     case MoveType.ArcCW:
                         material = arcCWMaterial;
                         thickness = arcThickness;
+                        targetGeometry = arcCWGeometry;
                         break;
 
                     case MoveType.ArcCCW:
                         material = arcCCWMaterial;
                         thickness = arcThickness;
+                        targetGeometry = arcCCWGeometry;
                         break;
 
                     default: // Linear
                         material = linearMaterial;
                         thickness = workThickness;
+                        targetGeometry = linearGeometry;
                         break;
                 }
 
@@ -535,35 +556,48 @@ namespace GCodeGenerator.ViewModels
                 {
                     for (int i = 0; i < segment.InterpolatedPoints.Count - 1; i++)
                     {
-                        var lineGeometry = new MeshGeometry3D();
-                        CreateLineGeometry(lineGeometry, segment.InterpolatedPoints[i],
+                        AddLineGeometry(targetGeometry, segment.InterpolatedPoints[i],
                             segment.InterpolatedPoints[i + 1], thickness);
-
-                        if (lineGeometry.Positions.Count > 0)
-                        {
-                            var lineModel = new GeometryModel3D(lineGeometry, material);
-                            lineModel.BackMaterial = material; // Visible from both sides
-                            modelGroup.Children.Add(lineModel);
-                        }
                     }
                 }
                 else
                 {
                     // Simple line segment
-                    var lineGeometry = new MeshGeometry3D();
-                    CreateLineGeometry(lineGeometry, segment.Start, segment.End, thickness);
-
-                    if (lineGeometry.Positions.Count > 0)
-                    {
-                        var lineModel = new GeometryModel3D(lineGeometry, material);
-                        lineModel.BackMaterial = material;
-                        modelGroup.Children.Add(lineModel);
-                    }
+                    AddLineGeometry(targetGeometry, segment.Start, segment.End, thickness);
                 }
             }
 
-            // Add point markers at key positions
-            AddPointMarkers(modelGroup, segments, Math.Max(baseThickness * 2, 0.2));
+            // Create one GeometryModel3D per material type (instead of one per segment)
+            if (rapidGeometry.Positions != null && rapidGeometry.Positions.Count > 0)
+            {
+                var rapidModel = new GeometryModel3D(rapidGeometry, rapidMaterial);
+                rapidModel.BackMaterial = rapidMaterial;
+                modelGroup.Children.Add(rapidModel);
+            }
+
+            if (linearGeometry.Positions != null && linearGeometry.Positions.Count > 0)
+            {
+                var linearModel = new GeometryModel3D(linearGeometry, linearMaterial);
+                linearModel.BackMaterial = linearMaterial;
+                modelGroup.Children.Add(linearModel);
+            }
+
+            if (arcCWGeometry.Positions != null && arcCWGeometry.Positions.Count > 0)
+            {
+                var arcCWModel = new GeometryModel3D(arcCWGeometry, arcCWMaterial);
+                arcCWModel.BackMaterial = arcCWMaterial;
+                modelGroup.Children.Add(arcCWModel);
+            }
+
+            if (arcCCWGeometry.Positions != null && arcCCWGeometry.Positions.Count > 0)
+            {
+                var arcCCWModel = new GeometryModel3D(arcCCWGeometry, arcCCWMaterial);
+                arcCCWModel.BackMaterial = arcCCWMaterial;
+                modelGroup.Children.Add(arcCCWModel);
+            }
+
+            // Add point markers at key positions (2x the rapid line thickness)
+            AddPointMarkers(modelGroup, segments, rapidThickness * 2);
 
             // Add ambient light for better visibility
             modelGroup.Children.Add(new AmbientLight(Color.FromRgb(80, 80, 80)));
@@ -571,13 +605,13 @@ namespace GCodeGenerator.ViewModels
             TrajectoryModel = modelGroup;
         }
 
-        private void AddCoordinateAxes(Model3DGroup modelGroup, List<TrajectorySegment> segments)
+        private void AddCoordinateAxes(Model3DGroup modelGroup, List<TrajectorySegment> segments, double lineThickness)
         {
             // Calculate axis length based on model size or use default
             double axisLength = 10.0;
-            double axisThickness = 0.15;
+            double axisThickness = lineThickness; // Use the same thin thickness as trajectory lines
             double arrowLength = 1.5;
-            double arrowRadius = 0.4;
+            double arrowRadius = lineThickness * 2; // Thin arrow heads
 
             if (segments.Count > 0)
             {
@@ -608,9 +642,9 @@ namespace GCodeGenerator.ViewModels
                     var maxSize = Math.Max(Math.Max(sizeX, sizeY), Math.Max(sizeZ, 1.0));
 
                     axisLength = Math.Max(maxSize * 0.6, 10.0);
-                    axisThickness = Math.Max(maxSize * 0.01, 0.15);
+                    axisThickness = lineThickness; // Keep thin
                     arrowLength = axisLength * 0.12;
-                    arrowRadius = axisThickness * 3;
+                    arrowRadius = lineThickness * 2; // Thin arrow heads
                 }
             }
 
@@ -640,10 +674,10 @@ namespace GCodeGenerator.ViewModels
             AddArrowHead(modelGroup, zArrowStart, zEnd, arrowRadius, zMaterial);
             AddAxisLabel(modelGroup, new Point3D(0, 0, axisLength + arrowLength * 0.5), "Z", zMaterial, arrowRadius);
 
-            // Origin marker - small white sphere
+            // Origin marker - small white sphere (same size as point markers)
             var originMaterial = new DiffuseMaterial(new SolidColorBrush(Colors.White));
             var originSphere = new MeshGeometry3D();
-            CreateSphereGeometry(originSphere, origin, axisThickness * 2);
+            CreateSphereGeometry(originSphere, origin, lineThickness * 2);
             var originModel = new GeometryModel3D(originSphere, originMaterial);
             modelGroup.Children.Add(originModel);
         }
@@ -705,7 +739,7 @@ namespace GCodeGenerator.ViewModels
 
         private void CreateXShape(MeshGeometry3D geometry, Point3D center, double size)
         {
-            var thickness = size * 0.2;
+            var thickness = size * 0.15; // Thinner lines for labels
             var halfSize = size * 0.5;
 
             // Two diagonal bars forming X
@@ -725,7 +759,7 @@ namespace GCodeGenerator.ViewModels
 
         private void CreateYShape(MeshGeometry3D geometry, Point3D center, double size)
         {
-            var thickness = size * 0.2;
+            var thickness = size * 0.15; // Thinner lines for labels
             var halfSize = size * 0.5;
 
             // Y shape: two upper arms meeting at center, one stem going down
@@ -748,7 +782,7 @@ namespace GCodeGenerator.ViewModels
 
         private void CreateZShape(MeshGeometry3D geometry, Point3D center, double size)
         {
-            var thickness = size * 0.2;
+            var thickness = size * 0.15; // Thinner lines for labels
             var halfSize = size * 0.5;
 
             // Z shape: top horizontal, diagonal, bottom horizontal
@@ -1056,6 +1090,175 @@ namespace GCodeGenerator.ViewModels
             }
 
             return new Vector3DCollection(normals);
+        }
+
+        /// <summary>
+        /// Adds line geometry to an existing MeshGeometry3D (for batching optimization)
+        /// </summary>
+        private void AddLineGeometry(MeshGeometry3D targetGeometry, Point3D start, Point3D end, double thickness)
+        {
+            // Initialize collections if needed
+            if (targetGeometry.Positions == null)
+                targetGeometry.Positions = new Point3DCollection();
+            if (targetGeometry.TriangleIndices == null)
+                targetGeometry.TriangleIndices = new Int32Collection();
+            if (targetGeometry.Normals == null)
+                targetGeometry.Normals = new Vector3DCollection();
+
+            var baseIndex = targetGeometry.Positions.Count;
+
+            var direction = new Vector3D(end.X - start.X, end.Y - start.Y, end.Z - start.Z);
+            var length = direction.Length;
+
+            if (length < 0.0001) return;
+
+            // Normalize direction
+            direction /= length;
+
+            // Find a perpendicular vector using a robust method
+            Vector3D perp1;
+            var absX = Math.Abs(direction.X);
+            var absY = Math.Abs(direction.Y);
+            var absZ = Math.Abs(direction.Z);
+
+            if (absX <= absY && absX <= absZ)
+            {
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(1, 0, 0));
+            }
+            else if (absY <= absX && absY <= absZ)
+            {
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(0, 1, 0));
+            }
+            else
+            {
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(0, 0, 1));
+            }
+
+            // Safety check
+            if (perp1.Length < 0.0001)
+            {
+                perp1 = Vector3D.CrossProduct(direction, new Vector3D(1, 0, 0));
+                if (perp1.Length < 0.0001)
+                {
+                    perp1 = Vector3D.CrossProduct(direction, new Vector3D(0, 1, 0));
+                    if (perp1.Length < 0.0001)
+                        return; // Give up - degenerate case
+                }
+            }
+
+            perp1.Normalize();
+            var perp2 = Vector3D.CrossProduct(direction, perp1);
+            perp2.Normalize();
+
+            // Scale by half thickness
+            var halfThickness = thickness * 0.5;
+            perp1 *= halfThickness;
+            perp2 *= halfThickness;
+
+            // Create 8 vertices of the box
+            var v0 = start + perp1 + perp2;
+            var v1 = start + perp1 - perp2;
+            var v2 = start - perp1 - perp2;
+            var v3 = start - perp1 + perp2;
+            var v4 = end + perp1 + perp2;
+            var v5 = end + perp1 - perp2;
+            var v6 = end - perp1 - perp2;
+            var v7 = end - perp1 + perp2;
+
+            // Add positions
+            targetGeometry.Positions.Add(v0);
+            targetGeometry.Positions.Add(v1);
+            targetGeometry.Positions.Add(v2);
+            targetGeometry.Positions.Add(v3);
+            targetGeometry.Positions.Add(v4);
+            targetGeometry.Positions.Add(v5);
+            targetGeometry.Positions.Add(v6);
+            targetGeometry.Positions.Add(v7);
+
+            // Add triangle indices (offset by baseIndex)
+            var indices = new List<int>
+            {
+                // Start cap (facing -direction)
+                baseIndex + 0, baseIndex + 2, baseIndex + 1,
+                baseIndex + 0, baseIndex + 3, baseIndex + 2,
+                // End cap (facing +direction)
+                baseIndex + 4, baseIndex + 5, baseIndex + 6,
+                baseIndex + 4, baseIndex + 6, baseIndex + 7,
+                // Side faces
+                baseIndex + 0, baseIndex + 4, baseIndex + 7,  // Top
+                baseIndex + 0, baseIndex + 7, baseIndex + 3,
+                baseIndex + 1, baseIndex + 2, baseIndex + 6,  // Bottom
+                baseIndex + 1, baseIndex + 6, baseIndex + 5,
+                baseIndex + 0, baseIndex + 1, baseIndex + 5,  // Front
+                baseIndex + 0, baseIndex + 5, baseIndex + 4,
+                baseIndex + 2, baseIndex + 3, baseIndex + 7,  // Back
+                baseIndex + 2, baseIndex + 7, baseIndex + 6
+            };
+
+            foreach (var idx in indices)
+                targetGeometry.TriangleIndices.Add(idx);
+
+            // Calculate and add normals for the new vertices
+            var positions = new List<Point3D> { v0, v1, v2, v3, v4, v5, v6, v7 };
+            var localTriangleIndices = new List<int>
+            {
+                // Start cap
+                0, 2, 1,  0, 3, 2,
+                // End cap
+                4, 5, 6,  4, 6, 7,
+                // Side faces
+                0, 4, 7,  0, 7, 3,
+                1, 2, 6,  1, 6, 5,
+                0, 1, 5,  0, 5, 4,
+                2, 3, 7,  2, 7, 6
+            };
+            var normals = CalculateNormals(positions, localTriangleIndices);
+            foreach (var normal in normals)
+                targetGeometry.Normals.Add(normal);
+        }
+
+        /// <summary>
+        /// Adds dashed line segments to an existing MeshGeometry3D (for batching optimization)
+        /// </summary>
+        private void AddDashedLineGeometry(MeshGeometry3D targetGeometry, Point3D start, Point3D end,
+            double thickness, double dashLength, double gapLength)
+        {
+            var direction = new Vector3D(end.X - start.X, end.Y - start.Y, end.Z - start.Z);
+            var totalLength = direction.Length;
+
+            if (totalLength < 0.0001) return;
+
+            direction.Normalize();
+            var cycleLength = dashLength + gapLength;
+            var currentDistance = 0.0;
+            var isDash = true;
+
+            while (currentDistance < totalLength)
+            {
+                var segmentLength = isDash ? dashLength : gapLength;
+                var remainingLength = totalLength - currentDistance;
+
+                if (segmentLength > remainingLength)
+                    segmentLength = remainingLength;
+
+                if (isDash && segmentLength > 0.001)
+                {
+                    var segStart = new Point3D(
+                        start.X + direction.X * currentDistance,
+                        start.Y + direction.Y * currentDistance,
+                        start.Z + direction.Z * currentDistance);
+
+                    var segEnd = new Point3D(
+                        start.X + direction.X * (currentDistance + segmentLength),
+                        start.Y + direction.Y * (currentDistance + segmentLength),
+                        start.Z + direction.Z * (currentDistance + segmentLength));
+
+                    AddLineGeometry(targetGeometry, segStart, segEnd, thickness);
+                }
+
+                currentDistance += segmentLength;
+                isDash = !isDash;
+            }
         }
 
         private void AddPointMarkers(Model3DGroup modelGroup, List<TrajectorySegment> segments, double markerSize)

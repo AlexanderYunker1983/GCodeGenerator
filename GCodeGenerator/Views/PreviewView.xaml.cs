@@ -12,6 +12,8 @@ namespace GCodeGenerator.Views
         private bool _isRotating;
         private Point _lastMousePosition;
         private double _cameraDistance = 100;
+        private double _theta = 0; // Current horizontal angle (azimuth)
+        private double _phi = Math.PI / 2; // Current vertical angle (elevation), start at top view
 
         public PreviewView()
         {
@@ -58,18 +60,21 @@ namespace GCodeGenerator.Views
                         var maxSize = Math.Max(Math.Max(bounds.SizeX, bounds.SizeY), bounds.SizeZ);
                         _cameraDistance = maxSize * 2;
                         
-                        // Isometric view position
-                        var isoX = _modelCenter.X + _cameraDistance * 0.707;
-                        var isoY = _modelCenter.Y + _cameraDistance * 0.707;
-                        var isoZ = _modelCenter.Z + _cameraDistance * 0.5;
+                        // Top view (XY projection) - camera above the model looking down
+                        var cameraX = _modelCenter.X;
+                        var cameraY = _modelCenter.Y;
+                        var cameraZ = _modelCenter.Z + _cameraDistance;
                         
-                        Camera.Position = new Point3D(isoX, isoY, isoZ);
-                        Camera.LookDirection = new Vector3D(_modelCenter.X - isoX, _modelCenter.Y - isoY, _modelCenter.Z - isoZ);
-                        Camera.UpDirection = new Vector3D(0, 0, 1);
+                        Camera.Position = new Point3D(cameraX, cameraY, cameraZ);
+                        Camera.LookDirection = new Vector3D(0, 0, -_cameraDistance); // Looking straight down
+                        Camera.UpDirection = new Vector3D(0, 1, 0); // Y-axis up for correct orientation
                         
                         // Update camera distance
-                        var lookDir = Camera.LookDirection;
-                        _cameraDistance = lookDir.Length;
+                        _cameraDistance = _cameraDistance;
+                        
+                        // Initialize spherical angles for top view
+                        _theta = 0; // Start facing along positive X axis
+                        _phi = Math.PI / 2; // Top view (90 degrees elevation)
                     }
                 }
             }
@@ -96,8 +101,9 @@ namespace GCodeGenerator.Views
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 _isRotating = true;
-                _lastMousePosition = e.GetPosition(Viewport);
-                Viewport.CaptureMouse();
+                _lastMousePosition = e.GetPosition(this);
+                this.CaptureMouse();
+                e.Handled = true;
             }
         }
 
@@ -105,14 +111,18 @@ namespace GCodeGenerator.Views
         {
             if (!_isRotating || Camera == null) return;
 
-            var currentPosition = e.GetPosition(Viewport);
+            var currentPosition = e.GetPosition(this);
             var deltaX = currentPosition.X - _lastMousePosition.X;
             var deltaY = currentPosition.Y - _lastMousePosition.Y;
 
-            // Rotate around model center
-            RotateCamera(-10.0*deltaX, -10.0*deltaY);
+            // Rotate around model center (even small movements)
+            if (Math.Abs(deltaX) > 0 || Math.Abs(deltaY) > 0)
+            {
+                RotateCamera(deltaX, deltaY);
+            }
 
             _lastMousePosition = currentPosition;
+            e.Handled = true;
         }
 
         private void Viewport_MouseUp(object sender, MouseButtonEventArgs e)
@@ -120,66 +130,63 @@ namespace GCodeGenerator.Views
             if (e.LeftButton == MouseButtonState.Released)
             {
                 _isRotating = false;
-                Viewport.ReleaseMouseCapture();
+                this.ReleaseMouseCapture();
+                e.Handled = true;
             }
-        }
-
-        private void Viewport_MouseLeave(object sender, MouseEventArgs e)
-        {
-            _isRotating = false;
-            Viewport.ReleaseMouseCapture();
         }
 
         private void RotateCamera(double deltaX, double deltaY)
         {
-            // Get current camera position relative to model center
+            if (Camera == null) return;
+
+            // Get current camera distance
             var cameraOffset = Camera.Position - _modelCenter;
             var distance = cameraOffset.Length;
             
             if (distance < 0.001) return;
 
-            // Normalize offset
-            cameraOffset.Normalize();
+            // Rotation sensitivity (radians per pixel)
+            var rotationSpeed = 0.01;
 
-            // Get right and up vectors
-            var lookDir = -cameraOffset;
-            var right = Vector3D.CrossProduct(lookDir, Camera.UpDirection);
-            right.Normalize();
-            var up = Vector3D.CrossProduct(right, lookDir);
-            up.Normalize();
+            // Update angles based on mouse movement (use stored angles to avoid jumps)
+            _theta -= deltaX * rotationSpeed; // Horizontal rotation (inverted)
+            _phi -= deltaY * rotationSpeed;   // Vertical rotation (inverted)
 
-            // Rotation sensitivity
-            var rotationSpeed = 0.5 * Math.PI / 180.0;
+            // Clamp phi to prevent flipping (keep between 0.1 and PI - 0.1)
+            _phi = Math.Max(0.1, Math.Min(Math.PI - 0.1, _phi));
 
-            // Horizontal rotation (around world up vector, which is Z)
-            var worldUp = new Vector3D(0, 0, 1);
-            var horizontalAngle = deltaX * rotationSpeed;
-            var horizontalRotation = new AxisAngleRotation3D(worldUp, horizontalAngle);
-            var horizontalTransform = new RotateTransform3D(horizontalRotation);
-            var rotatedOffset = horizontalTransform.Transform(cameraOffset);
-
-            // Vertical rotation (around right vector)
-            var rightVector = Vector3D.CrossProduct(rotatedOffset, worldUp);
-            if (rightVector.Length > 0.001)
-            {
-                rightVector.Normalize();
-                var verticalAngle = -deltaY * rotationSpeed;
-                var verticalRotation = new AxisAngleRotation3D(rightVector, verticalAngle);
-                var verticalTransform = new RotateTransform3D(verticalRotation);
-                rotatedOffset = verticalTransform.Transform(rotatedOffset);
-            }
+            // Convert back to Cartesian coordinates using stored angles
+            var newX = distance * Math.Sin(_phi) * Math.Cos(_theta);
+            var newY = distance * Math.Sin(_phi) * Math.Sin(_theta);
+            var newZ = distance * Math.Cos(_phi);
 
             // Update camera position
-            rotatedOffset.Normalize();
-            Camera.Position = _modelCenter + rotatedOffset * distance;
+            var newOffset = new Vector3D(newX, newY, newZ);
+            Camera.Position = _modelCenter + newOffset;
+
+            // Update look direction
             Camera.LookDirection = _modelCenter - Camera.Position;
-            
-            // Update up direction
-            var newUp = Vector3D.CrossProduct(rightVector, rotatedOffset);
-            if (newUp.Length > 0.001)
+
+            // Update up direction (maintain Y-up orientation)
+            var worldUp = new Vector3D(0, 0, 1);
+            var right = Vector3D.CrossProduct(newOffset, worldUp);
+            if (right.Length > 0.001)
             {
-                newUp.Normalize();
-                Camera.UpDirection = newUp;
+                right.Normalize();
+                var newUp = Vector3D.CrossProduct(right, newOffset);
+                if (newUp.Length > 0.001)
+                {
+                    newUp.Normalize();
+                    Camera.UpDirection = newUp;
+                }
+                else
+                {
+                    Camera.UpDirection = new Vector3D(0, 1, 0);
+                }
+            }
+            else
+            {
+                Camera.UpDirection = new Vector3D(0, 1, 0);
             }
         }
     }
