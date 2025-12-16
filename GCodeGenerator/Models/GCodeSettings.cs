@@ -101,6 +101,16 @@ namespace GCodeGenerator.Models
         public double EndX { get; set; } = 0.0;
         public double EndY { get; set; } = 0.0;
         public double EndZ { get; set; } = 0.0;
+
+        /// <summary>
+        /// If true, sets the work coordinate system (G54-G59) at the beginning of the program.
+        /// </summary>
+        public bool SetWorkCoordinateSystem { get; set; } = false;
+
+        /// <summary>
+        /// Work coordinate system to use (G54, G55, G56, G57, G58, G59).
+        /// </summary>
+        public string WorkCoordinateSystem { get; set; } = "G54";
     }
 }
 

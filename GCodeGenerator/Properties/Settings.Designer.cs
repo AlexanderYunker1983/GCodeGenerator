@@ -416,5 +416,35 @@ namespace GCodeGenerator.Properties
                 this["EndZ"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool SetWorkCoordinateSystem
+        {
+            get
+            {
+                return ((bool)(this["SetWorkCoordinateSystem"]));
+            }
+            set
+            {
+                this["SetWorkCoordinateSystem"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("G54")]
+        public string WorkCoordinateSystem
+        {
+            get
+            {
+                return ((string)(this["WorkCoordinateSystem"]));
+            }
+            set
+            {
+                this["WorkCoordinateSystem"] = value;
+            }
+        }
     }
 }

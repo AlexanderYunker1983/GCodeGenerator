@@ -39,7 +39,9 @@ namespace GCodeGenerator.Models
                 AddEndPosition = settings.AddEndPosition,
                 EndX = settings.EndX,
                 EndY = settings.EndY,
-                EndZ = settings.EndZ
+                EndZ = settings.EndZ,
+                SetWorkCoordinateSystem = settings.SetWorkCoordinateSystem,
+                WorkCoordinateSystem = settings.WorkCoordinateSystem ?? "G54"
             };
         }
 
@@ -74,6 +76,8 @@ namespace GCodeGenerator.Models
             Properties.Settings.Default.EndX = Current.EndX;
             Properties.Settings.Default.EndY = Current.EndY;
             Properties.Settings.Default.EndZ = Current.EndZ;
+            Properties.Settings.Default.SetWorkCoordinateSystem = Current.SetWorkCoordinateSystem;
+            Properties.Settings.Default.WorkCoordinateSystem = Current.WorkCoordinateSystem ?? "G54";
             Properties.Settings.Default.Save();
         }
     }

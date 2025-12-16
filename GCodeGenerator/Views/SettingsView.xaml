@@ -47,6 +47,28 @@
 
                 <Separator Margin="0,12,0,8"/>
 
+                <!-- Рабочая система координат (G54-G59) -->
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.SetWorkCoordinateSystem'}"
+                          IsChecked="{Binding SetWorkCoordinateSystem}"/>
+                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                            IsEnabled="{Binding SetWorkCoordinateSystem}">
+                    <Label Content="{DataBinding '$i18n.WorkCoordinateSystem'}" Width="180" VerticalAlignment="Center"/>
+                    <ComboBox Width="100"
+                              SelectedValuePath="Content"
+                              SelectedValue="{Binding WorkCoordinateSystem}"
+                              Style="{StaticResource MetroComboBox}">
+                        <ComboBoxItem Content="G54"/>
+                        <ComboBoxItem Content="G55"/>
+                        <ComboBoxItem Content="G56"/>
+                        <ComboBoxItem Content="G57"/>
+                        <ComboBoxItem Content="G58"/>
+                        <ComboBoxItem Content="G59"/>
+                    </ComboBox>
+                </StackPanel>
+
+                <Separator Margin="0,12,0,8"/>
+
                 <!-- Начальная позиция (G92) -->
                 <CheckBox Margin="0,0,0,4"
                           Content="{DataBinding '$i18n.AddStartPosition'}"

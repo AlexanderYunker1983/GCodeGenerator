@@ -732,4 +732,10 @@
   <data name="EndPositionZ" xml:space="preserve">
     <value>Zкон:</value>
   </data>
+  <data name="SetWorkCoordinateSystem" xml:space="preserve">
+    <value>Устанавливать рабочую систему координат в начале программы</value>
+  </data>
+  <data name="WorkCoordinateSystem" xml:space="preserve">
+    <value>Система координат:</value>
+  </data>
 </root>

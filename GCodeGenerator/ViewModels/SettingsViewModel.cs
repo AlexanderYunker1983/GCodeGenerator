@@ -49,6 +49,8 @@ namespace GCodeGenerator.ViewModels
             EndX = _settings.EndX;
             EndY = _settings.EndY;
             EndZ = _settings.EndZ;
+            SetWorkCoordinateSystem = _settings.SetWorkCoordinateSystem;
+            WorkCoordinateSystem = _settings.WorkCoordinateSystem ?? "G54";
         }
 
         private string _displayName;
@@ -415,7 +417,33 @@ namespace GCodeGenerator.ViewModels
             _settings.EndX = EndX;
             _settings.EndY = EndY;
             _settings.EndZ = EndZ;
+            _settings.SetWorkCoordinateSystem = SetWorkCoordinateSystem;
+            _settings.WorkCoordinateSystem = WorkCoordinateSystem ?? "G54";
             GCodeSettingsStore.Save();
+        }
+
+        private bool _setWorkCoordinateSystem;
+        public bool SetWorkCoordinateSystem
+        {
+            get => _setWorkCoordinateSystem;
+            set
+            {
+                if (value == _setWorkCoordinateSystem) return;
+                _setWorkCoordinateSystem = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private string _workCoordinateSystem;
+        public string WorkCoordinateSystem
+        {
+            get => _workCoordinateSystem;
+            set
+            {
+                if (value == _workCoordinateSystem) return;
+                _workCoordinateSystem = value;
+                OnPropertyChanged();
+            }
         }
     }
 }
