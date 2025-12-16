@@ -18,6 +18,62 @@ namespace GCodeGenerator.GCodeGenerators
             if (op == null)
                 return;
 
+            bool roughing = op.IsRoughingEnabled;
+            bool finishing = op.IsFinishingEnabled;
+            double allowance = Math.Max(0.0, op.FinishAllowance);
+
+            // Старое поведение, если режимы не включены
+            if (!roughing && !finishing)
+            {
+                roughing = true;
+                allowance = 0.0;
+            }
+
+            if (roughing)
+            {
+                var roughOp = CloneOp(op);
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, roughOp.TotalDepth - 1e-6));
+
+                if (depthAllowance > 0)
+                {
+                    // Оставляем припуск по дну
+                    roughOp.TotalDepth -= depthAllowance;
+                    // Оставляем припуск по стенкам: эквивалентно увеличению радиуса фрезы
+                    roughOp.ToolDiameter += 2 * depthAllowance;
+                }
+
+                GenerateCore(roughOp, addLine, g0, g1, settings);
+            }
+
+            if (finishing && allowance > 0)
+            {
+                var finishOp = CloneOp(op);
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, finishOp.TotalDepth));
+                if (depthAllowance < 1e-6)
+                    return;
+
+                // Работаем только в слое припуска по глубине
+                finishOp.ContourHeight = op.ContourHeight - (op.TotalDepth - depthAllowance);
+                finishOp.TotalDepth = depthAllowance;
+                finishOp.IsRoughingEnabled = false;
+                finishOp.IsFinishingEnabled = false;
+                finishOp.FinishAllowance = 0.0;
+
+                // Для DXF пока все режимы (Walls/Bottom/All) ведут себя как "всё":
+                // дорабатываем и дно, и стенки.
+                GenerateCore(finishOp, addLine, g0, g1, settings);
+            }
+        }
+
+        /// <summary>
+        /// Базовая генерация DXF-кармана (старое поведение), без учёта rough/finish-режимов.
+        /// </summary>
+        private void GenerateCore(PocketDxfOperation op,
+                                  Action<string> addLine,
+                                  string g0,
+                                  string g1,
+                                  GCodeSettings settings)
+        {
             var fmt = $"0.{new string('0', Math.Max(0, op.Decimals))}";
             var culture = CultureInfo.InvariantCulture;
 
@@ -40,13 +96,11 @@ namespace GCodeGenerator.GCodeGenerators
             var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
             var taperTan = Math.Tan(taperAngleRad);
 
-            // Обрабатываем каждый замкнутый контур
             foreach (var contour in op.ClosedContours)
             {
                 if (contour?.Points == null || contour.Points.Count < 3)
                     continue;
 
-                // Дополнительная проверка, что контур действительно замкнут
                 if (!IsClosedContour(contour))
                 {
                     if (settings.UseComments)
@@ -76,10 +130,8 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Contour pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    // Переходы в безопасную высоту перед генерацией траектории
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
-                    // Генерируем траекторию кармана в зависимости от стратегии
                     switch (op.PocketStrategy)
                     {
                         case PocketStrategy.Spiral:
@@ -103,14 +155,11 @@ namespace GCodeGenerator.GCodeGenerators
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                         default:
-                            // По умолчанию используем концентрические контуры
                             GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
                                 op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
                             break;
                     }
 
-                    // В конце прохода слоя не поднимаем фрезу прямо на внешнем контуре:
-                    // сначала уходим к центру контура, затем поднимаем фрезу.
                     var center = GetContourCenter(contour);
                     addLine($"{g1} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
@@ -982,6 +1031,37 @@ namespace GCodeGenerator.GCodeGenerators
             var dy = first.Y - last.Y;
             var distance = Math.Sqrt(dx * dx + dy * dy);
             return distance <= 0.001; // Точность для определения замкнутости
+        }
+
+        private PocketDxfOperation CloneOp(PocketDxfOperation src)
+        {
+            return new PocketDxfOperation
+            {
+                Name = src.Name,
+                IsEnabled = src.IsEnabled,
+                ClosedContours = src.ClosedContours,
+                DxfFilePath = src.DxfFilePath,
+                Direction = src.Direction,
+                PocketStrategy = src.PocketStrategy,
+                TotalDepth = src.TotalDepth,
+                StepDepth = src.StepDepth,
+                ToolDiameter = src.ToolDiameter,
+                ContourHeight = src.ContourHeight,
+                FeedXYRapid = src.FeedXYRapid,
+                FeedXYWork = src.FeedXYWork,
+                FeedZRapid = src.FeedZRapid,
+                FeedZWork = src.FeedZWork,
+                SafeZHeight = src.SafeZHeight,
+                RetractHeight = src.RetractHeight,
+                StepPercentOfTool = src.StepPercentOfTool,
+                Decimals = src.Decimals,
+                LineAngleDeg = src.LineAngleDeg,
+                WallTaperAngleDeg = src.WallTaperAngleDeg,
+                IsRoughingEnabled = src.IsRoughingEnabled,
+                IsFinishingEnabled = src.IsFinishingEnabled,
+                FinishAllowance = src.FinishAllowance,
+                FinishingMode = src.FinishingMode
+            };
         }
     }
 }
