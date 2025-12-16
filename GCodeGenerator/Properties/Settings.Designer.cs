@@ -296,5 +296,125 @@ namespace GCodeGenerator.Properties
                 this["CoolantStopEnabled"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AddStartPosition
+        {
+            get
+            {
+                return ((bool)(this["AddStartPosition"]));
+            }
+            set
+            {
+                this["AddStartPosition"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double StartX
+        {
+            get
+            {
+                return ((double)(this["StartX"]));
+            }
+            set
+            {
+                this["StartX"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double StartY
+        {
+            get
+            {
+                return ((double)(this["StartY"]));
+            }
+            set
+            {
+                this["StartY"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double StartZ
+        {
+            get
+            {
+                return ((double)(this["StartZ"]));
+            }
+            set
+            {
+                this["StartZ"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AddEndPosition
+        {
+            get
+            {
+                return ((bool)(this["AddEndPosition"]));
+            }
+            set
+            {
+                this["AddEndPosition"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double EndX
+        {
+            get
+            {
+                return ((double)(this["EndX"]));
+            }
+            set
+            {
+                this["EndX"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double EndY
+        {
+            get
+            {
+                return ((double)(this["EndY"]));
+            }
+            set
+            {
+                this["EndY"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double EndZ
+        {
+            get
+            {
+                return ((double)(this["EndZ"]));
+            }
+            set
+            {
+                this["EndZ"] = value;
+            }
+        }
     }
 }

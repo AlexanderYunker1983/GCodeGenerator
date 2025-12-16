@@ -82,6 +82,25 @@ namespace GCodeGenerator.Models
         /// Turn coolant off at program end (M9).
         /// </summary>
         public bool CoolantStopEnabled { get; set; } = true;
+
+        /// <summary>
+        /// If true, adds a G92 command at the very beginning of program
+        /// that sets the current position to the specified start coordinates.
+        /// </summary>
+        public bool AddStartPosition { get; set; } = false;
+
+        public double StartX { get; set; } = 0.0;
+        public double StartY { get; set; } = 0.0;
+        public double StartZ { get; set; } = 0.0;
+
+        /// <summary>
+        /// If true, moves to specified coordinates at the end of program using rapid move (G0).
+        /// </summary>
+        public bool AddEndPosition { get; set; } = false;
+
+        public double EndX { get; set; } = 0.0;
+        public double EndY { get; set; } = 0.0;
+        public double EndZ { get; set; } = 0.0;
     }
 }
 

@@ -41,6 +41,14 @@ namespace GCodeGenerator.ViewModels
             CoolantControlEnabled = _settings.CoolantControlEnabled;
             CoolantStartEnabled = _settings.CoolantStartEnabled;
             CoolantStopEnabled = _settings.CoolantStopEnabled;
+            AddStartPosition = _settings.AddStartPosition;
+            StartX = _settings.StartX;
+            StartY = _settings.StartY;
+            StartZ = _settings.StartZ;
+            AddEndPosition = _settings.AddEndPosition;
+            EndX = _settings.EndX;
+            EndY = _settings.EndY;
+            EndZ = _settings.EndZ;
         }
 
         private string _displayName;
@@ -280,6 +288,102 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private bool _addStartPosition;
+        public bool AddStartPosition
+        {
+            get => _addStartPosition;
+            set
+            {
+                if (value == _addStartPosition) return;
+                _addStartPosition = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _startX;
+        public double StartX
+        {
+            get => _startX;
+            set
+            {
+                if (value.Equals(_startX)) return;
+                _startX = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _startY;
+        public double StartY
+        {
+            get => _startY;
+            set
+            {
+                if (value.Equals(_startY)) return;
+                _startY = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _startZ;
+        public double StartZ
+        {
+            get => _startZ;
+            set
+            {
+                if (value.Equals(_startZ)) return;
+                _startZ = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _addEndPosition;
+        public bool AddEndPosition
+        {
+            get => _addEndPosition;
+            set
+            {
+                if (value == _addEndPosition) return;
+                _addEndPosition = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _endX;
+        public double EndX
+        {
+            get => _endX;
+            set
+            {
+                if (value.Equals(_endX)) return;
+                _endX = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _endY;
+        public double EndY
+        {
+            get => _endY;
+            set
+            {
+                if (value.Equals(_endY)) return;
+                _endY = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _endZ;
+        public double EndZ
+        {
+            get => _endZ;
+            set
+            {
+                if (value.Equals(_endZ)) return;
+                _endZ = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
         {
             base.OnClosed(context);
@@ -303,6 +407,14 @@ namespace GCodeGenerator.ViewModels
             _settings.CoolantControlEnabled = CoolantControlEnabled;
             _settings.CoolantStartEnabled = CoolantStartEnabled;
             _settings.CoolantStopEnabled = CoolantStopEnabled;
+            _settings.AddStartPosition = AddStartPosition;
+            _settings.StartX = StartX;
+            _settings.StartY = StartY;
+            _settings.StartZ = StartZ;
+            _settings.AddEndPosition = AddEndPosition;
+            _settings.EndX = EndX;
+            _settings.EndY = EndY;
+            _settings.EndZ = EndZ;
             GCodeSettingsStore.Save();
         }
     }

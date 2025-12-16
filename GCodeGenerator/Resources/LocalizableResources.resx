@@ -708,4 +708,28 @@
   <data name="PocketFinishingAll" xml:space="preserve">
     <value>Стенки и дно</value>
   </data>
+  <data name="AddStartPosition" xml:space="preserve">
+    <value>В начале программы выполнить установку нулей (G92)</value>
+  </data>
+  <data name="StartPositionX" xml:space="preserve">
+    <value>X₀:</value>
+  </data>
+  <data name="StartPositionY" xml:space="preserve">
+    <value>Y₀:</value>
+  </data>
+  <data name="StartPositionZ" xml:space="preserve">
+    <value>Z₀:</value>
+  </data>
+  <data name="AddEndPosition" xml:space="preserve">
+    <value>В конце программы перейти в точку</value>
+  </data>
+  <data name="EndPositionX" xml:space="preserve">
+    <value>Xкон:</value>
+  </data>
+  <data name="EndPositionY" xml:space="preserve">
+    <value>Yкон:</value>
+  </data>
+  <data name="EndPositionZ" xml:space="preserve">
+    <value>Zкон:</value>
+  </data>
 </root>

@@ -44,6 +44,48 @@
                 <CheckBox Margin="0,8,0,0"
                           Content="{DataBinding '$i18n.UsePaddedGCodes'}"
                           IsChecked="{Binding UsePaddedGCodes}"/>
+
+                <Separator Margin="0,12,0,8"/>
+
+                <!-- Начальная позиция (G92) -->
+                <CheckBox Margin="0,0,0,4"
+                          Content="{DataBinding '$i18n.AddStartPosition'}"
+                          IsChecked="{Binding AddStartPosition}"/>
+                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                            IsEnabled="{Binding AddStartPosition}">
+                    <Label Content="{DataBinding '$i18n.StartPositionX'}" Width="60" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Label Content="{DataBinding '$i18n.StartPositionY'}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Label Content="{DataBinding '$i18n.StartPositionZ'}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <!-- Конечная позиция (G0) -->
+                <CheckBox Margin="0,8,0,4"
+                          Content="{DataBinding '$i18n.AddEndPosition'}"
+                          IsChecked="{Binding AddEndPosition}"/>
+                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                            IsEnabled="{Binding AddEndPosition}">
+                    <Label Content="{DataBinding '$i18n.EndPositionX'}" Width="60" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Label Content="{DataBinding '$i18n.EndPositionY'}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged}"/>
+                    <Label Content="{DataBinding '$i18n.EndPositionZ'}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                    <TextBox Width="80"
+                             Style="{StaticResource MetroTextBox}"
+                             Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
             </StackPanel>
         </TabItem>
 
