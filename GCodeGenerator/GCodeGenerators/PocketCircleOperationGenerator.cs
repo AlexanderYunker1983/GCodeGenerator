@@ -8,31 +8,118 @@ namespace GCodeGenerator.GCodeGenerators
     {
         /// <summary>
         /// Генерирует G‑код для вырезания круглой полости.
-        /// В зависимости от PocketStrategy генерируется либо спираль,
-        /// либо концентрические круги (стандартная схема).
+        /// Учитывает режимы черновой/чистовой обработки и припуск.
         /// </summary>
         public void Generate(
             OperationBase operation,
             Action<string> addLine,
-            string g0,          // команда «переход» (обычно G0)
-            string g1,          // команда «работа»   (обычно G1)
+            string g0,
+            string g1,
             GCodeSettings settings)
         {
             var op = operation as PocketCircleOperation;
             if (op == null) return;
 
-            // Формат вывода
+            bool roughing = op.IsRoughingEnabled;
+            bool finishing = op.IsFinishingEnabled;
+            double allowance = Math.Max(0.0, op.FinishAllowance);
+
+            // Если оба выключены – обрабатываем как раньше, без припуска
+            if (!roughing && !finishing)
+            {
+                roughing = true;
+                allowance = 0.0;
+            }
+
+            // Черновая обработка: уменьшаем глубину и радиус на припуск
+            if (roughing)
+            {
+                var roughOp = CloneOp(op);
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, roughOp.TotalDepth - 1e-6));
+
+                if (depthAllowance > 0)
+                {
+                    roughOp.TotalDepth -= depthAllowance;
+                    roughOp.Radius -= depthAllowance;
+
+                    if (roughOp.Radius <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Pocket too small after roughing allowance, skipping)");
+                        return;
+                    }
+                }
+
+                GenerateInternal(roughOp, addLine, g0, g1, settings);
+            }
+
+            // Чистовая обработка
+            if (finishing && allowance > 0)
+            {
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, op.TotalDepth));
+                if (depthAllowance < 1e-6)
+                    return;
+
+                // Базовая чистовая операция по глубине: работаем только в слое припуска
+                var baseFinishOp = CloneOp(op);
+                baseFinishOp.ContourHeight = op.ContourHeight - (op.TotalDepth - depthAllowance);
+                baseFinishOp.TotalDepth = depthAllowance;
+                baseFinishOp.IsRoughingEnabled = false;
+                baseFinishOp.IsFinishingEnabled = false;
+                baseFinishOp.FinishAllowance = allowance;
+
+                switch (op.FinishingMode)
+                {
+                    case PocketFinishingMode.Walls:
+                        GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        break;
+
+                    case PocketFinishingMode.Bottom:
+                        {
+                            // Только дно: уменьшаем радиус на припуск и обрабатываем внутреннюю часть
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.Radius -= allowance;
+                            if (bottomOp.Radius > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+                        }
+                        break;
+
+                    case PocketFinishingMode.All:
+                    default:
+                        {
+                            // Сначала дно, затем стенки
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.Radius -= allowance;
+                            if (bottomOp.Radius > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+
+                            GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        }
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Базовая генерация (как раньше), без учёта режимов rough/finish.
+        /// </summary>
+        private void GenerateInternal(
+            PocketCircleOperation op,
+            Action<string> addLine,
+            string g0,
+            string g1,
+            GCodeSettings settings)
+        {
             var fmt = $"0.{new string('0', op.Decimals)}";
             var culture = CultureInfo.InvariantCulture;
 
-            // Общие параметры фрезы и глубины
             double toolRadius = op.ToolDiameter / 2.0;
-            double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;   // %
-            double step = op.ToolDiameter * (stepPercent / 100.0);                     // толщина спирали
+            double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
+            double step = op.ToolDiameter * (stepPercent / 100.0);
             if (step < 1e-6) step = op.ToolDiameter * 0.4;
 
             double baseRadius = op.Radius - toolRadius;
-            if (baseRadius <= 0) return;      // фреза слишком крупная
+            if (baseRadius <= 0) return;
 
             var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
             var taperTan = Math.Tan(taperAngleRad);
@@ -41,12 +128,8 @@ namespace GCodeGenerator.GCodeGenerators
             double finalZ = op.ContourHeight - op.TotalDepth;
             int pass = 0;
 
-            /* ------------------------------------------------------------------ */
-            /* -------------------- Выбор стратегии обработки --------------------- */
-
             if (op.PocketStrategy == PocketStrategy.Spiral)
             {
-                // ---------- Спираль ----------
                 while (currentZ > finalZ)
                 {
                     double nextZ = currentZ - op.StepDepth;
@@ -56,11 +139,9 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    // Переходы в безопасную высоту и центр
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
 
-                    // Уклон стенки
                     double depthFromTop = op.ContourHeight - nextZ;
                     double offset = depthFromTop * taperTan;
                     double effectiveRadius = baseRadius - offset;
@@ -71,11 +152,9 @@ namespace GCodeGenerator.GCodeGenerators
                         break;
                     }
 
-                    // Понижение на текущую глубину и начало резки
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    // Спираль Архимеда
                     double a = 0.0;
                     double b = step / (2 * Math.PI);
 
@@ -83,7 +162,6 @@ namespace GCodeGenerator.GCodeGenerators
                     double stepAngle = 2 * Math.PI / pointsPerRevolution;
                     double θMax = effectiveRadius / b;
 
-                    // Начальная точка спирали
                     addLine($"{g1} X{(op.CenterX + a).ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     for (double θ = stepAngle; θ <= θMax; θ += stepAngle)
@@ -91,11 +169,9 @@ namespace GCodeGenerator.GCodeGenerators
                         double r = a + b * θ;
                         double x = op.CenterX + r * Math.Cos(θ);
                         double y = op.CenterY + r * Math.Sin(θ);
-
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    // Завершающий круг по внешней границе
                     double xLast = op.CenterX + effectiveRadius * Math.Cos(θMax);
                     double yLast = op.CenterY + effectiveRadius * Math.Sin(θMax);
 
@@ -106,14 +182,10 @@ namespace GCodeGenerator.GCodeGenerators
                         double θFull = θMax + i * stepAngle;
                         double x = op.CenterX + effectiveRadius * Math.Cos(θFull);
                         double y = op.CenterY + effectiveRadius * Math.Sin(θFull);
-
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -121,7 +193,6 @@ namespace GCodeGenerator.GCodeGenerators
             }
             else if (op.PocketStrategy == PocketStrategy.Radial)
             {
-                // ---------- Радиальные линии ----------
                 while (currentZ > finalZ)
                 {
                     double nextZ = currentZ - op.StepDepth;
@@ -149,12 +220,9 @@ namespace GCodeGenerator.GCodeGenerators
 
                     var lastHit = GenerateRadial(addLine, g1, fmt, culture, op, effectiveRadius, step, settings);
 
-                    // Завершающий полный проход по контуру, начиная с последней точки на контуре
                     GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -162,7 +230,6 @@ namespace GCodeGenerator.GCodeGenerators
             }
             else if (op.PocketStrategy == PocketStrategy.Lines)
             {
-                // ---------- Последовательные линии ----------
                 while (currentZ > finalZ)
                 {
                     double nextZ = currentZ - op.StepDepth;
@@ -184,12 +251,9 @@ namespace GCodeGenerator.GCodeGenerators
 
                     var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ, zigZag: false);
 
-                    // Завершающий полный проход по контуру, начиная с последней точки
                     GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -197,7 +261,6 @@ namespace GCodeGenerator.GCodeGenerators
             }
             else if (op.PocketStrategy == PocketStrategy.ZigZag)
             {
-                // ---------- Зигзаг ----------
                 while (currentZ > finalZ)
                 {
                     double nextZ = currentZ - op.StepDepth;
@@ -221,15 +284,13 @@ namespace GCodeGenerator.GCodeGenerators
 
                     GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
                 }
             }
-            else   /* PocketStrategy.Concentric – классический алгоритм */
+            else   // Concentric
             {
                 while (currentZ > finalZ)
                 {
@@ -250,15 +311,12 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    // Переходы в безопасную высоту и центр
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
 
-                    // Понижение на текущую глубину и начало резки
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    // ---------- Концентрические окружности ----------
                     for (double r = 0; r <= effectiveRadius; r += step)
                     {
                         double radius = r;
@@ -269,7 +327,6 @@ namespace GCodeGenerator.GCodeGenerators
                         double angleStep = 2 * Math.PI / segments *
                                           ((op.Direction == MillingDirection.Clockwise) ? -1 : 1);
 
-                        // Начальная точка окружности
                         double startX = op.CenterX + radius;
                         double startY = op.CenterY;
                         addLine($"{g1} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
@@ -284,15 +341,88 @@ namespace GCodeGenerator.GCodeGenerators
                         }
                     }
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
                 }
-            }   /* конец if‑else стратегии */
+            }
+        }
+
+        /// <summary>
+        /// Чистовая обработка стенок круглого кармана:
+        /// несколько радиальных проходов по стенке на всю высоту припуска.
+        /// </summary>
+        private void GenerateWallsFinishing(
+            PocketCircleOperation op,
+            double radialAllowance,
+            Action<string> addLine,
+            string g0,
+            string g1,
+            GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            double toolRadius = op.ToolDiameter / 2.0;
+            double stepRadial = op.StepDepth;
+            if (stepRadial <= 0)
+                stepRadial = op.ToolDiameter * 0.25;
+
+            double baseRadius = op.Radius - toolRadius;
+            if (baseRadius <= 0) return;
+
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
+
+            double startZ = op.ContourHeight;
+            double finalZ = op.ContourHeight - op.TotalDepth;
+
+            double allowance = Math.Max(0.0, radialAllowance);
+            int radialPasses = allowance > 1e-6
+                ? Math.Max(1, (int)Math.Ceiling(allowance / stepRadial))
+                : 1;
+            double radialStep = (radialPasses > 0 && allowance > 1e-6) ? allowance / radialPasses : 0.0;
+
+            // Радиус итоговой стенки с учётом уклона на нижней точке
+            double depthFromTop = op.ContourHeight - finalZ;
+            double offset = depthFromTop * taperTan;
+            double effectiveRadiusFinal = baseRadius - offset;
+            if (effectiveRadiusFinal <= 0)
+            {
+                if (settings.UseComments)
+                    addLine("(Taper offset too large, stopping finishing walls)");
+                return;
+            }
+
+            for (int i = 0; i < radialPasses; i++)
+            {
+                double remaining = allowance - (i + 1) * radialStep;
+                if (remaining < 0) remaining = 0;
+
+                double radius = effectiveRadiusFinal - remaining;
+                if (radius <= 0)
+                    continue;
+
+                if (settings.UseComments)
+                    addLine($"(Finishing walls radial pass {i + 1}/{radialPasses}, stock {remaining.ToString(fmt, culture)}mm)");
+
+                // Подъём, подход к начальной точке и один проход по Z на всю высоту припуска
+                double startX = op.CenterX + radius;
+                double startY = op.CenterY;
+
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{startZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} Z{finalZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                // Обход стенки по окружности
+                GenerateOuterCircle(addLine, g1, fmt, culture, op, radius, (startX, startY));
+
+                // Уход в центр и подъём
+                addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            }
         }
 
         private (double x, double y) GenerateRadial(Action<string> addLine, string g1, string fmt, CultureInfo culture,
@@ -473,6 +603,38 @@ namespace GCodeGenerator.GCodeGenerators
                 double y = op.CenterY + radius * Math.Sin(ang);
                 addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             }
+        }
+
+        private PocketCircleOperation CloneOp(PocketCircleOperation src)
+        {
+            return new PocketCircleOperation
+            {
+                Name = src.Name,
+                IsEnabled = src.IsEnabled,
+                PocketStrategy = src.PocketStrategy,
+                Direction = src.Direction,
+                CenterX = src.CenterX,
+                CenterY = src.CenterY,
+                Radius = src.Radius,
+                TotalDepth = src.TotalDepth,
+                StepDepth = src.StepDepth,
+                ToolDiameter = src.ToolDiameter,
+                ContourHeight = src.ContourHeight,
+                FeedXYRapid = src.FeedXYRapid,
+                FeedXYWork = src.FeedXYWork,
+                FeedZRapid = src.FeedZRapid,
+                FeedZWork = src.FeedZWork,
+                SafeZHeight = src.SafeZHeight,
+                RetractHeight = src.RetractHeight,
+                StepPercentOfTool = src.StepPercentOfTool,
+                Decimals = src.Decimals,
+                LineAngleDeg = src.LineAngleDeg,
+                WallTaperAngleDeg = src.WallTaperAngleDeg,
+                IsRoughingEnabled = src.IsRoughingEnabled,
+                IsFinishingEnabled = src.IsFinishingEnabled,
+                FinishAllowance = src.FinishAllowance,
+                FinishingMode = src.FinishingMode
+            };
         }
     }
 }

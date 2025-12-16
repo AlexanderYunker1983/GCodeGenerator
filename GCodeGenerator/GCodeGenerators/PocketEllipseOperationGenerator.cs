@@ -7,34 +7,113 @@ namespace GCodeGenerator.GCodeGenerators
     public class PocketEllipseOperationGenerator : IOperationGenerator
     {
         /// <summary>
-        /// Генерирует G‑код для вырезания эллиптической полости.
-        /// В зависимости от PocketStrategy генерируется либо спираль,
-        /// либо концентрические эллипсы (стандартная схема).
+        /// Генерирует G‑код для вырезания эллиптической полости с учётом rough/finish.
         /// </summary>
         public void Generate(
             OperationBase operation,
             Action<string> addLine,
-            string g0,          // команда «переход» (обычно G0)
-            string g1,          // команда «работа»   (обычно G1)
+            string g0,
+            string g1,
             GCodeSettings settings)
         {
             var op = operation as PocketEllipseOperation;
             if (op == null) return;
 
-            // Формат вывода
+            bool roughing = op.IsRoughingEnabled;
+            bool finishing = op.IsFinishingEnabled;
+            double allowance = Math.Max(0.0, op.FinishAllowance);
+
+            if (!roughing && !finishing)
+            {
+                roughing = true;
+                allowance = 0.0;
+            }
+
+            if (roughing)
+            {
+                var roughOp = CloneOp(op);
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, roughOp.TotalDepth - 1e-6));
+
+                if (depthAllowance > 0)
+                {
+                    roughOp.TotalDepth -= depthAllowance;
+                    roughOp.RadiusX -= depthAllowance;
+                    roughOp.RadiusY -= depthAllowance;
+
+                    if (roughOp.RadiusX <= 0 || roughOp.RadiusY <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Pocket too small after roughing allowance, skipping)");
+                        return;
+                    }
+                }
+
+                GenerateInternal(roughOp, addLine, g0, g1, settings);
+            }
+
+            if (finishing && allowance > 0)
+            {
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, op.TotalDepth));
+                if (depthAllowance < 1e-6)
+                    return;
+
+                var baseFinishOp = CloneOp(op);
+                baseFinishOp.ContourHeight = op.ContourHeight - (op.TotalDepth - depthAllowance);
+                baseFinishOp.TotalDepth = depthAllowance;
+                baseFinishOp.IsRoughingEnabled = false;
+                baseFinishOp.IsFinishingEnabled = false;
+                baseFinishOp.FinishAllowance = allowance;
+
+                switch (op.FinishingMode)
+                {
+                    case PocketFinishingMode.Walls:
+                        GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        break;
+
+                    case PocketFinishingMode.Bottom:
+                        {
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.RadiusX -= allowance;
+                            bottomOp.RadiusY -= allowance;
+                            if (bottomOp.RadiusX > 0 && bottomOp.RadiusY > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+                        }
+                        break;
+
+                    case PocketFinishingMode.All:
+                    default:
+                        {
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.RadiusX -= allowance;
+                            bottomOp.RadiusY -= allowance;
+                            if (bottomOp.RadiusX > 0 && bottomOp.RadiusY > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+
+                            GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        }
+                        break;
+                }
+            }
+        }
+
+        private void GenerateInternal(
+            PocketEllipseOperation op,
+            Action<string> addLine,
+            string g0,
+            string g1,
+            GCodeSettings settings)
+        {
             var fmt = $"0.{new string('0', op.Decimals)}";
             var culture = CultureInfo.InvariantCulture;
 
-            // Общие параметры фрезы и глубины
             double toolRadius = op.ToolDiameter / 2.0;
-            double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;   // %
-            double step = op.ToolDiameter * (stepPercent / 100.0);                     // толщина спирали
+            double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
+            double step = op.ToolDiameter * (stepPercent / 100.0);
             if (step < 1e-6) step = op.ToolDiameter * 0.4;
 
-            // Эффективные радиусы с учетом радиуса фрезы
             double baseRadiusX = op.RadiusX - toolRadius;
             double baseRadiusY = op.RadiusY - toolRadius;
-            if (baseRadiusX <= 0 || baseRadiusY <= 0) return;      // фреза слишком крупная
+            if (baseRadiusX <= 0 || baseRadiusY <= 0) return;
 
             var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
             var taperTan = Math.Tan(taperAngleRad);
@@ -43,17 +122,12 @@ namespace GCodeGenerator.GCodeGenerators
             double finalZ = op.ContourHeight - op.TotalDepth;
             int pass = 0;
 
-            // Угол поворота в радианах
             double rotationRad = op.RotationAngle * Math.PI / 180.0;
             double cosRot = Math.Cos(rotationRad);
             double sinRot = Math.Sin(rotationRad);
 
-            /* ------------------------------------------------------------------ */
-            /* -------------------- Выбор стратегии обработки --------------------- */
-
             if (op.PocketStrategy == PocketStrategy.Spiral)
             {
-                // ---------- Спираль для эллипса ----------
                 while (currentZ > finalZ)
                 {
                     double nextZ = currentZ - op.StepDepth;
@@ -63,15 +137,12 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    // Переходы в безопасную высоту и центр
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
 
-                    // Понижение на текущую глубину и начало резки
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    // Уклон стенки
                     double depthFromTop = op.ContourHeight - nextZ;
                     double offset = depthFromTop * taperTan;
                     double effectiveRadiusX = baseRadiusX - offset;
@@ -83,62 +154,44 @@ namespace GCodeGenerator.GCodeGenerators
                         break;
                     }
 
-                    // Спираль Архимеда для эллипса
-                    // Используем параметрическое уравнение эллипса: x = a*cos(t), y = b*sin(t)
-                    // Спираль: увеличиваем a и b пропорционально углу
-                    double maxRadius = Math.Max(effectiveRadiusX, effectiveRadiusY);
-                    double minRadius = Math.Min(effectiveRadiusX, effectiveRadiusY);
-                    
                     int pointsPerRevolution = 128;
                     double stepAngle = 2 * Math.PI / pointsPerRevolution;
-                    
-                    // Максимальный угол для достижения внешней границы
-                    // Используем средний радиус для оценки
+
                     double avgRadius = (effectiveRadiusX + effectiveRadiusY) / 2.0;
                     double b = step / (2 * Math.PI);
                     double θMax = avgRadius / b;
 
-                    // Начальная точка спирали (в центре)
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     for (double θ = stepAngle; θ <= θMax; θ += stepAngle)
                     {
-                        // Радиус спирали
                         double r = b * θ;
-                        
-                        // Параметрический угол для эллипса (0..2π)
                         double t = θ;
-                        
-                        // Координаты на эллипсе (без поворота)
+
                         double aEllipse = effectiveRadiusX * (r / avgRadius);
                         double bEllipse = effectiveRadiusY * (r / avgRadius);
                         double xEllipse = aEllipse * Math.Cos(t);
                         double yEllipse = bEllipse * Math.Sin(t);
-                        
-                        // Применяем поворот и сдвиг к центру
+
                         double x = op.CenterX + xEllipse * cosRot - yEllipse * sinRot;
                         double y = op.CenterY + xEllipse * sinRot + yEllipse * cosRot;
 
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    // Завершающий эллипс по внешней границе
                     for (int i = 0; i <= pointsPerRevolution; i++)
                     {
                         double t = i * stepAngle;
                         double xEllipse = effectiveRadiusX * Math.Cos(t);
                         double yEllipse = effectiveRadiusY * Math.Sin(t);
-                        
+
                         double x = op.CenterX + xEllipse * cosRot - yEllipse * sinRot;
                         double y = op.CenterY + xEllipse * sinRot + yEllipse * cosRot;
 
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -174,12 +227,9 @@ namespace GCodeGenerator.GCodeGenerators
 
                     var lastHit = GenerateRadial(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, settings);
 
-                    // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -215,12 +265,9 @@ namespace GCodeGenerator.GCodeGenerators
 
                     var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, nextZ);
 
-                    // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -256,18 +303,15 @@ namespace GCodeGenerator.GCodeGenerators
 
                     var lastHit = GenerateLines(addLine, g0, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, nextZ, zigZag: true);
 
-                    // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
                 }
             }
-            else   /* PocketStrategy.Concentric – концентрические эллипсы */
+            else
             {
                 while (currentZ > finalZ)
                 {
@@ -289,25 +333,20 @@ namespace GCodeGenerator.GCodeGenerators
                     if (settings.UseComments)
                         addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                    // Переходы в безопасную высоту и центр
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
 
-                    // Понижение на текущую глубину и начало резки
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    // ---------- Концентрические эллипсы ----------
                     double maxEffectiveRadius = Math.Max(effectiveRadiusX, effectiveRadiusY);
                     for (double r = 0; r <= maxEffectiveRadius; r += step)
                     {
-                        // Масштабируем радиусы пропорционально
                         double scaleX = r / maxEffectiveRadius;
                         double scaleY = r / maxEffectiveRadius;
                         double currentRadiusX = effectiveRadiusX * scaleX;
                         double currentRadiusY = effectiveRadiusY * scaleY;
-                        
-                        // Количество сегментов зависит от размера эллипса
+
                         double perimeter = Math.PI * (3 * (currentRadiusX + currentRadiusY) - Math.Sqrt((3 * currentRadiusX + currentRadiusY) * (currentRadiusX + 3 * currentRadiusY)));
                         int segments = Math.Max(32, (int)Math.Ceiling(perimeter / (op.ToolDiameter * 0.5)));
                         if (segments < 4) segments = 4;
@@ -315,7 +354,6 @@ namespace GCodeGenerator.GCodeGenerators
                         double angleStep = 2 * Math.PI / segments *
                                           ((op.Direction == MillingDirection.Clockwise) ? -1 : 1);
 
-                        // Начальная точка эллипса (на оси X)
                         double startXEllipse = currentRadiusX;
                         double startYEllipse = 0;
                         double startX = op.CenterX + startXEllipse * cosRot - startYEllipse * sinRot;
@@ -327,7 +365,7 @@ namespace GCodeGenerator.GCodeGenerators
                             double t = angleStep * i;
                             double xEllipse = currentRadiusX * Math.Cos(t);
                             double yEllipse = currentRadiusY * Math.Sin(t);
-                            
+
                             double x = op.CenterX + xEllipse * cosRot - yEllipse * sinRot;
                             double y = op.CenterY + xEllipse * sinRot + yEllipse * cosRot;
 
@@ -335,15 +373,87 @@ namespace GCodeGenerator.GCodeGenerators
                         }
                     }
 
-                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
                 }
-            }   /* конец if‑else стратегии */
+            }
+        }
+
+        private void GenerateWallsFinishing(
+            PocketEllipseOperation op,
+            double radialAllowance,
+            Action<string> addLine,
+            string g0,
+            string g1,
+            GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            double toolRadius = op.ToolDiameter / 2.0;
+            double stepRadial = op.StepDepth;
+            if (stepRadial <= 0)
+                stepRadial = op.ToolDiameter * 0.25;
+
+            double baseRadiusX = op.RadiusX - toolRadius;
+            double baseRadiusY = op.RadiusY - toolRadius;
+            if (baseRadiusX <= 0 || baseRadiusY <= 0) return;
+
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
+
+            double startZ = op.ContourHeight;
+            double finalZ = op.ContourHeight - op.TotalDepth;
+
+            double allowance = Math.Max(0.0, radialAllowance);
+            int radialPasses = allowance > 1e-6
+                ? Math.Max(1, (int)Math.Ceiling(allowance / stepRadial))
+                : 1;
+            double radialStep = (radialPasses > 0 && allowance > 1e-6) ? allowance / radialPasses : 0.0;
+
+            double rotationRad = op.RotationAngle * Math.PI / 180.0;
+            double cosRot = Math.Cos(rotationRad);
+            double sinRot = Math.Sin(rotationRad);
+
+            double depthFromTop = op.ContourHeight - finalZ;
+            double offset = depthFromTop * taperTan;
+            double effRxFinal = baseRadiusX - offset;
+            double effRyFinal = baseRadiusY - offset;
+            if (effRxFinal <= 0 || effRyFinal <= 0)
+            {
+                if (settings.UseComments)
+                    addLine("(Taper offset too large, stopping finishing walls)");
+                return;
+            }
+
+            for (int i = 0; i < radialPasses; i++)
+            {
+                double remaining = allowance - (i + 1) * radialStep;
+                if (remaining < 0) remaining = 0;
+
+                double rx = effRxFinal - remaining;
+                double ry = effRyFinal - remaining;
+                if (rx <= 0 || ry <= 0)
+                    continue;
+
+                if (settings.UseComments)
+                    addLine($"(Finishing ellipse walls radial pass {i + 1}/{radialPasses}, stock {remaining.ToString(fmt, culture)}mm)");
+
+                double startX = op.CenterX + rx * cosRot;
+                double startY = op.CenterY + rx * sinRot;
+
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{startZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} Z{finalZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                GenerateOuterEllipse(addLine, g1, fmt, culture, op, rx, ry, (startX, startY));
+
+                addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            }
         }
 
         private (double x, double y) GenerateRadial(Action<string> addLine, string g1, string fmt, CultureInfo culture,
@@ -566,6 +676,40 @@ namespace GCodeGenerator.GCodeGenerators
 
                 addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             }
+        }
+
+        private PocketEllipseOperation CloneOp(PocketEllipseOperation src)
+        {
+            return new PocketEllipseOperation
+            {
+                Name = src.Name,
+                IsEnabled = src.IsEnabled,
+                PocketStrategy = src.PocketStrategy,
+                Direction = src.Direction,
+                CenterX = src.CenterX,
+                CenterY = src.CenterY,
+                RadiusX = src.RadiusX,
+                RadiusY = src.RadiusY,
+                RotationAngle = src.RotationAngle,
+                TotalDepth = src.TotalDepth,
+                StepDepth = src.StepDepth,
+                ToolDiameter = src.ToolDiameter,
+                ContourHeight = src.ContourHeight,
+                FeedXYRapid = src.FeedXYRapid,
+                FeedXYWork = src.FeedXYWork,
+                FeedZRapid = src.FeedZRapid,
+                FeedZWork = src.FeedZWork,
+                SafeZHeight = src.SafeZHeight,
+                RetractHeight = src.RetractHeight,
+                StepPercentOfTool = src.StepPercentOfTool,
+                Decimals = src.Decimals,
+                LineAngleDeg = src.LineAngleDeg,
+                WallTaperAngleDeg = src.WallTaperAngleDeg,
+                IsRoughingEnabled = src.IsRoughingEnabled,
+                IsFinishingEnabled = src.IsFinishingEnabled,
+                FinishAllowance = src.FinishAllowance,
+                FinishingMode = src.FinishingMode
+            };
         }
     }
 }
