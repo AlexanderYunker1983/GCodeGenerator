@@ -63,6 +63,26 @@ namespace GCodeGenerator.Models
         /// </summary>
         public double WallTaperAngleDeg { get; set; } = 0.0;
 
+        /// <summary>
+        /// Включена ли черновая обработка (с припуском).
+        /// </summary>
+        public bool IsRoughingEnabled { get; set; }
+
+        /// <summary>
+        /// Включена ли чистовая обработка (с припуском).
+        /// </summary>
+        public bool IsFinishingEnabled { get; set; }
+
+        /// <summary>
+        /// Припуск на обработку (мм), используется по контуру и по глубине.
+        /// </summary>
+        public double FinishAllowance { get; set; } = 0.0;
+
+        /// <summary>
+        /// Режим чистовой обработки.
+        /// </summary>
+        public PocketFinishingMode FinishingMode { get; set; } = PocketFinishingMode.All;
+
         public Dictionary<string, object> Metadata { get; set; }
 
         public override string GetDescription()

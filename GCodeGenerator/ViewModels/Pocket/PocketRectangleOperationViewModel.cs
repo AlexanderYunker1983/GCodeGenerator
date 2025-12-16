@@ -32,7 +32,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _operation = value;
                 if (_operation == null) return;
 
-            if (_operation.Metadata != null && _operation.Metadata.ContainsKey("Width"))
+                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("Width"))
                 {
                     Width = Convert.ToDouble(_operation.Metadata["Width"]);
                     Height = Convert.ToDouble(_operation.Metadata["Height"]);
@@ -61,6 +61,26 @@ namespace GCodeGenerator.ViewModels.Pocket
                         LineAngleDeg = Convert.ToDouble(_operation.Metadata["LineAngleDeg"]);
                     if (_operation.Metadata.ContainsKey("WallTaperAngleDeg"))
                         WallTaperAngleDeg = Math.Max(0, Convert.ToDouble(_operation.Metadata["WallTaperAngleDeg"]));
+
+                    if (_operation.Metadata.ContainsKey("IsRoughingEnabled"))
+                        IsRoughingEnabled = Convert.ToBoolean(_operation.Metadata["IsRoughingEnabled"]);
+                    else
+                        IsRoughingEnabled = _operation.IsRoughingEnabled;
+
+                    if (_operation.Metadata.ContainsKey("IsFinishingEnabled"))
+                        IsFinishingEnabled = Convert.ToBoolean(_operation.Metadata["IsFinishingEnabled"]);
+                    else
+                        IsFinishingEnabled = _operation.IsFinishingEnabled;
+
+                    if (_operation.Metadata.ContainsKey("FinishAllowance"))
+                        FinishAllowance = Convert.ToDouble(_operation.Metadata["FinishAllowance"]);
+                    else
+                        FinishAllowance = _operation.FinishAllowance;
+
+                    if (_operation.Metadata.ContainsKey("FinishingMode"))
+                        FinishingMode = (PocketFinishingMode)_operation.Metadata["FinishingMode"];
+                    else
+                        FinishingMode = _operation.FinishingMode;
                 }
                 else
                 {
@@ -86,6 +106,11 @@ namespace GCodeGenerator.ViewModels.Pocket
                     Decimals = _operation.Decimals;
                     LineAngleDeg = _operation.LineAngleDeg;
                     WallTaperAngleDeg = Math.Max(0, _operation.WallTaperAngleDeg);
+
+                    IsRoughingEnabled = _operation.IsRoughingEnabled;
+                    IsFinishingEnabled = _operation.IsFinishingEnabled;
+                    FinishAllowance = _operation.FinishAllowance;
+                    FinishingMode = _operation.FinishingMode;
                 }
             }
         }
@@ -372,6 +397,65 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private bool _isRoughingEnabled;
+        public bool IsRoughingEnabled
+        {
+            get => _isRoughingEnabled;
+            set
+            {
+                if (value == _isRoughingEnabled) return;
+                _isRoughingEnabled = value;
+                if (_isRoughingEnabled)
+                {
+                    // Взаимоисключающее включение
+                    _isFinishingEnabled = false;
+                    OnPropertyChanged(nameof(IsFinishingEnabled));
+                }
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isFinishingEnabled;
+        public bool IsFinishingEnabled
+        {
+            get => _isFinishingEnabled;
+            set
+            {
+                if (value == _isFinishingEnabled) return;
+                _isFinishingEnabled = value;
+                if (_isFinishingEnabled)
+                {
+                    _isRoughingEnabled = false;
+                    OnPropertyChanged(nameof(IsRoughingEnabled));
+                }
+                OnPropertyChanged();
+            }
+        }
+
+        private double _finishAllowance;
+        public double FinishAllowance
+        {
+            get => _finishAllowance;
+            set
+            {
+                if (value.Equals(_finishAllowance)) return;
+                _finishAllowance = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private PocketFinishingMode _finishingMode = PocketFinishingMode.All;
+        public PocketFinishingMode FinishingMode
+        {
+            get => _finishingMode;
+            set
+            {
+                if (value == _finishingMode) return;
+                _finishingMode = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -405,6 +489,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Decimals = Decimals;
             _operation.LineAngleDeg = LineAngleDeg;
             _operation.WallTaperAngleDeg = WallTaperAngleDeg;
+            _operation.IsRoughingEnabled = IsRoughingEnabled;
+            _operation.IsFinishingEnabled = IsFinishingEnabled;
+            _operation.FinishAllowance = FinishAllowance;
+            _operation.FinishingMode = FinishingMode;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
@@ -431,6 +519,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["Decimals"] = Decimals;
             _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
             _operation.Metadata["WallTaperAngleDeg"] = WallTaperAngleDeg;
+            _operation.Metadata["IsRoughingEnabled"] = IsRoughingEnabled;
+            _operation.Metadata["IsFinishingEnabled"] = IsFinishingEnabled;
+            _operation.Metadata["FinishAllowance"] = FinishAllowance;
+            _operation.Metadata["FinishingMode"] = FinishingMode;
 
             // notify preview update
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();

@@ -283,6 +283,64 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private bool _isRoughingEnabled;
+        public bool IsRoughingEnabled
+        {
+            get => _isRoughingEnabled;
+            set
+            {
+                if (value == _isRoughingEnabled) return;
+                _isRoughingEnabled = value;
+                if (_isRoughingEnabled)
+                {
+                    _isFinishingEnabled = false;
+                    OnPropertyChanged(nameof(IsFinishingEnabled));
+                }
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isFinishingEnabled;
+        public bool IsFinishingEnabled
+        {
+            get => _isFinishingEnabled;
+            set
+            {
+                if (value == _isFinishingEnabled) return;
+                _isFinishingEnabled = value;
+                if (_isFinishingEnabled)
+                {
+                    _isRoughingEnabled = false;
+                    OnPropertyChanged(nameof(IsRoughingEnabled));
+                }
+                OnPropertyChanged();
+            }
+        }
+
+        private double _finishAllowance;
+        public double FinishAllowance
+        {
+            get => _finishAllowance;
+            set
+            {
+                if (value.Equals(_finishAllowance)) return;
+                _finishAllowance = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private PocketFinishingMode _finishingMode = PocketFinishingMode.All;
+        public PocketFinishingMode FinishingMode
+        {
+            get => _finishingMode;
+            set
+            {
+                if (value == _finishingMode) return;
+                _finishingMode = value;
+                OnPropertyChanged();
+            }
+        }
+
         private void UpdateOperationData()
         {
             if (Operation == null)
@@ -317,6 +375,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             Decimals = Operation.Decimals;
             LineAngleDeg = Operation.LineAngleDeg;
             WallTaperAngleDeg = Math.Max(0, Operation.WallTaperAngleDeg);
+            IsRoughingEnabled = Operation.IsRoughingEnabled;
+            IsFinishingEnabled = Operation.IsFinishingEnabled;
+            FinishAllowance = Operation.FinishAllowance;
+            FinishingMode = Operation.FinishingMode;
         }
 
         private void ImportDxfFile()
@@ -1528,6 +1590,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Decimals = Decimals;
             _operation.LineAngleDeg = LineAngleDeg;
             _operation.WallTaperAngleDeg = WallTaperAngleDeg;
+            _operation.IsRoughingEnabled = IsRoughingEnabled;
+            _operation.IsFinishingEnabled = IsFinishingEnabled;
+            _operation.FinishAllowance = FinishAllowance;
+            _operation.FinishingMode = FinishingMode;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new Dictionary<string, object>();
@@ -1548,6 +1614,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["Decimals"] = Decimals;
             _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
             _operation.Metadata["WallTaperAngleDeg"] = WallTaperAngleDeg;
+            _operation.Metadata["IsRoughingEnabled"] = IsRoughingEnabled;
+            _operation.Metadata["IsFinishingEnabled"] = IsFinishingEnabled;
+            _operation.Metadata["FinishAllowance"] = FinishAllowance;
+            _operation.Metadata["FinishingMode"] = FinishingMode;
 
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }

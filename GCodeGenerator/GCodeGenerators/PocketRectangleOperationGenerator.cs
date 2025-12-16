@@ -17,6 +17,103 @@ namespace GCodeGenerator.GCodeGenerators
             var op = operation as PocketRectangleOperation;
             if (op == null) return;
 
+            // Определяем режимы: черновая / чистовая / обычная
+            bool roughing = op.IsRoughingEnabled;
+            bool finishing = op.IsFinishingEnabled;
+            double allowance = Math.Max(0.0, op.FinishAllowance);
+
+            // Если оба чекбокса выключены – работаем как раньше (полная обработка без припуска)
+            if (!roughing && !finishing)
+            {
+                roughing = true;
+                allowance = 0.0;
+            }
+
+            // Черновая обработка: уменьшаем глубину и габариты на припуск
+            if (roughing)
+            {
+                var roughOp = CloneOp(op);
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, roughOp.TotalDepth - 1e-6));
+
+                if (depthAllowance > 0)
+                {
+                    // Обрезаем по глубине
+                    roughOp.TotalDepth -= depthAllowance;
+
+                    // Обрезаем по контуру: оставляем припуск по стенке
+                    roughOp.Width -= 2 * depthAllowance;
+                    roughOp.Height -= 2 * depthAllowance;
+
+                    if (roughOp.Width <= 0 || roughOp.Height <= 0)
+                    {
+                        if (settings.UseComments)
+                            addLine("(Pocket too small after roughing allowance, skipping)");
+                        return;
+                    }
+                }
+
+                GenerateInternal(roughOp, addLine, g0, g1, settings);
+            }
+
+            // Чистовая обработка: обрабатываем только припуск по дну и/или стенкам
+            if (finishing && allowance > 0)
+            {
+                double depthAllowance = Math.Min(allowance, Math.Max(0.0, op.TotalDepth));
+                if (depthAllowance < 1e-6)
+                    return;
+
+                // Базовая чистовая операция по глубине: работаем только в слое припуска
+                var baseFinishOp = CloneOp(op);
+                baseFinishOp.ContourHeight = op.ContourHeight - (op.TotalDepth - depthAllowance);
+                baseFinishOp.TotalDepth = depthAllowance;
+                baseFinishOp.IsRoughingEnabled = false;
+                baseFinishOp.IsFinishingEnabled = false;
+                baseFinishOp.FinishAllowance = allowance; // сохраняем припуск для логики стенок
+
+                switch (op.FinishingMode)
+                {
+                    case PocketFinishingMode.Walls:
+                        // Обрабатываем только стенки, дно не трогаем
+                        GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        break;
+
+                    case PocketFinishingMode.Bottom:
+                        {
+                            // Обрабатываем только дно: внутренняя область без стенок
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.Width -= 2 * allowance;
+                            bottomOp.Height -= 2 * allowance;
+                            if (bottomOp.Width > 0 && bottomOp.Height > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+                        }
+                        break;
+
+                    case PocketFinishingMode.All:
+                    default:
+                        {
+                            // Сначала дно (внутри), затем стенки
+                            var bottomOp = CloneOp(baseFinishOp);
+                            bottomOp.Width -= 2 * allowance;
+                            bottomOp.Height -= 2 * allowance;
+                            if (bottomOp.Width > 0 && bottomOp.Height > 0)
+                                GenerateInternal(bottomOp, addLine, g0, g1, settings);
+
+                            GenerateWallsFinishing(baseFinishOp, allowance, addLine, g0, g1, settings);
+                        }
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Внутренняя реализация генерации для одной операции (без учёта черновой/чистовой логики).
+        /// </summary>
+        private void GenerateInternal(PocketRectangleOperation op,
+                                      Action<string> addLine,
+                                      string g0,
+                                      string g1,
+                                      GCodeSettings settings)
+        {
             var fmt = $"0.{new string('0', op.Decimals)}";
             var culture = CultureInfo.InvariantCulture;
 
@@ -190,6 +287,134 @@ namespace GCodeGenerator.GCodeGenerators
 
                 currentZ = nextZ;
             }
+        }
+
+        /// <summary>
+        /// Чистовая обработка только стенок (outer contour) на заданном слое по глубине.
+        /// Центральная часть кармана не перерабатывается.
+        /// </summary>
+        private void GenerateWallsFinishing(PocketRectangleOperation op,
+                                            double radialAllowance,
+                                            Action<string> addLine,
+                                            string g0,
+                                            string g1,
+                                            GCodeSettings settings)
+        {
+            var fmt = $"0.{new string('0', op.Decimals)}";
+            var culture = CultureInfo.InvariantCulture;
+
+            double toolRadius = op.ToolDiameter / 2.0;
+            double stepRadial = op.StepDepth; // для стенок «глубина за проход» – это шаг по припуску (радиально)
+            if (stepRadial <= 0)
+                stepRadial = op.ToolDiameter * 0.25;
+
+            GetCenter(op.ReferencePointType, op.ReferencePointX, op.ReferencePointY,
+                      op.Width, op.Height, out double cx, out double cy);
+
+            double baseHalfW = op.Width / 2.0;
+            double baseHalfH = op.Height / 2.0;
+            if (baseHalfW <= toolRadius || baseHalfH <= toolRadius) return;
+
+            var taperAngleRad = op.WallTaperAngleDeg * Math.PI / 180.0;
+            var taperTan = Math.Tan(taperAngleRad);
+
+            var angleRad = op.RotationAngle * Math.PI / 180.0;
+
+            // Для стенок чистовая идёт на всю высоту припуска за один раз по Z,
+            // а «глубина за проход» определяет количество радиальных проходов по припуску.
+            var startZ = op.ContourHeight;
+            var finalZ = op.ContourHeight - op.TotalDepth;
+
+            double allowance = Math.Max(0.0, radialAllowance);
+            int radialPasses = allowance > 1e-6
+                ? Math.Max(1, (int)Math.Ceiling(allowance / stepRadial))
+                : 1;
+            double radialStep = (radialPasses > 0 && allowance > 1e-6) ? allowance / radialPasses : 0.0;
+
+            // Учитываем уклон стенки на нижней точке
+            var depthFromTop = op.ContourHeight - finalZ;
+            var offset = depthFromTop * taperTan;
+            var effectiveToolRadius = toolRadius + offset;
+
+            var finalHalfW = baseHalfW - effectiveToolRadius;
+            var finalHalfH = baseHalfH - effectiveToolRadius;
+            if (finalHalfW <= 0 || finalHalfH <= 0)
+            {
+                if (settings.UseComments)
+                    addLine("(Taper offset too large, stopping finishing walls)");
+                return;
+            }
+
+            for (int i = 0; i < radialPasses; i++)
+            {
+                double remaining = allowance - (i + 1) * radialStep;
+                if (remaining < 0) remaining = 0;
+
+                var halfW = finalHalfW - remaining;
+                var halfH = finalHalfH - remaining;
+                if (halfW <= 0 || halfH <= 0)
+                    continue;
+
+                if (settings.UseComments)
+                    addLine($"(Finishing walls radial pass {i + 1}/{radialPasses}, stock {remaining.ToString(fmt, culture)}mm)");
+
+                var startCorner = new Point(cx - halfW, cy - halfH);
+
+                // Подъём, подход к углу и один проход по Z на всю высоту припуска
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{startCorner.X.ToString(fmt, culture)} Y{startCorner.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{startZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} Z{finalZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+
+                // Обходим только внешний прямоугольный контур на этой радиальной позиции
+                GenerateConcentricRectangles(addLine, g1,
+                                            fmt, culture,
+                                            cx, cy, halfW, halfH,
+                                            op.Direction,
+                                            stepRadial, angleRad,
+                                            op.FeedXYWork,
+                                            onlyOuter: true,
+                                            startPoint: startCorner);
+
+                // После обхода уходим в центр и поднимаем фрезу
+                addLine($"{g1} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            }
+        }
+
+        private PocketRectangleOperation CloneOp(PocketRectangleOperation src)
+        {
+            return new PocketRectangleOperation
+            {
+                Name = src.Name,
+                IsEnabled = src.IsEnabled,
+                Direction = src.Direction,
+                PocketStrategy = src.PocketStrategy,
+                Width = src.Width,
+                Height = src.Height,
+                RotationAngle = src.RotationAngle,
+                TotalDepth = src.TotalDepth,
+                StepDepth = src.StepDepth,
+                ToolDiameter = src.ToolDiameter,
+                ContourHeight = src.ContourHeight,
+                FeedXYRapid = src.FeedXYRapid,
+                FeedXYWork = src.FeedXYWork,
+                FeedZRapid = src.FeedZRapid,
+                FeedZWork = src.FeedZWork,
+                SafeZHeight = src.SafeZHeight,
+                RetractHeight = src.RetractHeight,
+                ReferencePointX = src.ReferencePointX,
+                ReferencePointY = src.ReferencePointY,
+                ReferencePointType = src.ReferencePointType,
+                StepPercentOfTool = src.StepPercentOfTool,
+                Decimals = src.Decimals,
+                LineAngleDeg = src.LineAngleDeg,
+                WallTaperAngleDeg = src.WallTaperAngleDeg,
+                IsRoughingEnabled = src.IsRoughingEnabled,
+                IsFinishingEnabled = src.IsFinishingEnabled,
+                FinishAllowance = src.FinishAllowance,
+                FinishingMode = src.FinishingMode
+            };
         }
 
         #region Вспомогательные методы

@@ -687,4 +687,25 @@
   <data name="OperationEnabled" xml:space="preserve">
     <value>Вкл</value>
   </data>
+  <data name="PocketRoughing" xml:space="preserve">
+    <value>Черновая обработка (с припуском)</value>
+  </data>
+  <data name="PocketFinishing" xml:space="preserve">
+    <value>Чистовая обработка (с припуском)</value>
+  </data>
+  <data name="PocketFinishAllowance" xml:space="preserve">
+    <value>Припуск на обработку, мм:</value>
+  </data>
+  <data name="PocketFinishingModeHeader" xml:space="preserve">
+    <value>Режим чистовой обработки</value>
+  </data>
+  <data name="PocketFinishingWalls" xml:space="preserve">
+    <value>Только стенки</value>
+  </data>
+  <data name="PocketFinishingBottom" xml:space="preserve">
+    <value>Только дно</value>
+  </data>
+  <data name="PocketFinishingAll" xml:space="preserve">
+    <value>Стенки и дно</value>
+  </data>
 </root>

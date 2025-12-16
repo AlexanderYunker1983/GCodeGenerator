@@ -120,6 +120,7 @@
     <Compile Include="Models\PocketCircleOperation.cs" />
     <Compile Include="Models\PocketEllipseOperation.cs" />
     <Compile Include="Models\PocketDxfOperation.cs" />
+    <Compile Include="Models\PocketFinishingMode.cs" />
     <Compile Include="Models\ProfileRoundedRectangleOperation.cs" />
     <Compile Include="Models\ProfileCircleOperation.cs" />
     <Compile Include="Models\ProfileEllipseOperation.cs" />

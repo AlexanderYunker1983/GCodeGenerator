@@ -90,6 +90,46 @@
                     <TextBlock Text="{DataBinding '$i18n.WallTaperAngleDeg'}" VerticalAlignment="Center" Margin="0,0,8,0"/>
                     <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
+
+                <!-- Черновая / чистовая обработка с припуском -->
+                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                    <CheckBox Margin="0,0,16,0"
+                              IsChecked="{Binding IsRoughingEnabled}"
+                              Content="{DataBinding '$i18n.PocketRoughing'}"/>
+                    <CheckBox IsChecked="{Binding IsFinishingEnabled}"
+                              Content="{DataBinding '$i18n.PocketFinishing'}"/>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <TextBlock Text="{DataBinding '$i18n.PocketFinishAllowance'}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Width="80" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
+
+                <GroupBox Header="{DataBinding '$i18n.PocketFinishingModeHeader'}" Margin="0,8,0,0">
+                    <GroupBox.Style>
+                        <Style TargetType="GroupBox">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsFinishingEnabled}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </GroupBox.Style>
+                    <StackPanel Margin="8">
+                        <RadioButton Content="{DataBinding '$i18n.PocketFinishingWalls'}"
+                                     GroupName="FinishingMode"
+                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Walls}}"
+                                     Margin="0,0,0,4"/>
+                        <RadioButton Content="{DataBinding '$i18n.PocketFinishingBottom'}"
+                                     GroupName="FinishingMode"
+                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Bottom}}"
+                                     Margin="0,0,0,4"/>
+                        <RadioButton Content="{DataBinding '$i18n.PocketFinishingAll'}"
+                                     GroupName="FinishingMode"
+                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.All}}"/>
+                    </StackPanel>
+                </GroupBox>
             </StackPanel>
         </GroupBox>
 
