@@ -285,6 +285,7 @@ namespace GCodeGenerator.GCodeGenerators
             int pointsPerRevolution = 128;
             double angleStep = 2 * Math.PI / pointsPerRevolution;
             double θMax = (maxRadius - a) / b;
+            double dirSign = direction == MillingDirection.Clockwise ? -1.0 : 1.0;
 
             // Функция проверки, находится ли точка внутри контура
             bool IsPointInside(double x, double y)
@@ -333,8 +334,9 @@ namespace GCodeGenerator.GCodeGenerators
             for (double θ = angleStep; θ <= θMax + 1e-9; θ += angleStep)
             {
                 double r = a + b * θ;
-                double xSpiral = center.X + r * Math.Cos(θ);
-                double ySpiral = center.Y + r * Math.Sin(θ);
+                double ang = θ * dirSign;
+                double xSpiral = center.X + r * Math.Cos(ang);
+                double ySpiral = center.Y + r * Math.Sin(ang);
                 spiralPoints.Add((xSpiral, ySpiral));
             }
 

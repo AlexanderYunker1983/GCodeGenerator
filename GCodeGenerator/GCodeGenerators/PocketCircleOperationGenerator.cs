@@ -161,27 +161,30 @@ namespace GCodeGenerator.GCodeGenerators
                     int pointsPerRevolution = 128;
                     double stepAngle = 2 * Math.PI / pointsPerRevolution;
                     double θMax = effectiveRadius / b;
+                    double dirSign = op.Direction == MillingDirection.Clockwise ? -1.0 : 1.0;
 
                     addLine($"{g1} X{(op.CenterX + a).ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     for (double θ = stepAngle; θ <= θMax; θ += stepAngle)
                     {
                         double r = a + b * θ;
-                        double x = op.CenterX + r * Math.Cos(θ);
-                        double y = op.CenterY + r * Math.Sin(θ);
+                        double ang = θ * dirSign;
+                        double x = op.CenterX + r * Math.Cos(ang);
+                        double y = op.CenterY + r * Math.Sin(ang);
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    double xLast = op.CenterX + effectiveRadius * Math.Cos(θMax);
-                    double yLast = op.CenterY + effectiveRadius * Math.Sin(θMax);
+                    double xLast = op.CenterX + effectiveRadius * Math.Cos(θMax * dirSign);
+                    double yLast = op.CenterY + effectiveRadius * Math.Sin(θMax * dirSign);
 
                     addLine($"{g1} X{xLast.ToString(fmt, culture)} Y{yLast.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     for (int i = 0; i <= pointsPerRevolution; i++)
                     {
                         double θFull = θMax + i * stepAngle;
-                        double x = op.CenterX + effectiveRadius * Math.Cos(θFull);
-                        double y = op.CenterY + effectiveRadius * Math.Sin(θFull);
+                        double angFull = θFull * dirSign;
+                        double x = op.CenterX + effectiveRadius * Math.Cos(angFull);
+                        double y = op.CenterY + effectiveRadius * Math.Sin(angFull);
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 

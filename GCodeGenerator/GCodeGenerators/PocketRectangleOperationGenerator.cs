@@ -186,7 +186,7 @@ namespace GCodeGenerator.GCodeGenerators
                     GenerateSpiral(addLine, g0, g1,
                                    fmt, culture,
                                    cx, cy, halfW, halfH,
-                                   step, angleRad,
+                                   step, op.Direction, angleRad,
                                    op.FeedXYWork,
                                    op.SafeZHeight, nextZ,
                                    op.FeedZRapid, op.FeedZWork);
@@ -431,6 +431,7 @@ namespace GCodeGenerator.GCodeGenerators
                                     double cx, double cy,
                                     double halfW, double halfH,
                                     double step,
+                                    MillingDirection direction,
                                     double angleRad,
                                     double feedXYWork,
                                     double safeZ, double currentZ,
@@ -444,6 +445,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             int pointsPerRevolution = 128;
             double angleStep = 2 * Math.PI / pointsPerRevolution;
+            double dirSign = direction == MillingDirection.Clockwise ? -1.0 : 1.0;
 
             double θMax = (maxRadius - a) / b;
 
@@ -606,8 +608,9 @@ namespace GCodeGenerator.GCodeGenerators
             for (double θ = angleStep; θ <= θMax + 1e-9; θ += angleStep)
             {
                 double r = a + b * θ;
-                double xSpiral = cx + r * Math.Cos(θ);
-                double ySpiral = cy + r * Math.Sin(θ);
+                double ang = θ * dirSign;
+                double xSpiral = cx + r * Math.Cos(ang);
+                double ySpiral = cy + r * Math.Sin(ang);
                 spiralPoints.Add((xSpiral, ySpiral));
             }
 

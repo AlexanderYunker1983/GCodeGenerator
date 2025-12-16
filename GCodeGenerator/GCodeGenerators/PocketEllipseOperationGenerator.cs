@@ -160,13 +160,14 @@ namespace GCodeGenerator.GCodeGenerators
                     double avgRadius = (effectiveRadiusX + effectiveRadiusY) / 2.0;
                     double b = step / (2 * Math.PI);
                     double θMax = avgRadius / b;
+                    double dirSign = op.Direction == MillingDirection.Clockwise ? -1.0 : 1.0;
 
                     addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     for (double θ = stepAngle; θ <= θMax; θ += stepAngle)
                     {
                         double r = b * θ;
-                        double t = θ;
+                        double t = θ * dirSign;
 
                         double aEllipse = effectiveRadiusX * (r / avgRadius);
                         double bEllipse = effectiveRadiusY * (r / avgRadius);
@@ -181,7 +182,7 @@ namespace GCodeGenerator.GCodeGenerators
 
                     for (int i = 0; i <= pointsPerRevolution; i++)
                     {
-                        double t = i * stepAngle;
+                        double t = i * stepAngle * dirSign;
                         double xEllipse = effectiveRadiusX * Math.Cos(t);
                         double yEllipse = effectiveRadiusY * Math.Sin(t);
 
