@@ -1154,10 +1154,19 @@ namespace GCodeGenerator.GCodeGenerators
                 offsets.Add(o);
             if (offsets.Count == 0 || offsets.Last() < maxOffset)
                 offsets.Add(maxOffset);
-            offsets = offsets.OrderBy(v => v).ToList(); // от наружного к внутреннему (0 – внешний)
+            offsets = offsets.OrderBy(v => v).ToList(); // 0 – внешний, maxOffset – внутренний
 
             if (onlyOuter && offsets.Count > 0)
-                offsets = new System.Collections.Generic.List<double> { 0.0 }; // только внешний контур
+            {
+                // для чистовой по стенкам и внешнего обхода используем только внешний контур
+                offsets = new System.Collections.Generic.List<double> { 0.0 };
+            }
+            else
+            {
+                // для стратегии «концентрические линии» обрабатываем из центра к краю:
+                // сначала внутренний прямоугольник, затем наружные
+                offsets.Reverse();
+            }
 
             var clockwise = direction == MillingDirection.Clockwise;
 
