@@ -181,6 +181,10 @@ namespace GCodeGenerator.GCodeGenerators
                                                 step, angleRad,
                                                 op.FeedXYWork);
 
+                // В конце прохода слоя не поднимаем фрезу прямо на контуре:
+                // сначала уходим в центр кармана, затем поднимаемся.
+                addLine($"{g1} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
                 // Переход к безопасной высоте
                 addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 

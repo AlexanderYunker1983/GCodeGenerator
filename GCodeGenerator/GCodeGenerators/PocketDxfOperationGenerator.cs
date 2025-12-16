@@ -109,6 +109,11 @@ namespace GCodeGenerator.GCodeGenerators
                             break;
                     }
 
+                    // В конце прохода слоя не поднимаем фрезу прямо на внешнем контуре:
+                    // сначала уходим к центру контура, затем поднимаем фрезу.
+                    var center = GetContourCenter(contour);
+                    addLine($"{g1} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
                     if (nextZ > finalZ)
                     {
                         var retractZAfterPass = nextZ + op.RetractHeight;

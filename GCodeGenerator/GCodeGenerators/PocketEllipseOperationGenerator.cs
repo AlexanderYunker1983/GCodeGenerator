@@ -135,6 +135,9 @@ namespace GCodeGenerator.GCodeGenerators
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
+                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
+                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
                     // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
@@ -174,6 +177,9 @@ namespace GCodeGenerator.GCodeGenerators
                     // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
+                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
+                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -212,6 +218,9 @@ namespace GCodeGenerator.GCodeGenerators
                     // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
+                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
+                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -249,6 +258,9 @@ namespace GCodeGenerator.GCodeGenerators
 
                     // Завершающий полный проход по контуру
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
+
+                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
+                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
@@ -322,6 +334,9 @@ namespace GCodeGenerator.GCodeGenerators
                             addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                         }
                     }
+
+                    // В конце прохода слоя уходим внутрь кармана (к центру), затем поднимаем фрезу.
+                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
                     // Переход к безопасной высоте
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
