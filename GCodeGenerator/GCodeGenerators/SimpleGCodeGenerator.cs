@@ -130,6 +130,10 @@ namespace GCodeGenerator.GCodeGenerators
 
             foreach (var operation in operations)
             {
+                // Skip disabled operations completely when generating trajectory
+                if (operation == null || !operation.IsEnabled)
+                    continue;
+
                 if (settings.UseComments)
                     AddLine($"({operation.Name}: {operation.GetDescription()})");
 

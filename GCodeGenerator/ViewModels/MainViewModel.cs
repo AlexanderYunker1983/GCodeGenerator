@@ -14,6 +14,7 @@ using System.Linq;
 using System.Text;
 using System.Web.Script.Serialization;
 using System.Windows.Input;
+using System.ComponentModel;
 using GCodeGenerator.GCodeGenerators;
 using YLocalization;
 
@@ -47,10 +48,9 @@ namespace GCodeGenerator.ViewModels
             DrillOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             ProfileMillingOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
-            PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
             
             // Subscribe to AllOperations changes to update command
-            AllOperations.CollectionChanged += (s, e) => ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
             
             // Initialize AllOperations with existing operations
             foreach (var op in DrillOperations.Operations)
@@ -78,6 +78,12 @@ namespace GCodeGenerator.ViewModels
             var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
             var version = PlatformVariables.ProgramVersion;
             _displayName = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
+
+            // Attach property change handlers to existing operations
+            foreach (var op in AllOperations)
+            {
+                AttachOperation(op);
+            }
         }
 
         private string _displayName;
@@ -189,6 +195,7 @@ namespace GCodeGenerator.ViewModels
             {
                 foreach (OperationBase item in e.OldItems)
                 {
+                    DetachOperation(item);
                     AllOperations.Remove(item);
                     if (SelectedOperation == item)
                         SelectedOperation = null;
@@ -198,12 +205,16 @@ namespace GCodeGenerator.ViewModels
             {
                 foreach (OperationBase item in e.OldItems)
                 {
+                    DetachOperation(item);
                     AllOperations.Remove(item);
                 }
                 foreach (OperationBase item in e.NewItems)
                 {
                     if (!AllOperations.Contains(item))
+                    {
                         AllOperations.Add(item);
+                        AttachOperation(item);
+                    }
                 }
             }
             else if (e.Action == NotifyCollectionChangedAction.Reset)
@@ -216,6 +227,7 @@ namespace GCodeGenerator.ViewModels
                 ).ToList();
                 foreach (var item in toRemove)
                 {
+                    DetachOperation(item);
                     AllOperations.Remove(item);
                     if (SelectedOperation == item)
                         SelectedOperation = null;
@@ -226,6 +238,45 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
             NotifyOperationsChanged();
+        }
+
+        private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+
+            if (e?.NewItems != null)
+            {
+                foreach (OperationBase op in e.NewItems)
+                    AttachOperation(op);
+            }
+
+            if (e?.OldItems != null)
+            {
+                foreach (OperationBase op in e.OldItems)
+                    DetachOperation(op);
+            }
+        }
+
+        private void AttachOperation(OperationBase op)
+        {
+            if (op == null) return;
+            op.PropertyChanged -= OnOperationPropertyChanged;
+            op.PropertyChanged += OnOperationPropertyChanged;
+        }
+
+        private void DetachOperation(OperationBase op)
+        {
+            if (op == null) return;
+            op.PropertyChanged -= OnOperationPropertyChanged;
+        }
+
+        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(OperationBase.IsEnabled))
+            {
+                // When user toggles "Enabled" flag, force 2D preview redraw
+                NotifyOperationsChanged();
+            }
         }
 
         private void GenerateGCode()

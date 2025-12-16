@@ -141,8 +141,14 @@
                      MouseDoubleClick="OperationsList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <StackPanel Orientation="Vertical">
-                            <TextBlock Text="{Binding Name}" FontWeight="Bold"/>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox Margin="0,0,6,0"
+                                      VerticalAlignment="Center"
+                                      IsChecked="{Binding IsEnabled}"
+                                      Content="{DataBinding '$i18n.OperationEnabled'}"/>
+                            <TextBlock Text="{Binding Name}"
+                                       FontWeight="Bold"
+                                       VerticalAlignment="Center"/>
                         </StackPanel>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

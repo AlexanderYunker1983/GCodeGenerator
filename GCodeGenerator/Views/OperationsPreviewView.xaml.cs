@@ -476,12 +476,14 @@ namespace GCodeGenerator.Views
         {
             var screen = WorldToScreen(new Point(x, y));
             var size = 5.0;
+            var opacity = op != null && !op.IsEnabled ? 0.3 : 1.0;
             var ellipse = new Ellipse
             {
                 Width = size,
                 Height = size,
                 Fill = brush,
-                Tag = op
+                Tag = op,
+                Opacity = opacity
             };
             ApplyTooltip(ellipse, op);
             Canvas.SetLeft(ellipse, screen.X - size / 2.0);
@@ -496,13 +498,15 @@ namespace GCodeGenerator.Views
 
             var points = worldPoints.Select(WorldToScreen).ToList();
 
+            var baseOpacity = op != null && !op.IsEnabled ? 0.3 : 1.0;
+
             if (fill && points.Count >= 3)
             {
                 var polygon = new Polygon
                 {
                     Stroke = stroke,
                     Fill = stroke.Clone(),
-                    Opacity = 0.25,
+                    Opacity = 0.25 * baseOpacity,
                     StrokeThickness = 1,
                     Points = new PointCollection(points),
                     Tag = op
@@ -515,6 +519,7 @@ namespace GCodeGenerator.Views
             {
                 Stroke = stroke,
                 StrokeThickness = 1,
+                Opacity = baseOpacity,
                 Points = new PointCollection(points),
                 Tag = op
             };
