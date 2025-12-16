@@ -136,7 +136,7 @@ namespace GCodeGenerator.GCodeGenerators
                     {
                         case PocketStrategy.Spiral:
                             GenerateSpiralContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
-                                op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
+                                op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid, op.RetractHeight);
                             break;
                         case PocketStrategy.Concentric:
                             GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
@@ -144,15 +144,15 @@ namespace GCodeGenerator.GCodeGenerators
                             break;
                         case PocketStrategy.Radial:
                             GenerateRadialContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
-                                op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid);
+                                op.FeedXYRapid, op.FeedXYWork, op.Direction, nextZ, op.SafeZHeight, op.FeedZRapid, op.RetractHeight);
                             break;
                         case PocketStrategy.Lines:
                             GenerateLinesContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
-                                op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid);
+                                op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid, op.RetractHeight);
                             break;
                         case PocketStrategy.ZigZag:
                             GenerateZigZagContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
-                                op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid);
+                                op.FeedXYRapid, op.FeedXYWork, op.Direction, op.LineAngleDeg, nextZ, op.SafeZHeight, op.FeedZRapid, op.RetractHeight);
                             break;
                         default:
                             GenerateConcentricContours(addLine, g0, g1, fmt, culture, contour, effectiveToolRadius, step,
@@ -161,13 +161,17 @@ namespace GCodeGenerator.GCodeGenerators
                     }
 
                     var center = GetContourCenter(contour);
-                    addLine($"{g1} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                    if (nextZ > finalZ)
+                    // Возврат в центр на холостом ходу с подъемом
+                    double retractZAfterPass = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    
+                    if (nextZ <= finalZ)
                     {
-                        var retractZAfterPass = nextZ + op.RetractHeight;
-                        addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                        // Последний слой - поднимаемся на безопасную высоту
+                        addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     }
+                    // Иначе остаемся на высоте отвода для следующего слоя
 
                     currentZ = nextZ;
                 }
@@ -260,7 +264,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void GenerateSpiralContours(Action<string> addLine, string g0, string g1,
             string fmt, CultureInfo culture, DxfPolyline outerContour,
             double toolRadius, double step, double feedXYRapid, double feedXYWork,
-            MillingDirection direction, double currentZ, double safeZ, double feedZRapid)
+            MillingDirection direction, double currentZ, double safeZ, double feedZRapid, double retractHeight)
         {
             // Генерируем спираль Архимеда из центра контура
             var center = GetContourCenter(outerContour);
@@ -379,7 +383,7 @@ namespace GCodeGenerator.GCodeGenerators
                     {
                         // Двигаемся по контуру от точки выхода до точки входа
                         MoveAlongContour(addLine, g0, g1, fmt, culture, lastExitPoint.X, lastExitPoint.Y,
-                            entry.X, entry.Y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid);
+                            entry.X, entry.Y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid, retractHeight);
                         lastExitPoint = null;
                     }
                     
@@ -403,7 +407,7 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 // Двигаемся по контуру от последней точки выхода до начальной точки
                 MoveAlongContour(addLine, g0, g1, fmt, culture, lastExitPoint.X, lastExitPoint.Y,
-                    startPoint.X, startPoint.Y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid);
+                    startPoint.X, startPoint.Y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid, retractHeight);
             }
             else
             {
@@ -417,7 +421,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void MoveAlongContour(Action<string> addLine, string g0, string g1,
             string fmt, CultureInfo culture, double x1, double y1, double x2, double y2,
             DxfPolyline contour, MillingDirection direction, double feedXYRapid, double feedXYWork,
-            double currentZ, double safeZ, double feedZRapid)
+            double currentZ, double safeZ, double feedZRapid, double retractHeight)
         {
             // Находим ближайшие точки на контуре
             int idx1 = FindNearestPointOnContour(x1, y1, contour);
@@ -426,13 +430,18 @@ namespace GCodeGenerator.GCodeGenerators
             if (idx1 < 0 || idx2 < 0)
             {
                 // Если не удалось найти точки, поднимаем инструмент
-                addLine($"{g0} Z{safeZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                double retractZ1 = currentZ + retractHeight;
+                addLine($"{g0} Z{retractZ1.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
                 addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 return;
             }
 
-            // Двигаемся по контуру от idx1 до idx2
+            // Поднимаем инструмент для перехода
+            double retractZ = currentZ + retractHeight;
+            addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+
+            // Двигаемся по контуру от idx1 до idx2 на холостом ходу
             int step = direction == MillingDirection.Clockwise ? -1 : 1;
             int currentIdx = idx1;
             int targetIdx = idx2;
@@ -441,11 +450,14 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 currentIdx = (currentIdx + step + contour.Points.Count) % contour.Points.Count;
                 var p = contour.Points[currentIdx];
-                addLine($"{g1} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
             }
 
             // Двигаемся к конечной точке
-            addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+            addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
+            
+            // Опускаем обратно на рабочую высоту
+            addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
         }
 
         private int FindNearestPointOnContour(double x, double y, DxfPolyline contour)
@@ -496,7 +508,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void GenerateRadialContours(Action<string> addLine, string g0, string g1,
             string fmt, CultureInfo culture, DxfPolyline outerContour,
             double toolRadius, double step, double feedXYRapid, double feedXYWork,
-            MillingDirection direction, double currentZ, double safeZ, double feedZRapid)
+            MillingDirection direction, double currentZ, double safeZ, double feedZRapid, double retractHeight)
         {
             // Для радиальной стратегии генерируем радиальные линии от центра до контура
             var center = GetContourCenter(outerContour);
@@ -544,8 +556,11 @@ namespace GCodeGenerator.GCodeGenerators
                         addLine($"{g1} X{nextPoint.X.ToString(fmt, culture)} Y{nextPoint.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
                     }
                     
-                    // Возвращаемся в центр
-                    addLine($"{g1} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    // Возвращаемся в центр на холостом ходу с подъемом
+                    double retractZ = currentZ + retractHeight;
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{center.X.ToString(fmt, culture)} Y{center.Y.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 }
             }
 
@@ -560,7 +575,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void GenerateLinesContours(Action<string> addLine, string g0, string g1,
             string fmt, CultureInfo culture, DxfPolyline outerContour,
             double toolRadius, double step, double feedXYRapid, double feedXYWork,
-            MillingDirection direction, double lineAngleDeg, double currentZ, double safeZ, double feedZRapid)
+            MillingDirection direction, double lineAngleDeg, double currentZ, double safeZ, double feedZRapid, double retractHeight)
         {
             // Генерируем параллельные линии под заданным углом
             var offsetContour = OffsetContour(outerContour, -toolRadius);
@@ -618,7 +633,9 @@ namespace GCodeGenerator.GCodeGenerators
                 }
                 else
                 {
-                    addLine($"{g0} Z{safeZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                    // Поднимаем на retractHeight относительно текущей высоты
+                    double retractZ = currentZ + retractHeight;
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{start.x.ToString(fmt, culture)} Y{start.y.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 }
@@ -637,7 +654,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void GenerateZigZagContours(Action<string> addLine, string g0, string g1,
             string fmt, CultureInfo culture, DxfPolyline outerContour,
             double toolRadius, double step, double feedXYRapid, double feedXYWork,
-            MillingDirection direction, double lineAngleDeg, double currentZ, double safeZ, double feedZRapid)
+            MillingDirection direction, double lineAngleDeg, double currentZ, double safeZ, double feedZRapid, double retractHeight)
         {
             // Генерируем зигзаг - параллельные линии с чередованием направления
             var offsetContour = OffsetContour(outerContour, -toolRadius);
@@ -700,7 +717,9 @@ namespace GCodeGenerator.GCodeGenerators
                 }
                 else
                 {
-                    addLine($"{g0} Z{safeZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                    // Поднимаем на retractHeight относительно текущей высоты
+                    double retractZ = currentZ + retractHeight;
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{start.x.ToString(fmt, culture)} Y{start.y.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 }
@@ -719,7 +738,7 @@ namespace GCodeGenerator.GCodeGenerators
                         
                         // Двигаемся по контуру от конца текущей линии до начала следующей
                         MoveAlongContour(addLine, g0, g1, fmt, culture, end.x, end.y,
-                            nextStart.x, nextStart.y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid);
+                            nextStart.x, nextStart.y, offsetContour, direction, feedXYRapid, feedXYWork, currentZ, safeZ, feedZRapid, retractHeight);
                     }
                 }
             }

@@ -188,7 +188,10 @@ namespace GCodeGenerator.GCodeGenerators
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    // Возврат в центр на холостом ходу с подъемом
+                    double retractZ = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -221,7 +224,7 @@ namespace GCodeGenerator.GCodeGenerators
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    var lastHit = GenerateRadial(addLine, g1, fmt, culture, op, effectiveRadius, step, settings);
+                    var lastHit = GenerateRadial(addLine, g0, g1, fmt, culture, op, effectiveRadius, step, nextZ, settings);
 
                     GenerateOuterCircle(addLine, g1, fmt, culture, op, effectiveRadius, lastHit);
 
@@ -428,8 +431,8 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private (double x, double y) GenerateRadial(Action<string> addLine, string g1, string fmt, CultureInfo culture,
-                                                    PocketCircleOperation op, double effectiveRadius, double step, GCodeSettings settings)
+        private (double x, double y) GenerateRadial(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
+                                                    PocketCircleOperation op, double effectiveRadius, double step, double currentZ, GCodeSettings settings)
         {
             var circumference = 2 * Math.PI * effectiveRadius;
             var segments = Math.Max(12, (int)Math.Ceiling(circumference / step));
@@ -449,7 +452,12 @@ namespace GCodeGenerator.GCodeGenerators
 
                 addLine($"{g1} X{x1.ToString(fmt, culture)} Y{y1.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                
+                // Переход в центр на холостом ходу с подъемом
+                double retractZ = currentZ + op.RetractHeight;
+                addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                 lastHit = (x2, y2);
             }
@@ -532,7 +540,7 @@ namespace GCodeGenerator.GCodeGenerators
                 else if (i > 0 && zigZag)
                 {
                     // уже на глубине, переходим по дуге от предыдущего конца к новому старту
-                    MoveAlongCircle(addLine, g1, fmt, culture, op, effectiveRadius, prevEndAng, startAng);
+                    MoveAlongCircle(addLine, g0, g1, fmt, culture, op, effectiveRadius, prevEndAng, startAng, cutZ);
                 }
 
                 addLine($"{g1} X{endX.ToString(fmt, culture)} Y{endY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
@@ -545,7 +553,7 @@ namespace GCodeGenerator.GCodeGenerators
                         ? nextSeg.angEnd
                         : nextSeg.angStart;
 
-                    MoveAlongCircle(addLine, g1, fmt, culture, op, effectiveRadius, endAng, nextStartAng);
+                    MoveAlongCircle(addLine, g0, g1, fmt, culture, op, effectiveRadius, endAng, nextStartAng, cutZ);
                 }
 
                 lastHit = (endX, endY);
@@ -588,8 +596,8 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private void MoveAlongCircle(Action<string> addLine, string g1, string fmt, CultureInfo culture,
-                                     PocketCircleOperation op, double radius, double angStart, double angEnd)
+        private void MoveAlongCircle(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
+                                     PocketCircleOperation op, double radius, double angStart, double angEnd, double currentZ)
         {
             // Нормализуем разницу углов
             double delta = angEnd - angStart;
@@ -599,13 +607,21 @@ namespace GCodeGenerator.GCodeGenerators
             int segs = Math.Max(12, (int)Math.Ceiling(Math.Abs(delta) * radius / (op.ToolDiameter * 0.5)));
             double step = delta / segs;
 
+            // Поднимаем инструмент для перехода
+            double retractZ = currentZ + op.RetractHeight;
+            addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+            // Перемещаемся по окружности на холостом ходу
             for (int i = 1; i <= segs; i++)
             {
                 double ang = angStart + step * i;
                 double x = op.CenterX + radius * Math.Cos(ang);
                 double y = op.CenterY + radius * Math.Sin(ang);
-                addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
             }
+
+            // Опускаем обратно на рабочую высоту
+            addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
         }
 
         private PocketCircleOperation CloneOp(PocketCircleOperation src)

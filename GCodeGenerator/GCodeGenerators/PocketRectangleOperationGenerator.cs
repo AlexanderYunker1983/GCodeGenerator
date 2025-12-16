@@ -188,16 +188,22 @@ namespace GCodeGenerator.GCodeGenerators
                                    cx, cy, halfW, halfH,
                                    step, op.Direction, angleRad,
                                    op.FeedXYWork,
+                                   op.FeedXYRapid,
                                    op.SafeZHeight, nextZ,
-                                   op.FeedZRapid, op.FeedZWork);
+                                   op.FeedZRapid, op.FeedZWork,
+                                   op.RetractHeight);
                 else if (op.PocketStrategy == PocketStrategy.Radial)
                 {
-                    var lastHit = GenerateRadial(addLine, g1,
+                    var lastHit = GenerateRadial(addLine, g0, g1,
                                    fmt, culture,
                                    cx, cy, halfW, halfH,
                                    step, angleRad,
                                    op.Direction,
-                                   op.FeedXYWork);
+                                   op.FeedXYWork,
+                                   op.FeedXYRapid,
+                                   op.FeedZRapid,
+                                   nextZ,
+                                   op.RetractHeight);
                     // Завершающий полный проход по контуру с учётом последней точки
                     GenerateConcentricRectangles(addLine, g1,
                                                 fmt, culture,
@@ -254,7 +260,7 @@ namespace GCodeGenerator.GCodeGenerators
                             {
                                 var nextSeg = segments[i + 1];
                                 var nextStart = (i % 2 == 0) ? nextSeg.end : nextSeg.start; // следующий старт по контуру, чтобы развернуться
-                                TravelAlongRectangle(addLine, g1, fmt, culture, end, nextStart, cx, cy, halfW, halfH, op.Direction, op.FeedXYWork);
+                                TravelAlongRectangle(addLine, g0, g1, fmt, culture, end, nextStart, cx, cy, halfW, halfH, op.Direction, op.FeedXYWork, op.FeedXYRapid, op.FeedZRapid, nextZ, op.RetractHeight);
                             }
                         }
 
@@ -279,8 +285,10 @@ namespace GCodeGenerator.GCodeGenerators
                                                 op.FeedXYWork);
 
                 // В конце прохода слоя не поднимаем фрезу прямо на контуре:
-                // сначала уходим в центр кармана, затем поднимаемся.
-                addLine($"{g1} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                // сначала уходим в центр кармана на холостом ходу с подъемом, затем поднимаемся.
+                double retractZ = nextZ + op.RetractHeight;
+                addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
 
                 // Переход к безопасной высоте
                 addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
@@ -434,8 +442,10 @@ namespace GCodeGenerator.GCodeGenerators
                                     MillingDirection direction,
                                     double angleRad,
                                     double feedXYWork,
+                                    double feedXYRapid,
                                     double safeZ, double currentZ,
-                                    double feedZRapid, double feedZWork)
+                                    double feedZRapid, double feedZWork,
+                                    double retractHeight)
         {
             // Максимальный радиус спирали – минимум от половин ширины/высоты
             var maxRadius = Math.Sqrt(halfW * halfW + halfH * halfH);
@@ -510,7 +520,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Функция движения по контуру от точки (x1, y1) до точки (x2, y2)
             // Проходит через все углы между этими точками (по кратчайшему пути)
             // Возвращает true, если путь построен успешно; false - если нужен подъём инструмента
-            bool MoveAlongContour(double x1, double y1, double x2, double y2)
+            bool MoveAlongContour(double x1, double y1, double x2, double y2, double zLevel, double retractH, double feedRapid)
             {
                 double tolerance = 1e-4;
                 
@@ -537,10 +547,15 @@ namespace GCodeGenerator.GCodeGenerators
                 int sideEnd = GetSide(x2, y2);
                 
                 if (sideStart < 0 || sideEnd < 0) return false;
+                // Вычисляем высоту отвода один раз
+                double retractZ = zLevel + retractH;
+                
                 if (sideStart == sideEnd)
                 {
-                    // На одной стороне - просто идём к конечной точке
-                    addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    // На одной стороне - поднимаем, переходим, опускаем
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{zLevel.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                     return true;
                 }
 
@@ -581,15 +596,21 @@ namespace GCodeGenerator.GCodeGenerators
 
                 bool ccw = DistCCW() <= DistCW();
                 
+                // Поднимаем инструмент для перехода
+                addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+
                 int currentSide = sideStart;
                 while (currentSide != sideEnd)
                 {
                     int cornerIdx = ccw ? (currentSide + 1) % 4 : currentSide;
-                    addLine($"{g1} X{corners[cornerIdx].Item1.ToString(fmt, culture)} Y{corners[cornerIdx].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g0} X{corners[cornerIdx].Item1.ToString(fmt, culture)} Y{corners[cornerIdx].Item2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
                     currentSide = ccw ? (currentSide + 1) % 4 : (currentSide + 3) % 4;
                 }
                 
-                addLine($"{g1} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
+                
+                // Опускаем обратно на рабочую высоту
+                addLine($"{g0} Z{zLevel.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 return true;
             }
             
@@ -729,7 +750,7 @@ namespace GCodeGenerator.GCodeGenerators
                     {
                         // Строим путь по контуру от точки выхода до точки входа
                         // Если не удалось - поднимаем инструмент
-                        if (!MoveAlongContour(exitX, exitY, entry.x, entry.y))
+                        if (!MoveAlongContour(exitX, exitY, entry.x, entry.y, currentZ, retractHeight, feedXYRapid))
                         {
                             MoveWithRetract(exitX, exitY, entry.x, entry.y);
                         }
@@ -813,6 +834,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Центр → граница, шаг по контуру, возврат в центр.
         /// </summary>
         private (double x, double y) GenerateRadial(Action<string> addLine,
+                                    string g0,
                                     string g1,
                                     string fmt, CultureInfo culture,
                                     double cx, double cy,
@@ -820,7 +842,11 @@ namespace GCodeGenerator.GCodeGenerators
                                     double step,
                                     double angleRad,
                                     MillingDirection direction,
-                                    double feedXYWork)
+                                    double feedXYWork,
+                                    double feedXYRapid,
+                                    double feedZRapid,
+                                    double currentZ,
+                                    double retractHeight)
         {
             double perimeter = 4 * (halfW + halfH);
             int segments = Math.Max(16, (int)Math.Ceiling(perimeter / step));
@@ -907,7 +933,12 @@ namespace GCodeGenerator.GCodeGenerators
 
                 addLine($"{g1} X{hitWorld.wx.ToString(fmt, culture)} Y{hitWorld.wy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
                 addLine($"{g1} X{p2World.wx.ToString(fmt, culture)} Y{p2World.wy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                
+                // Переход в центр на холостом ходу с подъемом
+                double retractZ = currentZ + retractHeight;
+                addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{cx.ToString(fmt, culture)} Y{cy.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
 
                 lastHitWorld = p2World;
             }
@@ -990,13 +1021,17 @@ namespace GCodeGenerator.GCodeGenerators
             return segments;
         }
 
-        private void TravelAlongRectangle(Action<string> addLine, string g1,
+        private void TravelAlongRectangle(Action<string> addLine, string g0, string g1,
                                           string fmt, CultureInfo culture,
                                           Point from, Point to,
                                           double cx, double cy,
                                           double halfW, double halfH,
                                           MillingDirection direction,
-                                          double feedXYWork)
+                                          double feedXYWork,
+                                          double feedXYRapid,
+                                          double feedZRapid,
+                                          double currentZ,
+                                          double retractHeight)
         {
             var corners = new[]
             {
@@ -1032,11 +1067,19 @@ namespace GCodeGenerator.GCodeGenerators
 
             path.Add(to);
 
+            // Поднимаем инструмент для перехода
+            double retractZ = currentZ + retractHeight;
+            addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
+
+            // Перемещаемся по контуру на холостом ходу
             for (int i = 1; i < path.Count; i++)
             {
                 var p = path[i];
-                addLine($"{g1} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} X{p.X.ToString(fmt, culture)} Y{p.Y.ToString(fmt, culture)} F{feedXYRapid.ToString(fmt, culture)}");
             }
+
+            // Опускаем обратно на рабочую высоту
+            addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
         }
 
         private (double x, double y) GenerateLines(Action<string> addLine,

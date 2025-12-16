@@ -192,7 +192,10 @@ namespace GCodeGenerator.GCodeGenerators
                         addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     }
 
-                    addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    // Возврат в центр на холостом ходу с подъемом
+                    double retractZ = nextZ + op.RetractHeight;
+                    addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
                     addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                     currentZ = nextZ;
@@ -226,7 +229,7 @@ namespace GCodeGenerator.GCodeGenerators
                     addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
                     addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-                    var lastHit = GenerateRadial(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, settings);
+                    var lastHit = GenerateRadial(addLine, g0, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, step, nextZ, settings);
 
                     GenerateOuterEllipse(addLine, g1, fmt, culture, op, effectiveRadiusX, effectiveRadiusY, lastHit);
 
@@ -457,8 +460,8 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private (double x, double y) GenerateRadial(Action<string> addLine, string g1, string fmt, CultureInfo culture,
-                                    PocketEllipseOperation op, double effRx, double effRy, double step, GCodeSettings settings)
+        private (double x, double y) GenerateRadial(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
+                                    PocketEllipseOperation op, double effRx, double effRy, double step, double currentZ, GCodeSettings settings)
         {
             // Оценка периметра эллипса
             double h = Math.Pow(effRx - effRy, 2) / Math.Pow(effRx + effRy, 2);
@@ -495,7 +498,12 @@ namespace GCodeGenerator.GCodeGenerators
 
                 addLine($"{g1} X{p1.x.ToString(fmt, culture)} Y{p1.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 addLine($"{g1} X{p2.x.ToString(fmt, culture)} Y{p2.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                
+                // Переход в центр на холостом ходу с подъемом
+                double retractZ = currentZ + op.RetractHeight;
+                addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{op.CenterX.ToString(fmt, culture)} Y{op.CenterY.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
                 lastHit = p2;
             }
@@ -589,7 +597,7 @@ namespace GCodeGenerator.GCodeGenerators
                 }
                 else if (i > 0 && zigZag)
                 {
-                    MoveAlongEllipse(addLine, g1, fmt, culture, op, effRx, effRy, prevEndAng, startAng);
+                    MoveAlongEllipse(addLine, g0, g1, fmt, culture, op, effRx, effRy, prevEndAng, startAng, cutZ);
                 }
 
                 addLine($"{g1} X{endX.ToString(fmt, culture)} Y{endY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
@@ -598,7 +606,7 @@ namespace GCodeGenerator.GCodeGenerators
                 {
                     var nextSeg = segments[i + 1];
                     double nextStartAng = ((i + 1) % 2 == 1) ? nextSeg.angEnd : nextSeg.angStart;
-                    MoveAlongEllipse(addLine, g1, fmt, culture, op, effRx, effRy, endAng, nextStartAng);
+                    MoveAlongEllipse(addLine, g0, g1, fmt, culture, op, effRx, effRy, endAng, nextStartAng, cutZ);
                 }
 
                 lastHit = (endX, endY);
@@ -648,9 +656,9 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private void MoveAlongEllipse(Action<string> addLine, string g1, string fmt, CultureInfo culture,
+        private void MoveAlongEllipse(Action<string> addLine, string g0, string g1, string fmt, CultureInfo culture,
                                       PocketEllipseOperation op, double effRx, double effRy,
-                                      double angStart, double angEnd)
+                                      double angStart, double angEnd, double currentZ)
         {
             double rot = op.RotationAngle * Math.PI / 180.0;
             double cosRot = Math.Cos(rot);
@@ -666,6 +674,11 @@ namespace GCodeGenerator.GCodeGenerators
             int segs = Math.Max(12, (int)Math.Ceiling(Math.Abs(delta) / (2 * Math.PI) * per / (op.ToolDiameter * 0.5)));
             double step = delta / segs;
 
+            // Поднимаем инструмент для перехода
+            double retractZ = currentZ + op.RetractHeight;
+            addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+            // Перемещаемся по эллипсу на холостом ходу
             for (int i = 1; i <= segs; i++)
             {
                 double t = angStart + step * i;
@@ -675,8 +688,11 @@ namespace GCodeGenerator.GCodeGenerators
                 double x = op.CenterX + xEllipse * cosRot - yEllipse * sinRot;
                 double y = op.CenterY + xEllipse * sinRot + yEllipse * cosRot;
 
-                addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
             }
+
+            // Опускаем обратно на рабочую высоту
+            addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
         }
 
         private PocketEllipseOperation CloneOp(PocketEllipseOperation src)
