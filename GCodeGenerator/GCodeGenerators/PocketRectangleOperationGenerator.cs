@@ -447,7 +447,20 @@ namespace GCodeGenerator.GCodeGenerators
                                     double feedZRapid, double feedZWork,
                                     double retractHeight)
         {
-            // Максимальный радиус спирали – минимум от половин ширины/высоты
+            // Работаем в локальной системе кармана (центр в 0,0, оси вдоль сторон),
+            // затем поворачиваем на angleRad и смещаем в (cx, cy).
+            double cosRot = Math.Cos(angleRad);
+            double sinRot = Math.Sin(angleRad);
+
+            (double lx, double ly) ToLocal(double x, double y)
+                => ((x - cx) * cosRot + (y - cy) * sinRot,
+                    -(x - cx) * sinRot + (y - cy) * cosRot);
+
+            (double x, double y) ToWorld(double lx, double ly)
+                => (cx + lx * cosRot - ly * sinRot,
+                    cy + lx * sinRot + ly * cosRot);
+
+            // Максимальный радиус спирали – до угла прямоугольника в локальных координатах
             var maxRadius = Math.Sqrt(halfW * halfW + halfH * halfH);
 
             const double a = 0.0;                        // r(θ) = a + b·θ
@@ -459,33 +472,44 @@ namespace GCodeGenerator.GCodeGenerators
 
             double θMax = (maxRadius - a) / b;
 
-            // Границы прямоугольника
-            double left = cx - halfW;
-            double right = cx + halfW;
-            double bottom = cy - halfH;
-            double top = cy + halfH;
+            // Границы прямоугольника в ЛОКАЛЬНОЙ системе
+            double left = -halfW;
+            double right = halfW;
+            double bottom = -halfH;
+            double top = halfH;
 
             // Функция проверки, находится ли точка внутри прямоугольника (строго внутри, не на границе)
             bool IsInside(double x, double y)
             {
+                var p = ToLocal(x, y);
                 double tolerance = 1e-6;
-                return x > left + tolerance && x < right - tolerance && y > bottom + tolerance && y < top - tolerance;
+                return p.lx > left + tolerance && p.lx < right - tolerance &&
+                       p.ly > bottom + tolerance && p.ly < top - tolerance;
             }
-            
+
             // Функция проверки, находится ли точка на границе или внутри
             bool IsOnOrInside(double x, double y)
             {
-                return x >= left && x <= right && y >= bottom && y <= top;
+                var p = ToLocal(x, y);
+                return p.lx >= left && p.lx <= right && p.ly >= bottom && p.ly <= top;
             }
 
             // Функция нахождения точки пересечения отрезка с границей прямоугольника
+            // Входные координаты – МИРОВЫЕ, внутри считаем в ЛОКАЛЬНЫХ и возвращаем в мир.
             bool FindIntersection(double x1, double y1, double x2, double y2,
                                  out double ix, out double iy)
             {
+                var p1 = ToLocal(x1, y1);
+                var p2 = ToLocal(x2, y2);
+
+                double lx1 = p1.lx, ly1 = p1.ly;
+                double lx2 = p2.lx, ly2 = p2.ly;
+
+                double dx = lx2 - lx1;
+                double dy = ly2 - ly1;
                 ix = x2;
                 iy = y2;
-                double dx = x2 - x1;
-                double dy = y2 - y1;
+
                 if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9) return false;
 
                 double tMin = 0.0;
@@ -494,8 +518,8 @@ namespace GCodeGenerator.GCodeGenerators
 
                 if (Math.Abs(dx) > 1e-9)
                 {
-                    double tLeft = (left - x1) / dx;
-                    double tRight = (right - x1) / dx;
+                    double tLeft = (left - lx1) / dx;
+                    double tRight = (right - lx1) / dx;
                     if (tLeft > tRight) { double tmp = tLeft; tLeft = tRight; tRight = tmp; }
                     if (tLeft >= 0 && tLeft <= 1 && tLeft > tMin) { tMin = tLeft; found = true; }
                     if (tRight >= 0 && tRight <= 1 && tRight < tMax) { tMax = tRight; found = true; }
@@ -503,8 +527,8 @@ namespace GCodeGenerator.GCodeGenerators
 
                 if (Math.Abs(dy) > 1e-9)
                 {
-                    double tBottom = (bottom - y1) / dy;
-                    double tTop = (top - y1) / dy;
+                    double tBottom = (bottom - ly1) / dy;
+                    double tTop = (top - ly1) / dy;
                     if (tBottom > tTop) { double tmp = tBottom; tBottom = tTop; tTop = tmp; }
                     if (tBottom >= 0 && tBottom <= 1 && tBottom > tMin) { tMin = tBottom; found = true; }
                     if (tTop >= 0 && tTop <= 1 && tTop < tMax) { tMax = tTop; found = true; }
@@ -512,28 +536,33 @@ namespace GCodeGenerator.GCodeGenerators
 
                 if (!found || tMin > tMax || tMin < 0 || tMin > 1) return false;
 
-                ix = x1 + tMin * dx;
-                iy = y1 + tMin * dy;
+                double ilx = lx1 + tMin * dx;
+                double ily = ly1 + tMin * dy;
+                var w = ToWorld(ilx, ily);
+                ix = w.x;
+                iy = w.y;
                 return true;
             }
 
-            // Функция движения по контуру от точки (x1, y1) до точки (x2, y2)
+            // Функция движения по контуру от точки (x1, y1) до точки (x2, y2) в МИРОВОЙ системе
             // Проходит через все углы между этими точками (по кратчайшему пути)
             // Возвращает true, если путь построен успешно; false - если нужен подъём инструмента
             bool MoveAlongContour(double x1, double y1, double x2, double y2, double zLevel, double retractH, double feedRapid)
             {
                 double tolerance = 1e-4;
-                
-                // Углы прямоугольника (против часовой стрелки)
-                var corners = new[]
+
+                // Углы прямоугольника в ЛОКАЛЬНОЙ системе (против часовой стрелки)
+                var cornersLocal = new[]
                 {
-                    (left, bottom),   // 0: левый нижний
-                    (right, bottom),  // 1: правый нижний
-                    (right, top),     // 2: правый верхний
-                    (left, top),      // 3: левый верхний
+                    (left,  bottom),   // 0: левый нижний
+                    (right, bottom),   // 1: правый нижний
+                    (right, top),      // 2: правый верхний
+                    (left,  top),      // 3: левый верхний
                 };
-                
-                // Определяем, на какой стороне находится точка (0=низ, 1=право, 2=верх, 3=лево)
+
+                var lp1 = ToLocal(x1, y1);
+                var lp2 = ToLocal(x2, y2);
+
                 int GetSide(double px, double py)
                 {
                     if (Math.Abs(py - bottom) < tolerance) return 0; // нижняя
@@ -543,59 +572,60 @@ namespace GCodeGenerator.GCodeGenerators
                     return -1;
                 }
 
-                int sideStart = GetSide(x1, y1);
-                int sideEnd = GetSide(x2, y2);
-                
+                int sideStart = GetSide(lp1.lx, lp1.ly);
+                int sideEnd = GetSide(lp2.lx, lp2.ly);
+
                 if (sideStart < 0 || sideEnd < 0) return false;
+
                 // Вычисляем высоту отвода один раз
                 double retractZ = zLevel + retractH;
-                
+
                 if (sideStart == sideEnd)
                 {
-                    // На одной стороне - поднимаем, переходим, опускаем
+                    // На одной стороне – поднимаем, переходим, опускаем
                     addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                     addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
                     addLine($"{g0} Z{zLevel.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                     return true;
                 }
 
-                // Вычисляем расстояние в обоих направлениях
+                // Вычисляем расстояние в обоих направлениях по контуру (в локальных координатах)
                 double DistCCW()
                 {
                     double dist = 0;
-                    double px = x1, py = y1;
+                    double px = lp1.lx, py = lp1.ly;
                     int side = sideStart;
                     while (side != sideEnd)
                     {
                         int cornerIdx = (side + 1) % 4;
-                        dist += Math.Sqrt(Math.Pow(px - corners[cornerIdx].Item1, 2) + Math.Pow(py - corners[cornerIdx].Item2, 2));
-                        px = corners[cornerIdx].Item1;
-                        py = corners[cornerIdx].Item2;
+                        dist += Math.Sqrt(Math.Pow(px - cornersLocal[cornerIdx].Item1, 2) + Math.Pow(py - cornersLocal[cornerIdx].Item2, 2));
+                        px = cornersLocal[cornerIdx].Item1;
+                        py = cornersLocal[cornerIdx].Item2;
                         side = (side + 1) % 4;
                     }
-                    dist += Math.Sqrt(Math.Pow(px - x2, 2) + Math.Pow(py - y2, 2));
+                    dist += Math.Sqrt(Math.Pow(px - lp2.lx, 2) + Math.Pow(py - lp2.ly, 2));
                     return dist;
                 }
-                
+
                 double DistCW()
                 {
                     double dist = 0;
-                    double px = x1, py = y1;
+                    double px = lp1.lx, py = lp1.ly;
                     int side = sideStart;
                     while (side != sideEnd)
                     {
                         int cornerIdx = side;
-                        dist += Math.Sqrt(Math.Pow(px - corners[cornerIdx].Item1, 2) + Math.Pow(py - corners[cornerIdx].Item2, 2));
-                        px = corners[cornerIdx].Item1;
-                        py = corners[cornerIdx].Item2;
+                        dist += Math.Sqrt(Math.Pow(px - cornersLocal[cornerIdx].Item1, 2) + Math.Pow(py - cornersLocal[cornerIdx].Item2, 2));
+                        px = cornersLocal[cornerIdx].Item1;
+                        py = cornersLocal[cornerIdx].Item2;
                         side = (side + 3) % 4;
                     }
-                    dist += Math.Sqrt(Math.Pow(px - x2, 2) + Math.Pow(py - y2, 2));
+                    dist += Math.Sqrt(Math.Pow(px - lp2.lx, 2) + Math.Pow(py - lp2.ly, 2));
                     return dist;
                 }
 
                 bool ccw = DistCCW() <= DistCW();
-                
+
                 // Поднимаем инструмент для перехода
                 addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
 
@@ -603,12 +633,13 @@ namespace GCodeGenerator.GCodeGenerators
                 while (currentSide != sideEnd)
                 {
                     int cornerIdx = ccw ? (currentSide + 1) % 4 : currentSide;
-                    addLine($"{g0} X{corners[cornerIdx].Item1.ToString(fmt, culture)} Y{corners[cornerIdx].Item2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
+                    var wCorner = ToWorld(cornersLocal[cornerIdx].Item1, cornersLocal[cornerIdx].Item2);
+                    addLine($"{g0} X{wCorner.x.ToString(fmt, culture)} Y{wCorner.y.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
                     currentSide = ccw ? (currentSide + 1) % 4 : (currentSide + 3) % 4;
                 }
-                
+
                 addLine($"{g0} X{x2.ToString(fmt, culture)} Y{y2.ToString(fmt, culture)} F{feedRapid.ToString(fmt, culture)}");
-                
+
                 // Опускаем обратно на рабочую высоту
                 addLine($"{g0} Z{zLevel.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
                 return true;
@@ -622,88 +653,100 @@ namespace GCodeGenerator.GCodeGenerators
                 addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{feedZRapid.ToString(fmt, culture)}");
             }
 
-            // Сначала собираем все точки спирали
+            // Сначала собираем все точки спирали (в МИРОВЫХ координатах, но строим её в локальных)
             var spiralPoints = new System.Collections.Generic.List<(double x, double y)>();
             spiralPoints.Add((cx, cy));
-            
+
             for (double θ = angleStep; θ <= θMax + 1e-9; θ += angleStep)
             {
                 double r = a + b * θ;
                 double ang = θ * dirSign;
-                double xSpiral = cx + r * Math.Cos(ang);
-                double ySpiral = cy + r * Math.Sin(ang);
-                spiralPoints.Add((xSpiral, ySpiral));
+
+                double lx = r * Math.Cos(ang);
+                double ly = r * Math.Sin(ang);
+                var w = ToWorld(lx, ly);
+                spiralPoints.Add((w.x, w.y));
             }
 
-            // Функция clamp - ограничивает точку контуром
+            // Функция clamp - ограничивает точку контуром (локально) и возвращает в мир
             (double x, double y) Clamp(double x, double y)
             {
-                return (Math.Max(left, Math.Min(right, x)), Math.Max(bottom, Math.Min(top, y)));
+                double lx = Math.Max(left, Math.Min(right, x));
+                double ly = Math.Max(bottom, Math.Min(top, y));
+                var w = ToWorld(lx, ly);
+                return (w.x, w.y);
             }
 
             // Функция для нахождения точки пересечения отрезка с границей прямоугольника
-            // Находит ВСЕ пересечения и возвращает ближайшее к (x1, y1)
+            // Находит ВСЕ пересечения в ЛОКАЛЬНЫХ координатах и возвращает ближайшее к (x1, y1)
             (double x, double y) FindBorderIntersection(double x1, double y1, double x2, double y2)
             {
-                double dx = x2 - x1;
-                double dy = y2 - y1;
-                
+                var lp1 = ToLocal(x1, y1);
+                var lp2 = ToLocal(x2, y2);
+
+                double dx = lp2.lx - lp1.lx;
+                double dy = lp2.ly - lp1.ly;
+
                 var intersections = new System.Collections.Generic.List<(double t, double x, double y)>();
 
                 // Пересечение с левой стороной (x = left)
                 if (Math.Abs(dx) > 1e-9)
                 {
-                    double t = (left - x1) / dx;
+                    double t = (left - lp1.lx) / dx;
                     if (t > 1e-9 && t < 1 - 1e-9)
                     {
-                        double yInt = y1 + t * dy;
+                        double yInt = lp1.ly + t * dy;
                         if (yInt >= bottom - 1e-9 && yInt <= top + 1e-9)
                             intersections.Add((t, left, Math.Max(bottom, Math.Min(top, yInt))));
                     }
                 }
-                
+
                 // Пересечение с правой стороной (x = right)
                 if (Math.Abs(dx) > 1e-9)
                 {
-                    double t = (right - x1) / dx;
+                    double t = (right - lp1.lx) / dx;
                     if (t > 1e-9 && t < 1 - 1e-9)
                     {
-                        double yInt = y1 + t * dy;
+                        double yInt = lp1.ly + t * dy;
                         if (yInt >= bottom - 1e-9 && yInt <= top + 1e-9)
                             intersections.Add((t, right, Math.Max(bottom, Math.Min(top, yInt))));
                     }
                 }
-                
+
                 // Пересечение с нижней стороной (y = bottom)
                 if (Math.Abs(dy) > 1e-9)
                 {
-                    double t = (bottom - y1) / dy;
+                    double t = (bottom - lp1.ly) / dy;
                     if (t > 1e-9 && t < 1 - 1e-9)
                     {
-                        double xInt = x1 + t * dx;
+                        double xInt = lp1.lx + t * dx;
                         if (xInt >= left - 1e-9 && xInt <= right + 1e-9)
                             intersections.Add((t, Math.Max(left, Math.Min(right, xInt)), bottom));
                     }
                 }
-                
+
                 // Пересечение с верхней стороной (y = top)
                 if (Math.Abs(dy) > 1e-9)
                 {
-                    double t = (top - y1) / dy;
+                    double t = (top - lp1.ly) / dy;
                     if (t > 1e-9 && t < 1 - 1e-9)
                     {
-                        double xInt = x1 + t * dx;
+                        double xInt = lp1.lx + t * dx;
                         if (xInt >= left - 1e-9 && xInt <= right + 1e-9)
                             intersections.Add((t, Math.Max(left, Math.Min(right, xInt)), top));
                     }
                 }
 
                 if (intersections.Count == 0)
-                    return Clamp(x2, y2);
+                {
+                    var clamped = Clamp(lp2.lx, lp2.ly);
+                    return (clamped.x, clamped.y);
+                }
 
-                // Находим ближайшее пересечение
                 intersections.Sort((p1, p2) => p1.t.CompareTo(p2.t));
-                return (intersections[0].x, intersections[0].y);
+                var best = intersections[0];
+                var wBest = ToWorld(best.x, best.y);
+                return (wBest.x, wBest.y);
             }
 
             // Теперь обрабатываем точки спирали
@@ -776,55 +819,64 @@ namespace GCodeGenerator.GCodeGenerators
             double startX = hasExitPoint ? exitX : prevX;
             double startY = hasExitPoint ? exitY : prevY;
 
-            // Определяем, на какой стороне находится текущая точка (0=низ, 1=право, 2=верх, 3=лево)
+            // Переходим в локальные координаты для определения стороны и углов
+            var startLocal = ToLocal(startX, startY);
+            double slx = startLocal.lx;
+            double sly = startLocal.ly;
+
             double eps = 1e-4;
-            int GetSideSimple(double x, double y)
+            int GetSideSimpleLocal(double x, double y)
             {
                 if (Math.Abs(y - bottom) < eps) return 0; // нижняя
-                if (Math.Abs(x - right) < eps) return 1; // правая
-                if (Math.Abs(y - top) < eps) return 2; // верхняя
-                if (Math.Abs(x - left) < eps) return 3; // левая
+                if (Math.Abs(x - right) < eps) return 1;  // правая
+                if (Math.Abs(y - top) < eps) return 2;    // верхняя
+                if (Math.Abs(x - left) < eps) return 3;   // левая
                 return -1;
             }
 
-            // Углы прямоугольника (против часовой стрелки, начиная с левого нижнего)
-            // Угол i находится между сторонами (i-1) и i
-            var rectCorners = new[]
+            // Углы прямоугольника в ЛОКАЛЬНЫХ координатах (против часовой стрелки, начиная с левого нижнего)
+            var rectCornersLocal = new[]
             {
-                (left, bottom),   // 0: между сторонами 3 (лево) и 0 (низ)
-                (right, bottom),  // 1: между сторонами 0 (низ) и 1 (право)
-                (right, top),     // 2: между сторонами 1 (право) и 2 (верх)
-                (left, top),      // 3: между сторонами 2 (верх) и 3 (лево)
+                (left,  bottom), // 0
+                (right, bottom), // 1
+                (right, top),    // 2
+                (left,  top),    // 3
             };
 
-            int startSide = GetSideSimple(startX, startY);
-            
-            // Полный обход контура от текущей точки против часовой стрелки
+            int startSide = GetSideSimpleLocal(slx, sly);
+
+            // Полный обход контура от текущей точки против часовой стрелки (в мире)
             if (startSide >= 0)
             {
                 // Сначала идём к ближайшему углу на текущей стороне (против часовой стрелки)
-                // Угол (startSide + 1) % 4 - это угол в конце текущей стороны (против часовой)
                 int firstCorner = (startSide + 1) % 4;
-                addLine($"{g1} X{rectCorners[firstCorner].Item1.ToString(fmt, culture)} Y{rectCorners[firstCorner].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                
+                var firstWorld = ToWorld(rectCornersLocal[firstCorner].Item1, rectCornersLocal[firstCorner].Item2);
+                addLine($"{g1} X{firstWorld.x.ToString(fmt, culture)} Y{firstWorld.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+
                 // Проходим оставшиеся 3 угла
                 for (int i = 1; i <= 3; i++)
                 {
                     int cornerIdx = (firstCorner + i) % 4;
-                    addLine($"{g1} X{rectCorners[cornerIdx].Item1.ToString(fmt, culture)} Y{rectCorners[cornerIdx].Item2.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                    var cw = ToWorld(rectCornersLocal[cornerIdx].Item1, rectCornersLocal[cornerIdx].Item2);
+                    addLine($"{g1} X{cw.x.ToString(fmt, culture)} Y{cw.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
                 }
-                
+
                 // Возвращаемся к начальной точке
                 addLine($"{g1} X{startX.ToString(fmt, culture)} Y{startY.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
             }
             else
             {
-                // Если не на контуре - поднимаем инструмент и делаем полный обход
-                MoveWithRetract(startX, startY, left, bottom);
-                addLine($"{g1} X{right.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{right.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{left.ToString(fmt, culture)} Y{top.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
-                addLine($"{g1} X{left.ToString(fmt, culture)} Y{bottom.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                // Если не на контуре — поднимаем инструмент и делаем полный обход по локальным углам
+                var bottomLeftWorld = ToWorld(left, bottom);
+                var bottomRightWorld = ToWorld(right, bottom);
+                var topRightWorld = ToWorld(right, top);
+                var topLeftWorld = ToWorld(left, top);
+
+                MoveWithRetract(startX, startY, bottomLeftWorld.x, bottomLeftWorld.y);
+                addLine($"{g1} X{bottomRightWorld.x.ToString(fmt, culture)} Y{bottomRightWorld.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{topRightWorld.x.ToString(fmt, culture)} Y{topRightWorld.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{topLeftWorld.x.ToString(fmt, culture)} Y{topLeftWorld.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{bottomLeftWorld.x.ToString(fmt, culture)} Y{bottomLeftWorld.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
             }
         }
 
