@@ -81,6 +81,36 @@ namespace GCodeGenerator.ViewModels.Pocket
                         FinishingMode = (PocketFinishingMode)_operation.Metadata["FinishingMode"];
                     else
                         FinishingMode = _operation.FinishingMode;
+
+                    if (_operation.Metadata.ContainsKey("IsIslandMillingEnabled"))
+                        IsIslandMillingEnabled = Convert.ToBoolean(_operation.Metadata["IsIslandMillingEnabled"]);
+                    else
+                        IsIslandMillingEnabled = _operation.IsIslandMillingEnabled;
+
+                    if (_operation.Metadata.ContainsKey("OuterBoundaryType"))
+                        OuterBoundaryType = (OuterBoundaryType)_operation.Metadata["OuterBoundaryType"];
+                    else
+                        OuterBoundaryType = _operation.OuterBoundaryType;
+
+                    if (_operation.Metadata.ContainsKey("OuterBoundaryCenterX"))
+                        OuterBoundaryCenterX = Convert.ToDouble(_operation.Metadata["OuterBoundaryCenterX"]);
+                    else
+                        OuterBoundaryCenterX = _operation.OuterBoundaryCenterX;
+
+                    if (_operation.Metadata.ContainsKey("OuterBoundaryCenterY"))
+                        OuterBoundaryCenterY = Convert.ToDouble(_operation.Metadata["OuterBoundaryCenterY"]);
+                    else
+                        OuterBoundaryCenterY = _operation.OuterBoundaryCenterY;
+
+                    if (_operation.Metadata.ContainsKey("OuterBoundaryWidth"))
+                        OuterBoundaryWidth = Convert.ToDouble(_operation.Metadata["OuterBoundaryWidth"]);
+                    else
+                        OuterBoundaryWidth = _operation.OuterBoundaryWidth;
+
+                    if (_operation.Metadata.ContainsKey("OuterBoundaryHeight"))
+                        OuterBoundaryHeight = Convert.ToDouble(_operation.Metadata["OuterBoundaryHeight"]);
+                    else
+                        OuterBoundaryHeight = _operation.OuterBoundaryHeight;
                 }
                 else
                 {
@@ -111,6 +141,12 @@ namespace GCodeGenerator.ViewModels.Pocket
                     IsFinishingEnabled = _operation.IsFinishingEnabled;
                     FinishAllowance = _operation.FinishAllowance;
                     FinishingMode = _operation.FinishingMode;
+                    IsIslandMillingEnabled = _operation.IsIslandMillingEnabled;
+                    OuterBoundaryType = _operation.OuterBoundaryType;
+                    OuterBoundaryCenterX = _operation.OuterBoundaryCenterX;
+                    OuterBoundaryCenterY = _operation.OuterBoundaryCenterY;
+                    OuterBoundaryWidth = _operation.OuterBoundaryWidth;
+                    OuterBoundaryHeight = _operation.OuterBoundaryHeight;
                 }
             }
         }
@@ -456,6 +492,78 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
+        private bool _isIslandMillingEnabled = false;
+        public bool IsIslandMillingEnabled
+        {
+            get => _isIslandMillingEnabled;
+            set
+            {
+                if (value == _isIslandMillingEnabled) return;
+                _isIslandMillingEnabled = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private OuterBoundaryType _outerBoundaryType = OuterBoundaryType.Rectangle;
+        public OuterBoundaryType OuterBoundaryType
+        {
+            get => _outerBoundaryType;
+            set
+            {
+                if (value == _outerBoundaryType) return;
+                _outerBoundaryType = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _outerBoundaryCenterX = 0.0;
+        public double OuterBoundaryCenterX
+        {
+            get => _outerBoundaryCenterX;
+            set
+            {
+                if (value.Equals(_outerBoundaryCenterX)) return;
+                _outerBoundaryCenterX = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _outerBoundaryCenterY = 0.0;
+        public double OuterBoundaryCenterY
+        {
+            get => _outerBoundaryCenterY;
+            set
+            {
+                if (value.Equals(_outerBoundaryCenterY)) return;
+                _outerBoundaryCenterY = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _outerBoundaryWidth = 50.0;
+        public double OuterBoundaryWidth
+        {
+            get => _outerBoundaryWidth;
+            set
+            {
+                if (value.Equals(_outerBoundaryWidth)) return;
+                _outerBoundaryWidth = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private double _outerBoundaryHeight = 50.0;
+        public double OuterBoundaryHeight
+        {
+            get => _outerBoundaryHeight;
+            set
+            {
+                if (value.Equals(_outerBoundaryHeight)) return;
+                _outerBoundaryHeight = value;
+                OnPropertyChanged();
+            }
+        }
+
         protected override void OnClosed(IDataContext context)
         {
             base.OnClosed(context);
@@ -493,6 +601,12 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.IsFinishingEnabled = IsFinishingEnabled;
             _operation.FinishAllowance = FinishAllowance;
             _operation.FinishingMode = FinishingMode;
+            _operation.IsIslandMillingEnabled = IsIslandMillingEnabled;
+            _operation.OuterBoundaryType = OuterBoundaryType;
+            _operation.OuterBoundaryCenterX = OuterBoundaryCenterX;
+            _operation.OuterBoundaryCenterY = OuterBoundaryCenterY;
+            _operation.OuterBoundaryWidth = OuterBoundaryWidth;
+            _operation.OuterBoundaryHeight = OuterBoundaryHeight;
 
             if (_operation.Metadata == null)
                 _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
@@ -523,6 +637,12 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.Metadata["IsFinishingEnabled"] = IsFinishingEnabled;
             _operation.Metadata["FinishAllowance"] = FinishAllowance;
             _operation.Metadata["FinishingMode"] = FinishingMode;
+            _operation.Metadata["IsIslandMillingEnabled"] = IsIslandMillingEnabled;
+            _operation.Metadata["OuterBoundaryType"] = OuterBoundaryType;
+            _operation.Metadata["OuterBoundaryCenterX"] = OuterBoundaryCenterX;
+            _operation.Metadata["OuterBoundaryCenterY"] = OuterBoundaryCenterY;
+            _operation.Metadata["OuterBoundaryWidth"] = OuterBoundaryWidth;
+            _operation.Metadata["OuterBoundaryHeight"] = OuterBoundaryHeight;
 
             // notify preview update
             PocketOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();

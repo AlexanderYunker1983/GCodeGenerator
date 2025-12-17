@@ -738,4 +738,31 @@
   <data name="WorkCoordinateSystem" xml:space="preserve">
     <value>Система координат:</value>
   </data>
+  <data name="IslandMillingHeader" xml:space="preserve">
+    <value>Фрезерование острова</value>
+  </data>
+  <data name="IslandMillingEnabled" xml:space="preserve">
+    <value>Включить фрезерование острова</value>
+  </data>
+  <data name="OuterBoundaryTypeLabel" xml:space="preserve">
+    <value>Тип внешней границы:</value>
+  </data>
+  <data name="OuterBoundaryTypeRectangle" xml:space="preserve">
+    <value>Прямоугольник</value>
+  </data>
+  <data name="OuterBoundaryTypeEllipse" xml:space="preserve">
+    <value>Эллипс</value>
+  </data>
+  <data name="OuterBoundaryCenterX" xml:space="preserve">
+    <value>Центр X:</value>
+  </data>
+  <data name="OuterBoundaryCenterY" xml:space="preserve">
+    <value>Центр Y:</value>
+  </data>
+  <data name="OuterBoundaryWidth" xml:space="preserve">
+    <value>Ширина/Диаметр X:</value>
+  </data>
+  <data name="OuterBoundaryHeight" xml:space="preserve">
+    <value>Высота/Диаметр Y:</value>
+  </data>
 </root>

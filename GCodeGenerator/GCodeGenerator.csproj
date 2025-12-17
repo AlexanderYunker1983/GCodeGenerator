@@ -113,6 +113,7 @@
     <Compile Include="Models\ToolPathMode.cs" />
     <Compile Include="Models\MillingDirection.cs" />
     <Compile Include="Models\ReferencePointType.cs" />
+    <Compile Include="Models\OuterBoundaryType.cs" />
     <Compile Include="Models\EntryMode.cs" />
     <Compile Include="Models\ProfileDxfOperation.cs" />
     <Compile Include="Models\ProfileRectangleOperation.cs" />
