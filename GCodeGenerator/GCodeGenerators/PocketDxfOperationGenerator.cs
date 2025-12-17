@@ -297,6 +297,37 @@ namespace GCodeGenerator.GCodeGenerators
                 return IsPointInsideContour(x, y, offsetContour);
             }
 
+            // Надёжное пересечение двух ОТРЕЗКОВ, а не луча:
+            // (x1,y1)-(x2,y2) и (x3,y3)-(x4,y4). Возвращает null, если пересечения нет.
+            DxfPoint SegmentSegmentIntersection(double x1, double y1, double x2, double y2,
+                                                double x3, double y3, double x4, double y4)
+            {
+                double dx1 = x2 - x1;
+                double dy1 = y2 - y1;
+                double dx2 = x4 - x3;
+                double dy2 = y4 - y3;
+
+                double denom = dx1 * dy2 - dy1 * dx2;
+                if (Math.Abs(denom) < 1e-9)
+                    return null; // Параллельные или почти параллельные
+
+                double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+                double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
+
+                const double tol = 1e-9;
+                if (t1 < -tol || t1 > 1.0 + tol || t2 < -tol || t2 > 1.0 + tol)
+                    return null; // Пересечение вне отрезков
+
+                // Ограничиваем в пределах [0,1]
+                t1 = Math.Max(0.0, Math.Min(1.0, t1));
+
+                return new DxfPoint
+                {
+                    X = x1 + t1 * dx1,
+                    Y = y1 + t1 * dy1
+                };
+            }
+
             // Функция нахождения точки пересечения отрезка с контуром
             DxfPoint FindContourIntersection(double x1, double y1, double x2, double y2)
             {
@@ -310,8 +341,10 @@ namespace GCodeGenerator.GCodeGenerators
                     var p1 = offsetContour.Points[i];
                     var p2 = offsetContour.Points[(i + 1) % offsetContour.Points.Count];
 
-                    // Находим пересечение отрезка (x1, y1) - (x2, y2) с отрезком (p1, p2)
-                    var intersection = LineSegmentIntersection(x1, y1, dx, dy, p1.X, p1.Y, p2.X, p2.Y);
+                    // Находим пересечение ОТРЕЗКА (x1,y1)-(x2,y2) с отрезком (p1,p2).
+                    // Раньше использовался луч, что могло дать пересечения "дальше" конца отрезка
+                    // и приводить к скачкам траектории после одной ошибочной точки.
+                    var intersection = SegmentSegmentIntersection(x1, y1, x2, y2, p1.X, p1.Y, p2.X, p2.Y);
                     if (intersection != null)
                     {
                         var dist = Math.Sqrt(Math.Pow(intersection.X - x1, 2) + Math.Pow(intersection.Y - y1, 2));
@@ -918,8 +951,6 @@ namespace GCodeGenerator.GCodeGenerators
 
         private DxfPolyline OffsetContour(DxfPolyline contour, double offset)
         {
-            // Упрощенное смещение контура: смещаем каждую точку по нормали внутрь
-            // Это упрощенная версия, для полноценной работы нужна библиотека для работы с полигонами
             if (contour?.Points == null || contour.Points.Count < 3)
                 return null;
 
@@ -932,77 +963,463 @@ namespace GCodeGenerator.GCodeGenerators
                 signedArea += p1.X * p2.Y - p2.X * p1.Y;
             }
             bool isClockwise = signedArea < 0; // Отрицательная площадь = по часовой стрелке
-
-            var result = new DxfPolyline { Points = new List<DxfPoint>() };
             double absOffset = Math.Abs(offset);
 
+            // Шаг 1: Делим контур на элементарные линии (отрезки между соседними точками)
+            var elementaryLines = new List<DxfPolyline>();
             for (int i = 0; i < contour.Points.Count; i++)
             {
-                var prev = contour.Points[(i - 1 + contour.Points.Count) % contour.Points.Count];
-                var curr = contour.Points[i];
-                var next = contour.Points[(i + 1) % contour.Points.Count];
-
-                // Вычисляем направление ребер
-                var dx1 = curr.X - prev.X;
-                var dy1 = curr.Y - prev.Y;
-                var len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-                if (len1 < 1e-6) len1 = 1.0;
-                
-                var dx2 = next.X - curr.X;
-                var dy2 = next.Y - curr.Y;
-                var len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-                if (len2 < 1e-6) len2 = 1.0;
-
-                // Нормали к ребрам (перпендикуляр, повернутый на 90° против часовой стрелки)
-                var nx1 = -dy1 / len1;
-                var ny1 = dx1 / len1;
-                
-                var nx2 = -dy2 / len2;
-                var ny2 = dx2 / len2;
-                
-                // Средняя нормаль (биссектриса угла)
-                var nx = (nx1 + nx2);
-                var ny = (ny1 + ny2);
-                var len = Math.Sqrt(nx * nx + ny * ny);
-                if (len > 1e-6)
+                var p1 = contour.Points[i];
+                var p2 = contour.Points[(i + 1) % contour.Points.Count];
+                elementaryLines.Add(new DxfPolyline
                 {
-                    nx /= len;
-                    ny /= len;
-                }
-                else
-                {
-                    // Если нормали параллельны, используем одну из них
-                    nx = nx1;
-                    ny = ny1;
-                }
-                
-                // Определяем направление нормали внутрь контура
-                // Нормаль (-dy, dx) для ребра (dx, dy) направлена влево от направления обхода
-                // Для контура по часовой стрелке нормаль влево = наружу, нужно инвертировать
-                // Для контура против часовой стрелки нормаль влево = внутрь, используем как есть
+                    Points = new List<DxfPoint> { new DxfPoint { X = p1.X, Y = p1.Y }, new DxfPoint { X = p2.X, Y = p2.Y } }
+                });
+            }
+
+            // Шаг 2: Для каждой элементарной линии строим эквидистантную линию внутрь контура
+            // Сохраняем соответствие между индексами исходных точек и смещённых линий
+            var offsetLines = new Dictionary<int, DxfPolyline>();
+            
+            for (int i = 0; i < elementaryLines.Count; i++)
+            {
+                var line = elementaryLines[i];
+                if (line.Points.Count < 2)
+                    continue;
+
+                var p1 = line.Points[0];
+                var p2 = line.Points[1];
+
+                // Направление линии
+                double dx = p2.X - p1.X;
+                double dy = p2.Y - p1.Y;
+                double len = Math.Sqrt(dx * dx + dy * dy);
+                if (len < 1e-9)
+                    continue;
+
+                // Нормаль к линии (перпендикуляр, повернутый на 90° против часовой стрелки)
+                double nx = -dy / len;
+                double ny = dx / len;
+
+                // Направляем нормаль внутрь контура
+                // Для контура по часовой стрелке нормаль "влево" смотрит наружу, инвертируем
+                // Для отрицательного offset (смещение внутрь) нормаль должна быть направлена внутрь
                 if (isClockwise)
                 {
                     nx = -nx;
                     ny = -ny;
                 }
-
-                // Применяем смещение
-                // Для отрицательного offset (смещение внутрь) используем нормаль как есть (уже направлена внутрь)
-                // Для положительного offset (смещение наружу) инвертируем нормаль
-                if (offset > 0)
+                if (offset > 0) // Если offset положительный (наружу), инвертируем
                 {
                     nx = -nx;
                     ny = -ny;
                 }
-                
-                result.Points.Add(new DxfPoint
+
+                // Смещаем оба конца линии
+                var offsetP1 = new DxfPoint { X = p1.X + nx * absOffset, Y = p1.Y + ny * absOffset };
+                var offsetP2 = new DxfPoint { X = p2.X + nx * absOffset, Y = p2.Y + ny * absOffset };
+
+                offsetLines[i] = new DxfPolyline
                 {
-                    X = curr.X + nx * absOffset,
-                    Y = curr.Y + ny * absOffset
-                });
+                    Points = new List<DxfPoint> { offsetP1, offsetP2 }
+                };
             }
 
-            return result;
+            if (offsetLines.Count == 0)
+                return null;
+
+            // Шаг 3: Находим пересечения смещённых линий и строим контур из пересечений смещённых рёбер
+            // Вместо разбиения всех линий и поиска замкнутых областей, строим контур напрямую из пересечений смещённых рёбер
+            var offsetPoints = new List<DxfPoint>();
+            
+            for (int i = 0; i < contour.Points.Count; i++)
+            {
+                // Находим соответствующие смещённые линии
+                int prevIdx = (i - 1 + contour.Points.Count) % contour.Points.Count;
+                int currIdx = i;
+                
+                // Проверяем, что смещённые линии существуют
+                if (!offsetLines.ContainsKey(prevIdx) || !offsetLines.ContainsKey(currIdx))
+                    continue;
+                
+                var prevOffsetLine = offsetLines[prevIdx];
+                var currOffsetLine = offsetLines[currIdx];
+                
+                if (prevOffsetLine.Points.Count >= 2 && currOffsetLine.Points.Count >= 2)
+                {
+                    // Находим пересечение двух смещённых линий
+                    var intersection = SegmentSegmentIntersection(
+                        prevOffsetLine.Points[0].X, prevOffsetLine.Points[0].Y,
+                        prevOffsetLine.Points[prevOffsetLine.Points.Count - 1].X, prevOffsetLine.Points[prevOffsetLine.Points.Count - 1].Y,
+                        currOffsetLine.Points[0].X, currOffsetLine.Points[0].Y,
+                        currOffsetLine.Points[currOffsetLine.Points.Count - 1].X, currOffsetLine.Points[currOffsetLine.Points.Count - 1].Y);
+                    
+                    if (intersection != null)
+                    {
+                        offsetPoints.Add(intersection);
+                    }
+                    else
+                    {
+                        // Если пересечения нет (почти параллельные линии), берём точку на текущей смещённой линии
+                        // Используем конец предыдущей линии или начало текущей
+                        var p1 = prevOffsetLine.Points[prevOffsetLine.Points.Count - 1];
+                        var p2 = currOffsetLine.Points[0];
+                        // Берём середину между концами
+                        offsetPoints.Add(new DxfPoint 
+                        { 
+                            X = (p1.X + p2.X) * 0.5, 
+                            Y = (p1.Y + p2.Y) * 0.5 
+                        });
+                    }
+                }
+            }
+            
+            if (offsetPoints.Count >= 3)
+            {
+                // Замыкаем контур
+                if (!PointsMatch(offsetPoints[0], offsetPoints[offsetPoints.Count - 1]))
+                {
+                    offsetPoints.Add(new DxfPoint { X = offsetPoints[0].X, Y = offsetPoints[0].Y });
+                }
+                return new DxfPolyline { Points = offsetPoints };
+            }
+            
+            return null;
+        }
+
+        // Вспомогательные методы для работы с пересечениями и отсечением
+
+        private List<DxfPolyline> SplitSegmentsAtIntersections(List<DxfPolyline> segments)
+        {
+            var splitSegments = new List<DxfPolyline>();
+            var intersectionPoints = new Dictionary<int, List<(DxfPoint point, double distance)>>();
+
+            // Находим все пересечения между сегментами
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var seg1 = segments[i];
+                if (seg1.Points == null || seg1.Points.Count < 2)
+                    continue;
+
+                if (!intersectionPoints.ContainsKey(i))
+                    intersectionPoints[i] = new List<(DxfPoint point, double distance)>();
+
+                var p1Start = seg1.Points[0];
+                var p1End = seg1.Points[seg1.Points.Count - 1];
+
+                // Добавляем начальную и конечную точки сегмента с расстоянием 0 и длины сегмента
+                double segLen = Math.Sqrt(Math.Pow(p1End.X - p1Start.X, 2) + Math.Pow(p1End.Y - p1Start.Y, 2));
+                intersectionPoints[i].Add((new DxfPoint { X = p1Start.X, Y = p1Start.Y }, 0.0));
+                intersectionPoints[i].Add((new DxfPoint { X = p1End.X, Y = p1End.Y }, segLen));
+
+                for (int j = i + 1; j < segments.Count; j++)
+                {
+                    var seg2 = segments[j];
+                    if (seg2.Points == null || seg2.Points.Count < 2)
+                        continue;
+
+                    // Находим пересечение между двумя отрезками
+                    var intersection = SegmentSegmentIntersection(
+                        p1Start.X, p1Start.Y, p1End.X, p1End.Y,
+                        seg2.Points[0].X, seg2.Points[0].Y, seg2.Points[seg2.Points.Count - 1].X, seg2.Points[seg2.Points.Count - 1].Y);
+
+                    if (intersection != null)
+                    {
+                        // Вычисляем расстояние от начала сегмента 1 до точки пересечения
+                        double dx = intersection.X - p1Start.X;
+                        double dy = intersection.Y - p1Start.Y;
+                        double dist1 = Math.Sqrt(dx * dx + dy * dy);
+
+                        // Вычисляем расстояние от начала сегмента 2 до точки пересечения
+                        var p2Start = seg2.Points[0];
+                        double dx2 = intersection.X - p2Start.X;
+                        double dy2 = intersection.Y - p2Start.Y;
+                        double dist2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+
+                        // Добавляем точку пересечения, если её ещё нет
+                        if (!intersectionPoints[i].Any(item => PointsMatch(item.point, intersection)))
+                            intersectionPoints[i].Add((intersection, dist1));
+
+                        if (!intersectionPoints.ContainsKey(j))
+                        {
+                            var p2End = seg2.Points[seg2.Points.Count - 1];
+                            double seg2Len = Math.Sqrt(Math.Pow(p2End.X - p2Start.X, 2) + Math.Pow(p2End.Y - p2Start.Y, 2));
+                            intersectionPoints[j] = new List<(DxfPoint point, double distance)>();
+                            intersectionPoints[j].Add((new DxfPoint { X = p2Start.X, Y = p2Start.Y }, 0.0));
+                            intersectionPoints[j].Add((new DxfPoint { X = p2End.X, Y = p2End.Y }, seg2Len));
+                        }
+                        if (!intersectionPoints[j].Any(item => PointsMatch(item.point, intersection)))
+                            intersectionPoints[j].Add((intersection, dist2));
+                    }
+                }
+            }
+
+            // Разбиваем сегменты в точках пересечения
+            for (int i = 0; i < segments.Count; i++)
+            {
+                var seg = segments[i];
+                if (seg.Points == null || seg.Points.Count < 2)
+                    continue;
+
+                if (intersectionPoints.ContainsKey(i) && intersectionPoints[i].Count >= 2)
+                {
+                    // Сортируем точки по расстоянию от начала сегмента
+                    var sortedPoints = intersectionPoints[i].OrderBy(item => item.distance).ToList();
+
+                    // Создаём подсегменты между соседними точками
+                    for (int j = 0; j < sortedPoints.Count - 1; j++)
+                    {
+                        var p1 = sortedPoints[j].point;
+                        var p2 = sortedPoints[j + 1].point;
+                        if (!PointsMatch(p1, p2))
+                        {
+                            splitSegments.Add(new DxfPolyline
+                            {
+                                Points = new List<DxfPoint> { p1, p2 }
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    // Сегмент без пересечений - добавляем как есть
+                    splitSegments.Add(seg);
+                }
+            }
+
+            return splitSegments;
+        }
+
+        private DxfPoint SegmentSegmentIntersection(double x1, double y1, double x2, double y2,
+            double x3, double y3, double x4, double y4)
+        {
+            double dx1 = x2 - x1;
+            double dy1 = y2 - y1;
+            double dx2 = x4 - x3;
+            double dy2 = y4 - y3;
+
+            double denom = dx1 * dy2 - dy1 * dx2;
+            if (Math.Abs(denom) < 1e-9)
+                return null; // Параллельные линии
+
+            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
+
+            const double tol = 1e-9;
+            if (t1 < -tol || t1 > 1.0 + tol || t2 < -tol || t2 > 1.0 + tol)
+                return null; // Пересечение вне отрезков
+
+            return new DxfPoint
+            {
+                X = x1 + t1 * dx1,
+                Y = y1 + t1 * dy1
+            };
+        }
+
+        private bool PointsMatch(DxfPoint p1, DxfPoint p2)
+        {
+            if (p1 == null || p2 == null)
+                return false;
+            double dx = p1.X - p2.X;
+            double dy = p1.Y - p2.Y;
+            double distance = Math.Sqrt(dx * dx + dy * dy);
+            return distance <= 0.001; // Точность для сравнения точек
+        }
+
+        private DxfPoint FindLineContourIntersection(double x1, double y1, double x2, double y2, DxfPolyline contour)
+        {
+            DxfPoint closestIntersection = null;
+            double minDist = double.MaxValue;
+
+            for (int i = 0; i < contour.Points.Count; i++)
+            {
+                var p1 = contour.Points[i];
+                var p2 = contour.Points[(i + 1) % contour.Points.Count];
+
+                var intersection = SegmentSegmentIntersection(x1, y1, x2, y2, p1.X, p1.Y, p2.X, p2.Y);
+                if (intersection != null)
+                {
+                    double dist = Math.Sqrt(Math.Pow(intersection.X - x1, 2) + Math.Pow(intersection.Y - y1, 2));
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        closestIntersection = intersection;
+                    }
+                }
+            }
+
+            return closestIntersection;
+        }
+
+        private List<DxfPoint> FindLineSegmentContourIntersections(double x1, double y1, double x2, double y2, DxfPolyline contour)
+        {
+            var intersections = new List<DxfPoint>();
+
+            for (int i = 0; i < contour.Points.Count; i++)
+            {
+                var p1 = contour.Points[i];
+                var p2 = contour.Points[(i + 1) % contour.Points.Count];
+
+                var intersection = SegmentSegmentIntersection(x1, y1, x2, y2, p1.X, p1.Y, p2.X, p2.Y);
+                if (intersection != null)
+                {
+                    // Проверяем, нет ли уже такой точки
+                    if (!intersections.Any(p => PointsMatch(p, intersection)))
+                    {
+                        intersections.Add(intersection);
+                    }
+                }
+            }
+
+            return intersections;
+        }
+
+        private List<DxfPolyline> FindClosedAreasFromIntersections(List<DxfPolyline> segments)
+        {
+            var contours = new List<DxfPolyline>();
+
+            if (segments == null || segments.Count == 0)
+                return contours;
+
+            // Строим граф соединений на основе точек
+            var pointGraph = BuildPointGraph(segments);
+
+            if (pointGraph == null || pointGraph.Count == 0)
+                return contours;
+
+            // Ищем все циклы в графе точек
+            var cycles = FindCyclesInPointGraph(pointGraph);
+
+            // Фильтруем циклы - оставляем только те, которые образуют замкнутые области
+            foreach (var cycle in cycles)
+            {
+                if (cycle != null && cycle.Count >= 3)
+                {
+                    var contour = BuildContourFromPointCycle(cycle);
+                    if (contour != null && IsClosedContour(contour))
+                    {
+                        var area = GetContourArea(contour);
+                        if (area > 0.001 * 0.001) // Минимальная площадь
+                        {
+                            contours.Add(contour);
+                        }
+                    }
+                }
+            }
+
+            return contours;
+        }
+
+        private Dictionary<DxfPoint, List<DxfPoint>> BuildPointGraph(List<DxfPolyline> segments)
+        {
+            var graph = new Dictionary<DxfPoint, List<DxfPoint>>();
+
+            foreach (var seg in segments)
+            {
+                if (seg.Points == null || seg.Points.Count < 2)
+                    continue;
+
+                var p1 = seg.Points[0];
+                var p2 = seg.Points[seg.Points.Count - 1];
+
+                // Нормализуем точки (используем существующие, если они близки)
+                var normalizedP1 = FindOrAddPoint(graph, p1);
+                var normalizedP2 = FindOrAddPoint(graph, p2);
+
+                if (!graph[normalizedP1].Contains(normalizedP2))
+                    graph[normalizedP1].Add(normalizedP2);
+                if (!graph[normalizedP2].Contains(normalizedP1))
+                    graph[normalizedP2].Add(normalizedP1);
+            }
+
+            return graph;
+        }
+
+        private DxfPoint FindOrAddPoint(Dictionary<DxfPoint, List<DxfPoint>> graph, DxfPoint point)
+        {
+            foreach (var key in graph.Keys)
+            {
+                if (PointsMatch(key, point))
+                    return key;
+            }
+
+            graph[point] = new List<DxfPoint>();
+            return point;
+        }
+
+        private List<List<DxfPoint>> FindCyclesInPointGraph(Dictionary<DxfPoint, List<DxfPoint>> graph)
+        {
+            var cycles = new List<List<DxfPoint>>();
+            var visited = new HashSet<DxfPoint>();
+
+            foreach (var startPoint in graph.Keys)
+            {
+                if (visited.Contains(startPoint))
+                    continue;
+
+                FindCyclesDFS(graph, startPoint, startPoint, new List<DxfPoint> { startPoint }, cycles, visited, new HashSet<string>());
+            }
+
+            return cycles;
+        }
+
+        private void FindCyclesDFS(Dictionary<DxfPoint, List<DxfPoint>> graph, DxfPoint start, DxfPoint current,
+            List<DxfPoint> path, List<List<DxfPoint>> cycles, HashSet<DxfPoint> visited, HashSet<string> foundCycles)
+        {
+            if (path.Count > 1 && PointsMatch(current, start))
+            {
+                // Найден цикл
+                var cycleKey = string.Join("|", path.Select(p => $"{p.X:F6},{p.Y:F6}"));
+                if (!foundCycles.Contains(cycleKey) && path.Count >= 3)
+                {
+                    cycles.Add(new List<DxfPoint>(path));
+                    foundCycles.Add(cycleKey);
+                }
+                return;
+            }
+
+            if (path.Count > graph.Count)
+                return; // Защита от бесконечной рекурсии
+
+            if (!graph.ContainsKey(current))
+                return;
+
+            foreach (var neighbor in graph[current])
+            {
+                if (path.Count > 1 && PointsMatch(neighbor, start))
+                {
+                    // Замыкаем цикл
+                    var cycle = new List<DxfPoint>(path) { neighbor };
+                    var cycleKey = string.Join("|", cycle.Select(p => $"{p.X:F6},{p.Y:F6}"));
+                    if (!foundCycles.Contains(cycleKey) && cycle.Count >= 3)
+                    {
+                        cycles.Add(cycle);
+                        foundCycles.Add(cycleKey);
+                    }
+                }
+                else if (!path.Skip(1).Any(p => PointsMatch(p, neighbor)))
+                {
+                    // Не посещали эту точку в текущем пути
+                    FindCyclesDFS(graph, start, neighbor, new List<DxfPoint>(path) { neighbor }, cycles, visited, foundCycles);
+                }
+            }
+
+            visited.Add(current);
+        }
+
+        private DxfPolyline BuildContourFromPointCycle(List<DxfPoint> cycle)
+        {
+            if (cycle == null || cycle.Count < 3)
+                return null;
+
+            var contourPoints = new List<DxfPoint>(cycle);
+            // Замыкаем контур, если первая и последняя точки не совпадают
+            if (!PointsMatch(contourPoints[0], contourPoints[contourPoints.Count - 1]))
+            {
+                contourPoints.Add(new DxfPoint { X = contourPoints[0].X, Y = contourPoints[0].Y });
+            }
+
+            return new DxfPolyline { Points = contourPoints };
         }
 
         private bool IsPointInsideContour(double x, double y, DxfPolyline contour)
