@@ -132,6 +132,11 @@
     <Compile Include="GCodeGenerators\Interfaces\IProfileOperation.cs" />
     <Compile Include="GCodeGenerators\Geometry\IPocketGeometry.cs" />
     <Compile Include="GCodeGenerators\Geometry\IProfileGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\CirclePocketGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\RectanglePocketGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\EllipsePocketGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\DxfPocketGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\PocketGeometryFactory.cs" />
     <Compile Include="GCodeGenerators\Helpers\GCodeGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\Helpers\PocketGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\Helpers\ProfileGenerationHelper.cs" />
