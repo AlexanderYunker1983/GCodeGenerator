@@ -61,21 +61,11 @@ namespace GCodeGenerator.GCodeGenerators
                 }
             }
 
-            // Затем регистрируем остальные генераторы (игнорируя старые генераторы профилей и карманов)
+            // Затем регистрируем остальные генераторы (игнорируя единые генераторы профилей и карманов)
             var excludedGenerators = new[] 
             { 
                 "UnifiedProfileGenerator", 
-                "UnifiedPocketGenerator",
-                "ProfileCircleOperationGenerator",
-                "ProfileRectangleOperationGenerator",
-                "ProfileRoundedRectangleOperationGenerator",
-                "ProfileEllipseOperationGenerator",
-                "ProfilePolygonOperationGenerator",
-                "ProfileDxfOperationGenerator",
-                "PocketCircleOperationGenerator",
-                "PocketRectangleOperationGenerator",
-                "PocketEllipseOperationGenerator",
-                "PocketDxfOperationGenerator"
+                "UnifiedPocketGenerator"
             };
 
             foreach (var generatorType in generatorTypes)

@@ -148,10 +148,6 @@
     <Compile Include="GCodeGenerators\Helpers\PocketGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\Helpers\ProfileGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\DrillPointsOperationGenerator.cs" />
-    <Compile Include="GCodeGenerators\PocketRectangleOperationGenerator.cs" />
-    <Compile Include="GCodeGenerators\PocketCircleOperationGenerator.cs" />
-    <Compile Include="GCodeGenerators\PocketEllipseOperationGenerator.cs" />
-    <Compile Include="GCodeGenerators\PocketDxfOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\UnifiedProfileGenerator.cs" />
     <Compile Include="GCodeGenerators\UnifiedPocketGenerator.cs" />
     <Compile Include="GCodeGenerators\SimpleGCodeGenerator.cs" />

@@ -130,7 +130,7 @@
         </GroupBox>
 
         <!-- Фрезерование острова -->
-        <GroupBox Header="{DataBinding '$i18n.IslandMillingHeader'}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.IslandMillingHeader'}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8" IsEnabled="False">
             <StackPanel Margin="8">
                 <CheckBox IsChecked="{Binding IsIslandMillingEnabled}" Content="{DataBinding '$i18n.IslandMillingEnabled'}" Margin="0,0,0,8"/>
                 
@@ -242,6 +242,7 @@
                 <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                          SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
                          SelectedValuePath="Tag"
+                         IsEnabled="False"
                          Margin="0,0,0,8">
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
