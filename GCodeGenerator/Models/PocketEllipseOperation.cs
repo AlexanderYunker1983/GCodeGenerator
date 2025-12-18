@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation for elliptical pocket.
     /// </summary>
-    public class PocketEllipseOperation : OperationBase
+    public class PocketEllipseOperation : OperationBase, IPocketOperation
     {
         public PocketEllipseOperation() : base(OperationType.ProfileMilling, "Pocket Ellipse")
         {

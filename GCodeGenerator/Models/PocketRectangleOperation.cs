@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation for rectangular pocket.
     /// </summary>
-    public class PocketRectangleOperation : OperationBase
+    public class PocketRectangleOperation : OperationBase, IPocketOperation
     {
         public PocketRectangleOperation() : base(OperationType.ProfileMilling, "Pocket Rectangle")
         {

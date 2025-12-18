@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for circle contour.
     /// </summary>
-    public class ProfileCircleOperation : OperationBase
+    public class ProfileCircleOperation : OperationBase, IProfileOperation
     {
         public ProfileCircleOperation() : base(OperationType.ProfileMilling, "Profile Circle")
         {

@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for regular polygon contour.
     /// </summary>
-    public class ProfilePolygonOperation : OperationBase
+    public class ProfilePolygonOperation : OperationBase, IProfileOperation
     {
         public ProfilePolygonOperation() : base(OperationType.ProfileMilling, "Profile Polygon")
         {
@@ -116,6 +117,11 @@ namespace GCodeGenerator.Models
         /// Number of decimal places for coordinates.
         /// </summary>
         public int Decimals { get; set; } = 3;
+
+        /// <summary>
+        /// Maximum segment length for arc approximation when arc support is disabled.
+        /// </summary>
+        public double MaxSegmentLength { get; set; } = 0.5;
 
         /// <summary>
         /// Metadata for storing additional parameters.

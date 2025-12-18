@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation imported from DXF closed contours.
     /// </summary>
-    public class PocketDxfOperation : OperationBase
+    public class PocketDxfOperation : OperationBase, IPocketOperation
     {
         public PocketDxfOperation() : base(OperationType.PocketMilling, "Pocket DXF")
         {

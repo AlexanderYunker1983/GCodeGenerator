@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for rounded rectangle contour.
     /// </summary>
-    public class ProfileRoundedRectangleOperation : OperationBase
+    public class ProfileRoundedRectangleOperation : OperationBase, IProfileOperation
     {
         public ProfileRoundedRectangleOperation() : base(OperationType.ProfileMilling, "Profile Rounded Rectangle")
         {

@@ -128,6 +128,11 @@
     <Compile Include="Models\ProfilePolygonOperation.cs" />
     <Compile Include="GCodeGenerators\IGCodeGenerator.cs" />
     <Compile Include="GCodeGenerators\IOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\Interfaces\IPocketOperation.cs" />
+    <Compile Include="GCodeGenerators\Interfaces\IProfileOperation.cs" />
+    <Compile Include="GCodeGenerators\Helpers\GCodeGenerationHelper.cs" />
+    <Compile Include="GCodeGenerators\Helpers\PocketGenerationHelper.cs" />
+    <Compile Include="GCodeGenerators\Helpers\ProfileGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\DrillPointsOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileRectangleOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\PocketRectangleOperationGenerator.cs" />
