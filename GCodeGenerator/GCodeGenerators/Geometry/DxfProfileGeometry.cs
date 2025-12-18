@@ -33,23 +33,41 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             else if (_operation.ToolPathMode == ToolPathMode.Inside)
                 offset = -toolRadius;
 
+            double tolerance = 1e-6;
+
+            // Обрабатываем каждую полилинию отдельно
+            // Генератор будет строить линии только между точками внутри каждой полилинии
             foreach (var polyline in _operation.Polylines)
             {
                 if (polyline?.Points == null || polyline.Points.Count < 2)
                     continue;
 
                 // Применяем смещение к точкам полилинии
-                // Для упрощения применяем смещение по нормали к каждому сегменту
                 var points = polyline.Points;
                 var offsetPoints = new List<(double x, double y)>();
 
                 for (int i = 0; i < points.Count; i++)
                 {
                     var p = points[i];
-                    var prevP = i > 0 ? points[i - 1] : points[points.Count - 1];
-                    var nextP = i < points.Count - 1 ? points[i + 1] : points[0];
+                    
+                    // Для вычисления нормали используем соседние точки внутри полилинии
+                    DxfPoint prevP, nextP;
+                    if (i == 0)
+                    {
+                        prevP = points.Count > 1 ? points[points.Count - 1] : points[0];
+                        nextP = points.Count > 1 ? points[1] : points[0];
+                    }
+                    else if (i == points.Count - 1)
+                    {
+                        prevP = points[i - 1];
+                        nextP = points.Count > 2 ? points[0] : points[i - 1];
+                    }
+                    else
+                    {
+                        prevP = points[i - 1];
+                        nextP = points[i + 1];
+                    }
 
-                    // Вычисляем нормаль к сегменту
                     var dx1 = p.X - prevP.X;
                     var dy1 = p.Y - prevP.Y;
                     var dx2 = nextP.X - p.X;
@@ -58,9 +76,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                     var len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
                     var len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
 
-                    if (len1 > 1e-6 && len2 > 1e-6)
+                    (double x, double y) offsetPoint;
+                    if (len1 > tolerance && len2 > tolerance)
                     {
-                        // Биссектриса угла
                         var nx1 = -dy1 / len1;
                         var ny1 = dx1 / len1;
                         var nx2 = -dy2 / len2;
@@ -69,36 +87,58 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                         var nx = (nx1 + nx2) / 2.0;
                         var ny = (ny1 + ny2) / 2.0;
                         var nlen = Math.Sqrt(nx * nx + ny * ny);
-                        if (nlen > 1e-6)
+                        if (nlen > tolerance)
                         {
                             nx /= nlen;
                             ny /= nlen;
                         }
 
-                        // Применяем смещение
-                        var offsetX = p.X + nx * offset;
-                        var offsetY = p.Y + ny * offset;
-                        offsetPoints.Add((offsetX, offsetY));
+                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
+                    }
+                    else if (len1 > tolerance)
+                    {
+                        var nx = -dy1 / len1;
+                        var ny = dx1 / len1;
+                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
+                    }
+                    else if (len2 > tolerance)
+                    {
+                        var nx = -dy2 / len2;
+                        var ny = dx2 / len2;
+                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
                     }
                     else
                     {
-                        offsetPoints.Add((p.X, p.Y));
+                        offsetPoint = (p.X, p.Y);
                     }
+                    
+                    offsetPoints.Add(offsetPoint);
                 }
 
-                // Генерируем точки в нужном направлении
+                if (offsetPoints.Count == 0)
+                    continue;
+
+                // Проверяем, замкнута ли полилиния
+                bool isPolylineClosed = offsetPoints.Count > 1 && 
+                    Math.Abs(offsetPoints[0].x - offsetPoints[offsetPoints.Count - 1].x) < tolerance &&
+                    Math.Abs(offsetPoints[0].y - offsetPoints[offsetPoints.Count - 1].y) < tolerance;
+
+                int pointsToReturn = isPolylineClosed ? offsetPoints.Count - 1 : offsetPoints.Count;
+
+                // Возвращаем точки полилинии последовательно
+                // Генератор будет строить линии только между соседними точками внутри полилинии
                 if (direction == MillingDirection.Clockwise)
                 {
-                    for (int i = offsetPoints.Count - 1; i >= 0; i--)
+                    for (int i = pointsToReturn - 1; i >= 0; i--)
                     {
                         yield return offsetPoints[i];
                     }
                 }
                 else
                 {
-                    foreach (var point in offsetPoints)
+                    for (int i = 0; i < pointsToReturn; i++)
                     {
-                        yield return point;
+                        yield return offsetPoints[i];
                     }
                 }
             }
