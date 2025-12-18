@@ -170,7 +170,7 @@
         </GroupBox>
 
         <!-- Высоты -->
-        <GroupBox Header="{DataBinding '$i18n.ZHeightsHeader'}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.ZHeightsHeader'}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -187,7 +187,7 @@
         </GroupBox>
 
         <!-- Стратегия -->
-        <GroupBox Header="{DataBinding '$i18n.CuttingStrategy'}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
+        <GroupBox Header="{DataBinding '$i18n.CuttingStrategy'}" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
