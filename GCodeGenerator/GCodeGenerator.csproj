@@ -158,6 +158,8 @@
     <Compile Include="GCodeGenerators\ProfileEllipseOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfileDxfOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\ProfilePolygonOperationGenerator.cs" />
+    <Compile Include="GCodeGenerators\UnifiedProfileGenerator.cs" />
+    <Compile Include="GCodeGenerators\UnifiedPocketGenerator.cs" />
     <Compile Include="GCodeGenerators\SimpleGCodeGenerator.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
