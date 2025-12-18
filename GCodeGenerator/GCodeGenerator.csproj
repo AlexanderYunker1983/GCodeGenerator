@@ -130,6 +130,8 @@
     <Compile Include="GCodeGenerators\IOperationGenerator.cs" />
     <Compile Include="GCodeGenerators\Interfaces\IPocketOperation.cs" />
     <Compile Include="GCodeGenerators\Interfaces\IProfileOperation.cs" />
+    <Compile Include="GCodeGenerators\Geometry\IPocketGeometry.cs" />
+    <Compile Include="GCodeGenerators\Geometry\IProfileGeometry.cs" />
     <Compile Include="GCodeGenerators\Helpers\GCodeGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\Helpers\PocketGenerationHelper.cs" />
     <Compile Include="GCodeGenerators\Helpers\ProfileGenerationHelper.cs" />
