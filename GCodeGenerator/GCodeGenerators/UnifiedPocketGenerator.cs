@@ -38,19 +38,8 @@ namespace GCodeGenerator.GCodeGenerators
             if (geometry == null)
                 return;
 
-            // Обрабатываем черновую и чистовую обработку
-            _helper.ProcessRoughingFinishing(
-                pocketOp,
-                roughOp => GenerateInternal(roughOp, geometry, addLine, g0, g1, settings),
-                (finishOp, allowance) => GenerateWallsFinishing(finishOp, geometry, allowance, addLine, g0, g1, settings),
-                CloneOperation,
-                ApplyRoughingAllowance,
-                IsOperationTooSmall,
-                ApplyBottomFinishingAllowance,
-                addLine,
-                g0,
-                g1,
-                settings);
+            // Временно: генерируем только основную обработку без roughing/finishing
+            GenerateInternal(pocketOp, geometry, addLine, g0, g1, settings);
         }
 
         /// <summary>
@@ -128,22 +117,8 @@ namespace GCodeGenerator.GCodeGenerators
             addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
             addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-            // Генерируем траекторию в зависимости от стратегии
-            // Все стратегии используют Spiral как fallback
-            switch (op.PocketStrategy)
-            {
-                case PocketStrategy.Spiral:
-                    GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, addLine, g0, g1, fmt, culture, settings);
-                    break;
-                case PocketStrategy.Concentric:
-                case PocketStrategy.Radial:
-                case PocketStrategy.Lines:
-                case PocketStrategy.ZigZag:
-                default:
-                    // Все остальные стратегии используют Spiral как fallback
-                    GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, addLine, g0, g1, fmt, culture, settings);
-                    break;
-            }
+            // Генерируем спиральную стратегию (временно - только Spiral)
+            GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, addLine, g0, g1, fmt, culture, settings);
 
             // Возврат в центр и подъем
             addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
@@ -267,73 +242,7 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        /// <summary>
-        /// Генерирует чистовую обработку стенок.
-        /// </summary>
-        private void GenerateWallsFinishing(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double radialAllowance,
-            Action<string> addLine,
-            string g0,
-            string g1,
-            GCodeSettings settings)
-        {
-            var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
-
-            double toolRadius = op.ToolDiameter / 2.0;
-            double stepRadial = op.StepDepth;
-            if (stepRadial <= 0)
-                stepRadial = op.ToolDiameter * 0.25;
-
-            double startZ = op.ContourHeight;
-            double finalZ = op.ContourHeight - op.TotalDepth;
-
-            double allowance = Math.Max(0.0, radialAllowance);
-            int radialPasses = allowance > 1e-6
-                ? Math.Max(1, (int)Math.Ceiling(allowance / stepRadial))
-                : 1;
-            double radialStep = (radialPasses > 0 && allowance > 1e-6) ? allowance / radialPasses : 0.0;
-
-            double depthFromTop = op.ContourHeight - finalZ;
-            double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
-
-            var contour = geometry.GetContour(toolRadius, taperOffset);
-            if (contour == null)
-                return;
-
-            var contourPoints = contour.GetPoints().ToList();
-            if (contourPoints.Count == 0)
-                return;
-
-            var startPoint = contourPoints[0];
-
-            for (int i = 0; i < radialPasses; i++)
-            {
-                double remaining = allowance - (i + 1) * radialStep;
-                if (remaining < 0) remaining = 0;
-
-                if (settings.UseComments)
-                    addLine($"(Finishing walls radial pass {i + 1}/{radialPasses}, stock {remaining.ToString(fmt, culture)}mm)");
-
-                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g0} X{startPoint.x.ToString(fmt, culture)} Y{startPoint.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-                addLine($"{g0} Z{startZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g1} Z{finalZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
-
-                // Обход стенки по контуру
-                foreach (var point in contourPoints.Skip(1))
-                {
-                    addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                }
-                addLine($"{g1} X{startPoint.x.ToString(fmt, culture)} Y{startPoint.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-                var center = geometry.GetCenter();
-                addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-            }
-        }
+        // Временно удалено: GenerateWallsFinishing - будет реализовано заново
 
         /// <summary>
         /// Клонирует операцию кармана.
@@ -373,12 +282,6 @@ namespace GCodeGenerator.GCodeGenerators
                     IsFinishingEnabled = circleOp.IsFinishingEnabled,
                     FinishAllowance = circleOp.FinishAllowance,
                     FinishingMode = circleOp.FinishingMode,
-                    IsIslandMillingEnabled = circleOp.IsIslandMillingEnabled,
-                    OuterBoundaryType = circleOp.OuterBoundaryType,
-                    OuterBoundaryCenterX = circleOp.OuterBoundaryCenterX,
-                    OuterBoundaryCenterY = circleOp.OuterBoundaryCenterY,
-                    OuterBoundaryWidth = circleOp.OuterBoundaryWidth,
-                    OuterBoundaryHeight = circleOp.OuterBoundaryHeight,
                     Metadata = circleOp.Metadata != null ? new Dictionary<string, object>(circleOp.Metadata) : new Dictionary<string, object>()
                 };
             }
@@ -415,12 +318,6 @@ namespace GCodeGenerator.GCodeGenerators
                     IsFinishingEnabled = rectOp.IsFinishingEnabled,
                     FinishAllowance = rectOp.FinishAllowance,
                     FinishingMode = rectOp.FinishingMode,
-                    IsIslandMillingEnabled = rectOp.IsIslandMillingEnabled,
-                    OuterBoundaryType = rectOp.OuterBoundaryType,
-                    OuterBoundaryCenterX = rectOp.OuterBoundaryCenterX,
-                    OuterBoundaryCenterY = rectOp.OuterBoundaryCenterY,
-                    OuterBoundaryWidth = rectOp.OuterBoundaryWidth,
-                    OuterBoundaryHeight = rectOp.OuterBoundaryHeight,
                     Metadata = rectOp.Metadata != null ? new Dictionary<string, object>(rectOp.Metadata) : new Dictionary<string, object>()
                 };
             }
@@ -456,12 +353,6 @@ namespace GCodeGenerator.GCodeGenerators
                     IsFinishingEnabled = ellipseOp.IsFinishingEnabled,
                     FinishAllowance = ellipseOp.FinishAllowance,
                     FinishingMode = ellipseOp.FinishingMode,
-                    IsIslandMillingEnabled = ellipseOp.IsIslandMillingEnabled,
-                    OuterBoundaryType = ellipseOp.OuterBoundaryType,
-                    OuterBoundaryCenterX = ellipseOp.OuterBoundaryCenterX,
-                    OuterBoundaryCenterY = ellipseOp.OuterBoundaryCenterY,
-                    OuterBoundaryWidth = ellipseOp.OuterBoundaryWidth,
-                    OuterBoundaryHeight = ellipseOp.OuterBoundaryHeight,
                     Metadata = ellipseOp.Metadata != null ? new Dictionary<string, object>(ellipseOp.Metadata) : new Dictionary<string, object>()
                 };
             }
@@ -492,12 +383,6 @@ namespace GCodeGenerator.GCodeGenerators
                     IsFinishingEnabled = dxfOp.IsFinishingEnabled,
                     FinishAllowance = dxfOp.FinishAllowance,
                     FinishingMode = dxfOp.FinishingMode,
-                    IsIslandMillingEnabled = dxfOp.IsIslandMillingEnabled,
-                    OuterBoundaryType = dxfOp.OuterBoundaryType,
-                    OuterBoundaryCenterX = dxfOp.OuterBoundaryCenterX,
-                    OuterBoundaryCenterY = dxfOp.OuterBoundaryCenterY,
-                    OuterBoundaryWidth = dxfOp.OuterBoundaryWidth,
-                    OuterBoundaryHeight = dxfOp.OuterBoundaryHeight,
                     DxfFilePath = dxfOp.DxfFilePath,
                     Metadata = dxfOp.Metadata != null ? new Dictionary<string, object>(dxfOp.Metadata) : new Dictionary<string, object>()
                 };
@@ -529,38 +414,7 @@ namespace GCodeGenerator.GCodeGenerators
             throw new NotSupportedException($"Unsupported pocket operation type: {source.GetType().Name}");
         }
 
-        /// <summary>
-        /// Применяет припуск для черновой обработки.
-        /// </summary>
-        private void ApplyRoughingAllowance<T>(T op, double depthAllowance) where T : IPocketOperation
-        {
-            if (op == null || depthAllowance <= 0)
-                return;
-
-            // Уменьшаем глубину на припуск
-            op.TotalDepth -= depthAllowance;
-
-            // Уменьшаем размеры кармана на припуск (эквивалентно увеличению радиуса инструмента)
-            if (op is PocketCircleOperation circleOp)
-            {
-                circleOp.Radius -= depthAllowance;
-            }
-            else if (op is PocketRectangleOperation rectOp)
-            {
-                rectOp.Width -= 2 * depthAllowance;
-                rectOp.Height -= 2 * depthAllowance;
-            }
-            else if (op is PocketEllipseOperation ellipseOp)
-            {
-                ellipseOp.RadiusX -= depthAllowance;
-                ellipseOp.RadiusY -= depthAllowance;
-            }
-            else if (op is PocketDxfOperation dxfOp)
-            {
-                // Для DXF увеличиваем диаметр инструмента (эквивалентно уменьшению контура)
-                dxfOp.ToolDiameter += 2 * depthAllowance;
-            }
-        }
+        // Временно удалено: ApplyRoughingAllowance - будет реализовано заново
 
         /// <summary>
         /// Проверяет, не стал ли карман слишком маленьким.
@@ -594,35 +448,7 @@ namespace GCodeGenerator.GCodeGenerators
             return false;
         }
 
-        /// <summary>
-        /// Применяет припуск для чистовой обработки дна.
-        /// </summary>
-        private void ApplyBottomFinishingAllowance<T>(T op, double allowance) where T : IPocketOperation
-        {
-            if (op == null || allowance <= 0)
-                return;
-
-            // Уменьшаем размеры кармана на припуск (обрабатываем только внутреннюю часть)
-            if (op is PocketCircleOperation circleOp)
-            {
-                circleOp.Radius -= allowance;
-            }
-            else if (op is PocketRectangleOperation rectOp)
-            {
-                rectOp.Width -= 2 * allowance;
-                rectOp.Height -= 2 * allowance;
-            }
-            else if (op is PocketEllipseOperation ellipseOp)
-            {
-                ellipseOp.RadiusX -= allowance;
-                ellipseOp.RadiusY -= allowance;
-            }
-            else if (op is PocketDxfOperation dxfOp)
-            {
-                // Для DXF увеличиваем диаметр инструмента (эквивалентно уменьшению контура)
-                dxfOp.ToolDiameter += 2 * allowance;
-            }
-        }
+        // Временно удалено: ApplyBottomFinishingAllowance - будет реализовано заново
     }
 }
 
