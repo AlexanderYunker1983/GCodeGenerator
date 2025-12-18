@@ -387,6 +387,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Находит точку повторного входа спирали в контур после выхода.
+        /// Возвращает точку пересечения спирали с контуром (точка Б).
         /// </summary>
         private (double x, double y)? FindReentryPoint(
             (double x, double y) exitPoint,
@@ -404,35 +405,35 @@ namespace GCodeGenerator.GCodeGenerators
             double tolerance)
         {
             // Продолжаем спираль после точки выхода и ищем точку повторного входа
+            (double x, double y)? prevPos = null;
+            bool wasOutside = true;
+
             for (double θ = currentTheta + stepAngle; θ <= maxTheta; θ += stepAngle)
             {
                 double r = a + b * θ;
                 double ang = θ * dirSign;
                 double x = center.x + r * Math.Cos(ang);
                 double y = center.y + r * Math.Sin(ang);
+                (double x, double y) currentPos = (x, y);
 
                 // Проверяем, находится ли точка внутри контура
-                if (geometry.IsPointInside(x, y, toolRadius, taperOffset))
-                {
-                    // Нашли точку внутри - проверяем, пересекается ли спираль с контуром при входе
-                    double prevR = a + b * (θ - stepAngle);
-                    double prevAng = (θ - stepAngle) * dirSign;
-                    double prevX = center.x + prevR * Math.Cos(prevAng);
-                    double prevY = center.y + prevR * Math.Sin(prevAng);
+                bool isInside = geometry.IsPointInside(x, y, toolRadius, taperOffset);
 
+                if (isInside && wasOutside && prevPos.HasValue)
+                {
+                    // Пересекли контур - вернулись внутрь
+                    // Находим точку пересечения спирали с контуром
                     var intersection = FindSpiralContourIntersection(
-                        (prevX, prevY), (x, y), contourPoints, tolerance);
+                        prevPos.Value, currentPos, contourPoints, tolerance);
 
                     if (intersection.HasValue)
                     {
                         return intersection.Value;
                     }
-                    else
-                    {
-                        // Если пересечения нет, но точка внутри, используем саму точку
-                        return (x, y);
-                    }
                 }
+
+                prevPos = currentPos;
+                wasOutside = !isInside;
             }
 
             return null;
@@ -440,6 +441,8 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Обходит контур от точки выхода к точке повторного входа.
+        /// Точки А и Б должны лежать на контуре.
+        /// Движение строго по контуру через все вершины.
         /// </summary>
         private void FollowContourToReentry(
             IPocketOperation op,
@@ -454,33 +457,140 @@ namespace GCodeGenerator.GCodeGenerators
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
 
-            // Находим ближайшие точки контура к точкам выхода и входа
-            int exitIndex = FindClosestContourPoint(exitPoint, contourPoints);
-            int reentryIndex = FindClosestContourPoint(reentryPoint, contourPoints);
+            double tolerance = 1e-6;
 
-            if (exitIndex < 0 || reentryIndex < 0)
+            // Находим сегменты контура, на которых находятся точки выхода и входа
+            var exitSegment = FindContourSegment(exitPoint, contourPoints, tolerance);
+            var reentrySegment = FindContourSegment(reentryPoint, contourPoints, tolerance);
+
+            if (!exitSegment.HasValue || !reentrySegment.HasValue)
                 return;
+
+            int exitSegIndex = exitSegment.Value.segmentIndex;
+            int reentrySegIndex = reentrySegment.Value.segmentIndex;
+            (double x, double y) exitOnContour = exitSegment.Value.pointOnContour;
+            (double x, double y) reentryOnContour = reentrySegment.Value.pointOnContour;
 
             // Определяем направление обхода в зависимости от настроек
             bool clockwise = op.Direction == MillingDirection.Clockwise;
             int step = clockwise ? -1 : 1;
 
-            // Обходим контур от точки выхода к точке входа
-            int currentIndex = exitIndex;
+            // Начинаем с точки выхода на контуре
+            addLine($"{g1} X{exitOnContour.x.ToString(fmt, culture)} Y{exitOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+            // Если точки на одном сегменте, просто идем от одной к другой по сегменту
+            if (exitSegIndex == reentrySegIndex)
+            {
+                addLine($"{g1} X{reentryOnContour.x.ToString(fmt, culture)} Y{reentryOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                return;
+            }
+
+            // Идем строго по контуру от точки выхода к точке входа
+            // Сначала доходим до конца сегмента с точкой выхода (до следующей вершины)
+            int nextVertexIndex = (exitSegIndex + 1) % contourPoints.Count;
+            var nextVertex = contourPoints[nextVertexIndex];
+            addLine($"{g1} X{nextVertex.x.ToString(fmt, culture)} Y{nextVertex.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+            // Теперь идем по вершинам контура до сегмента с точкой входа
+            int currentIndex = nextVertexIndex;
             int visited = 0;
             int maxVisits = contourPoints.Count;
 
             while (visited < maxVisits)
             {
+                // Если достигли начала сегмента с точкой входа, идем к точке входа
+                if (currentIndex == reentrySegIndex)
+                {
+                    addLine($"{g1} X{reentryOnContour.x.ToString(fmt, culture)} Y{reentryOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    break;
+                }
+
+                // Переходим к следующей вершине контура
+                currentIndex = (currentIndex + step + contourPoints.Count) % contourPoints.Count;
                 var point = contourPoints[currentIndex];
                 addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
-                if (currentIndex == reentryIndex)
-                    break;
-
-                currentIndex = (currentIndex + step + contourPoints.Count) % contourPoints.Count;
                 visited++;
             }
+        }
+
+        /// <summary>
+        /// Находит сегмент контура, на котором находится заданная точка, и возвращает точку на этом сегменте.
+        /// </summary>
+        private ((double x, double y) pointOnContour, int segmentIndex)? FindContourSegment(
+            (double x, double y) point,
+            List<(double x, double y)> contourPoints,
+            double tolerance)
+        {
+            if (contourPoints == null || contourPoints.Count < 2)
+                return null;
+
+            double minDist = double.MaxValue;
+            (double x, double y)? closestPoint = null;
+            int closestSegmentIndex = -1;
+
+            for (int i = 0; i < contourPoints.Count; i++)
+            {
+                var p1 = contourPoints[i];
+                var p2 = contourPoints[(i + 1) % contourPoints.Count];
+
+                // Проецируем точку на сегмент контура
+                var projection = ProjectPointToSegment(point, p1, p2);
+                if (projection.HasValue)
+                {
+                    double dx = projection.Value.x - point.x;
+                    double dy = projection.Value.y - point.y;
+                    double dist = Math.Sqrt(dx * dx + dy * dy);
+
+                    if (dist < minDist && dist < tolerance * 10) // Увеличенный допуск для поиска
+                    {
+                        minDist = dist;
+                        closestPoint = projection.Value;
+                        closestSegmentIndex = i;
+                    }
+                }
+            }
+
+            if (closestPoint.HasValue && closestSegmentIndex >= 0)
+            {
+                return (closestPoint.Value, closestSegmentIndex);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Проецирует точку на сегмент и возвращает проекцию, если она находится на сегменте.
+        /// </summary>
+        private (double x, double y)? ProjectPointToSegment(
+            (double x, double y) point,
+            (double x, double y) segStart,
+            (double x, double y) segEnd)
+        {
+            double dx = segEnd.x - segStart.x;
+            double dy = segEnd.y - segStart.y;
+            double segLenSq = dx * dx + dy * dy;
+
+            if (segLenSq < 1e-12)
+            {
+                // Сегмент нулевой длины
+                double dist = Math.Sqrt(Math.Pow(point.x - segStart.x, 2) + Math.Pow(point.y - segStart.y, 2));
+                if (dist < 1e-6)
+                    return segStart;
+                return null;
+            }
+
+            // Параметр t для проекции: t = 0 в начале сегмента, t = 1 в конце
+            double t = ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / segLenSq;
+
+            // Если проекция находится на сегменте (с небольшим допуском)
+            if (t >= -0.01 && t <= 1.01)
+            {
+                t = Math.Max(0, Math.Min(1, t));
+                return (segStart.x + t * dx, segStart.y + t * dy);
+            }
+
+            return null;
         }
 
         /// <summary>
