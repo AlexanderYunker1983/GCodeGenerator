@@ -93,12 +93,7 @@ namespace GCodeGenerator.GCodeGenerators
                 g1,
                 settings);
 
-            // Если был рамповый вход, нужно вернуться к начальной точке
-            if (op.EntryMode == EntryMode.Angled)
-            {
-                // Вход уже обработан в GenerateEntry, продолжаем с начальной точки
-            }
-
+            // После входа мы находимся на начальной точке контура
             // Генерируем путь по контуру
             if (settings.AllowArcs && geometry.SupportsArcs)
             {
@@ -111,13 +106,13 @@ namespace GCodeGenerator.GCodeGenerators
                 else
                 {
                     // Fallback на точки, если дуги не доступны
-                    GenerateContourFromPoints(op, geometry, toolOffset, addLine, g1, settings);
+                    GenerateContourFromPoints(op, geometry, toolOffset, startPoint, addLine, g1, settings);
                 }
             }
             else
             {
                 // Генерируем из точек
-                GenerateContourFromPoints(op, geometry, toolOffset, addLine, g1, settings);
+                GenerateContourFromPoints(op, geometry, toolOffset, startPoint, addLine, g1, settings);
             }
         }
 
@@ -128,6 +123,7 @@ namespace GCodeGenerator.GCodeGenerators
             IProfileOperation op,
             IProfileGeometry geometry,
             double toolOffset,
+            (double x, double y) currentPosition,
             Action<string> addLine,
             string g1,
             GCodeSettings settings)
@@ -137,11 +133,54 @@ namespace GCodeGenerator.GCodeGenerators
 
             var points = geometry.GetContourPoints(toolOffset, op.Direction).ToList();
             
-            // Пропускаем первую точку, так как мы уже на ней после входа
-            for (int i = 1; i < points.Count; i++)
+            if (points.Count == 0)
+                return;
+
+            // Находим ближайшую точку к текущей позиции в списке точек
+            // Это нужно, потому что после входа мы находимся на startPoint,
+            // который может не совпадать с points[0] для некоторых направлений
+            int currentIndex = 0;
+            double tolerance = 1e-6;
+            double minDistance = double.MaxValue;
+            
+            for (int i = 0; i < points.Count; i++)
+            {
+                double dx = points[i].x - currentPosition.x;
+                double dy = points[i].y - currentPosition.y;
+                double distance = Math.Sqrt(dx * dx + dy * dy);
+                
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    currentIndex = i;
+                }
+            }
+
+            // Если мы находимся очень близко к найденной точке, начинаем со следующей
+            // Иначе обрабатываем все точки с начала
+            int startIndex = (minDistance < tolerance && currentIndex < points.Count - 1) 
+                ? currentIndex + 1 
+                : 0;
+
+            // Обрабатываем все точки контура, начиная с startIndex
+            // Последняя точка в списке - это замыкающая (дубликат первой), её тоже обрабатываем
+            // Это гарантирует, что все вершины будут обработаны и контур будет замкнут
+            for (int i = startIndex; i < points.Count; i++)
             {
                 var point = points[i];
                 addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+            
+            // Если мы начали не с начала, обрабатываем точки от начала до startIndex
+            // Это нужно для замыкания контура, если мы начали не с первой точки
+            if (startIndex > 0)
+            {
+                // Обрабатываем точки от начала до startIndex (не включая startIndex, так как мы его уже обработали)
+                for (int i = 0; i < startIndex; i++)
+                {
+                    var point = points[i];
+                    addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                }
             }
         }
 

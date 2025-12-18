@@ -36,8 +36,10 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 vertices.Add((x, y));
             }
 
+            // Возвращаем все вершины в нужном направлении
             if (direction == MillingDirection.Clockwise)
             {
+                // По часовой стрелке: от последней к первой
                 for (int i = _operation.NumberOfSides - 1; i >= 0; i--)
                 {
                     yield return vertices[i];
@@ -45,13 +47,15 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
             else
             {
-                foreach (var vertex in vertices)
+                // Против часовой стрелки: от первой к последней
+                for (int i = 0; i < _operation.NumberOfSides; i++)
                 {
-                    yield return vertex;
+                    yield return vertices[i];
                 }
             }
 
-            // Замыкаем контур
+            // Замыкаем контур - возвращаемся к начальной точке
+            // Это важно для правильного замыкания контура
             yield return vertices[0];
         }
 
