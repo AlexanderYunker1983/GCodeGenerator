@@ -121,14 +121,14 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// Генерирует цикл обработки по слоям.
         /// </summary>
         /// <param name="op">Операция кармана</param>
-        /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber)</param>
+        /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber) - возвращает false, если обработку нужно прекратить</param>
         /// <param name="addLine">Делегат для добавления строки G-кода</param>
         /// <param name="g0">Команда быстрого перемещения</param>
         /// <param name="g1">Команда рабочей подачи</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
             IPocketOperation op,
-            Action<double, double, int> generateLayer,
+            Func<double, double, int, bool> generateLayer,
             Action<string> addLine,
             string g0,
             string g1,
@@ -150,7 +150,13 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (settings.UseComments)
                     addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
 
-                generateLayer(currentZ, nextZ, pass);
+                // Если generateLayer возвращает false, прекращаем обработку
+                if (!generateLayer(currentZ, nextZ, pass))
+                {
+                    if (settings.UseComments)
+                        addLine("(Contour too small for tool, stopping)");
+                    break;
+                }
 
                 currentZ = nextZ;
             }

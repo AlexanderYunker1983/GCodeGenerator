@@ -80,6 +80,22 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return _operation.RadiusX <= 0 || _operation.RadiusY <= 0;
         }
 
+        public bool IsContourTooSmall(double toolRadius, double taperOffset)
+        {
+            double effectiveToolRadius = toolRadius + taperOffset;
+            double toolDiameter = toolRadius * 2.0;
+            
+            // Минимальный порог размера контура: 5% от диаметра фрезы
+            double minSizeThreshold = toolDiameter * 0.05;
+            
+            // Вычисляем эффективные диаметры (уже с учетом фрезы и уклона)
+            double effectiveDiameterX = (_operation.RadiusX - effectiveToolRadius) * 2.0;
+            double effectiveDiameterY = (_operation.RadiusY - effectiveToolRadius) * 2.0;
+            
+            // Контур слишком маленький, если любой из диаметров меньше минимального порога
+            return effectiveDiameterX < minSizeThreshold - 1e-6 || effectiveDiameterY < minSizeThreshold - 1e-6;
+        }
+
         public IPocketOperationParameters GetParameters()
         {
             return new PocketOperationParameters

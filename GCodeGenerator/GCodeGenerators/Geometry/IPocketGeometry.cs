@@ -56,6 +56,14 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         bool IsTooSmall();
 
         /// <summary>
+        /// Проверить, достаточно ли большой контур для обработки с учетом радиуса инструмента и уклона стенок.
+        /// </summary>
+        /// <param name="toolRadius">Радиус инструмента</param>
+        /// <param name="taperOffset">Смещение из-за уклона стенок</param>
+        /// <returns>true, если контур слишком маленький для обработки (меньше диаметра фрезы)</returns>
+        bool IsContourTooSmall(double toolRadius, double taperOffset);
+
+        /// <summary>
         /// Получить параметры операции для клонирования.
         /// </summary>
         /// <returns>Параметры операции</returns>

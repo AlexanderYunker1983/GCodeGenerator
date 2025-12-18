@@ -83,7 +83,8 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Генерирует один слой кармана.
         /// </summary>
-        private void GenerateLayer(
+        /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
+        private bool GenerateLayer(
             IPocketOperation op,
             IPocketGeometry geometry,
             double toolRadius,
@@ -102,21 +103,28 @@ namespace GCodeGenerator.GCodeGenerators
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
 
             // Для DXF операций обрабатываем все контуры отдельно с использованием спирали
+            // Проверка размера контуров выполняется внутри GenerateDxfLayerWithSpiral для каждого контура отдельно
             if (op is PocketDxfOperation dxfOp)
             {
-                GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings);
-                return;
+                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings);
+            }
+
+            // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
+            if (geometry.IsContourTooSmall(toolRadius, taperOffset))
+            {
+                // Контур слишком маленький - прекращаем обработку
+                return false;
             }
 
             // Получаем контур кармана
             var contour = geometry.GetContour(toolRadius, taperOffset);
             if (contour == null)
-                return;
+                return false;
 
             var center = geometry.GetCenter();
             var contourPoints = contour.GetPoints().ToList();
             if (contourPoints.Count == 0)
-                return;
+                return false;
 
             // Перемещаемся к центру кармана
             addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
@@ -130,12 +138,15 @@ namespace GCodeGenerator.GCodeGenerators
             // Возврат в центр и подъем
             addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            
+            return true; // Обработка успешно завершена, продолжаем
         }
 
         /// <summary>
         /// Генерирует один слой для DXF кармана с несколькими контурами, используя спиральную стратегию.
         /// </summary>
-        private void GenerateDxfLayerWithSpiral(
+        /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
+        private bool GenerateDxfLayerWithSpiral(
             PocketDxfOperation op,
             IPocketGeometry overallGeometry,
             double toolRadius,
@@ -151,9 +162,11 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             if (op.ClosedContours == null || op.ClosedContours.Count == 0)
-                return;
+                return false;
 
             bool isFirstContour = true;
+            bool allContoursProcessed = true;
+            
             foreach (var contour in op.ClosedContours)
             {
                 if (contour?.Points == null || contour.Points.Count < 3)
@@ -161,6 +174,14 @@ namespace GCodeGenerator.GCodeGenerators
 
                 // Создаем геометрию для этого контура
                 var geometry = new DxfPocketGeometry(op, contour);
+                
+                // Проверяем, не стал ли контур слишком маленьким для обработки
+                if (geometry.IsContourTooSmall(toolRadius, taperOffset))
+                {
+                    // Этот контур слишком маленький - прекращаем обработку всех контуров
+                    allContoursProcessed = false;
+                    break;
+                }
                 
                 // Получаем эквидистантный контур (смещенный внутрь)
                 var offsetContour = geometry.GetContour(toolRadius, taperOffset);
@@ -203,6 +224,8 @@ namespace GCodeGenerator.GCodeGenerators
 
                 isFirstContour = false;
             }
+            
+            return allContoursProcessed;
         }
 
         /// <summary>

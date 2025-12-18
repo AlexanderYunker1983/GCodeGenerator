@@ -131,6 +131,54 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return area <= 0.001 * 0.001; // Минимальная площадь
         }
 
+        public bool IsContourTooSmall(double toolRadius, double taperOffset)
+        {
+            if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count < 3)
+                return true;
+
+            double effectiveToolRadius = toolRadius + taperOffset;
+            
+            // Смещаем контур внутрь на effectiveToolRadius
+            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
+                return true;
+
+            // Вычисляем площадь смещенного контура
+            double offsetArea = GetContourArea(offsetContour);
+            
+            // Проверяем, что смещенный контур не вырожден (имеет достаточную площадь)
+            double minArea = 1e-6; // Минимальная площадь для невырожденного контура
+            if (Math.Abs(offsetArea) < minArea)
+                return true;
+
+            // Проверяем, что контур не инвертировался (не стал "песочными часами")
+            // Сравниваем знак площади исходного и смещенного контура
+            double originalArea = GetContourArea(_primaryContour);
+            
+            if (Math.Sign(originalArea) != Math.Sign(offsetArea))
+            {
+                // Контур инвертировался - стал самопересекающимся или "песочными часами"
+                return true;
+            }
+
+            // Контур валиден - не вырожден и не инвертирован
+            return false;
+        }
+
+        private double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2)
+        {
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
+                return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
+            
+            double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
+            t = Math.Max(0, Math.Min(1, t));
+            double projX = x1 + t * dx;
+            double projY = y1 + t * dy;
+            return Math.Sqrt(Math.Pow(px - projX, 2) + Math.Pow(py - projY, 2));
+        }
+
         public IPocketOperationParameters GetParameters()
         {
             return new PocketOperationParameters

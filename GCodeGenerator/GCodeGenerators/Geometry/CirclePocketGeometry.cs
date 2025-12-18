@@ -60,6 +60,20 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return _operation.Radius <= 0;
         }
 
+        public bool IsContourTooSmall(double toolRadius, double taperOffset)
+        {
+            // Вычисляем эффективный радиус (уже с учетом фрезы и уклона)
+            double effectiveRadius = _operation.Radius - toolRadius - taperOffset;
+            double toolDiameter = toolRadius * 2.0;
+            double effectiveDiameter = effectiveRadius * 2.0;
+            
+            // Минимальный порог размера контура: 5% от диаметра фрезы
+            double minSizeThreshold = toolDiameter * 0.05;
+            
+            // Контур слишком маленький, если эффективный диаметр меньше минимального порога
+            return effectiveDiameter < minSizeThreshold - 1e-6;
+        }
+
         public IPocketOperationParameters GetParameters()
         {
             return new PocketOperationParameters
