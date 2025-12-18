@@ -266,7 +266,10 @@ namespace GCodeGenerator.GCodeGenerators
             bool finished = false;
 
             // Генерируем спираль
-            for (double θ = stepAngle; θ <= θMax && !finished; θ += stepAngle)
+            // Используем while цикл для точного контроля угла и предотвращения пропуска витков
+            double θ = stepAngle;
+            double prevTheta = 0.0; // Угол предыдущей точки
+            while (θ <= θMax && !finished)
             {
                 double r = a + b * θ;
                 double ang = θ * dirSign;
@@ -282,35 +285,48 @@ namespace GCodeGenerator.GCodeGenerators
                     // Обе точки внутри - просто добавляем точку
                     addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     currentPos = nextPos;
+                    prevTheta = θ;
+                    θ += stepAngle; // Переходим к следующей точке
                 }
                 else if (!isInside && wasInside)
                 {
                     // Пересекли контур - вышли наружу
-                    // Находим точку пересечения
-                    var intersection = FindSpiralContourIntersection(
-                        currentPos, nextPos, contourPoints, tolerance);
+                    // Находим точку пересечения и точный угол в этой точке
+                    var exitResult = FindExitPointWithTheta(
+                        currentPos, nextPos, prevTheta, θ, contourPoints, center, a, b, dirSign, tolerance);
 
-                    if (intersection.HasValue)
+                    if (exitResult.HasValue)
                     {
-                        exitPoint = intersection.Value;
+                        exitPoint = exitResult.Value.point;
+                        double exitTheta = exitResult.Value.theta;
+                        
                         addLine($"{g1} X{exitPoint.Value.x.ToString(fmt, culture)} Y{exitPoint.Value.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                         currentPos = exitPoint.Value;
 
-                        // Ищем точку повторного входа
-                        var reentryPoint = FindReentryPoint(
-                            exitPoint.Value, θ, θMax, stepAngle, dirSign, center, a, b,
+                        // Ищем точку повторного входа с сохранением угла
+                        var reentryResult = FindReentryPointWithTheta(
+                            exitPoint.Value, exitTheta, θMax, stepAngle, dirSign, center, a, b,
                             geometry, toolRadius, taperOffset, contourPoints, tolerance);
 
-                        if (reentryPoint.HasValue)
+                        if (reentryResult.HasValue)
                         {
+                            var reentryPoint = reentryResult.Value.point;
+                            double reentryTheta = reentryResult.Value.theta;
+
                             // Найдена точка входа - обходим контур от точки выхода к точке входа
                             FollowContourToReentry(
-                                op, exitPoint.Value, reentryPoint.Value, contourPoints,
+                                op, exitPoint.Value, reentryPoint, contourPoints,
                                 addLine, g1, fmt, culture);
-                            currentPos = reentryPoint.Value;
+                            currentPos = reentryPoint;
                             wasInside = true;
-                            // Продолжаем спираль с новой точки
-                            θ = CalculateAngleFromCenter(reentryPoint.Value, center, a, b);
+                            exitPoint = null;
+                            
+                            // Продолжаем спираль с угла точки входа, чтобы не пропустить витки
+                            // Устанавливаем prevTheta на угол точки входа, а θ на следующую точку
+                            prevTheta = reentryTheta;
+                            θ = reentryTheta + stepAngle;
+                            // Переходим к следующей итерации - θ уже установлен правильно
+                            continue;
                         }
                         else
                         {
@@ -331,16 +347,20 @@ namespace GCodeGenerator.GCodeGenerators
                 }
                 else if (!isInside && !wasInside)
                 {
-                    // Обе точки снаружи - пропускаем
+                    // Обе точки снаружи - пропускаем, но увеличиваем угол
+                    prevTheta = θ;
+                    θ += stepAngle;
                     continue;
                 }
                 else if (isInside && !wasInside)
                 {
-                    // Вернулись внутрь - это точка входа
+                    // Вернулись внутрь - это точка входа (не должно происходить, так как обрабатывается выше)
                     addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                     currentPos = nextPos;
                     wasInside = true;
                     exitPoint = null;
+                    prevTheta = θ;
+                    θ += stepAngle;
                 }
             }
 
@@ -354,6 +374,57 @@ namespace GCodeGenerator.GCodeGenerators
                 // Возвращаемся в центр без подъема инструмента
                 addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             }
+        }
+
+        /// <summary>
+        /// Находит точку пересечения сегмента спирали с контуром и возвращает точный угол спирали в этой точке.
+        /// </summary>
+        private ((double x, double y) point, double theta)? FindExitPointWithTheta(
+            (double x, double y) start,
+            (double x, double y) end,
+            double startTheta,
+            double endTheta,
+            List<(double x, double y)> contourPoints,
+            (double x, double y) center,
+            double a,
+            double b,
+            double dirSign,
+            double tolerance)
+        {
+            // Проверяем пересечение сегмента спирали с каждым сегментом контура
+            for (int i = 0; i < contourPoints.Count; i++)
+            {
+                var p1 = contourPoints[i];
+                var p2 = contourPoints[(i + 1) % contourPoints.Count];
+
+                var intersection = FindLineSegmentIntersection(
+                    start.x, start.y, end.x, end.y,
+                    p1.x, p1.y, p2.x, p2.y,
+                    tolerance);
+
+                if (intersection.HasValue)
+                {
+                    // Вычисляем точный угол для точки пересечения
+                    // Используем интерполяцию между startTheta и endTheta
+                    double dx = end.x - start.x;
+                    double dy = end.y - start.y;
+                    double segLen = Math.Sqrt(dx * dx + dy * dy);
+                    
+                    double t = 0.5; // Начальное приближение
+                    if (segLen > tolerance)
+                    {
+                        double dxInt = intersection.Value.x - start.x;
+                        double dyInt = intersection.Value.y - start.y;
+                        t = (dxInt * dx + dyInt * dy) / (segLen * segLen);
+                        t = Math.Max(0, Math.Min(1, t));
+                    }
+                    
+                    double intersectionTheta = startTheta + t * (endTheta - startTheta);
+                    return (intersection.Value, intersectionTheta);
+                }
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -387,9 +458,9 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Находит точку повторного входа спирали в контур после выхода.
-        /// Возвращает точку пересечения спирали с контуром (точка Б).
+        /// Возвращает точку пересечения спирали с контуром (точка Б) и угол спирали в этой точке.
         /// </summary>
-        private (double x, double y)? FindReentryPoint(
+        private ((double x, double y) point, double theta)? FindReentryPointWithTheta(
             (double x, double y) exitPoint,
             double currentTheta,
             double maxTheta,
@@ -406,6 +477,7 @@ namespace GCodeGenerator.GCodeGenerators
         {
             // Продолжаем спираль после точки выхода и ищем точку повторного входа
             (double x, double y)? prevPos = null;
+            double prevTheta = currentTheta;
             bool wasOutside = true;
 
             for (double θ = currentTheta + stepAngle; θ <= maxTheta; θ += stepAngle)
@@ -428,11 +500,29 @@ namespace GCodeGenerator.GCodeGenerators
 
                     if (intersection.HasValue)
                     {
-                        return intersection.Value;
+                        // Вычисляем точный угол для точки пересечения
+                        // Используем интерполяцию между prevTheta и θ
+                        double t = 0.5; // Начальное приближение - середина сегмента
+                        
+                        // Уточняем параметр t для точки пересечения
+                        double dx = currentPos.x - prevPos.Value.x;
+                        double dy = currentPos.y - prevPos.Value.y;
+                        double segLen = Math.Sqrt(dx * dx + dy * dy);
+                        if (segLen > tolerance)
+                        {
+                            double dxInt = intersection.Value.x - prevPos.Value.x;
+                            double dyInt = intersection.Value.y - prevPos.Value.y;
+                            t = (dxInt * dx + dyInt * dy) / (segLen * segLen);
+                            t = Math.Max(0, Math.Min(1, t));
+                        }
+                        
+                        double intersectionTheta = prevTheta + t * (θ - prevTheta);
+                        return (intersection.Value, intersectionTheta);
                     }
                 }
 
                 prevPos = currentPos;
+                prevTheta = θ;
                 wasOutside = !isInside;
             }
 
