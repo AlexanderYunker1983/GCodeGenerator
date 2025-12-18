@@ -101,6 +101,13 @@ namespace GCodeGenerator.GCodeGenerators
             double depthFromTop = op.ContourHeight - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
 
+            // Для DXF операций обрабатываем все контуры отдельно с использованием спирали
+            if (op is PocketDxfOperation dxfOp)
+            {
+                GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings);
+                return;
+            }
+
             // Получаем контур кармана
             var contour = geometry.GetContour(toolRadius, taperOffset);
             if (contour == null)
@@ -117,12 +124,85 @@ namespace GCodeGenerator.GCodeGenerators
             addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
             addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
 
-            // Генерируем спиральную стратегию (временно - только Spiral)
-            GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, addLine, g0, g1, fmt, culture, settings);
+            // Генерируем спиральную стратегию
+            GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, culture, settings);
 
             // Возврат в центр и подъем
             addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
             addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+        }
+
+        /// <summary>
+        /// Генерирует один слой для DXF кармана с несколькими контурами, используя спиральную стратегию.
+        /// </summary>
+        private void GenerateDxfLayerWithSpiral(
+            PocketDxfOperation op,
+            IPocketGeometry overallGeometry,
+            double toolRadius,
+            double taperOffset,
+            double step,
+            double currentZ,
+            double nextZ,
+            Action<string> addLine,
+            string g0,
+            string g1,
+            string fmt,
+            CultureInfo culture,
+            GCodeSettings settings)
+        {
+            if (op.ClosedContours == null || op.ClosedContours.Count == 0)
+                return;
+
+            bool isFirstContour = true;
+            foreach (var contour in op.ClosedContours)
+            {
+                if (contour?.Points == null || contour.Points.Count < 3)
+                    continue;
+
+                // Создаем геометрию для этого контура
+                var geometry = new DxfPocketGeometry(op, contour);
+                
+                // Получаем эквидистантный контур (смещенный внутрь)
+                var offsetContour = geometry.GetContour(toolRadius, taperOffset);
+                if (offsetContour == null)
+                    continue;
+
+                var contourPoints = offsetContour.GetPoints().ToList();
+                if (contourPoints.Count == 0)
+                    continue;
+
+                // Вычисляем геометрический центр контура
+                var center = geometry.GetCenter();
+
+                // Поднимаем инструмент перед переходом к следующему контуру (кроме первого)
+                if (!isFirstContour)
+                {
+                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Перемещаемся к центру контура
+                addLine($"{g0} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                
+                // Опускаемся на рабочую высоту (только для первого контура, для остальных уже на нужной высоте)
+                if (isFirstContour)
+                {
+                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                }
+                else
+                {
+                    addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                }
+
+                // Генерируем спиральную стратегию для этого контура
+                GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, culture, settings);
+
+                // Возврат в центр контура и подъем
+                addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+
+                isFirstContour = false;
+            }
         }
 
         /// <summary>
@@ -134,6 +214,8 @@ namespace GCodeGenerator.GCodeGenerators
             double toolRadius,
             double taperOffset,
             double step,
+            List<(double x, double y)> contourPoints,
+            (double x, double y) center,
             Action<string> addLine,
             string g0,
             string g1,
@@ -141,13 +223,7 @@ namespace GCodeGenerator.GCodeGenerators
             CultureInfo culture,
             GCodeSettings settings)
         {
-            var contour = geometry.GetContour(toolRadius, taperOffset);
-            if (contour == null)
-                return;
-
-            var center = geometry.GetCenter();
-            var contourPoints = contour.GetPoints().ToList();
-            if (contourPoints.Count == 0)
+            if (contourPoints == null || contourPoints.Count == 0)
                 return;
 
             // Находим максимальное расстояние от центра до контура
@@ -179,64 +255,394 @@ namespace GCodeGenerator.GCodeGenerators
             // Количество точек на оборот для плавности
             int pointsPerRevolution = 128;
             double stepAngle = 2.0 * Math.PI / pointsPerRevolution;
+            double tolerance = 1e-6;
 
             // Начинаем с центра
-            addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            (double x, double y) currentPos = center;
+            addLine($"{g1} X{currentPos.x.ToString(fmt, culture)} Y{currentPos.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
 
-            // Генерируем спираль до достижения внешнего радиуса
-            for (double θ = stepAngle; θ <= θMax; θ += stepAngle)
+            bool wasInside = true;
+            (double x, double y)? exitPoint = null;
+            bool finished = false;
+
+            // Генерируем спираль
+            for (double θ = stepAngle; θ <= θMax && !finished; θ += stepAngle)
             {
                 double r = a + b * θ;
-                
-                // Проверяем, что точка находится внутри контура
-                double testX = center.x + r;
-                double testY = center.y;
-                if (!geometry.IsPointInside(testX, testY, toolRadius, taperOffset))
-                    continue;
+                double ang = θ * dirSign;
+                double nextX = center.x + r * Math.Cos(ang);
+                double nextY = center.y + r * Math.Sin(ang);
+                (double x, double y) nextPos = (nextX, nextY);
 
+                // Проверяем, находится ли следующая точка внутри контура
+                bool isInside = geometry.IsPointInside(nextX, nextY, toolRadius, taperOffset);
+
+                if (isInside && wasInside)
+                {
+                    // Обе точки внутри - просто добавляем точку
+                    addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    currentPos = nextPos;
+                }
+                else if (!isInside && wasInside)
+                {
+                    // Пересекли контур - вышли наружу
+                    // Находим точку пересечения
+                    var intersection = FindSpiralContourIntersection(
+                        currentPos, nextPos, contourPoints, tolerance);
+
+                    if (intersection.HasValue)
+                    {
+                        exitPoint = intersection.Value;
+                        addLine($"{g1} X{exitPoint.Value.x.ToString(fmt, culture)} Y{exitPoint.Value.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        currentPos = exitPoint.Value;
+
+                        // Ищем точку повторного входа
+                        var reentryPoint = FindReentryPoint(
+                            exitPoint.Value, θ, θMax, stepAngle, dirSign, center, a, b,
+                            geometry, toolRadius, taperOffset, contourPoints, tolerance);
+
+                        if (reentryPoint.HasValue)
+                        {
+                            // Найдена точка входа - обходим контур от точки выхода к точке входа
+                            FollowContourToReentry(
+                                op, exitPoint.Value, reentryPoint.Value, contourPoints,
+                                addLine, g1, fmt, culture);
+                            currentPos = reentryPoint.Value;
+                            wasInside = true;
+                            // Продолжаем спираль с новой точки
+                            θ = CalculateAngleFromCenter(reentryPoint.Value, center, a, b);
+                        }
+                        else
+                        {
+                            // Точки входа нет - точка выхода последняя
+                            // Обходим контур полностью и возвращаемся в центр
+                            FollowContourFull(
+                                op, exitPoint.Value, contourPoints, addLine, g1, fmt, culture);
+                            // Возвращаемся в центр без подъема инструмента
+                            addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            finished = true;
+                        }
+                    }
+                    else
+                    {
+                        // Не удалось найти пересечение - пропускаем точку
+                        wasInside = false;
+                    }
+                }
+                else if (!isInside && !wasInside)
+                {
+                    // Обе точки снаружи - пропускаем
+                    continue;
+                }
+                else if (isInside && !wasInside)
+                {
+                    // Вернулись внутрь - это точка входа
+                    addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    currentPos = nextPos;
+                    wasInside = true;
+                    exitPoint = null;
+                }
+            }
+
+            // Если спираль закончилась, но мы все еще внутри, обходим контур полностью
+            if (!finished && wasInside && exitPoint == null)
+            {
+                // Находим ближайшую точку контура к текущей позиции
+                int closestIndex = FindClosestContourPoint(currentPos, contourPoints);
+                FollowContourFromPoint(
+                    op, closestIndex, contourPoints, addLine, g1, fmt, culture);
+                // Возвращаемся в центр без подъема инструмента
+                addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+        }
+
+        /// <summary>
+        /// Находит точку пересечения сегмента спирали с контуром.
+        /// </summary>
+        private (double x, double y)? FindSpiralContourIntersection(
+            (double x, double y) start,
+            (double x, double y) end,
+            List<(double x, double y)> contourPoints,
+            double tolerance)
+        {
+            // Проверяем пересечение сегмента спирали с каждым сегментом контура
+            for (int i = 0; i < contourPoints.Count; i++)
+            {
+                var p1 = contourPoints[i];
+                var p2 = contourPoints[(i + 1) % contourPoints.Count];
+
+                var intersection = FindLineSegmentIntersection(
+                    start.x, start.y, end.x, end.y,
+                    p1.x, p1.y, p2.x, p2.y,
+                    tolerance);
+
+                if (intersection.HasValue)
+                {
+                    return intersection.Value;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Находит точку повторного входа спирали в контур после выхода.
+        /// </summary>
+        private (double x, double y)? FindReentryPoint(
+            (double x, double y) exitPoint,
+            double currentTheta,
+            double maxTheta,
+            double stepAngle,
+            double dirSign,
+            (double x, double y) center,
+            double a,
+            double b,
+            IPocketGeometry geometry,
+            double toolRadius,
+            double taperOffset,
+            List<(double x, double y)> contourPoints,
+            double tolerance)
+        {
+            // Продолжаем спираль после точки выхода и ищем точку повторного входа
+            for (double θ = currentTheta + stepAngle; θ <= maxTheta; θ += stepAngle)
+            {
+                double r = a + b * θ;
                 double ang = θ * dirSign;
                 double x = center.x + r * Math.Cos(ang);
                 double y = center.y + r * Math.Sin(ang);
-                addLine($"{g1} X{x.ToString(fmt, culture)} Y{y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-            }
 
-            // Доводим до внешнего контура
-            double finalR = a + b * θMax;
-            double finalAng = θMax * dirSign;
-            double finalX = center.x + finalR * Math.Cos(finalAng);
-            double finalY = center.y + finalR * Math.Sin(finalAng);
-            addLine($"{g1} X{finalX.ToString(fmt, culture)} Y{finalY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-
-            // Обрабатываем внешний контур - находим ближайшую точку контура и идем по нему
-            if (contourPoints.Count > 0)
-            {
-                // Находим ближайшую точку контура к текущей позиции
-                int closestIndex = 0;
-                double minDist = double.MaxValue;
-                for (int i = 0; i < contourPoints.Count; i++)
+                // Проверяем, находится ли точка внутри контура
+                if (geometry.IsPointInside(x, y, toolRadius, taperOffset))
                 {
-                    double dx = contourPoints[i].x - finalX;
-                    double dy = contourPoints[i].y - finalY;
-                    double dist = Math.Sqrt(dx * dx + dy * dy);
-                    if (dist < minDist)
+                    // Нашли точку внутри - проверяем, пересекается ли спираль с контуром при входе
+                    double prevR = a + b * (θ - stepAngle);
+                    double prevAng = (θ - stepAngle) * dirSign;
+                    double prevX = center.x + prevR * Math.Cos(prevAng);
+                    double prevY = center.y + prevR * Math.Sin(prevAng);
+
+                    var intersection = FindSpiralContourIntersection(
+                        (prevX, prevY), (x, y), contourPoints, tolerance);
+
+                    if (intersection.HasValue)
                     {
-                        minDist = dist;
-                        closestIndex = i;
+                        return intersection.Value;
+                    }
+                    else
+                    {
+                        // Если пересечения нет, но точка внутри, используем саму точку
+                        return (x, y);
                     }
                 }
+            }
 
-                // Идем по контуру, начиная с ближайшей точки
-                for (int i = 0; i < contourPoints.Count; i++)
+            return null;
+        }
+
+        /// <summary>
+        /// Обходит контур от точки выхода к точке повторного входа.
+        /// </summary>
+        private void FollowContourToReentry(
+            IPocketOperation op,
+            (double x, double y) exitPoint,
+            (double x, double y) reentryPoint,
+            List<(double x, double y)> contourPoints,
+            Action<string> addLine,
+            string g1,
+            string fmt,
+            CultureInfo culture)
+        {
+            if (contourPoints == null || contourPoints.Count == 0)
+                return;
+
+            // Находим ближайшие точки контура к точкам выхода и входа
+            int exitIndex = FindClosestContourPoint(exitPoint, contourPoints);
+            int reentryIndex = FindClosestContourPoint(reentryPoint, contourPoints);
+
+            if (exitIndex < 0 || reentryIndex < 0)
+                return;
+
+            // Определяем направление обхода в зависимости от настроек
+            bool clockwise = op.Direction == MillingDirection.Clockwise;
+            int step = clockwise ? -1 : 1;
+
+            // Обходим контур от точки выхода к точке входа
+            int currentIndex = exitIndex;
+            int visited = 0;
+            int maxVisits = contourPoints.Count;
+
+            while (visited < maxVisits)
+            {
+                var point = contourPoints[currentIndex];
+                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+
+                if (currentIndex == reentryIndex)
+                    break;
+
+                currentIndex = (currentIndex + step + contourPoints.Count) % contourPoints.Count;
+                visited++;
+            }
+        }
+
+        /// <summary>
+        /// Обходит контур полностью от точки выхода.
+        /// </summary>
+        private void FollowContourFull(
+            IPocketOperation op,
+            (double x, double y) startPoint,
+            List<(double x, double y)> contourPoints,
+            Action<string> addLine,
+            string g1,
+            string fmt,
+            CultureInfo culture)
+        {
+            if (contourPoints == null || contourPoints.Count == 0)
+                return;
+
+            int startIndex = FindClosestContourPoint(startPoint, contourPoints);
+            if (startIndex < 0)
+                return;
+
+            FollowContourFromPoint(op, startIndex, contourPoints, addLine, g1, fmt, culture);
+        }
+
+        /// <summary>
+        /// Обходит контур полностью начиная с указанной точки.
+        /// </summary>
+        private void FollowContourFromPoint(
+            IPocketOperation op,
+            int startIndex,
+            List<(double x, double y)> contourPoints,
+            Action<string> addLine,
+            string g1,
+            string fmt,
+            CultureInfo culture)
+        {
+            if (contourPoints == null || contourPoints.Count == 0 || startIndex < 0)
+                return;
+
+            bool clockwise = op.Direction == MillingDirection.Clockwise;
+            int step = clockwise ? -1 : 1;
+
+            // Обходим контур полностью
+            for (int i = 0; i <= contourPoints.Count; i++)
+            {
+                int idx = (startIndex + i * step + contourPoints.Count) % contourPoints.Count;
+                var point = contourPoints[idx];
+                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+        }
+
+        /// <summary>
+        /// Находит ближайшую точку контура к заданной точке.
+        /// </summary>
+        private int FindClosestContourPoint(
+            (double x, double y) point,
+            List<(double x, double y)> contourPoints)
+        {
+            if (contourPoints == null || contourPoints.Count == 0)
+                return -1;
+
+            int closestIndex = 0;
+            double minDist = double.MaxValue;
+
+            for (int i = 0; i < contourPoints.Count; i++)
+            {
+                double dx = contourPoints[i].x - point.x;
+                double dy = contourPoints[i].y - point.y;
+                double dist = Math.Sqrt(dx * dx + dy * dy);
+                if (dist < minDist)
                 {
-                    int idx = (closestIndex + i) % contourPoints.Count;
-                    var point = contourPoints[idx];
-                    addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    minDist = dist;
+                    closestIndex = i;
                 }
+            }
 
-                // Замыкаем контур
-                if (closestIndex > 0)
+            return closestIndex;
+        }
+
+        /// <summary>
+        /// Вычисляет угол для точки относительно центра спирали.
+        /// </summary>
+        private double CalculateAngleFromCenter(
+            (double x, double y) point,
+            (double x, double y) center,
+            double a,
+            double b)
+        {
+            double dx = point.x - center.x;
+            double dy = point.y - center.y;
+            double r = Math.Sqrt(dx * dx + dy * dy);
+            
+            if (r <= 0)
+                return 0;
+
+            // Из формулы r = a + b*θ находим θ
+            double theta = (r - a) / b;
+            return Math.Max(0, theta);
+        }
+
+        /// <summary>
+        /// Находит точку пересечения двух отрезков.
+        /// </summary>
+        private (double x, double y)? FindLineSegmentIntersection(
+            double x1, double y1, double x2, double y2,
+            double x3, double y3, double x4, double y4,
+            double tolerance)
+        {
+            double dx1 = x2 - x1;
+            double dy1 = y2 - y1;
+            double dx2 = x4 - x3;
+            double dy2 = y4 - y3;
+
+            double denom = dx1 * dy2 - dy1 * dx2;
+            if (Math.Abs(denom) < tolerance)
+                return null; // Параллельные линии
+
+            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
+
+            // Используем небольшой допуск для границ отрезков
+            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
+            {
+                // Ограничиваем параметры диапазоном [0, 1]
+                t1 = Math.Max(0, Math.Min(1, t1));
+                return (x1 + t1 * dx1, y1 + t1 * dy1);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Генерирует обход эквидистантного контура (упрощенная версия вместо спирали).
+        /// </summary>
+        private void GenerateEquidistantContour(
+            IPocketOperation op,
+            List<(double x, double y)> contourPoints,
+            Action<string> addLine,
+            string g1,
+            string fmt,
+            CultureInfo culture)
+        {
+            if (contourPoints == null || contourPoints.Count == 0)
+                return;
+
+            // Просто обходим контур по порядку
+            foreach (var point in contourPoints)
+            {
+                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            }
+
+            // Замыкаем контур, если он не замкнут
+            if (contourPoints.Count > 0)
+            {
+                var firstPoint = contourPoints[0];
+                var lastPoint = contourPoints[contourPoints.Count - 1];
+                double tolerance = 1e-6;
+                double dx = firstPoint.x - lastPoint.x;
+                double dy = firstPoint.y - lastPoint.y;
+                double dist = Math.Sqrt(dx * dx + dy * dy);
+                if (dist > tolerance)
                 {
-                    var firstPoint = contourPoints[closestIndex];
                     addLine($"{g1} X{firstPoint.x.ToString(fmt, culture)} Y{firstPoint.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 }
             }
@@ -451,4 +857,5 @@ namespace GCodeGenerator.GCodeGenerators
         // Временно удалено: ApplyBottomFinishingAllowance - будет реализовано заново
     }
 }
+
 

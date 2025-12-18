@@ -30,13 +30,46 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count == 0)
                 return (0, 0);
 
-            double sumX = 0, sumY = 0;
-            foreach (var p in _primaryContour.Points)
+            // Вычисляем геометрический центр (центроид) многоугольника
+            // Формула: Cx = (1/6A) * Σ(xi + xi+1)(xi*yi+1 - xi+1*yi)
+            //          Cy = (1/6A) * Σ(yi + yi+1)(xi*yi+1 - xi+1*yi)
+            // где A = (1/2) * Σ(xi*yi+1 - xi+1*yi) - площадь многоугольника
+
+            double area = 0;
+            double cx = 0;
+            double cy = 0;
+
+            int pointCount = _primaryContour.Points.Count;
+            for (int i = 0; i < pointCount; i++)
             {
-                sumX += p.X;
-                sumY += p.Y;
+                var p1 = _primaryContour.Points[i];
+                var p2 = _primaryContour.Points[(i + 1) % pointCount];
+
+                double cross = p1.X * p2.Y - p2.X * p1.Y;
+                area += cross;
+                cx += (p1.X + p2.X) * cross;
+                cy += (p1.Y + p2.Y) * cross;
             }
-            return (sumX / _primaryContour.Points.Count, sumY / _primaryContour.Points.Count);
+
+            area *= 0.5;
+            double tolerance = 1e-6;
+
+            if (Math.Abs(area) > tolerance)
+            {
+                double invArea = 1.0 / (6.0 * area);
+                return (cx * invArea, cy * invArea);
+            }
+            else
+            {
+                // Если площадь слишком мала, используем среднее арифметическое как fallback
+                double sumX = 0, sumY = 0;
+                foreach (var p in _primaryContour.Points)
+                {
+                    sumX += p.X;
+                    sumY += p.Y;
+                }
+                return (sumX / pointCount, sumY / pointCount);
+            }
         }
 
         public IContour GetContour(double toolRadius, double taperOffset)
@@ -143,7 +176,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         /// <summary>
         /// Смещает контур на заданное расстояние (положительное - наружу, отрицательное - внутрь).
-        /// Упрощенная реализация для DXF контуров.
+        /// Новый алгоритм: строим параллельные прямые для каждого сегмента, находим пересечения и обрезаем.
         /// </summary>
         private DxfPolyline OffsetContour(DxfPolyline contour, double offset)
         {
@@ -160,76 +193,211 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
             bool isClockwise = signedArea < 0;
             double absOffset = Math.Abs(offset);
+            double offsetSign = offset < 0 ? 1.0 : -1.0; // Для отрицательного offset (внутрь) используем положительный знак
+            double tolerance = 1e-6;
 
-            var offsetPoints = new List<DxfPoint>();
-            
-            for (int i = 0; i < contour.Points.Count; i++)
+            // Шаг 1: Строим параллельные прямые для каждого сегмента
+            var offsetSegments = new List<OffsetSegment>();
+            int pointCount = contour.Points.Count;
+
+            for (int i = 0; i < pointCount; i++)
             {
                 var p1 = contour.Points[i];
-                var p2 = contour.Points[(i + 1) % contour.Points.Count];
-                var p0 = contour.Points[(i - 1 + contour.Points.Count) % contour.Points.Count];
+                var p2 = contour.Points[(i + 1) % pointCount];
 
-                // Вычисляем нормали к сегментам
-                double dx1 = p1.X - p0.X;
-                double dy1 = p1.Y - p0.Y;
-                double len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-                if (len1 < 1e-9) len1 = 1e-9;
-                double nx1 = -dy1 / len1;
-                double ny1 = dx1 / len1;
+                double dx = p2.X - p1.X;
+                double dy = p2.Y - p1.Y;
+                double len = Math.Sqrt(dx * dx + dy * dy);
 
-                double dx2 = p2.X - p1.X;
-                double dy2 = p2.Y - p1.Y;
-                double len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-                if (len2 < 1e-9) len2 = 1e-9;
-                double nx2 = -dy2 / len2;
-                double ny2 = dx2 / len2;
+                if (len < tolerance)
+                    continue; // Пропускаем нулевые сегменты
 
-                // Направляем нормали внутрь контура
+                // Вычисляем нормаль к сегменту (перпендикуляр, направленный влево)
+                double nx = -dy / len;
+                double ny = dx / len;
+
+                // Для кармана нормаль должна быть направлена внутрь
                 if (isClockwise)
                 {
-                    nx1 = -nx1;
-                    ny1 = -ny1;
-                    nx2 = -nx2;
-                    ny2 = -ny2;
-                }
-                if (offset > 0) // Если offset положительный (наружу), инвертируем
-                {
-                    nx1 = -nx1;
-                    ny1 = -ny1;
-                    nx2 = -nx2;
-                    ny2 = -ny2;
+                    nx = -nx;
+                    ny = -ny;
                 }
 
-                // Средняя нормаль в вершине
-                double nx = (nx1 + nx2) / 2.0;
-                double ny = (ny1 + ny2) / 2.0;
-                double normLen = Math.Sqrt(nx * nx + ny * ny);
-                if (normLen > 1e-9)
+                // Смещаем сегмент внутрь
+                var offsetP1 = new DxfPoint
                 {
-                    nx /= normLen;
-                    ny /= normLen;
-                }
+                    X = p1.X + nx * offsetSign * absOffset,
+                    Y = p1.Y + ny * offsetSign * absOffset
+                };
+                var offsetP2 = new DxfPoint
+                {
+                    X = p2.X + nx * offsetSign * absOffset,
+                    Y = p2.Y + ny * offsetSign * absOffset
+                };
 
-                // Смещаем точку
-                offsetPoints.Add(new DxfPoint
+                offsetSegments.Add(new OffsetSegment
                 {
-                    X = p1.X + nx * absOffset,
-                    Y = p1.Y + ny * absOffset
+                    Start = offsetP1,
+                    End = offsetP2,
+                    OriginalIndex = i
                 });
             }
 
-            if (offsetPoints.Count >= 3)
+            if (offsetSegments.Count < 2)
+                return null;
+
+            // Шаг 2: Находим точки пересечения смещенных сегментов
+            // Для каждого сегмента находим пересечение с предыдущим и следующим сегментом
+            var segmentStartPoints = new List<DxfPoint>();
+            var segmentEndPoints = new List<DxfPoint>();
+
+            for (int i = 0; i < offsetSegments.Count; i++)
             {
-                // Замыкаем контур
-                if (!PointsMatch(offsetPoints[0], offsetPoints[offsetPoints.Count - 1]))
+                var seg = offsetSegments[i];
+                var prevSeg = offsetSegments[(i - 1 + offsetSegments.Count) % offsetSegments.Count];
+                var nextSeg = offsetSegments[(i + 1) % offsetSegments.Count];
+
+                // Находим пересечение с предыдущим сегментом (начало текущего сегмента)
+                var intersectionWithPrev = FindLineSegmentIntersection(
+                    prevSeg.Start.X, prevSeg.Start.Y,
+                    prevSeg.End.X, prevSeg.End.Y,
+                    seg.Start.X, seg.Start.Y,
+                    seg.End.X, seg.End.Y,
+                    tolerance);
+
+                // Находим пересечение со следующим сегментом (конец текущего сегмента)
+                var intersectionWithNext = FindLineSegmentIntersection(
+                    seg.Start.X, seg.Start.Y,
+                    seg.End.X, seg.End.Y,
+                    nextSeg.Start.X, nextSeg.Start.Y,
+                    nextSeg.End.X, nextSeg.End.Y,
+                    tolerance);
+
+                // Начало сегмента - это пересечение с предыдущим, или начало сегмента, если пересечения нет
+                if (intersectionWithPrev != null)
                 {
-                    offsetPoints.Add(new DxfPoint 
-                    { 
-                        X = offsetPoints[0].X, 
-                        Y = offsetPoints[0].Y 
-                    });
+                    segmentStartPoints.Add(intersectionWithPrev);
                 }
-                return new DxfPolyline { Points = offsetPoints };
+                else
+                {
+                    segmentStartPoints.Add(seg.Start);
+                }
+
+                // Конец сегмента - это пересечение со следующим, или конец сегмента, если пересечения нет
+                if (intersectionWithNext != null)
+                {
+                    segmentEndPoints.Add(intersectionWithNext);
+                }
+                else
+                {
+                    segmentEndPoints.Add(seg.End);
+                }
+            }
+
+            // Шаг 3: Составляем новый контур из обрезанных сегментов
+            var resultPoints = new List<DxfPoint>();
+
+            for (int i = 0; i < offsetSegments.Count; i++)
+            {
+                var startPoint = segmentStartPoints[i];
+                var endPoint = segmentEndPoints[i];
+
+                // Добавляем начальную точку сегмента (если она отличается от последней добавленной)
+                if (resultPoints.Count == 0 || !PointsMatch(resultPoints[resultPoints.Count - 1], startPoint))
+                {
+                    resultPoints.Add(startPoint);
+                }
+
+                // Добавляем конечную точку сегмента (если она отличается от последней добавленной)
+                if (!PointsMatch(resultPoints[resultPoints.Count - 1], endPoint))
+                {
+                    resultPoints.Add(endPoint);
+                }
+            }
+
+            // Удаляем дубликаты
+            var cleanedPoints = new List<DxfPoint>();
+            for (int i = 0; i < resultPoints.Count; i++)
+            {
+                if (cleanedPoints.Count == 0 || !PointsMatch(cleanedPoints[cleanedPoints.Count - 1], resultPoints[i]))
+                {
+                    cleanedPoints.Add(resultPoints[i]);
+                }
+            }
+
+            // Замыкаем контур
+            if (cleanedPoints.Count >= 3 && !PointsMatch(cleanedPoints[0], cleanedPoints[cleanedPoints.Count - 1]))
+            {
+                cleanedPoints.Add(new DxfPoint
+                {
+                    X = cleanedPoints[0].X,
+                    Y = cleanedPoints[0].Y
+                });
+            }
+
+            if (cleanedPoints.Count >= 3)
+            {
+                return new DxfPolyline { Points = cleanedPoints };
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Представляет смещенный сегмент контура.
+        /// </summary>
+        private class OffsetSegment
+        {
+            public DxfPoint Start { get; set; }
+            public DxfPoint End { get; set; }
+            public int OriginalIndex { get; set; }
+        }
+
+        /// <summary>
+        /// Представляет точку пересечения двух смещенных сегментов.
+        /// </summary>
+        private class IntersectionPoint
+        {
+            public DxfPoint Point { get; set; }
+            public int SegmentIndex1 { get; set; }
+            public int SegmentIndex2 { get; set; }
+            public bool IsStartOfSeg1 { get; set; }
+            public bool IsEndOfSeg1 { get; set; }
+            public bool IsStartOfSeg2 { get; set; }
+            public bool IsEndOfSeg2 { get; set; }
+        }
+
+
+        /// <summary>
+        /// Находит точку пересечения двух отрезков.
+        /// </summary>
+        private DxfPoint FindLineSegmentIntersection(
+            double x1, double y1, double x2, double y2,
+            double x3, double y3, double x4, double y4,
+            double tolerance)
+        {
+            double dx1 = x2 - x1;
+            double dy1 = y2 - y1;
+            double dx2 = x4 - x3;
+            double dy2 = y4 - y3;
+
+            double denom = dx1 * dy2 - dy1 * dx2;
+            if (Math.Abs(denom) < tolerance)
+                return null; // Параллельные линии
+
+            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
+            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
+
+            // Используем небольшой допуск для границ отрезков
+            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
+            {
+                // Ограничиваем параметры диапазоном [0, 1]
+                t1 = Math.Max(0, Math.Min(1, t1));
+                return new DxfPoint
+                {
+                    X = x1 + t1 * dx1,
+                    Y = y1 + t1 * dy1
+                };
             }
 
             return null;
