@@ -276,7 +276,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             get => _wallTaperAngleDeg;
             set
             {
-                var v = Math.Max(0, value);
+                // Ограничиваем угол диапазоном [0; 90)
+                var v = Math.Max(0, Math.Min(89.999999, value));
                 if (v.Equals(_wallTaperAngleDeg)) return;
                 _wallTaperAngleDeg = v;
                 OnPropertyChanged();

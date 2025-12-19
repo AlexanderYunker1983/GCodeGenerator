@@ -60,11 +60,13 @@ namespace GCodeGenerator.GCodeGenerators
             double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
             double step = GCodeGenerationHelper.CalculateStep(op.ToolDiameter, stepPercent);
 
-            // Для DXF операций создаем словарь для хранения площадей предыдущих слоев каждого контура
+            // Для DXF операций создаем словари для хранения площадей предыдущих слоев и информации о первых двух слоях каждого контура
             Dictionary<int, double> previousContourAreas = null;
+            Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)> contourSimilarityData = null;
             if (op is PocketDxfOperation)
             {
                 previousContourAreas = new Dictionary<int, double>();
+                contourSimilarityData = new Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)>();
             }
 
             // Генерируем цикл по слоям
@@ -77,11 +79,13 @@ namespace GCodeGenerator.GCodeGenerators
                     step,
                     currentZ,
                     nextZ,
+                    passNumber,
                     addLine,
                     g0,
                     g1,
                     settings,
-                    previousContourAreas),
+                    previousContourAreas,
+                    contourSimilarityData),
                 addLine,
                 g0,
                 g1,
@@ -99,11 +103,13 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double currentZ,
             double nextZ,
+            int passNumber,
             Action<string> addLine,
             string g0,
             string g1,
             GCodeSettings settings,
-            Dictionary<int, double> previousContourAreas = null)
+            Dictionary<int, double> previousContourAreas = null,
+            Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)> contourSimilarityData = null)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
             var culture = CultureInfo.InvariantCulture;
@@ -115,7 +121,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Проверка размера контуров выполняется внутри GenerateDxfLayerWithSpiral для каждого контура отдельно
             if (op is PocketDxfOperation dxfOp)
             {
-                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings, previousContourAreas);
+                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, passNumber, addLine, g0, g1, fmt, culture, settings, previousContourAreas, contourSimilarityData);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -163,26 +169,27 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double currentZ,
             double nextZ,
+            int passNumber,
             Action<string> addLine,
             string g0,
             string g1,
             string fmt,
             CultureInfo culture,
             GCodeSettings settings,
-            Dictionary<int, double> previousContourAreas)
+            Dictionary<int, double> previousContourAreas,
+            Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)> contourSimilarityData)
         {
             if (op.ClosedContours == null || op.ClosedContours.Count == 0)
                 return false;
 
             if (previousContourAreas == null)
                 previousContourAreas = new Dictionary<int, double>();
+            if (contourSimilarityData == null)
+                contourSimilarityData = new Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)>();
 
             bool isFirstContour = true;
             bool atLeastOneContourProcessed = false;
             double tolerance = 1e-6;
-            
-            // Определяем знак уклона: положительный - сужение внутрь (площадь уменьшается), отрицательный - расширение (площадь увеличивается)
-            bool isPositiveTaper = op.WallTaperAngleDeg >= 0;
             
             for (int contourIndex = 0; contourIndex < op.ClosedContours.Count; contourIndex++)
             {
@@ -196,10 +203,108 @@ namespace GCodeGenerator.GCodeGenerators
                 // Получаем эквидистантный контур (смещенный внутрь) для вычисления площади
                 var offsetContour = geometry.GetContour(toolRadius, taperOffset);
                 if (offsetContour == null)
+                {
+                    // Если контур не может быть получен, но это первый или второй слой, инициализируем данные
+                    if (passNumber <= 2)
+                    {
+                        if (!contourSimilarityData.ContainsKey(contourIndex))
+                        {
+                            contourSimilarityData[contourIndex] = (0, 0, 0, 0);
+                        }
+                    }
                     continue;
+                }
 
                 // Вычисляем площадь текущего слоя
                 double currentArea = offsetContour.GetArea();
+                
+                // Сохраняем площади первых двух слоев для вычисления подобия (ДО проверки других критериев отсечки)
+                // Это важно, чтобы данные сохранялись для всех контуров, даже если они будут пропущены из-за других критериев
+                if (passNumber <= 2)
+                {
+                    if (passNumber == 1)
+                    {
+                        // Первый слой - сохраняем площадь
+                        if (!contourSimilarityData.ContainsKey(contourIndex))
+                        {
+                            contourSimilarityData[contourIndex] = (currentArea, 0, 0, 0);
+                        }
+                        else
+                        {
+                            var existing = contourSimilarityData[contourIndex];
+                            contourSimilarityData[contourIndex] = (currentArea, existing.secondArea, existing.ratio, existing.hourglassLayer);
+                        }
+                    }
+                    else if (passNumber == 2)
+                    {
+                        // Второй слой - сохраняем площадь и вычисляем соотношение
+                        if (contourSimilarityData.ContainsKey(contourIndex))
+                        {
+                            var existing = contourSimilarityData[contourIndex];
+                            double firstArea = existing.firstArea;
+                            
+                            if (firstArea > tolerance && currentArea > tolerance)
+                            {
+                                double ratio = currentArea / firstArea;
+                                
+                                // Вычисляем номер слоя, где будет точка "песочных часов"
+                                // Точка "песочных часов" - это когда площадь становится меньше 1% от исходной
+                                // Для слоя n: An = A0 * ratio^(n-1)
+                                // Находим n, где An <= 0.01 * A0
+                                // ratio^(n-1) <= 0.01
+                                // (n-1) * log(ratio) <= log(0.01)
+                                // n-1 >= log(0.01) / log(ratio)
+                                // n >= log(0.01) / log(ratio) + 1
+                                
+                                int hourglassLayer = 0;
+                                if (ratio > 0 && ratio < 1)
+                                {
+                                    double logRatio = Math.Log(ratio);
+                                    if (Math.Abs(logRatio) > tolerance)
+                                    {
+                                        double n = Math.Log(0.01) / logRatio + 1;
+                                        hourglassLayer = (int)Math.Ceiling(n);
+                                        // Убеждаемся, что hourglassLayer >= 2 (минимум после второго слоя)
+                                        if (hourglassLayer < 2)
+                                            hourglassLayer = 2;
+                                    }
+                                }
+                                
+                                contourSimilarityData[contourIndex] = (firstArea, currentArea, ratio, hourglassLayer);
+                                
+                                // Если текущий слой уже достиг точки "песочных часов", прекращаем обработку
+                                if (hourglassLayer > 0 && passNumber >= hourglassLayer)
+                                {
+                                    // Этот контур достиг точки "песочных часов" - пропускаем его, но продолжаем обрабатывать остальные контуры
+                                    continue;
+                                }
+                            }
+                            else
+                            {
+                                // Если первая площадь не была сохранена, сохраняем текущую как первую
+                                contourSimilarityData[contourIndex] = (currentArea, 0, 0, 0);
+                            }
+                        }
+                        else
+                        {
+                            // Если данных о первом слое нет, сохраняем текущую площадь как первую
+                            contourSimilarityData[contourIndex] = (currentArea, 0, 0, 0);
+                        }
+                    }
+                }
+                
+                // Критерий 4: Проверка подобия фигур (если есть хотя бы два первых слоя)
+                // Проверяем ПОСЛЕ сохранения данных, чтобы использовать актуальные данные
+                if (contourSimilarityData.ContainsKey(contourIndex))
+                {
+                    var similarityData = contourSimilarityData[contourIndex];
+                    // Если точка "песочных часов" уже вычислена и текущий слой >= этой точки, прекращаем обработку
+                    if (similarityData.hourglassLayer > 0 && passNumber >= similarityData.hourglassLayer)
+                    {
+                        // Этот контур достиг точки "песочных часов" - пропускаем его, но продолжаем обрабатывать остальные контуры
+                        continue;
+                    }
+                }
                 
                 // Проверяем все критерии отсечки:
                 // 1. Изменение площади относительно предыдущего слоя
@@ -212,23 +317,11 @@ namespace GCodeGenerator.GCodeGenerators
                 {
                     double previousArea = previousContourAreas[contourIndex];
                     
-                    if (isPositiveTaper)
+                    // Для уклона (сужение внутрь): площадь должна уменьшаться
+                    // Если площадь увеличилась или осталась равной - контур инвертировался или вырожден
+                    if (currentArea >= previousArea - tolerance)
                     {
-                        // Для положительного уклона (сужение внутрь): площадь должна уменьшаться
-                        // Если площадь увеличилась или осталась равной - контур инвертировался или вырожден
-                        if (currentArea >= previousArea - tolerance)
-                        {
-                            shouldStop = true;
-                        }
-                    }
-                    else
-                    {
-                        // Для отрицательного уклона (расширение наружу): площадь должна увеличиваться
-                        // Если площадь уменьшилась или осталась равной - контур инвертировался или вырожден
-                        if (currentArea <= previousArea + tolerance)
-                        {
-                            shouldStop = true;
-                        }
+                        shouldStop = true;
                     }
                 }
                 

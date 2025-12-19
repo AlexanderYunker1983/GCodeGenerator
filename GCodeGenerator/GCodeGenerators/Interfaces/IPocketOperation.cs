@@ -99,7 +99,7 @@ namespace GCodeGenerator.GCodeGenerators.Interfaces
         double LineAngleDeg { get; set; }
 
         /// <summary>
-        /// Уклон стенки, градусы (0 – вертикально). Положительные значения дают сужение внутрь к низу.
+        /// Уклон стенки, градусы. Диапазон [0; 90). 0 – вертикально. Положительные значения дают сужение внутрь к низу.
         /// </summary>
         double WallTaperAngleDeg { get; set; }
 
