@@ -317,11 +317,24 @@ namespace GCodeGenerator.GCodeGenerators
                 {
                     double previousArea = previousContourAreas[contourIndex];
                     
-                    // Для уклона (сужение внутрь): площадь должна уменьшаться
-                    // Если площадь увеличилась или осталась равной - контур инвертировался или вырожден
-                    if (currentArea >= previousArea - tolerance)
+                    // Проверяем уклон: для нулевого уклона площадь остается постоянной, для положительного - уменьшается
+                    if (op.WallTaperAngleDeg == 0.0)
                     {
-                        shouldStop = true;
+                        // Для нулевого уклона: площадь должна оставаться примерно постоянной
+                        // Останавливаемся только если площадь увеличилась (что было бы ошибкой)
+                        if (currentArea > previousArea + tolerance)
+                        {
+                            shouldStop = true;
+                        }
+                    }
+                    else
+                    {
+                        // Для положительного уклона (сужение внутрь): площадь должна уменьшаться
+                        // Если площадь увеличилась или осталась равной - контур инвертировался или вырожден
+                        if (currentArea >= previousArea - tolerance)
+                        {
+                            shouldStop = true;
+                        }
                     }
                 }
                 
