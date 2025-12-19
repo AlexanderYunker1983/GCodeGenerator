@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for ellipse contour.
     /// </summary>
-    public class ProfileEllipseOperation : OperationBase
+    public class ProfileEllipseOperation : OperationBase, IProfileOperation
     {
         public ProfileEllipseOperation() : base(OperationType.ProfileMilling, "Profile Ellipse")
         {

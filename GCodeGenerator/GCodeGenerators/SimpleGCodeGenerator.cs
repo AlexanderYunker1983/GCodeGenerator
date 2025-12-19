@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -24,8 +25,54 @@ namespace GCodeGenerator.GCodeGenerators
                     && !t.IsInterface 
                     && !t.IsAbstract);
 
+            // Сначала регистрируем единые генераторы для профилей и карманов
+            var unifiedProfileGenerator = generatorTypes.FirstOrDefault(t => t.Name == "UnifiedProfileGenerator");
+            var unifiedPocketGenerator = generatorTypes.FirstOrDefault(t => t.Name == "UnifiedPocketGenerator");
+
+            if (unifiedProfileGenerator != null)
+            {
+                var generator = (IOperationGenerator)Activator.CreateInstance(unifiedProfileGenerator);
+                // Регистрируем для всех типов профилей
+                var profileOperationTypes = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .Where(t => typeof(OperationBase).IsAssignableFrom(t) 
+                        && typeof(IProfileOperation).IsAssignableFrom(t)
+                        && !t.IsAbstract);
+                
+                foreach (var operationType in profileOperationTypes)
+                {
+                    _generators[operationType] = generator;
+                }
+            }
+
+            if (unifiedPocketGenerator != null)
+            {
+                var generator = (IOperationGenerator)Activator.CreateInstance(unifiedPocketGenerator);
+                // Регистрируем для всех типов карманов
+                var pocketOperationTypes = AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .Where(t => typeof(OperationBase).IsAssignableFrom(t) 
+                        && typeof(IPocketOperation).IsAssignableFrom(t)
+                        && !t.IsAbstract);
+                
+                foreach (var operationType in pocketOperationTypes)
+                {
+                    _generators[operationType] = generator;
+                }
+            }
+
+            // Затем регистрируем остальные генераторы (игнорируя единые генераторы профилей и карманов)
+            var excludedGenerators = new[] 
+            { 
+                "UnifiedProfileGenerator", 
+                "UnifiedPocketGenerator"
+            };
+
             foreach (var generatorType in generatorTypes)
             {
+                if (excludedGenerators.Contains(generatorType.Name))
+                    continue;
+
                 var generator = (IOperationGenerator)Activator.CreateInstance(generatorType);
                 var operationTypeName = generatorType.Name.Replace("Generator", "");
                 
@@ -33,7 +80,7 @@ namespace GCodeGenerator.GCodeGenerators
                     .SelectMany(a => a.GetTypes())
                     .FirstOrDefault(t => t.Name == operationTypeName && typeof(OperationBase).IsAssignableFrom(t));
                 
-                if (operationType != null)
+                if (operationType != null && !_generators.ContainsKey(operationType))
                 {
                     _generators[operationType] = generator;
                 }

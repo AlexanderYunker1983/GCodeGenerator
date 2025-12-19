@@ -129,60 +129,8 @@
             </StackPanel>
         </GroupBox>
 
-        <!-- Фрезерование острова -->
-        <GroupBox Header="{DataBinding '$i18n.IslandMillingHeader'}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <CheckBox IsChecked="{Binding IsIslandMillingEnabled}" Content="{DataBinding '$i18n.IslandMillingEnabled'}" Margin="0,0,0,8"/>
-                
-                <StackPanel IsEnabled="{Binding IsIslandMillingEnabled}">
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.OuterBoundaryTypeLabel'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <ComboBox Grid.Column="1" SelectedValue="{Binding OuterBoundaryType, Mode=TwoWay}" SelectedValuePath="Tag">
-                            <ComboBoxItem Content="{DataBinding '$i18n.OuterBoundaryTypeRectangle'}" Tag="{x:Static models:OuterBoundaryType.Rectangle}"/>
-                            <ComboBoxItem Content="{DataBinding '$i18n.OuterBoundaryTypeEllipse'}" Tag="{x:Static models:OuterBoundaryType.Ellipse}"/>
-                        </ComboBox>
-                    </Grid>
-                    
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.OuterBoundaryCenterX'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="1" Text="{Binding OuterBoundaryCenterX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                        <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.OuterBoundaryCenterY'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Column="4" Text="{Binding OuterBoundaryCenterY, UpdateSourceTrigger=PropertyChanged}"/>
-                    </Grid>
-                    
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                            <ColumnDefinition Width="20"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="100"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Grid.Column="0" Text="{DataBinding '$i18n.OuterBoundaryWidth'}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="1" Text="{Binding OuterBoundaryWidth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                        <TextBlock Grid.Column="3" Text="{DataBinding '$i18n.OuterBoundaryHeight'}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Column="4" Text="{Binding OuterBoundaryHeight, UpdateSourceTrigger=PropertyChanged}"/>
-                    </Grid>
-                </StackPanel>
-            </StackPanel>
-        </GroupBox>
-
         <!-- Позиционирование и Z -->
-        <GroupBox Header="{DataBinding '$i18n.PositioningHeader'}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.PositioningHeader'}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -199,7 +147,7 @@
         </GroupBox>
 
         <!-- Подачи -->
-        <GroupBox Header="{DataBinding '$i18n.FeedParametersHeader'}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
+        <GroupBox Header="{DataBinding '$i18n.FeedParametersHeader'}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -224,7 +172,7 @@
         </GroupBox>
 
         <!-- Стратегия -->
-        <GroupBox Header="{DataBinding '$i18n.CuttingStrategy'}" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2">
+        <GroupBox Header="{DataBinding '$i18n.CuttingStrategy'}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2">
             <Grid Margin="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -242,6 +190,7 @@
                 <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                          SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
                          SelectedValuePath="Tag"
+                         IsEnabled="False"
                          Margin="0,0,0,8">
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategySpiral'}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
                     <ComboBoxItem Content="{DataBinding '$i18n.PocketStrategyConcentric'}" Tag="{x:Static models:PocketStrategy.Concentric}"/>

@@ -1,11 +1,12 @@
 using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation for circular pocket.
     /// </summary>
-    public class PocketCircleOperation : OperationBase
+    public class PocketCircleOperation : OperationBase, IPocketOperation
     {
         public PocketCircleOperation() : base(OperationType.ProfileMilling, "Pocket Circle")
         {
@@ -78,36 +79,6 @@ namespace GCodeGenerator.Models
         /// Режим чистовой обработки.
         /// </summary>
         public PocketFinishingMode FinishingMode { get; set; } = PocketFinishingMode.All;
-
-        /// <summary>
-        /// Включено ли фрезерование острова (обработка области вокруг острова).
-        /// </summary>
-        public bool IsIslandMillingEnabled { get; set; } = false;
-
-        /// <summary>
-        /// Тип внешней границы для фрезерования острова.
-        /// </summary>
-        public OuterBoundaryType OuterBoundaryType { get; set; } = OuterBoundaryType.Rectangle;
-
-        /// <summary>
-        /// Центр внешней границы по X.
-        /// </summary>
-        public double OuterBoundaryCenterX { get; set; } = 0.0;
-
-        /// <summary>
-        /// Центр внешней границы по Y.
-        /// </summary>
-        public double OuterBoundaryCenterY { get; set; } = 0.0;
-
-        /// <summary>
-        /// Ширина внешней границы (для прямоугольника) или диаметр по X (для эллипса).
-        /// </summary>
-        public double OuterBoundaryWidth { get; set; } = 50.0;
-
-        /// <summary>
-        /// Высота внешней границы (для прямоугольника) или диаметр по Y (для эллипса).
-        /// </summary>
-        public double OuterBoundaryHeight { get; set; } = 50.0;
 
         public Dictionary<string, object> Metadata { get; set; }
 
