@@ -60,6 +60,13 @@ namespace GCodeGenerator.GCodeGenerators
             double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
             double step = GCodeGenerationHelper.CalculateStep(op.ToolDiameter, stepPercent);
 
+            // Для DXF операций создаем словарь для хранения площадей предыдущих слоев каждого контура
+            Dictionary<int, double> previousContourAreas = null;
+            if (op is PocketDxfOperation)
+            {
+                previousContourAreas = new Dictionary<int, double>();
+            }
+
             // Генерируем цикл по слоям
             _helper.GenerateLayerLoop(
                 op,
@@ -73,7 +80,8 @@ namespace GCodeGenerator.GCodeGenerators
                     addLine,
                     g0,
                     g1,
-                    settings),
+                    settings,
+                    previousContourAreas),
                 addLine,
                 g0,
                 g1,
@@ -94,7 +102,8 @@ namespace GCodeGenerator.GCodeGenerators
             Action<string> addLine,
             string g0,
             string g1,
-            GCodeSettings settings)
+            GCodeSettings settings,
+            Dictionary<int, double> previousContourAreas = null)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
             var culture = CultureInfo.InvariantCulture;
@@ -106,7 +115,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Проверка размера контуров выполняется внутри GenerateDxfLayerWithSpiral для каждого контура отдельно
             if (op is PocketDxfOperation dxfOp)
             {
-                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings);
+                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, addLine, g0, g1, fmt, culture, settings, previousContourAreas);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -145,7 +154,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Генерирует один слой для DXF кармана с несколькими контурами, используя спиральную стратегию.
         /// </summary>
-        /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
+        /// <returns>true, если хотя бы один контур был обработан и обработку нужно продолжить; false, если все контуры слишком маленькие</returns>
         private bool GenerateDxfLayerWithSpiral(
             PocketDxfOperation op,
             IPocketGeometry overallGeometry,
@@ -159,34 +168,94 @@ namespace GCodeGenerator.GCodeGenerators
             string g1,
             string fmt,
             CultureInfo culture,
-            GCodeSettings settings)
+            GCodeSettings settings,
+            Dictionary<int, double> previousContourAreas)
         {
             if (op.ClosedContours == null || op.ClosedContours.Count == 0)
                 return false;
 
+            if (previousContourAreas == null)
+                previousContourAreas = new Dictionary<int, double>();
+
             bool isFirstContour = true;
-            bool allContoursProcessed = true;
+            bool atLeastOneContourProcessed = false;
+            double tolerance = 1e-6;
             
-            foreach (var contour in op.ClosedContours)
+            // Определяем знак уклона: положительный - сужение внутрь (площадь уменьшается), отрицательный - расширение (площадь увеличивается)
+            bool isPositiveTaper = op.WallTaperAngleDeg >= 0;
+            
+            for (int contourIndex = 0; contourIndex < op.ClosedContours.Count; contourIndex++)
             {
+                var contour = op.ClosedContours[contourIndex];
                 if (contour?.Points == null || contour.Points.Count < 3)
                     continue;
 
                 // Создаем геометрию для этого контура
                 var geometry = new DxfPocketGeometry(op, contour);
                 
-                // Проверяем, не стал ли контур слишком маленьким для обработки
-                if (geometry.IsContourTooSmall(toolRadius, taperOffset))
-                {
-                    // Этот контур слишком маленький - прекращаем обработку всех контуров
-                    allContoursProcessed = false;
-                    break;
-                }
-                
-                // Получаем эквидистантный контур (смещенный внутрь)
+                // Получаем эквидистантный контур (смещенный внутрь) для вычисления площади
                 var offsetContour = geometry.GetContour(toolRadius, taperOffset);
                 if (offsetContour == null)
                     continue;
+
+                // Вычисляем площадь текущего слоя
+                double currentArea = offsetContour.GetArea();
+                
+                // Проверяем все критерии отсечки:
+                // 1. Изменение площади относительно предыдущего слоя
+                // 2. Смена направления обхода контура
+                // 3. Смена направления хотя бы одного вектора от вершины до центра
+                bool shouldStop = false;
+                
+                // Критерий 1: Изменение площади относительно предыдущего слоя
+                if (previousContourAreas.ContainsKey(contourIndex))
+                {
+                    double previousArea = previousContourAreas[contourIndex];
+                    
+                    if (isPositiveTaper)
+                    {
+                        // Для положительного уклона (сужение внутрь): площадь должна уменьшаться
+                        // Если площадь увеличилась или осталась равной - контур инвертировался или вырожден
+                        if (currentArea >= previousArea - tolerance)
+                        {
+                            shouldStop = true;
+                        }
+                    }
+                    else
+                    {
+                        // Для отрицательного уклона (расширение наружу): площадь должна увеличиваться
+                        // Если площадь уменьшилась или осталась равной - контур инвертировался или вырожден
+                        if (currentArea <= previousArea + tolerance)
+                        {
+                            shouldStop = true;
+                        }
+                    }
+                }
+                
+                // Критерий 2: Смена направления обхода контура
+                if (!shouldStop && geometry.HasWindingDirectionChanged(toolRadius, taperOffset))
+                {
+                    shouldStop = true;
+                }
+                
+                // Критерий 3: Смена направления хотя бы одного вектора от вершины до центра
+                if (!shouldStop && geometry.HasVectorDirectionChanged(toolRadius, taperOffset))
+                {
+                    shouldStop = true;
+                }
+                
+                if (shouldStop)
+                {
+                    // Этот контур достиг своего последнего слоя - пропускаем его, но продолжаем обрабатывать остальные контуры
+                    continue;
+                }
+                
+                // Проверяем, не стал ли контур слишком маленьким для обработки (дополнительная проверка)
+                if (geometry.IsContourTooSmall(toolRadius, taperOffset))
+                {
+                    // Этот контур слишком маленький - пропускаем его, но продолжаем обрабатывать остальные контуры
+                    continue;
+                }
 
                 var contourPoints = offsetContour.GetPoints().ToList();
                 if (contourPoints.Count == 0)
@@ -222,10 +291,16 @@ namespace GCodeGenerator.GCodeGenerators
                 addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
                 addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
 
+                // Сохраняем площадь текущего слоя для следующей итерации
+                previousContourAreas[contourIndex] = currentArea;
+
                 isFirstContour = false;
+                atLeastOneContourProcessed = true;
             }
             
-            return allContoursProcessed;
+            // Возвращаем true, если хотя бы один контур был обработан
+            // Это означает, что нужно продолжить обработку следующих слоев
+            return atLeastOneContourProcessed;
         }
 
         /// <summary>

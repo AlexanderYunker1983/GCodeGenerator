@@ -151,18 +151,274 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             if (Math.Abs(offsetArea) < minArea)
                 return true;
 
-            // Проверяем, что контур не инвертировался (не стал "песочными часами")
-            // Сравниваем знак площади исходного и смещенного контура
-            double originalArea = GetContourArea(_primaryContour);
+            // Проверяем инверсию контура: если вектор хотя бы одной из вершин до центра масс
+            // поменял направление на 180±30 градусов - контур инвертировался
+            var originalCenter = GetCenter();
+            var offsetCenter = GetContourCenter(offsetContour);
             
-            if (Math.Sign(originalArea) != Math.Sign(offsetArea))
+            var originalPoints = _primaryContour.Points;
+            var offsetPoints = offsetContour.Points;
+            
+            // Проверяем каждую вершину исходного контура
+            // Находим ближайшую точку в смещенном контуре для каждой вершины исходного контура
+            double toleranceDegrees = 30.0; // Допуск ±30 градусов
+            double minAngleChange = 180.0 - toleranceDegrees; // 150 градусов
+            double maxAngleChange = 180.0 + toleranceDegrees; // 210 градусов
+            
+            for (int i = 0; i < originalPoints.Count; i++)
             {
-                // Контур инвертировался - стал самопересекающимся или "песочными часами"
-                return true;
+                var origPoint = originalPoints[i];
+                
+                // Вектор от центра до вершины исходного контура
+                double origDx = origPoint.X - originalCenter.x;
+                double origDy = origPoint.Y - originalCenter.y;
+                
+                // Пропускаем точки слишком близко к центру
+                double origDist = Math.Sqrt(origDx * origDx + origDy * origDy);
+                if (origDist < 1e-6)
+                    continue;
+                
+                // Находим ближайшую точку в смещенном контуре
+                int closestOffsetIdx = 0;
+                double minDist = double.MaxValue;
+                for (int j = 0; j < offsetPoints.Count; j++)
+                {
+                    double dx = offsetPoints[j].X - origPoint.X;
+                    double dy = offsetPoints[j].Y - origPoint.Y;
+                    double dist = Math.Sqrt(dx * dx + dy * dy);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        closestOffsetIdx = j;
+                    }
+                }
+                
+                var offsetPoint = offsetPoints[closestOffsetIdx];
+                
+                // Вектор от центра до соответствующей вершины смещенного контура
+                double offsetDx = offsetPoint.X - offsetCenter.x;
+                double offsetDy = offsetPoint.Y - offsetCenter.y;
+                
+                // Пропускаем точки слишком близко к центру
+                double offsetDist = Math.Sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
+                if (offsetDist < 1e-6)
+                    continue;
+                
+                // Вычисляем углы векторов (в радианах)
+                double origAngle = Math.Atan2(origDy, origDx);
+                double offsetAngle = Math.Atan2(offsetDy, offsetDx);
+                
+                // Вычисляем изменение угла (учитываем направление)
+                double angleChange = offsetAngle - origAngle;
+                
+                // Нормализуем к диапазону [-π, π]
+                while (angleChange > Math.PI)
+                    angleChange -= 2 * Math.PI;
+                while (angleChange < -Math.PI)
+                    angleChange += 2 * Math.PI;
+                
+                // Берем абсолютное значение
+                double angleChangeAbs = Math.Abs(angleChange);
+                
+                // Переводим в градусы
+                double angleChangeDegrees = angleChangeAbs * 180.0 / Math.PI;
+                
+                // Если угол изменился на 180±30 градусов, контур инвертировался
+                if (angleChangeDegrees >= minAngleChange && angleChangeDegrees <= maxAngleChange)
+                {
+                    return true;
+                }
             }
 
             // Контур валиден - не вырожден и не инвертирован
             return false;
+        }
+
+        /// <summary>
+        /// Проверяет, изменилось ли направление обхода контура (по знаку площади).
+        /// </summary>
+        /// <param name="toolRadius">Радиус инструмента</param>
+        /// <param name="taperOffset">Смещение из-за уклона стенок</param>
+        /// <returns>true, если направление обхода изменилось</returns>
+        public bool HasWindingDirectionChanged(double toolRadius, double taperOffset)
+        {
+            if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count < 3)
+                return false;
+
+            // Вычисляем знак площади исходного контура
+            double originalSignedArea = GetSignedArea(_primaryContour);
+            
+            // Смещаем контур внутрь на effectiveToolRadius
+            double effectiveToolRadius = toolRadius + taperOffset;
+            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
+                return false;
+
+            // Вычисляем знак площади смещенного контура
+            double offsetSignedArea = GetSignedArea(offsetContour);
+            
+            // Если знаки разные - направление обхода изменилось
+            return Math.Sign(originalSignedArea) != Math.Sign(offsetSignedArea);
+        }
+
+        /// <summary>
+        /// Проверяет, изменился ли хотя бы один вектор от вершины до центра на 180±30 градусов.
+        /// </summary>
+        /// <param name="toolRadius">Радиус инструмента</param>
+        /// <param name="taperOffset">Смещение из-за уклона стенок</param>
+        /// <returns>true, если хотя бы один вектор изменил направление</returns>
+        public bool HasVectorDirectionChanged(double toolRadius, double taperOffset)
+        {
+            if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count < 3)
+                return false;
+
+            double effectiveToolRadius = toolRadius + taperOffset;
+            
+            // Смещаем контур внутрь на effectiveToolRadius
+            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
+                return false;
+
+            var originalCenter = GetCenter();
+            var offsetCenter = GetContourCenter(offsetContour);
+            
+            var originalPoints = _primaryContour.Points;
+            var offsetPoints = offsetContour.Points;
+            
+            // Проверяем каждую вершину исходного контура
+            double toleranceDegrees = 30.0; // Допуск ±30 градусов
+            double minAngleChange = 180.0 - toleranceDegrees; // 150 градусов
+            double maxAngleChange = 180.0 + toleranceDegrees; // 210 градусов
+            
+            for (int i = 0; i < originalPoints.Count; i++)
+            {
+                var origPoint = originalPoints[i];
+                
+                // Вектор от центра до вершины исходного контура
+                double origDx = origPoint.X - originalCenter.x;
+                double origDy = origPoint.Y - originalCenter.y;
+                
+                // Пропускаем точки слишком близко к центру
+                double origDist = Math.Sqrt(origDx * origDx + origDy * origDy);
+                if (origDist < 1e-6)
+                    continue;
+                
+                // Находим ближайшую точку в смещенном контуре
+                int closestOffsetIdx = 0;
+                double minDist = double.MaxValue;
+                for (int j = 0; j < offsetPoints.Count; j++)
+                {
+                    double dx = offsetPoints[j].X - origPoint.X;
+                    double dy = offsetPoints[j].Y - origPoint.Y;
+                    double dist = Math.Sqrt(dx * dx + dy * dy);
+                    if (dist < minDist)
+                    {
+                        minDist = dist;
+                        closestOffsetIdx = j;
+                    }
+                }
+                
+                var offsetPoint = offsetPoints[closestOffsetIdx];
+                
+                // Вектор от центра до соответствующей вершины смещенного контура
+                double offsetDx = offsetPoint.X - offsetCenter.x;
+                double offsetDy = offsetPoint.Y - offsetCenter.y;
+                
+                // Пропускаем точки слишком близко к центру
+                double offsetDist = Math.Sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
+                if (offsetDist < 1e-6)
+                    continue;
+                
+                // Вычисляем углы векторов (в радианах)
+                double origAngle = Math.Atan2(origDy, origDx);
+                double offsetAngle = Math.Atan2(offsetDy, offsetDx);
+                
+                // Вычисляем изменение угла (учитываем направление)
+                double angleChange = offsetAngle - origAngle;
+                
+                // Нормализуем к диапазону [-π, π]
+                while (angleChange > Math.PI)
+                    angleChange -= 2 * Math.PI;
+                while (angleChange < -Math.PI)
+                    angleChange += 2 * Math.PI;
+                
+                // Берем абсолютное значение
+                double angleChangeAbs = Math.Abs(angleChange);
+                
+                // Переводим в градусы
+                double angleChangeDegrees = angleChangeAbs * 180.0 / Math.PI;
+                
+                // Если угол изменился на 180±30 градусов, вектор изменил направление
+                if (angleChangeDegrees >= minAngleChange && angleChangeDegrees <= maxAngleChange)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Вычисляет знаковую площадь контура (положительная для против часовой стрелки, отрицательная для по часовой).
+        /// </summary>
+        private double GetSignedArea(DxfPolyline contour)
+        {
+            if (contour?.Points == null || contour.Points.Count < 3)
+                return 0;
+
+            double area = 0;
+            for (int i = 0; i < contour.Points.Count; i++)
+            {
+                var p1 = contour.Points[i];
+                var p2 = contour.Points[(i + 1) % contour.Points.Count];
+                area += p1.X * p2.Y - p2.X * p1.Y;
+            }
+            return area / 2.0; // Возвращаем знаковую площадь (без Math.Abs)
+        }
+
+        /// <summary>
+        /// Вычисляет центр масс (центроид) контура.
+        /// </summary>
+        private (double x, double y) GetContourCenter(DxfPolyline contour)
+        {
+            if (contour?.Points == null || contour.Points.Count < 3)
+                return (0, 0);
+
+            double area = 0;
+            double cx = 0;
+            double cy = 0;
+
+            int pointCount = contour.Points.Count;
+            for (int i = 0; i < pointCount; i++)
+            {
+                var p1 = contour.Points[i];
+                var p2 = contour.Points[(i + 1) % pointCount];
+
+                double cross = p1.X * p2.Y - p2.X * p1.Y;
+                area += cross;
+                cx += (p1.X + p2.X) * cross;
+                cy += (p1.Y + p2.Y) * cross;
+            }
+
+            area *= 0.5;
+            double tolerance = 1e-6;
+
+            if (Math.Abs(area) > tolerance)
+            {
+                double invArea = 1.0 / (6.0 * area);
+                return (cx * invArea, cy * invArea);
+            }
+            else
+            {
+                // Если площадь слишком мала, используем среднее арифметическое как fallback
+                double sumX = 0, sumY = 0;
+                foreach (var p in contour.Points)
+                {
+                    sumX += p.X;
+                    sumY += p.Y;
+                }
+                return (sumX / pointCount, sumY / pointCount);
+            }
         }
 
         private double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2)
