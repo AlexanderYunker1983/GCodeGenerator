@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using GCodeGenerator.Core.Attributes;
+using GCodeGenerator.Core.Helpers;
 using GCodeGenerator.Core.Localization;
 
 namespace GCodeGenerator.Core.ViewModels.SettingsViewModel;
@@ -12,24 +13,19 @@ public partial class SettingsViewModel
     /// </summary>
     protected override void OnCultureChanged(object? sender, EventArgs e)
     {
-        // Сохраняем текущие индексы перед обновлением
         var savedLanguageIndex = SelectedLanguageIndex;
         var savedThemeIndex = SelectedThemeIndex;
 
-        // Вызываем базовую реализацию для обновления локализованных свойств
         base.OnCultureChanged(sender, e);
 
         // Восстанавливаем индексы в следующем кадре UI, после обновления ItemsSource
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (savedLanguageIndex >= 0 && savedLanguageIndex < LanguageStrings.Length)
-            {
+            if (ArrayHelper.IsValidIndex(savedLanguageIndex, LanguageStrings.Length))
                 SelectedLanguageIndex = savedLanguageIndex;
-            }
-            if (savedThemeIndex >= 0 && savedThemeIndex < ThemeStrings.Length)
-            {
+            
+            if (ArrayHelper.IsValidIndex(savedThemeIndex, ThemeStrings.Length))
                 SelectedThemeIndex = savedThemeIndex;
-            }
         }, Avalonia.Threading.DispatcherPriority.Background);
     }
 

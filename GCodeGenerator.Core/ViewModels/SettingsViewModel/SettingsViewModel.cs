@@ -20,10 +20,10 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
     }
 
     [ObservableProperty]
-    private int _selectedLanguageIndex = 0;
+    private int _selectedLanguageIndex = ArrayHelper.DefaultIndex;
 
     [ObservableProperty]
-    private int _selectedThemeIndex = 0;
+    private int _selectedThemeIndex = ArrayHelper.DefaultIndex;
 
     public Language[] Languages { get; } = Enum.GetValues<Language>();
     public Theme[] Themes { get; } = Enum.GetValues<Theme>();
@@ -35,57 +35,35 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
     {
         var settings = SettingsService.Instance.LoadSettings();
         
-        // Устанавливаем индекс языка с проверкой границ
-        if (Languages.Length > 0)
-        {
-            SelectedLanguageIndex = Array.IndexOf(Languages, settings.Language);
-            if (SelectedLanguageIndex < 0 || SelectedLanguageIndex >= Languages.Length)
-                SelectedLanguageIndex = 0;
-        }
-        else
-        {
-            SelectedLanguageIndex = 0;
-        }
-        
-        // Устанавливаем индекс темы с проверкой границ
-        if (Themes.Length > 0)
-        {
-            SelectedThemeIndex = Array.IndexOf(Themes, settings.Theme);
-            if (SelectedThemeIndex < 0 || SelectedThemeIndex >= Themes.Length)
-                SelectedThemeIndex = 0;
-        }
-        else
-        {
-            SelectedThemeIndex = 0;
-        }
+        SelectedLanguageIndex = ArrayHelper.FindValidIndex(Languages, settings.Language);
+        SelectedThemeIndex = ArrayHelper.FindValidIndex(Themes, settings.Theme);
     }
 
     [RelayCommand]
     private void Apply()
     {
-        // Проверяем валидность индексов перед применением
-        if (Languages.Length == 0 || Themes.Length == 0)
+        if (!ArrayHelper.AreIndicesValid(
+            (SelectedLanguageIndex, Languages.Length),
+            (SelectedThemeIndex, Themes.Length)))
             return;
         
-        // Нормализуем индексы, если они выходят за границы
-        if (SelectedLanguageIndex < 0 || SelectedLanguageIndex >= Languages.Length)
-            SelectedLanguageIndex = 0;
+        var languageIndex = SelectedLanguageIndex;
+        var themeIndex = SelectedThemeIndex;
         
-        if (SelectedThemeIndex < 0 || SelectedThemeIndex >= Themes.Length)
-            SelectedThemeIndex = 0;
+        ArrayHelper.NormalizeIndices(
+            ref languageIndex, Languages.Length,
+            ref themeIndex, Themes.Length);
         
-        // Применяем выбранный язык и тему
+        SelectedLanguageIndex = languageIndex;
+        SelectedThemeIndex = themeIndex;
+        
         var selectedLanguage = Languages[SelectedLanguageIndex];
         var selectedTheme = Themes[SelectedThemeIndex];
+        
         ApplyLanguage(selectedLanguage);
         ApplyTheme(selectedTheme);
-        var settings = new AppSettings
-        {
-            Language = selectedLanguage,
-            Theme = selectedTheme
-        };
-
-        SettingsService.Instance.SaveSettings(settings);
+        
+        SaveSettings(selectedLanguage, selectedTheme);
     }
 
     private void ApplyLanguage(Language language)
@@ -121,6 +99,20 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
     private void Cancel()
     {
         this.Close();
+    }
+
+    /// <summary>
+    /// Сохраняет настройки в файл
+    /// </summary>
+    private void SaveSettings(Language language, Theme theme)
+    {
+        var settings = new AppSettings
+        {
+            Language = language,
+            Theme = theme
+        };
+
+        SettingsService.Instance.SaveSettings(settings);
     }
 }
 
