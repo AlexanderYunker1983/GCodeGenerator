@@ -156,5 +156,8 @@
   <data name="Menu_Settings_Application" xml:space="preserve">
     <value>Application Settings</value>
   </data>
+  <data name="Main_DisplayName" xml:space="preserve">
+    <value>GCodeGenerator v.{0}</value>
+  </data>
 </root>
 

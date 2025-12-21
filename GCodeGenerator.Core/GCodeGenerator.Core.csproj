@@ -29,4 +29,49 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" />
   </ItemGroup>
+
+  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <_BuildInfoFile>$(IntermediateOutputPath)BuildInfo.g.cs</_BuildInfoFile>
+    </PropertyGroup>
+    <Exec Command="git describe --tags --abbrev=0" ConsoleToMSBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitTagRaw" />
+    </Exec>
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitCommitRaw" />
+    </Exec>
+    <PropertyGroup>
+      <_GitTag>$(_GitTagRaw.Trim())</_GitTag>
+      <_GitCommit>$(_GitCommitRaw.Trim())</_GitCommit>
+      <_GitTag Condition="'$(_GitTag)' == ''">unknown</_GitTag>
+      <_GitCommit Condition="'$(_GitCommit)' == ''">unknown</_GitCommit>
+      <_BuildTime>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</_BuildTime>
+    </PropertyGroup>
+    <Message Text="Embedding build metadata: Tag=$(_GitTag), Commit=$(_GitCommit), Time=$(_BuildTime)" Importance="High" />
+    <PropertyGroup>
+      <_BuildInfoCode>
+        <![CDATA[
+namespace GCodeGenerator.Core
+{
+    internal static class BuildInfo
+    {
+        public const string GitTag = "__GIT_TAG__";
+        public const string CommitHash = "__COMMIT__";
+        public const string BuildTimeUtc = "__BUILDTIME__";
+    }
+}
+        ]]>
+      </_BuildInfoCode>
+      <_BuildInfoCodeProcessed>
+        $([System.String]::Copy($(_BuildInfoCode))
+        .Replace("__GIT_TAG__", "$(_GitTag)")
+        .Replace("__COMMIT__", "$(_GitCommit)")
+        .Replace("__BUILDTIME__", "$(_BuildTime)"))
+      </_BuildInfoCodeProcessed>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(_BuildInfoFile)" Lines="$(_BuildInfoCodeProcessed)" Overwrite="true" />
+    <ItemGroup>
+      <Compile Include="$(_BuildInfoFile)" />
+    </ItemGroup>
+  </Target>
 </Project>

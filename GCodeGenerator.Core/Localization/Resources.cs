@@ -100,6 +100,11 @@ public static class Resources
     public static string Menu_Settings_Application => ResourceManager.GetString("Menu_Settings_Application", Culture) ?? string.Empty;
 
     /// <summary>
+    /// Ищет локализованную строку, похожую на GCodeGenerator v.{0}.
+    /// </summary>
+    public static string Main_DisplayName => ResourceManager.GetString("Main_DisplayName", Culture) ?? string.Empty;
+
+    /// <summary>
     /// Получает локализованную строку по ключу
     /// </summary>
     public static string GetString(string key)

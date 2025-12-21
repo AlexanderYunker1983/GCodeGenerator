@@ -1,9 +1,10 @@
 ﻿using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Core.Helpers;
+using GCodeGenerator.Core.Interfaces;
 
 namespace GCodeGenerator.Core.ViewModels.MainViewModel;
 
-public partial class MainViewModel : ViewModelBase
+public partial class MainViewModel : ViewModelBase, IHasDisplayName
 {
     public MainViewModel()
     {
