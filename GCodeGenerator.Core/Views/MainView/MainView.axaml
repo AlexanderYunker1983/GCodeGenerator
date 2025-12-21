@@ -20,7 +20,7 @@
       </MenuItem>
     </Menu>
     
-    <Border DockPanel.Dock="Bottom" Height="25" Background="#F0F0F0">
+    <Border DockPanel.Dock="Bottom" Height="25" Background="{DynamicResource ThemeControlBackgroundBrush}">
       <TextBlock Text="панель статуса" 
                  VerticalAlignment="Center" 
                  Margin="5"/>
@@ -54,10 +54,13 @@
       
       <!-- GridSplitter между панелью свойств и основным полем -->
       <GridSplitter Grid.Row="1" Grid.Column="1" 
-                    Width="4" 
+                    Width="2" 
+                    MinWidth="2"
+                    MaxWidth="2"
+                    ResizeDirection="Columns"
                     HorizontalAlignment="Center" 
                     VerticalAlignment="Stretch" 
-                    Background="Gray"/>
+                    Background="#7f7f7f7f"/>
       
       <!-- Основное рабочее поле -->
       <TextBlock Grid.Row="1" Grid.Column="2" 
@@ -67,10 +70,13 @@
       
       <!-- GridSplitter между основным полем и списком операций -->
       <GridSplitter Grid.Row="1" Grid.Column="3" 
-                    Width="4" 
+                    Width="2" 
+                    MinWidth="2"
+                    MaxWidth="2"
+                    ResizeDirection="Columns"
                     HorizontalAlignment="Center" 
-                    VerticalAlignment="Stretch" 
-                    Background="Gray"/>
+                    VerticalAlignment="Stretch"
+                    Background="#7f7f7f7f"/>
       
       <!-- Список операций и код -->
       <TextBlock Grid.Row="1" Grid.Column="4" 
