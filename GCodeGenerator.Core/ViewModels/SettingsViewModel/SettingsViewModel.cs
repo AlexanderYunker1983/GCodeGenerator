@@ -1,4 +1,5 @@
 using System;
+using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Core.Enums;
@@ -31,7 +32,9 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
         var selectedLanguage = Languages[SelectedLanguageIndex];
         ApplyLanguage(selectedLanguage);
         
-        // TODO: Применить тему
+        // Применяем выбранную тему
+        var selectedTheme = Themes[SelectedThemeIndex];
+        ApplyTheme(selectedTheme);
     }
 
     private void ApplyLanguage(Language language)
@@ -45,6 +48,22 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
         };
         
         LocalizationService.Instance.CurrentCulture = culture;
+    }
+
+    private void ApplyTheme(Theme theme)
+    {
+        if (Application.Current == null)
+            return;
+
+        var themeVariant = theme switch
+        {
+            Theme.System => Avalonia.Styling.ThemeVariant.Default, // Default следует системной теме
+            Theme.Light => Avalonia.Styling.ThemeVariant.Light,
+            Theme.Dark => Avalonia.Styling.ThemeVariant.Dark,
+            _ => Avalonia.Styling.ThemeVariant.Default
+        };
+
+        Application.Current.RequestedThemeVariant = themeVariant;
     }
 
     [RelayCommand]
