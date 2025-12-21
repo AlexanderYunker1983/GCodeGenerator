@@ -19,5 +19,64 @@
         <MenuItem Header="{Binding MenuSettingsApplicationText}" Command="{Binding OpenSettingsCommand}" />
       </MenuItem>
     </Menu>
+    
+    <Border DockPanel.Dock="Bottom" Height="25" Background="#F0F0F0">
+      <TextBlock Text="панель статуса" 
+                 VerticalAlignment="Center" 
+                 Margin="5"/>
+    </Border>
+    
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
+      
+      <!-- Верхняя строка - панель управления -->
+      <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" 
+                 Text="панель управления"
+                 Padding="5,15"
+                 VerticalAlignment="Center" 
+                 Margin="5"/>
+      
+      <!-- Вторая строка - панель свойств -->
+      <TextBlock Grid.Row="1" Grid.Column="0" 
+                 Text="панель свойств" 
+                 VerticalAlignment="Center" 
+                 HorizontalAlignment="Center"/>
+      
+      <!-- GridSplitter между панелью свойств и основным полем -->
+      <GridSplitter Grid.Row="1" Grid.Column="1" 
+                    Width="4" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Stretch" 
+                    Background="Gray"/>
+      
+      <!-- Основное рабочее поле -->
+      <TextBlock Grid.Row="1" Grid.Column="2" 
+                 Text="основное рабочее поле" 
+                 VerticalAlignment="Center" 
+                 HorizontalAlignment="Center"/>
+      
+      <!-- GridSplitter между основным полем и списком операций -->
+      <GridSplitter Grid.Row="1" Grid.Column="3" 
+                    Width="4" 
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Stretch" 
+                    Background="Gray"/>
+      
+      <!-- Список операций и код -->
+      <TextBlock Grid.Row="1" Grid.Column="4" 
+                 Text="Список операций и код" 
+                 VerticalAlignment="Center" 
+                 HorizontalAlignment="Center"/>
+    </Grid>
   </DockPanel>
 </UserControl>
