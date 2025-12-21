@@ -2,10 +2,11 @@ using Avalonia.Controls;
 
 namespace GCodeGenerator.Core.Views;
 
-public partial class MainWindow : Window
+public partial class SettingsView : UserControl
 {
-    public MainWindow()
+    public SettingsView()
     {
         InitializeComponent();
     }
 }
+

@@ -3,8 +3,8 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using GCodeGenerator.Core.Helpers;
 using GCodeGenerator.Core.ViewModels;
-using GCodeGenerator.Core.Views;
 
 namespace GCodeGenerator.Core;
 
@@ -22,17 +22,10 @@ public partial class App : Application
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
             // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
             DisableAvaloniaDataAnnotationValidation();
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainViewModel()
-            };
-        }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
-        {
-            singleViewPlatform.MainView = new MainView
-            {
-                DataContext = new MainViewModel()
-            };
+            
+            // Создаем главное окно через ViewModel и extension метод
+            var mainViewModel = WindowHelper.GetViewModel<MainViewModel>();
+            mainViewModel.Show();
         }
 
         base.OnFrameworkInitializationCompleted();

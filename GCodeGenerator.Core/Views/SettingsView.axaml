@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:GCodeGenerator.Core.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="300"
+        x:Class="GCodeGenerator.Core.Views.SettingsView"
+        x:DataType="viewModels:SettingsViewModel">
+    <Design.DataContext>
+        <viewModels:SettingsViewModel />
+    </Design.DataContext>
+    
+    <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" ColumnDefinitions="Auto,*" Margin="20">
+        <!-- Язык -->
+        <TextBlock Text="Язык:" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,15"/>
+        <ComboBox ItemsSource="{Binding Languages}" 
+                  SelectedItem="{Binding SelectedLanguage}"
+                  Grid.Row="0" Grid.Column="1" 
+                  HorizontalAlignment="Stretch"
+                  Margin="0,0,0,15"/>
+
+        <!-- Тема -->
+        <TextBlock Text="Тема:" Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,10,15"/>
+        <ComboBox ItemsSource="{Binding Themes}" 
+                  SelectedItem="{Binding SelectedTheme}"
+                  Grid.Row="1" Grid.Column="1" 
+                  HorizontalAlignment="Stretch"
+                  Margin="0,0,0,15"/>
+
+        <!-- Кнопки -->
+        <StackPanel Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Grid.Row="3" 
+                    Grid.Column="0" 
+                    Grid.ColumnSpan="2"
+                    Spacing="10">
+            <Button Content="Применить" 
+                    Command="{Binding ApplyCommand}"
+                    MinWidth="100"/>
+            <Button Content="Отменить" 
+                    Command="{Binding CancelCommand}"
+                    MinWidth="100"/>
+        </StackPanel>
+    </Grid>
+</UserControl>
+

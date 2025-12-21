@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using GCodeGenerator.Core.ViewModels;
@@ -19,15 +21,44 @@ public class ViewLocator : IDataTemplate
         if (param is null)
             return null;
 
-        var name = param.GetType().FullName!.Replace("ViewModel", "View", StringComparison.Ordinal);
-        var type = Type.GetType(name);
+        var viewModelType = param.GetType();
+        var viewModelName = viewModelType.FullName!;
+        
+        // Пробуем заменить "ViewModel" на "View" (приоритет для UserControl)
+        var viewName = viewModelName.Replace("ViewModel", "View", StringComparison.Ordinal);
+        
+        // Ищем тип во всех загруженных сборках
+        var type = FindType(viewName);
 
         if (type != null)
         {
             return (Control)Activator.CreateInstance(type)!;
         }
 
-        return new TextBlock { Text = "Not Found: " + name };
+        return new TextBlock { Text = "Not Found: " + viewName };
+    }
+
+    private static Type? FindType(string fullName)
+    {
+        // Сначала пробуем Type.GetType (работает для типов в текущей сборке)
+        var type = Type.GetType(fullName);
+        if (type != null)
+            return type;
+
+        // Ищем во всех загруженных сборках
+        return AppDomain.CurrentDomain.GetAssemblies()
+            .SelectMany(assembly =>
+            {
+                try
+                {
+                    return assembly.GetTypes();
+                }
+                catch (ReflectionTypeLoadException)
+                {
+                    return Array.Empty<Type>();
+                }
+            })
+            .FirstOrDefault(t => t.FullName == fullName);
     }
 
     public bool Match(object? data)
