@@ -1,7 +1,6 @@
 using System;
 using System.Linq;
 using GCodeGenerator.Core.Attributes;
-using GCodeGenerator.Core.Interfaces;
 using GCodeGenerator.Core.Localization;
 
 namespace GCodeGenerator.Core.ViewModels.SettingsViewModel;

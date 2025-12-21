@@ -6,6 +6,8 @@ using GCodeGenerator.Core.Enums;
 using GCodeGenerator.Core.Helpers;
 using GCodeGenerator.Core.Interfaces;
 using GCodeGenerator.Core.Localization;
+using GCodeGenerator.Core.Settings;
+using Theme = GCodeGenerator.Core.Enums.Theme;
 
 namespace GCodeGenerator.Core.ViewModels.SettingsViewModel;
 
@@ -14,6 +16,7 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
     public SettingsViewModel()
     {
         InitializeResources();
+        LoadSettings();
     }
 
     [ObservableProperty]
@@ -25,16 +28,64 @@ public partial class SettingsViewModel : ViewModelBase, IHasDisplayName
     public Language[] Languages { get; } = Enum.GetValues<Language>();
     public Theme[] Themes { get; } = Enum.GetValues<Theme>();
 
+    /// <summary>
+    /// Загрузить настройки из файла
+    /// </summary>
+    private void LoadSettings()
+    {
+        var settings = SettingsService.Instance.LoadSettings();
+        
+        // Устанавливаем индекс языка с проверкой границ
+        if (Languages.Length > 0)
+        {
+            SelectedLanguageIndex = Array.IndexOf(Languages, settings.Language);
+            if (SelectedLanguageIndex < 0 || SelectedLanguageIndex >= Languages.Length)
+                SelectedLanguageIndex = 0;
+        }
+        else
+        {
+            SelectedLanguageIndex = 0;
+        }
+        
+        // Устанавливаем индекс темы с проверкой границ
+        if (Themes.Length > 0)
+        {
+            SelectedThemeIndex = Array.IndexOf(Themes, settings.Theme);
+            if (SelectedThemeIndex < 0 || SelectedThemeIndex >= Themes.Length)
+                SelectedThemeIndex = 0;
+        }
+        else
+        {
+            SelectedThemeIndex = 0;
+        }
+    }
+
     [RelayCommand]
     private void Apply()
     {
-        // Применяем выбранный язык
-        var selectedLanguage = Languages[SelectedLanguageIndex];
-        ApplyLanguage(selectedLanguage);
+        // Проверяем валидность индексов перед применением
+        if (Languages.Length == 0 || Themes.Length == 0)
+            return;
         
-        // Применяем выбранную тему
+        // Нормализуем индексы, если они выходят за границы
+        if (SelectedLanguageIndex < 0 || SelectedLanguageIndex >= Languages.Length)
+            SelectedLanguageIndex = 0;
+        
+        if (SelectedThemeIndex < 0 || SelectedThemeIndex >= Themes.Length)
+            SelectedThemeIndex = 0;
+        
+        // Применяем выбранный язык и тему
+        var selectedLanguage = Languages[SelectedLanguageIndex];
         var selectedTheme = Themes[SelectedThemeIndex];
+        ApplyLanguage(selectedLanguage);
         ApplyTheme(selectedTheme);
+        var settings = new AppSettings
+        {
+            Language = selectedLanguage,
+            Theme = selectedTheme
+        };
+
+        SettingsService.Instance.SaveSettings(settings);
     }
 
     private void ApplyLanguage(Language language)

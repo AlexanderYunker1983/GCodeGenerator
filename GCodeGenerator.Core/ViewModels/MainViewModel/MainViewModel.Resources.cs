@@ -1,5 +1,3 @@
-using System;
-using GCodeGenerator.Core;
 using GCodeGenerator.Core.Attributes;
 using GCodeGenerator.Core.Localization;
 
