@@ -14,8 +14,8 @@
   <ItemGroup>
     <AvaloniaXaml Remove="**\*.axaml" />
     <AvaloniaXaml Include="App.axaml" />
-    <AvaloniaXaml Include="Views\MainView.axaml" />
-    <AvaloniaXaml Include="Views\SettingsView.axaml" />
+    <AvaloniaXaml Include="Views\MainView\MainView.axaml" />
+    <AvaloniaXaml Include="Views\SettingsView\SettingsView.axaml" />
   </ItemGroup>
 
   <ItemGroup>

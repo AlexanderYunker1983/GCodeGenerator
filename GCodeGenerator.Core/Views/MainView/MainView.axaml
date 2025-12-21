@@ -2,10 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:GCodeGenerator.Core.ViewModels"
-             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels"
+             xmlns:vm="using:GCodeGenerator.Core.ViewModels.MainViewModel"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.MainViewModel"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="GCodeGenerator.Core.Views.MainView"
+             x:Class="GCodeGenerator.Core.Views.MainView.MainView"
              x:DataType="viewModels:MainViewModel">
   <Design.DataContext>
     <!-- This only sets the DataContext for the previewer in an IDE,
@@ -15,8 +15,8 @@
   
   <DockPanel>
     <Menu DockPanel.Dock="Top">
-      <MenuItem Header="Настройки">
-        <MenuItem Header="Настройки приложения" Command="{Binding OpenSettingsCommand}" />
+      <MenuItem Header="{Binding MenuSettingsText}">
+        <MenuItem Header="{Binding MenuSettingsApplicationText}" Command="{Binding OpenSettingsCommand}" />
       </MenuItem>
     </Menu>
   </DockPanel>

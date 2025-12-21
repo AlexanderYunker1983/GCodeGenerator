@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace GCodeGenerator.Core.Views;
+namespace GCodeGenerator.Core.Views.MainView;
 
 public partial class MainView : UserControl
 {

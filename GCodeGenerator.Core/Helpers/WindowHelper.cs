@@ -43,16 +43,12 @@ public static class WindowHelper
                 WindowStartupLocation = WindowStartupLocation.CenterScreen
             };
             
-            // Устанавливаем иконку, если это главное окно
-            try
-            {
-                var iconStream = AssetLoader.Open(new Uri("avares://GCodeGenerator.Core/Assets/avalonia-logo.ico"));
-                window.Icon = new WindowIcon(iconStream);
-            }
-            catch
-            {
-                // Игнорируем ошибку загрузки иконки
-            }
+            // Подписываемся на закрытие окна для вызова OnViewClosed
+            // Обработчик автоматически отписывается после первого вызова
+            window.Closed += CreateClosedHandler(viewModel, window);
+            
+            // Устанавливаем иконку приложения
+            SetWindowIcon(window);
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
@@ -67,6 +63,13 @@ public static class WindowHelper
         else if (view is Window window)
         {
             window.DataContext = viewModel;
+            
+            // Подписываемся на закрытие окна для вызова OnViewClosed
+            // Обработчик автоматически отписывается после первого вызова
+            window.Closed += CreateClosedHandler(viewModel, window);
+            
+            // Устанавливаем иконку приложения
+            SetWindowIcon(window);
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
@@ -108,6 +111,13 @@ public static class WindowHelper
                 WindowStartupLocation = WindowStartupLocation.CenterOwner,
                 CanResize = false
             };
+            
+            // Подписываемся на закрытие окна для вызова OnViewClosed
+            // Обработчик автоматически отписывается после первого вызова
+            window.Closed += CreateClosedHandler(viewModel, window);
+            
+            // Устанавливаем иконку приложения
+            SetWindowIcon(window);
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 && desktop.MainWindow is not null)
@@ -122,6 +132,13 @@ public static class WindowHelper
         else if (view is Window window)
         {
             window.DataContext = viewModel;
+            
+            // Подписываемся на закрытие окна для вызова OnViewClosed
+            // Обработчик автоматически отписывается после первого вызова
+            window.Closed += CreateClosedHandler(viewModel, window);
+            
+            // Устанавливаем иконку приложения
+            SetWindowIcon(window);
 
             if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
                 && desktop.MainWindow is not null)
@@ -140,7 +157,8 @@ public static class WindowHelper
     }
 
     /// <summary>
-    /// Закрывает окно, связанное с данной ViewModel
+    /// Закрывает окно, связанное с данной ViewModel.
+    /// OnViewClosed будет вызван автоматически через событие Window.Closed.
     /// </summary>
     public static void Close(this ViewModelBase viewModel)
     {
@@ -152,7 +170,41 @@ public static class WindowHelper
         {
             var window = desktop.Windows.FirstOrDefault(w => w.DataContext == viewModel);
             window?.Close();
+            // OnViewClosed будет вызван автоматически через событие Window.Closed
         }
+    }
+
+    /// <summary>
+    /// Устанавливает иконку приложения для окна
+    /// </summary>
+    private static void SetWindowIcon(Window window)
+    {
+        try
+        {
+            var iconStream = AssetLoader.Open(new Uri("avares://GCodeGenerator.Core/Assets/cnc_machine.ico"));
+            window.Icon = new WindowIcon(iconStream);
+        }
+        catch
+        {
+            // Игнорируем ошибку загрузки иконки
+        }
+    }
+
+    /// <summary>
+    /// Создает обработчик события Closed, который вызывает OnViewClosed и автоматически отписывается
+    /// </summary>
+    private static EventHandler CreateClosedHandler(ViewModelBase viewModel, Window window)
+    {
+        EventHandler? handler = null;
+        handler = (sender, e) =>
+        {
+            viewModel.OnViewClosed();
+            if (handler != null)
+            {
+                window.Closed -= handler;
+            }
+        };
+        return handler;
     }
 
     private static string GetWindowTitle(ViewModelBase viewModel)

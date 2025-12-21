@@ -4,7 +4,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using GCodeGenerator.Core.Helpers;
-using GCodeGenerator.Core.ViewModels;
+using GCodeGenerator.Core.ViewModels.MainViewModel;
 
 namespace GCodeGenerator.Core;
 
