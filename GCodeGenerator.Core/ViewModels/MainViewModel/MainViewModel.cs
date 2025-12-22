@@ -26,6 +26,22 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     [ObservableProperty]
     private ViewModelBase? _selectedRightPanelTab;
 
+    [ObservableProperty]
+    private bool _isRightPanelVisible = true;
+
+    [ObservableProperty]
+    private bool _isLeftPanelVisible = true;
+
+    /// <summary>
+    /// Текст на кнопке сворачивания/разворачивания правой панели.
+    /// </summary>
+    public string RightPanelToggleText => IsRightPanelVisible ? ">>" : "<<";
+
+    /// <summary>
+    /// Текст на кнопке сворачивания/разворачивания левой панели.
+    /// </summary>
+    public string LeftPanelToggleText => IsLeftPanelVisible ? "<<" : ">>";
+
     public MainViewModel()
     {
         InitializeResources();
@@ -40,6 +56,16 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
                 UpdateStatusText();
             }
         };
+    }
+
+    partial void OnIsRightPanelVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(RightPanelToggleText));
+    }
+
+    partial void OnIsLeftPanelVisibleChanged(bool value)
+    {
+        OnPropertyChanged(nameof(LeftPanelToggleText));
     }
     
     private void InitializeRightPanelTabs()
@@ -69,5 +95,17 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     {
         var settingsViewModel = WindowHelper.GetViewModel<GCodeGenerator.Core.ViewModels.SettingsViewModel.SettingsViewModel>();
         settingsViewModel.ShowDialog();
+    }
+
+    [RelayCommand]
+    private void ToggleRightPanel()
+    {
+        IsRightPanelVisible = !IsRightPanelVisible;
+    }
+
+    [RelayCommand]
+    private void ToggleLeftPanel()
+    {
+        IsLeftPanelVisible = !IsLeftPanelVisible;
     }
 }

@@ -5,9 +5,14 @@
              xmlns:vm="using:GCodeGenerator.Core.ViewModels.MainViewModel"
              xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.MainViewModel"
              xmlns:interfaces="clr-namespace:GCodeGenerator.Core.Interfaces"
+             xmlns:converters="clr-namespace:GCodeGenerator.Core.Converters"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="GCodeGenerator.Core.Views.MainView.MainView"
              x:DataType="viewModels:MainViewModel">
+  <UserControl.Resources>
+    <converters:RightPanelWidthConverter x:Key="RightPanelWidthConverter" />
+    <converters:LeftPanelWidthConverter x:Key="LeftPanelWidthConverter" />
+  </UserControl.Resources>
   <Design.DataContext>
     <!-- This only sets the DataContext for the previewer in an IDE,
          to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
@@ -15,7 +20,7 @@
   </Design.DataContext>
   
   <DockPanel>
-    <Menu DockPanel.Dock="Top">
+    <Menu DockPanel.Dock="Top" FontSize="12">
       <MenuItem Header="{Binding MenuSettingsText}">
         <MenuItem Header="{Binding MenuSettingsApplicationText}" Command="{Binding OpenSettingsCommand}" />
       </MenuItem>
@@ -33,19 +38,20 @@
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="Auto" MinWidth="200"/>
+        <ColumnDefinition Width="{Binding IsLeftPanelVisible, Converter={StaticResource LeftPanelWidthConverter}}" MinWidth="0"/>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
-        <ColumnDefinition Width="300" MinWidth="300"/>
+        <ColumnDefinition Width="{Binding IsRightPanelVisible, Converter={StaticResource RightPanelWidthConverter}}" MinWidth="0"/>
       </Grid.ColumnDefinitions>
       
       <!-- Верхняя строка - панель управления -->
-      <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5" 
+      <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="5"
                  Text="панель управления"
                  Padding="5,15"
-                 VerticalAlignment="Center" 
-                 Margin="5"/>
+                 VerticalAlignment="Center"
+                 Margin="5"
+                 HorizontalAlignment="Left" />
       
       <!-- Вторая строка - панель свойств -->
       <TextBlock Grid.Row="1" Grid.Column="0" 
@@ -63,9 +69,22 @@
                     VerticalAlignment="Stretch" 
                     Background="#7f7f7f7f"/>
       
-      <!-- Основное рабочее поле -->
-      <ContentPresenter Grid.Row="1" Grid.Column="2" 
-                        Content="{Binding Preview2DViewModel}"/>
+      <!-- Основное рабочее поле с кнопкой сворачивания/разворачивания правой панели поверх 2D-просмотра -->
+      <Grid Grid.Row="1" Grid.Column="2">
+        <ContentPresenter Content="{Binding Preview2DViewModel}" />
+        <!-- Кнопка управления левой панелью -->
+        <Button Content="{Binding LeftPanelToggleText}"
+                Command="{Binding ToggleLeftPanelCommand}"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="5,5,0,0" />
+        <!-- Кнопка управления правой панелью -->
+        <Button Content="{Binding RightPanelToggleText}"
+                Command="{Binding ToggleRightPanelCommand}"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="0,5,5,0" />
+      </Grid>
       
       <!-- GridSplitter между основным полем и правой панелью -->
       <GridSplitter Grid.Row="1" Grid.Column="3" 
@@ -81,10 +100,13 @@
       <TabControl Grid.Row="1"
                   Grid.Column="4"
                   ItemsSource="{Binding RightPanelTabs}"
-                  SelectedItem="{Binding SelectedRightPanelTab}">
+                  SelectedItem="{Binding SelectedRightPanelTab}"
+                  IsVisible="{Binding IsRightPanelVisible}">
         <TabControl.ItemTemplate>
           <DataTemplate x:DataType="interfaces:IHasDisplayName">
-            <TextBlock Text="{Binding DisplayName}" />
+            <TextBlock Text="{Binding DisplayName}"
+                       FontSize="14"
+                       FontWeight="Bold" />
           </DataTemplate>
         </TabControl.ItemTemplate>
         <TabControl.ContentTemplate>
