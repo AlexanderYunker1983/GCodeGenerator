@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -38,6 +39,13 @@ public class Preview2DCanvas : Control
     private Preview2DViewModel? _viewModel;
     private bool _isInitialized;
     private Size _previousSize;
+    
+    // Для поддержки pinch-to-zoom на тачпаде
+    private readonly Dictionary<IPointer, Point> _activePointers = new();
+    private double _initialDistance;
+    private double _initialScale;
+    private Point _initialOffset;
+    private Point _initialCenter;
 
     public Preview2DCanvas()
     {
@@ -158,6 +166,36 @@ public class Preview2DCanvas : Control
         Focus();
         
         var point = e.GetCurrentPoint(this);
+        var position = point.Position;
+        
+        // Обработка pinch-to-zoom: отслеживаем указатели по их ID
+        if (!_activePointers.ContainsKey(e.Pointer))
+        {
+            _activePointers[e.Pointer] = position;
+            e.Pointer.Capture(this);
+            
+            // Если это второй указатель - начинаем pinch-to-zoom
+            if (_activePointers.Count == 2 && _viewModel != null)
+            {
+                var pointers = new List<Point>(_activePointers.Values);
+                _initialDistance = Distance(pointers[0], pointers[1]);
+                _initialScale = _viewModel.Scale;
+                _initialOffset = _viewModel.Offset;
+                _initialCenter = new Point(
+                    (pointers[0].X + pointers[1].X) / 2,
+                    (pointers[0].Y + pointers[1].Y) / 2
+                );
+                e.Handled = true;
+                return;
+            }
+        }
+        
+        // Не обрабатываем клики и панорамирование, если уже есть два указателя (pinch-to-zoom)
+        if (_activePointers.Count >= 2)
+        {
+            return;
+        }
+        
         if (point.Properties.IsLeftButtonPressed)
         {
             // Если есть ViewModel, пробуем сначала выбрать примитив под курсором
@@ -202,9 +240,62 @@ public class Preview2DCanvas : Control
 
     protected override void OnPointerMoved(PointerEventArgs e)
     {
-        if (_isPanning && _viewModel != null && e.Pointer.Captured == this)
+        var currentPosition = e.GetPosition(this);
+        
+        // Обработка pinch-to-zoom: обновляем позицию указателя
+        if (_activePointers.Count == 2 && _viewModel != null && _activePointers.ContainsKey(e.Pointer))
         {
-            var currentPosition = e.GetPosition(this);
+            // Обновляем позицию текущего указателя
+            _activePointers[e.Pointer] = currentPosition;
+            
+            // Вычисляем новое расстояние между двумя указателями
+            var pointers = new List<Point>(_activePointers.Values);
+            var currentDistance = Distance(pointers[0], pointers[1]);
+            
+            if (_initialDistance > 0 && Math.Abs(currentDistance - _initialDistance) > 1.0)
+            {
+                // Уменьшаем чувствительность pinch-to-zoom в 3 раза
+                // Если расстояние изменилось в 2 раза, масштаб изменится в 1.33 раза вместо 2
+                var rawScaleFactor = currentDistance / _initialDistance;
+                var scaleFactor = 1.0 + (rawScaleFactor - 1.0) / 3.0;
+                var newScale = _initialScale * scaleFactor;
+                
+                // Ограничиваем масштаб
+                if (newScale < 0.1) newScale = 0.1;
+                if (newScale > 250.0) newScale = 250.0;
+                
+                // Вычисляем новый центр
+                var currentCenter = new Point(
+                    (pointers[0].X + pointers[1].X) / 2,
+                    (pointers[0].Y + pointers[1].Y) / 2
+                );
+                
+                // Масштабируем относительно центра жеста
+                var worldX = (currentCenter.X - _initialOffset.X) / _initialScale;
+                var worldY = (_initialOffset.Y - currentCenter.Y) / _initialScale;
+                
+                _viewModel.Scale = newScale;
+                _viewModel.Offset = new Point(
+                    currentCenter.X - worldX * newScale,
+                    currentCenter.Y + worldY * newScale
+                );
+                
+                RequestRender();
+            }
+            
+            e.Handled = true;
+            return;
+        }
+        
+        // Обновляем позицию указателя, если он отслеживается
+        if (_activePointers.ContainsKey(e.Pointer))
+        {
+            _activePointers[e.Pointer] = currentPosition;
+        }
+        
+        // Не обрабатываем панорамирование, если есть два указателя (pinch-to-zoom)
+        if (_isPanning && _activePointers.Count < 2 && _viewModel != null && e.Pointer.Captured == this)
+        {
             var deltaX = currentPosition.X - _lastMousePosition.X;
             var deltaY = currentPosition.Y - _lastMousePosition.Y;
             
@@ -242,6 +333,31 @@ public class Preview2DCanvas : Control
     {
         base.OnPointerReleased(e);
         
+        // Обработка завершения pinch-to-zoom: удаляем указатель из отслеживания
+        if (_activePointers.ContainsKey(e.Pointer))
+        {
+            _activePointers.Remove(e.Pointer);
+            if (e.Pointer.Captured == this)
+            {
+                e.Pointer.Capture(null);
+            }
+            
+            // Если остался только один указатель или ни одного - сбрасываем состояние
+            if (_activePointers.Count < 2)
+            {
+                _initialDistance = 0;
+            }
+            
+            // Если это был последний указатель, освобождаем все
+            if (_activePointers.Count == 0)
+            {
+                _activePointers.Clear();
+            }
+            
+            e.Handled = true;
+            return;
+        }
+        
         if (_isPanning)
         {
             _isPanning = false;
@@ -257,11 +373,15 @@ public class Preview2DCanvas : Control
     {
         base.OnPointerCaptureLost(e);
         
-        // Сбрасываем состояние панорамирования при потере захвата
+        // Сбрасываем состояние панорамирования и pinch-to-zoom при потере захвата
         if (_isPanning)
         {
             _isPanning = false;
         }
+        
+        // Удаляем все указатели при потере захвата
+        _activePointers.Clear();
+        _initialDistance = 0;
     }
 
     protected override void OnPointerEntered(PointerEventArgs e)

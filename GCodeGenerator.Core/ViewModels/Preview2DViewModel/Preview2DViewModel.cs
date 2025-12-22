@@ -65,7 +65,8 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
 
     public void Zoom(double delta, Point mousePosition)
     {
-        var zoomFactor = delta > 0 ? 1.1 : 0.9;
+        // Уменьшаем скорость масштабирования в 3 раза (было 1.1/0.9, стало ~1.033/0.967)
+        var zoomFactor = delta > 0 ? 1.033 : 0.967;
         var newScale = _scale * zoomFactor;
         
         // Ограничиваем масштаб
