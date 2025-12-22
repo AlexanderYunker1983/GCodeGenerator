@@ -11,7 +11,11 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
         },
         {
             "label": "publish",
@@ -23,7 +27,11 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
         },
         {
             "label": "watch",
@@ -35,7 +43,11 @@
                 "--project",
                 "${workspaceFolder}/GCodeGenerator/GCodeGenerator.csproj"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated"
+            }
         },
         {
             "label": "clean",
@@ -47,7 +59,28 @@
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "run",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "run",
+                "--project",
+                "${workspaceFolder}/GCodeGenerator/GCodeGenerator.csproj"
+            ],
+            "problemMatcher": "$msCompile",
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            },
+            "isBackground": true
         }
     ]
 }
