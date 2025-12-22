@@ -76,6 +76,17 @@ public partial class PropertiesViewModel : ViewModelBase, IHasDisplayName
                 () => _preview2DViewModel.RequestRedraw()));
         }
     }
+
+    /// <summary>
+    /// Обновляет все свойства текущего объекта, вызывая уведомления об изменении.
+    /// </summary>
+    public void RefreshAllProperties()
+    {
+        foreach (var property in Properties)
+        {
+            property.Refresh();
+        }
+    }
 }
 
 

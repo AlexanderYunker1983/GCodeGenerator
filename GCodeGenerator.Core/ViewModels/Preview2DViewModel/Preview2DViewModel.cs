@@ -49,6 +49,11 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
 
     public event EventHandler? RedrawRequested;
 
+    /// <summary>
+    /// Событие, вызываемое при изменении свойств примитива (например, при перетаскивании).
+    /// </summary>
+    public event EventHandler? PrimitivePropertyChanged;
+
     public Preview2DViewModel()
     {
         InitializeResources();
@@ -99,6 +104,14 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
     public void RequestRedraw()
     {
         RedrawRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>
+    /// Уведомляет об изменении свойств примитива (например, при перетаскивании).
+    /// </summary>
+    public void NotifyPrimitivePropertyChanged()
+    {
+        PrimitivePropertyChanged?.Invoke(this, EventArgs.Empty);
     }
 }
 

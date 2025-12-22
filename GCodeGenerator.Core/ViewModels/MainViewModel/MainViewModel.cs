@@ -69,6 +69,12 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
                 UpdatePropertiesSourceFromSelection();
             }
         };
+
+        // Подписываемся на изменения свойств примитивов (например, при перетаскивании)
+        Preview2DViewModel.PrimitivePropertyChanged += (s, e) =>
+        {
+            PropertiesViewModel.RefreshAllProperties();
+        };
     }
 
     partial void OnIsRightPanelVisibleChanged(bool value)

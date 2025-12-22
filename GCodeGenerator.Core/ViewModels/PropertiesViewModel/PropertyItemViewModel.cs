@@ -84,6 +84,16 @@ public partial class PropertyItemViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Обновляет отображаемое значение, вызывая уведомление об изменении свойства.
+    /// </summary>
+    public void Refresh()
+    {
+        OnPropertyChanged(nameof(Value));
+        if (IsBoolean)
+            OnPropertyChanged(nameof(BoolValue));
+    }
+
     private static string ConvertToString(object? value)
     {
         if (value is null)

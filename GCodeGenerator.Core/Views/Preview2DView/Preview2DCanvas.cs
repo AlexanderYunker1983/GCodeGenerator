@@ -46,6 +46,12 @@ public class Preview2DCanvas : Control
     private double _initialScale;
     private Point _initialOffset;
     private Point _initialCenter;
+    
+    // Для перетаскивания примитивов за ручку
+    private bool _isDragging;
+    private Point _dragStartWorld;
+    private Point _dragStartCenter;
+    private PrimitiveItem? _draggedPrimitive;
 
     public Preview2DCanvas()
     {
@@ -158,6 +164,95 @@ public class Preview2DCanvas : Control
         _viewModel.HoveredPrimitive = hit;
     }
 
+    /// <summary>
+    /// Получает центр примитива в мировых координатах.
+    /// </summary>
+    private static Point GetPrimitiveCenter(PrimitiveItem primitive)
+    {
+        return primitive switch
+        {
+            PointPrimitive p => new Point(p.X, p.Y),
+            LinePrimitive line => new Point((line.X1 + line.X2) / 2.0, (line.Y1 + line.Y2) / 2.0),
+            CirclePrimitive circle => new Point(circle.CenterX, circle.CenterY),
+            RectanglePrimitive rect => new Point(rect.CenterX, rect.CenterY),
+            EllipsePrimitive ellipse => new Point(ellipse.CenterX, ellipse.CenterY),
+            ArcPrimitive arc => new Point(arc.CenterX, arc.CenterY),
+            PolygonPrimitive polygon => new Point(polygon.CenterX, polygon.CenterY),
+            DxfPrimitive dxf => new Point(dxf.InsertX, dxf.InsertY),
+            CompositePrimitive composite => new Point(composite.InsertX, composite.InsertY),
+            _ => new Point(0, 0)
+        };
+    }
+
+    /// <summary>
+    /// Проверяет, находится ли точка на ручке примитива (квадрат 5x5 пикселей).
+    /// </summary>
+    private bool IsPointOnHandle(Point worldPoint, PrimitiveItem primitive, double scale)
+    {
+        if (_viewModel == null)
+            return false;
+
+        var center = GetPrimitiveCenter(primitive);
+        
+        // Размер ручки в мировых координатах (5 пикселей независимо от масштаба)
+        var handleSizeWorld = 5.0 / scale;
+        var halfSize = handleSizeWorld / 2.0;
+        
+        // Проверяем, находится ли точка в квадрате ручки
+        return worldPoint.X >= center.X - halfSize &&
+               worldPoint.X <= center.X + halfSize &&
+               worldPoint.Y >= center.Y - halfSize &&
+               worldPoint.Y <= center.Y + halfSize;
+    }
+
+    /// <summary>
+    /// Перемещает примитив на указанное смещение.
+    /// </summary>
+    private static void MovePrimitive(PrimitiveItem primitive, double deltaX, double deltaY)
+    {
+        switch (primitive)
+        {
+            case PointPrimitive p:
+                p.X += deltaX;
+                p.Y += deltaY;
+                break;
+            case LinePrimitive line:
+                line.X1 += deltaX;
+                line.Y1 += deltaY;
+                line.X2 += deltaX;
+                line.Y2 += deltaY;
+                break;
+            case CirclePrimitive circle:
+                circle.CenterX += deltaX;
+                circle.CenterY += deltaY;
+                break;
+            case RectanglePrimitive rect:
+                rect.CenterX += deltaX;
+                rect.CenterY += deltaY;
+                break;
+            case EllipsePrimitive ellipse:
+                ellipse.CenterX += deltaX;
+                ellipse.CenterY += deltaY;
+                break;
+            case ArcPrimitive arc:
+                arc.CenterX += deltaX;
+                arc.CenterY += deltaY;
+                break;
+            case PolygonPrimitive polygon:
+                polygon.CenterX += deltaX;
+                polygon.CenterY += deltaY;
+                break;
+            case DxfPrimitive dxf:
+                dxf.InsertX += deltaX;
+                dxf.InsertY += deltaY;
+                break;
+            case CompositePrimitive composite:
+                composite.InsertX += deltaX;
+                composite.InsertY += deltaY;
+                break;
+        }
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -198,6 +293,29 @@ public class Preview2DCanvas : Control
         
         if (point.Properties.IsLeftButtonPressed)
         {
+            // Если есть ViewModel, проверяем, нажата ли ручка выделенного примитива
+            if (_viewModel != null && _viewModel.SelectedPrimitive != null)
+            {
+                var mousePosition = point.Position;
+                var inverseScale = 1.0 / _viewModel.Scale;
+                var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
+                var worldY = (_viewModel.Offset.Y - mousePosition.Y) * inverseScale;
+                var worldPoint = new Point(worldX, worldY);
+
+                // Проверяем, нажата ли ручка выделенного примитива
+                if (IsPointOnHandle(worldPoint, _viewModel.SelectedPrimitive, _viewModel.Scale))
+                {
+                    _isDragging = true;
+                    _dragStartWorld = worldPoint;
+                    _dragStartCenter = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                    _draggedPrimitive = _viewModel.SelectedPrimitive;
+                    e.Pointer.Capture(this);
+                    e.Handled = true;
+                    RequestRender();
+                    return;
+                }
+            }
+
             // Если есть ViewModel, пробуем сначала выбрать примитив под курсором
             if (_viewModel != null)
             {
@@ -241,6 +359,33 @@ public class Preview2DCanvas : Control
     protected override void OnPointerMoved(PointerEventArgs e)
     {
         var currentPosition = e.GetPosition(this);
+        
+        // Обработка перетаскивания примитива за ручку
+        if (_isDragging && _draggedPrimitive != null && _viewModel != null && e.Pointer.Captured == this)
+        {
+            var inverseScale = 1.0 / _viewModel.Scale;
+            var worldX = (currentPosition.X - _viewModel.Offset.X) * inverseScale;
+            var worldY = (_viewModel.Offset.Y - currentPosition.Y) * inverseScale;
+            var currentWorldPoint = new Point(worldX, worldY);
+            
+            // Вычисляем смещение от начальной позиции
+            var deltaX = currentWorldPoint.X - _dragStartWorld.X;
+            var deltaY = currentWorldPoint.Y - _dragStartWorld.Y;
+            
+            // Перемещаем примитив
+            MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+            
+            // Уведомляем об изменении свойств примитива для обновления панели свойств
+            _viewModel.NotifyPrimitivePropertyChanged();
+            
+            // Обновляем начальную позицию для следующего движения
+            _dragStartWorld = currentWorldPoint;
+            _dragStartCenter = GetPrimitiveCenter(_draggedPrimitive);
+            
+            e.Handled = true;
+            RequestRender();
+            return;
+        }
         
         // Обработка pinch-to-zoom: обновляем позицию указателя
         if (_activePointers.Count == 2 && _viewModel != null && _activePointers.ContainsKey(e.Pointer))
@@ -333,6 +478,20 @@ public class Preview2DCanvas : Control
     {
         base.OnPointerReleased(e);
         
+        // Обработка завершения перетаскивания
+        if (_isDragging)
+        {
+            _isDragging = false;
+            _draggedPrimitive = null;
+            if (e.Pointer.Captured == this)
+            {
+                e.Pointer.Capture(null);
+            }
+            e.Handled = true;
+            RequestRender();
+            return;
+        }
+        
         // Обработка завершения pinch-to-zoom: удаляем указатель из отслеживания
         if (_activePointers.ContainsKey(e.Pointer))
         {
@@ -372,6 +531,13 @@ public class Preview2DCanvas : Control
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
         base.OnPointerCaptureLost(e);
+        
+        // Сбрасываем состояние перетаскивания при потере захвата
+        if (_isDragging)
+        {
+            _isDragging = false;
+            _draggedPrimitive = null;
+        }
         
         // Сбрасываем состояние панорамирования и pinch-to-zoom при потере захвата
         if (_isPanning)
@@ -672,7 +838,38 @@ public class Preview2DCanvas : Control
         if (selected != null)
         {
             DrawPrimitive(context, selectedPen, selected, pointRadiusWorld);
+            
+            // Рисуем ручку в центре выделенного примитива (квадрат 5x5 пикселей)
+            DrawHandle(context, selected, viewModel.Scale);
         }
+    }
+
+    /// <summary>
+    /// Рисует ручку в центре примитива (квадрат 5x5 пикселей независимо от масштаба).
+    /// </summary>
+    private void DrawHandle(DrawingContext context, PrimitiveItem primitive, double scale)
+    {
+        var center = GetPrimitiveCenter(primitive);
+        
+        // Размер ручки в пикселях экрана (постоянный 5x5)
+        const double handleSizePixels = 5.0;
+        var halfSizePixels = handleSizePixels / 2.0;
+        
+        // Преобразуем размер в мировые координаты для отрисовки
+        var halfSizeWorld = halfSizePixels / scale;
+        
+        // Создаем квадрат для ручки
+        var handleRect = new Rect(
+            center.X - halfSizeWorld,
+            center.Y - halfSizeWorld,
+            handleSizePixels / scale,
+            handleSizePixels / scale
+        );
+        
+        // Рисуем заливку и контур ручки
+        var handleBrush = new SolidColorBrush(Colors.White);
+        var handlePen = new Pen(new SolidColorBrush(Colors.Black), 1.0 / scale);
+        context.DrawRectangle(handleBrush, handlePen, handleRect);
     }
 
     private static void DrawPrimitive(DrawingContext context, Pen pen, PrimitiveItem primitive, double pointRadiusWorld)
