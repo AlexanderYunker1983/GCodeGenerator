@@ -1,6 +1,8 @@
+using System.Collections.ObjectModel;
 using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Core.Interfaces;
+using GCodeGenerator.Core.Models;
 
 namespace GCodeGenerator.Core.ViewModels.Preview2DViewModel;
 
@@ -9,6 +11,12 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
     private double _scale = 10.0;
     private Point _offset;
     private Point? _mouseWorldCoordinates;
+
+    /// <summary>
+    /// Коллекция геометрических примитивов для отрисовки.
+    /// Должна разделяться со списком примитивов в правой панели.
+    /// </summary>
+    public ObservableCollection<PrimitiveItem> Primitives { get; } = new();
 
     // Публичные свойства без автоматических уведомлений для производительности
     public double Scale
@@ -25,6 +33,12 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
 
     [ObservableProperty]
     private Point? mouseWorldCoordinates;
+
+    /// <summary>
+    /// Текущий выделенный примитив (для подсветки в 2D-предпросмотре).
+    /// </summary>
+    [ObservableProperty]
+    private PrimitiveItem? selectedPrimitive;
 
     public Preview2DViewModel()
     {

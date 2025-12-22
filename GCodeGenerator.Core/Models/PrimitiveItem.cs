@@ -1,16 +1,17 @@
 namespace GCodeGenerator.Core.Models;
 
 /// <summary>
-/// Модель примитива для списка примитивов.
+/// Базовый класс для всех геометрических примитивов.
 /// </summary>
-public class PrimitiveItem
+public abstract class PrimitiveItem
 {
+    /// <summary>
+    /// Пользовательское название примитива.
+    /// </summary>
     public string Name { get; set; }
 
-    public PrimitiveItem(string name)
+    protected PrimitiveItem(string name)
     {
         Name = name;
     }
 }
-
-

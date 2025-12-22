@@ -3,6 +3,8 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using System.ComponentModel;
+using GCodeGenerator.Core.Models;
 using GCodeGenerator.Core.ViewModels.Preview2DViewModel;
 
 namespace GCodeGenerator.Core.Views.Preview2DView;
@@ -53,12 +55,20 @@ public class Preview2DCanvas : Control
     
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
+        // Отписываемся от старого ViewModel
+        if (_viewModel != null)
+        {
+            _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+        }
+
         // Подписываемся на новый ViewModel
         _viewModel = DataContext as Preview2DViewModel;
         _isInitialized = false;
         
         if (_viewModel != null)
         {
+            _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
             // Ждем следующего кадра для получения правильных размеров
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
@@ -67,6 +77,14 @@ public class Preview2DCanvas : Control
         }
         
         InvalidateVisual();
+    }
+
+    private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive))
+        {
+            RequestRender();
+        }
     }
     
     private void TryInitializeOffset()
@@ -292,6 +310,7 @@ public class Preview2DCanvas : Control
                 Matrix.CreateTranslation(_viewModel.Offset.X, _viewModel.Offset.Y)))
             {
                 DrawGrid(context, bounds, _viewModel);
+                DrawPrimitives(context, _viewModel);
             }
         }
     }
@@ -423,6 +442,311 @@ public class Preview2DCanvas : Control
             niceSize = 10;
             
         return niceSize * magnitude;
+    }
+
+    private void DrawPrimitives(DrawingContext context, Preview2DViewModel viewModel)
+    {
+        if (viewModel.Primitives.Count == 0)
+            return;
+
+        // Толщина линии в мировых координатах, чтобы на экране она была тонкой (~1 пиксель)
+        var strokeThickness = 1.0 / viewModel.Scale;
+        var normalPen = new Pen(new SolidColorBrush(Colors.Blue), strokeThickness);
+        var selectedPen = new Pen(new SolidColorBrush(Colors.LimeGreen), strokeThickness * 2);
+
+        var selected = viewModel.SelectedPrimitive;
+        // Радиус точки в мировых координатах, чтобы на экране он был ~5 пикселей
+        var pointRadiusWorld = 5.0 / viewModel.Scale;
+
+        // Сначала рисуем все невыделенные примитивы
+        foreach (var primitive in viewModel.Primitives)
+        {
+            if (ReferenceEquals(primitive, selected))
+                continue;
+
+            DrawPrimitive(context, normalPen, primitive, pointRadiusWorld);
+        }
+
+        // Затем поверх всех остальных — выделенный примитив (если есть)
+        if (selected != null)
+        {
+            DrawPrimitive(context, selectedPen, selected, pointRadiusWorld);
+        }
+    }
+
+    private static void DrawPrimitive(DrawingContext context, Pen pen, PrimitiveItem primitive, double pointRadiusWorld)
+    {
+        switch (primitive)
+        {
+            case PointPrimitive p:
+                DrawPoint(context, pen, p, pointRadiusWorld);
+                break;
+            case LinePrimitive line:
+                context.DrawLine(pen,
+                    new Point(line.X1, line.Y1),
+                    new Point(line.X2, line.Y2));
+                break;
+            case CirclePrimitive circle:
+                DrawCircle(context, pen, circle.CenterX, circle.CenterY, circle.Radius);
+                break;
+            case RectanglePrimitive rect:
+                DrawOrientedRectangle(context, pen,
+                    rect.CenterX, rect.CenterY, rect.Width, rect.Height, rect.RotationAngle);
+                break;
+            case EllipsePrimitive ellipse:
+                DrawOrientedEllipse(context, pen,
+                    ellipse.CenterX, ellipse.CenterY,
+                    ellipse.Radius1, ellipse.Radius2, ellipse.RotationAngle);
+                break;
+            case ArcPrimitive arc:
+                DrawArc(context, pen, arc);
+                break;
+            case PolygonPrimitive polygon:
+                DrawPolygon(context, pen, polygon);
+                break;
+            case DxfPrimitive dxf:
+                DrawComposite(context, pen, pointRadiusWorld, dxf.InsertX, dxf.InsertY, dxf.RotationAngle, dxf.Children);
+                break;
+            case CompositePrimitive composite:
+                DrawComposite(context, pen, pointRadiusWorld, composite.InsertX, composite.InsertY, composite.RotationAngle, composite.Children);
+                break;
+        }
+    }
+
+    private static void DrawPoint(DrawingContext context, Pen pen, PointPrimitive p, double radiusWorld)
+    {
+        var r = radiusWorld;
+
+        // Диагональная линия через окружность
+        context.DrawLine(pen,
+            new Point(p.X - r, p.Y - r),
+            new Point(p.X + r, p.Y + r));
+
+        // Окружность
+        DrawCircle(context, pen, p.X, p.Y, r);
+    }
+
+    private static void DrawCircle(DrawingContext context, Pen pen, double centerX, double centerY, double radius)
+    {
+        var rect = new Rect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+        context.DrawEllipse(null, pen, rect.Center, radius, radius);
+    }
+
+    private static void DrawOrientedRectangle(
+        DrawingContext context,
+        Pen pen,
+        double cx,
+        double cy,
+        double width,
+        double height,
+        double angleDeg)
+    {
+        // Четыре угла прямоугольника до поворота (относительно центра)
+        var hw = width / 2.0;
+        var hh = height / 2.0;
+        var pts = new[]
+        {
+            new Point(-hw, -hh),
+            new Point(hw, -hh),
+            new Point(hw, hh),
+            new Point(-hw, hh)
+        };
+
+        var angleRad = angleDeg * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        // Поворот и перенос в мировые координаты
+        for (var i = 0; i < pts.Length; i++)
+        {
+            var x = pts[i].X;
+            var y = pts[i].Y;
+            var rx = x * cos - y * sin + cx;
+            var ry = x * sin + y * cos + cy;
+            pts[i] = new Point(rx, ry);
+        }
+
+        DrawPolyline(context, pen, pts, true);
+    }
+
+    private static void DrawOrientedEllipse(
+        DrawingContext context,
+        Pen pen,
+        double cx,
+        double cy,
+        double radius1,
+        double radius2,
+        double angleDeg)
+    {
+        // При нулевом угле можно использовать стандартный вызов
+        if (Math.Abs(angleDeg) < 0.001)
+        {
+            context.DrawEllipse(null, pen, new Point(cx, cy), radius1, radius2);
+            return;
+        }
+
+        // Для повёрнутого эллипса аппроксимируем линиями
+        const int segments = 64;
+        var angleRad = angleDeg * Math.PI / 180.0;
+        var cosRot = Math.Cos(angleRad);
+        var sinRot = Math.Sin(angleRad);
+
+        var pts = new Point[segments];
+        for (int i = 0; i < segments; i++)
+        {
+            var t = 2 * Math.PI * i / segments;
+            var x = radius1 * Math.Cos(t);
+            var y = radius2 * Math.Sin(t);
+
+            // Поворот
+            var rx = x * cosRot - y * sinRot + cx;
+            var ry = x * sinRot + y * cosRot + cy;
+            pts[i] = new Point(rx, ry);
+        }
+
+        DrawPolyline(context, pen, pts, true);
+    }
+
+    private static void DrawArc(DrawingContext context, Pen pen, ArcPrimitive arc)
+    {
+        const int segments = 32;
+        var startRad = arc.StartAngle * Math.PI / 180.0;
+        var endRad = arc.EndAngle * Math.PI / 180.0;
+        var total = endRad - startRad;
+
+        if (Math.Abs(total) < 0.0001)
+            return;
+
+        var steps = Math.Max(2, (int)(segments * Math.Abs(total) / (2 * Math.PI)));
+        var pts = new Point[steps + 1];
+
+        for (int i = 0; i <= steps; i++)
+        {
+            var t = startRad + total * i / steps;
+            var x = arc.CenterX + arc.Radius * Math.Cos(t);
+            var y = arc.CenterY + arc.Radius * Math.Sin(t);
+            pts[i] = new Point(x, y);
+        }
+
+        DrawPolyline(context, pen, pts, false);
+    }
+
+    private static void DrawPolygon(DrawingContext context, Pen pen, PolygonPrimitive polygon)
+    {
+        if (polygon.SidesCount < 3 || polygon.CircumscribedRadius <= 0)
+            return;
+
+        var pts = new Point[polygon.SidesCount];
+        for (int i = 0; i < polygon.SidesCount; i++)
+        {
+            var angle = 2 * Math.PI * i / polygon.SidesCount;
+            var x = polygon.CenterX + polygon.CircumscribedRadius * Math.Cos(angle);
+            var y = polygon.CenterY + polygon.CircumscribedRadius * Math.Sin(angle);
+            pts[i] = new Point(x, y);
+        }
+
+        DrawPolyline(context, pen, pts, true);
+    }
+
+    private static void DrawComposite(
+        DrawingContext context,
+        Pen basePen,
+        double pointRadiusWorld,
+        double insertX,
+        double insertY,
+        double rotationAngle,
+        System.Collections.Generic.IEnumerable<PrimitiveItem> children)
+    {
+        if (children == null)
+            return;
+
+        var angleRad = rotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        // Локальная функция для трансформации точки
+        Point Transform(Point p) =>
+            new(
+                insertX + p.X * cos - p.Y * sin,
+                insertY + p.X * sin + p.Y * cos);
+
+        // Для простоты: временно меняем систему координат через PushPostTransform
+        using (context.PushPostTransform(
+                   Matrix.CreateTranslation(-insertX, -insertY) *
+                   Matrix.CreateRotation(rotationAngle * Math.PI / 180.0) *
+                   Matrix.CreateTranslation(insertX, insertY)))
+        {
+            // Рисуем детей как обычные примитивы в их локальной системе
+            foreach (var child in children)
+            {
+                switch (child)
+                {
+                    case PointPrimitive p:
+                        DrawPoint(context, basePen, p, pointRadiusWorld);
+                        break;
+                    case LinePrimitive line:
+                        context.DrawLine(basePen,
+                            new Point(line.X1 + insertX, line.Y1 + insertY),
+                            new Point(line.X2 + insertX, line.Y2 + insertY));
+                        break;
+                    case CirclePrimitive circle:
+                        DrawCircle(context, basePen,
+                            circle.CenterX + insertX,
+                            circle.CenterY + insertY,
+                            circle.Radius);
+                        break;
+                    case RectanglePrimitive rect:
+                        DrawOrientedRectangle(context, basePen,
+                            rect.CenterX + insertX,
+                            rect.CenterY + insertY,
+                            rect.Width,
+                            rect.Height,
+                            rect.RotationAngle + rotationAngle);
+                        break;
+                    case EllipsePrimitive ellipse:
+                        DrawOrientedEllipse(context, basePen,
+                            ellipse.CenterX + insertX,
+                            ellipse.CenterY + insertY,
+                            ellipse.Radius1,
+                            ellipse.Radius2,
+                            ellipse.RotationAngle + rotationAngle);
+                        break;
+                    case ArcPrimitive arc:
+                        DrawArc(context, basePen, new ArcPrimitive(
+                            arc.Name,
+                            arc.CenterX + insertX,
+                            arc.CenterY + insertY,
+                            arc.Radius,
+                            arc.StartAngle + rotationAngle,
+                            arc.EndAngle + rotationAngle));
+                        break;
+                    case PolygonPrimitive polygon:
+                        DrawPolygon(context, basePen, new PolygonPrimitive(
+                            polygon.Name,
+                            polygon.CenterX + insertX,
+                            polygon.CenterY + insertY,
+                            polygon.CircumscribedRadius,
+                            polygon.SidesCount));
+                        break;
+                }
+            }
+        }
+    }
+
+    private static void DrawPolyline(DrawingContext context, Pen pen, Point[] points, bool closed)
+    {
+        if (points.Length < 2)
+            return;
+
+        for (int i = 0; i < points.Length - 1; i++)
+        {
+            context.DrawLine(pen, points[i], points[i + 1]);
+        }
+
+        if (closed)
+        {
+            context.DrawLine(pen, points[^1], points[0]);
+        }
     }
 }
 

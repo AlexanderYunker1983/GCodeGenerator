@@ -70,7 +70,10 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     
     private void InitializeRightPanelTabs()
     {
-        RightPanelTabs.Add(new PrimitivesListViewModel());
+        // Список примитивов разделяется между правой панелью и 2D-предпросмотром
+        var primitivesListViewModel = new PrimitivesListViewModel(Preview2DViewModel);
+        
+        RightPanelTabs.Add(primitivesListViewModel);
         RightPanelTabs.Add(new OperationsListViewModel());
         RightPanelTabs.Add(new GCodeViewModel());
 
