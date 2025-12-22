@@ -25,13 +25,20 @@ public class PolygonPrimitive : PrimitiveItem
     [PropertyEditor("Property_SidesCount", Order = 40)]
     public int SidesCount { get; set; }
 
-    public PolygonPrimitive(string name, double centerX, double centerY, double circumscribedRadius, int sidesCount)
+    /// <summary>
+    /// Угол поворота в градусах относительно оси X.
+    /// </summary>
+    [PropertyEditor("Property_RotationAngle", Order = 50)]
+    public double RotationAngle { get; set; }
+
+    public PolygonPrimitive(string name, double centerX, double centerY, double circumscribedRadius, int sidesCount, double rotationAngle = 0)
         : base(name)
     {
         CenterX = centerX;
         CenterY = centerY;
         CircumscribedRadius = circumscribedRadius;
         SidesCount = sidesCount;
+        RotationAngle = rotationAngle;
     }
 }
 

@@ -899,12 +899,20 @@ public class Preview2DCanvas : Control
             return false;
 
         var pts = new Point[polygon.SidesCount];
+        var angleRad = polygon.RotationAngle * Math.PI / 180.0;
+        var cosRot = Math.Cos(angleRad);
+        var sinRot = Math.Sin(angleRad);
+
         for (int i = 0; i < polygon.SidesCount; i++)
         {
             var angle = 2 * Math.PI * i / polygon.SidesCount;
-            var x = polygon.CenterX + polygon.CircumscribedRadius * Math.Cos(angle);
-            var y = polygon.CenterY + polygon.CircumscribedRadius * Math.Sin(angle);
-            pts[i] = new Point(x, y);
+            var x = polygon.CircumscribedRadius * Math.Cos(angle);
+            var y = polygon.CircumscribedRadius * Math.Sin(angle);
+
+            // Применяем поворот
+            var rx = x * cosRot - y * sinRot + polygon.CenterX;
+            var ry = x * sinRot + y * cosRot + polygon.CenterY;
+            pts[i] = new Point(rx, ry);
         }
 
         // Проверяем близость к рёбрам
@@ -1043,12 +1051,20 @@ public class Preview2DCanvas : Control
             return;
 
         var pts = new Point[polygon.SidesCount];
+        var angleRad = polygon.RotationAngle * Math.PI / 180.0;
+        var cosRot = Math.Cos(angleRad);
+        var sinRot = Math.Sin(angleRad);
+
         for (int i = 0; i < polygon.SidesCount; i++)
         {
             var angle = 2 * Math.PI * i / polygon.SidesCount;
-            var x = polygon.CenterX + polygon.CircumscribedRadius * Math.Cos(angle);
-            var y = polygon.CenterY + polygon.CircumscribedRadius * Math.Sin(angle);
-            pts[i] = new Point(x, y);
+            var x = polygon.CircumscribedRadius * Math.Cos(angle);
+            var y = polygon.CircumscribedRadius * Math.Sin(angle);
+
+            // Применяем поворот
+            var rx = x * cosRot - y * sinRot + polygon.CenterX;
+            var ry = x * sinRot + y * cosRot + polygon.CenterY;
+            pts[i] = new Point(rx, ry);
         }
 
         DrawPolyline(context, pen, pts, true);
@@ -1132,7 +1148,8 @@ public class Preview2DCanvas : Control
                             polygon.CenterX + insertX,
                             polygon.CenterY + insertY,
                             polygon.CircumscribedRadius,
-                            polygon.SidesCount));
+                            polygon.SidesCount,
+                            polygon.RotationAngle + rotationAngle));
                         break;
                 }
             }

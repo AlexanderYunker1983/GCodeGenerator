@@ -40,7 +40,7 @@ public partial class PrimitivesListViewModel : ViewModelBase, IHasDisplayName
         Primitives.Add(new RectanglePrimitive("Прямоугольник (0,0) 10x5", 0, 0, 10, 5, 0));
         Primitives.Add(new EllipsePrimitive("Эллипс (0,0) 8x4", 0, 0, 8, 4, 0));
         Primitives.Add(new ArcPrimitive("Дуга (0,0), R=5, 0-90°", 0, 0, 5, 0, 90));
-        Primitives.Add(new PolygonPrimitive("Многогранник (0,0), R=5, 6 граней", 0, 0, 5, 6));
+        Primitives.Add(new PolygonPrimitive("Многогранник (0,0), R=5, 6 граней", 0, 0, 5, 6, 0));
 
         var dxf = new DxfPrimitive("DXF-объект (0,0)", 0, 0, "demo.dxf", 0);
         dxf.Children.Add(new LinePrimitive("DXF-линия", -5, -5, 5, 5));
