@@ -99,20 +99,20 @@ public partial class PropertyItemViewModel : ObservableObject
         if (value is null)
             return string.Empty;
 
-        // Форматируем числовые типы с точностью до 3 знаков после запятой
+        // Форматируем числовые типы: целые числа без десятичных знаков, дробные - с 3 знаками после запятой
         return value switch
         {
             double d => d.ToString("F3", CultureInfo.CurrentCulture),
             float f => f.ToString("F3", CultureInfo.CurrentCulture),
             decimal dec => dec.ToString("F3", CultureInfo.CurrentCulture),
-            int i => i.ToString("F3", CultureInfo.CurrentCulture),
-            long l => l.ToString("F3", CultureInfo.CurrentCulture),
-            short s => s.ToString("F3", CultureInfo.CurrentCulture),
-            byte b => b.ToString("F3", CultureInfo.CurrentCulture),
-            sbyte sb => sb.ToString("F3", CultureInfo.CurrentCulture),
-            ushort us => us.ToString("F3", CultureInfo.CurrentCulture),
-            uint ui => ui.ToString("F3", CultureInfo.CurrentCulture),
-            ulong ul => ul.ToString("F3", CultureInfo.CurrentCulture),
+            int i => i.ToString(CultureInfo.CurrentCulture),
+            long l => l.ToString(CultureInfo.CurrentCulture),
+            short s => s.ToString(CultureInfo.CurrentCulture),
+            byte b => b.ToString(CultureInfo.CurrentCulture),
+            sbyte sb => sb.ToString(CultureInfo.CurrentCulture),
+            ushort us => us.ToString(CultureInfo.CurrentCulture),
+            uint ui => ui.ToString(CultureInfo.CurrentCulture),
+            ulong ul => ul.ToString(CultureInfo.CurrentCulture),
             _ => Convert.ToString(value, CultureInfo.CurrentCulture) ?? string.Empty
         };
     }

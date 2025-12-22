@@ -10,6 +10,30 @@ using GCodeGenerator.Core.ViewModels.Preview2DViewModel;
 
 namespace GCodeGenerator.Core.Views.Preview2DView;
 
+/// <summary>
+/// Тип ручки примитива для перетаскивания.
+/// </summary>
+internal enum HandleType
+{
+    Center,           // Центральная ручка для перемещения всего примитива
+    LineEnd1,         // Первый конец линии
+    LineEnd2,         // Второй конец линии
+    CircleRadius,     // Ручка для изменения радиуса круга (слева на оси X)
+    RectWidth,        // Ручка для изменения ширины прямоугольника (справа, посередине)
+    RectHeight,       // Ручка для изменения высоты прямоугольника (сверху, посередине)
+    RectRotation,     // Ручка для поворота прямоугольника (в углу между правой и верхней сторонами)
+    EllipseRadius1,   // Ручка для изменения первого радиуса эллипса (справа на оси X в неповернутом состоянии)
+    EllipseRadius2,   // Ручка для изменения второго радиуса эллипса (сверху на оси Y в неповернутом состоянии)
+    EllipseRotation,      // Ручка для поворота эллипса (в углу описанного прямоугольника)
+    DxfRotation,          // Ручка для поворота DXF-объекта (на границе габарита справа)
+    CompositeRotation,    // Ручка для поворота составного объекта (на границе габарита справа)
+    PolygonRadius,       // Ручка для изменения радиуса многоугольника (в правой вершине)
+    PolygonRotation,      // Ручка для поворота многоугольника (в углу габаритного квадрата)
+    ArcStartAngle,       // Ручка для изменения начального угла дуги (в начале дуги)
+    ArcEndAngle,         // Ручка для изменения конечного угла дуги (в конце дуги)
+    ArcRadius            // Ручка для изменения радиуса дуги (посередине дуги)
+}
+
 public class Preview2DCanvas : Control
 {
     /// <summary>
@@ -52,6 +76,30 @@ public class Preview2DCanvas : Control
     private Point _dragStartWorld;
     private Point _dragStartCenter;
     private PrimitiveItem? _draggedPrimitive;
+    private HandleType _draggedHandleType = HandleType.Center;
+    
+    // Для перетаскивания прямоугольника - начальные значения
+    private double _dragStartWidth;
+    private double _dragStartHeight;
+    private double _dragStartRotationAngle;
+    
+    // Для перетаскивания эллипса - начальные значения
+    private double _dragStartRadius1;
+    private double _dragStartRadius2;
+    private double _dragStartEllipseRotationAngle;
+    
+    // Для перетаскивания DXF и Composite - начальный угол поворота
+    private double _dragStartDxfRotationAngle;
+    private double _dragStartCompositeRotationAngle;
+    
+    // Для перетаскивания многоугольника - начальные значения
+    private double _dragStartPolygonRadius;
+    private double _dragStartPolygonRotationAngle;
+    
+    // Для перетаскивания дуги - начальные значения
+    private double _dragStartArcRadius;
+    private double _dragStartArcStartAngle;
+    private double _dragStartArcEndAngle;
 
     public Preview2DCanvas()
     {
@@ -185,24 +233,623 @@ public class Preview2DCanvas : Control
     }
 
     /// <summary>
-    /// Проверяет, находится ли точка на ручке примитива (квадрат 5x5 пикселей).
+    /// Вычисляет габарит (bounding box) для коллекции примитивов в их локальной системе координат.
     /// </summary>
-    private bool IsPointOnHandle(Point worldPoint, PrimitiveItem primitive, double scale)
+    private static (double minX, double minY, double maxX, double maxY) GetBoundingBox(
+        System.Collections.Generic.IEnumerable<PrimitiveItem> children)
+    {
+        double minX = double.MaxValue, minY = double.MaxValue;
+        double maxX = double.MinValue, maxY = double.MinValue;
+        bool hasPoints = false;
+
+        foreach (var child in children)
+        {
+            switch (child)
+            {
+                case PointPrimitive p:
+                    minX = Math.Min(minX, p.X);
+                    minY = Math.Min(minY, p.Y);
+                    maxX = Math.Max(maxX, p.X);
+                    maxY = Math.Max(maxY, p.Y);
+                    hasPoints = true;
+                    break;
+                case LinePrimitive line:
+                    minX = Math.Min(minX, Math.Min(line.X1, line.X2));
+                    minY = Math.Min(minY, Math.Min(line.Y1, line.Y2));
+                    maxX = Math.Max(maxX, Math.Max(line.X1, line.X2));
+                    maxY = Math.Max(maxY, Math.Max(line.Y1, line.Y2));
+                    hasPoints = true;
+                    break;
+                case CirclePrimitive circle:
+                    minX = Math.Min(minX, circle.CenterX - circle.Radius);
+                    minY = Math.Min(minY, circle.CenterY - circle.Radius);
+                    maxX = Math.Max(maxX, circle.CenterX + circle.Radius);
+                    maxY = Math.Max(maxY, circle.CenterY + circle.Radius);
+                    hasPoints = true;
+                    break;
+                case RectanglePrimitive rect:
+                    var hw = rect.Width / 2.0;
+                    var hh = rect.Height / 2.0;
+                    var angleRad = rect.RotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    var corners = new[]
+                    {
+                        new Point(-hw, -hh),
+                        new Point(hw, -hh),
+                        new Point(hw, hh),
+                        new Point(-hw, hh)
+                    };
+                    foreach (var corner in corners)
+                    {
+                        var x = corner.X * cos - corner.Y * sin + rect.CenterX;
+                        var y = corner.X * sin + corner.Y * cos + rect.CenterY;
+                        minX = Math.Min(minX, x);
+                        minY = Math.Min(minY, y);
+                        maxX = Math.Max(maxX, x);
+                        maxY = Math.Max(maxY, y);
+                    }
+                    hasPoints = true;
+                    break;
+                case EllipsePrimitive ellipse:
+                    minX = Math.Min(minX, ellipse.CenterX - ellipse.Radius1);
+                    minY = Math.Min(minY, ellipse.CenterY - ellipse.Radius2);
+                    maxX = Math.Max(maxX, ellipse.CenterX + ellipse.Radius1);
+                    maxY = Math.Max(maxY, ellipse.CenterY + ellipse.Radius2);
+                    hasPoints = true;
+                    break;
+                case ArcPrimitive arc:
+                    // Для дуги используем простую аппроксимацию
+                    minX = Math.Min(minX, arc.CenterX - arc.Radius);
+                    minY = Math.Min(minY, arc.CenterY - arc.Radius);
+                    maxX = Math.Max(maxX, arc.CenterX + arc.Radius);
+                    maxY = Math.Max(maxY, arc.CenterY + arc.Radius);
+                    hasPoints = true;
+                    break;
+                case PolygonPrimitive polygon:
+                    var radius = polygon.CircumscribedRadius;
+                    minX = Math.Min(minX, polygon.CenterX - radius);
+                    minY = Math.Min(minY, polygon.CenterY - radius);
+                    maxX = Math.Max(maxX, polygon.CenterX + radius);
+                    maxY = Math.Max(maxY, polygon.CenterY + radius);
+                    hasPoints = true;
+                    break;
+            }
+        }
+
+        if (!hasPoints)
+        {
+            return (0, 0, 0, 0);
+        }
+
+        return (minX, minY, maxX, maxY);
+    }
+
+    /// <summary>
+    /// Вычисляет позицию ручки поворота для DXF или Composite примитива.
+    /// Ручка находится на правой границе габарита в неповернутом состоянии,
+    /// на пересечении с горизонтальной линией через центр габарита.
+    /// </summary>
+    private static Point GetCompositeRotationHandle(DxfPrimitive dxf)
+    {
+        var insertPoint = new Point(dxf.InsertX, dxf.InsertY);
+        if (dxf.Children.Count == 0)
+        {
+            return insertPoint;
+        }
+
+        var (minX, minY, maxX, maxY) = GetBoundingBox(dxf.Children);
+        var centerY = (minY + maxY) / 2.0;
+        
+        // В неповернутом состоянии ручка на правой границе габарита
+        // относительно центра габарита (не InsertX/InsertY)
+        var handleLocalX = maxX;
+        var handleLocalY = centerY;
+        
+        // Применяем поворот относительно InsertX/InsertY
+        var angleRad = dxf.RotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+        
+        var handleX = handleLocalX * cos - handleLocalY * sin + insertPoint.X;
+        var handleY = handleLocalX * sin + handleLocalY * cos + insertPoint.Y;
+        
+        return new Point(handleX, handleY);
+    }
+
+    /// <summary>
+    /// Вычисляет позицию ручки поворота для Composite примитива.
+    /// </summary>
+    private static Point GetCompositeRotationHandle(CompositePrimitive composite)
+    {
+        var insertPoint = new Point(composite.InsertX, composite.InsertY);
+        if (composite.Children.Count == 0)
+        {
+            return insertPoint;
+        }
+
+        var (minX, minY, maxX, maxY) = GetBoundingBox(composite.Children);
+        var centerY = (minY + maxY) / 2.0;
+        
+        // В неповернутом состоянии ручка на правой границе габарита
+        // относительно центра габарита (не InsertX/InsertY)
+        var handleLocalX = maxX;
+        var handleLocalY = centerY;
+        
+        // Применяем поворот относительно InsertX/InsertY
+        var angleRad = composite.RotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+        
+        var handleX = handleLocalX * cos - handleLocalY * sin + insertPoint.X;
+        var handleY = handleLocalX * sin + handleLocalY * cos + insertPoint.Y;
+        
+        return new Point(handleX, handleY);
+    }
+
+    /// <summary>
+    /// Нормализует углы дуги так, чтобы дуга всегда строилась против часовой стрелки.
+    /// Если EndAngle < StartAngle, добавляет 360 к EndAngle.
+    /// </summary>
+    private static (double normalizedStartAngle, double normalizedEndAngle) NormalizeArcAngles(
+        double startAngle, double endAngle)
+    {
+        var normalizedStart = startAngle;
+        var normalizedEnd = endAngle;
+        
+        // Нормализуем углы в диапазон [0, 360)
+        while (normalizedStart < 0) normalizedStart += 360;
+        while (normalizedStart >= 360) normalizedStart -= 360;
+        while (normalizedEnd < 0) normalizedEnd += 360;
+        while (normalizedEnd >= 360) normalizedEnd -= 360;
+        
+        // Если EndAngle < StartAngle, добавляем 360 к EndAngle для построения против часовой стрелки
+        if (normalizedEnd < normalizedStart)
+        {
+            normalizedEnd += 360;
+        }
+        
+        return (normalizedStart, normalizedEnd);
+    }
+
+    /// <summary>
+    /// Вычисляет позиции ручек дуги.
+    /// </summary>
+    private static (Point center, Point startAngleHandle, Point endAngleHandle, Point radiusHandle) GetArcHandles(
+        ArcPrimitive arc)
+    {
+        var center = new Point(arc.CenterX, arc.CenterY);
+        
+        // Нормализуем углы для правильного вычисления ручек
+        var (normalizedStart, normalizedEnd) = NormalizeArcAngles(arc.StartAngle, arc.EndAngle);
+        
+        // Ручка начального угла: в точке дуги с углом StartAngle
+        var startAngleRad = normalizedStart * Math.PI / 180.0;
+        var startHandleX = center.X + arc.Radius * Math.Cos(startAngleRad);
+        var startHandleY = center.Y + arc.Radius * Math.Sin(startAngleRad);
+        var startAngleHandle = new Point(startHandleX, startHandleY);
+        
+        // Ручка конечного угла: в точке дуги с углом EndAngle
+        // Используем нормализованный EndAngle, но если он > 360, берем его по модулю 360 для отображения ручки
+        var endAngleForHandle = normalizedEnd;
+        if (endAngleForHandle >= 360)
+        {
+            endAngleForHandle = endAngleForHandle % 360;
+        }
+        var endAngleForHandleRad = endAngleForHandle * Math.PI / 180.0;
+        var endHandleX = center.X + arc.Radius * Math.Cos(endAngleForHandleRad);
+        var endHandleY = center.Y + arc.Radius * Math.Sin(endAngleForHandleRad);
+        var endAngleHandle = new Point(endHandleX, endHandleY);
+        
+        // Ручка радиуса: посередине дуги (средний угол между нормализованными StartAngle и EndAngle)
+        var endAngleRad = normalizedEnd * Math.PI / 180.0;
+        var midAngleRad = (startAngleRad + endAngleRad) / 2.0;
+        var radiusHandleX = center.X + arc.Radius * Math.Cos(midAngleRad);
+        var radiusHandleY = center.Y + arc.Radius * Math.Sin(midAngleRad);
+        var radiusHandle = new Point(radiusHandleX, radiusHandleY);
+        
+        return (center, startAngleHandle, endAngleHandle, radiusHandle);
+    }
+
+    /// <summary>
+    /// Вычисляет позиции ручек многоугольника с учетом поворота.
+    /// </summary>
+    private static (Point center, Point radiusHandle, Point rotationHandle) GetPolygonHandles(
+        PolygonPrimitive polygon)
+    {
+        var center = new Point(polygon.CenterX, polygon.CenterY);
+        var angleRad = polygon.RotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        // Ручка радиуса: в правой вершине (угол = 0 в неповернутом состоянии)
+        var radiusHandleLocal = new Point(polygon.CircumscribedRadius, 0);
+        var radiusHandleX = radiusHandleLocal.X * cos - radiusHandleLocal.Y * sin + center.X;
+        var radiusHandleY = radiusHandleLocal.X * sin + radiusHandleLocal.Y * cos + center.Y;
+        var radiusHandle = new Point(radiusHandleX, radiusHandleY);
+
+        // Ручка поворота: в углу габаритного квадрата (справа-снизу, т.е. (radius, radius) в неповернутом состоянии)
+        var rotationHandleLocal = new Point(polygon.CircumscribedRadius, polygon.CircumscribedRadius);
+        var rotationHandleX = rotationHandleLocal.X * cos - rotationHandleLocal.Y * sin + center.X;
+        var rotationHandleY = rotationHandleLocal.X * sin + rotationHandleLocal.Y * cos + center.Y;
+        var rotationHandle = new Point(rotationHandleX, rotationHandleY);
+
+        return (center, radiusHandle, rotationHandle);
+    }
+
+    /// <summary>
+    /// Вычисляет позиции ручек эллипса с учетом поворота.
+    /// </summary>
+    private static (Point center, Point radius1Handle, Point radius2Handle, Point rotationHandle) GetEllipseHandles(
+        EllipsePrimitive ellipse)
+    {
+        var center = new Point(ellipse.CenterX, ellipse.CenterY);
+        var angleRad = ellipse.RotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        // Ручка первого радиуса: справа на оси X (в неповернутом состоянии)
+        var radius1HandleLocal = new Point(ellipse.Radius1, 0);
+        var radius1HandleX = radius1HandleLocal.X * cos - radius1HandleLocal.Y * sin + center.X;
+        var radius1HandleY = radius1HandleLocal.X * sin + radius1HandleLocal.Y * cos + center.Y;
+        var radius1Handle = new Point(radius1HandleX, radius1HandleY);
+
+        // Ручка второго радиуса: сверху на оси Y (в неповернутом состоянии)
+        var radius2HandleLocal = new Point(0, -ellipse.Radius2);
+        var radius2HandleX = radius2HandleLocal.X * cos - radius2HandleLocal.Y * sin + center.X;
+        var radius2HandleY = radius2HandleLocal.X * sin + radius2HandleLocal.Y * cos + center.Y;
+        var radius2Handle = new Point(radius2HandleX, radius2HandleY);
+
+        // Ручка поворота: в углу описанного прямоугольника (справа-сверху в неповернутом состоянии)
+        var rotationHandleLocal = new Point(ellipse.Radius1, -ellipse.Radius2);
+        var rotationHandleX = rotationHandleLocal.X * cos - rotationHandleLocal.Y * sin + center.X;
+        var rotationHandleY = rotationHandleLocal.X * sin + rotationHandleLocal.Y * cos + center.Y;
+        var rotationHandle = new Point(rotationHandleX, rotationHandleY);
+
+        return (center, radius1Handle, radius2Handle, rotationHandle);
+    }
+
+    /// <summary>
+    /// Вычисляет позиции ручек прямоугольника с учетом поворота.
+    /// </summary>
+    private static (Point center, Point widthHandle, Point heightHandle, Point rotationHandle) GetRectangleHandles(
+        RectanglePrimitive rect)
+    {
+        var center = new Point(rect.CenterX, rect.CenterY);
+        var hw = rect.Width / 2.0;
+        var hh = rect.Height / 2.0;
+        var angleRad = rect.RotationAngle * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        // Ручка ширины: справа, посередине (в неповернутом состоянии)
+        var widthHandleLocal = new Point(hw, 0);
+        var widthHandleX = widthHandleLocal.X * cos - widthHandleLocal.Y * sin + center.X;
+        var widthHandleY = widthHandleLocal.X * sin + widthHandleLocal.Y * cos + center.Y;
+        var widthHandle = new Point(widthHandleX, widthHandleY);
+
+        // Ручка высоты: сверху, посередине (в неповернутом состоянии)
+        var heightHandleLocal = new Point(0, -hh);
+        var heightHandleX = heightHandleLocal.X * cos - heightHandleLocal.Y * sin + center.X;
+        var heightHandleY = heightHandleLocal.X * sin + heightHandleLocal.Y * cos + center.Y;
+        var heightHandle = new Point(heightHandleX, heightHandleY);
+
+        // Ручка поворота: в углу между правой и верхней сторонами (в неповернутом состоянии)
+        var rotationHandleLocal = new Point(hw, -hh);
+        var rotationHandleX = rotationHandleLocal.X * cos - rotationHandleLocal.Y * sin + center.X;
+        var rotationHandleY = rotationHandleLocal.X * sin + rotationHandleLocal.Y * cos + center.Y;
+        var rotationHandle = new Point(rotationHandleX, rotationHandleY);
+
+        return (center, widthHandle, heightHandle, rotationHandle);
+    }
+
+    /// <summary>
+    /// Проверяет, находится ли точка на ручке примитива (квадрат 5x5 пикселей).
+    /// Возвращает тип ручки или null, если точка не на ручке.
+    /// </summary>
+    private HandleType? GetHandleAtPoint(Point worldPoint, PrimitiveItem primitive, double scale)
     {
         if (_viewModel == null)
-            return false;
+            return null;
 
-        var center = GetPrimitiveCenter(primitive);
-        
         // Размер ручки в мировых координатах (5 пикселей независимо от масштаба)
         var handleSizeWorld = 5.0 / scale;
         var halfSize = handleSizeWorld / 2.0;
-        
-        // Проверяем, находится ли точка в квадрате ручки
-        return worldPoint.X >= center.X - halfSize &&
-               worldPoint.X <= center.X + halfSize &&
-               worldPoint.Y >= center.Y - halfSize &&
-               worldPoint.Y <= center.Y + halfSize;
+
+        // Для линии проверяем ручки на концах
+        if (primitive is LinePrimitive line)
+        {
+            // Проверяем первый конец
+            var end1 = new Point(line.X1, line.Y1);
+            if (worldPoint.X >= end1.X - halfSize &&
+                worldPoint.X <= end1.X + halfSize &&
+                worldPoint.Y >= end1.Y - halfSize &&
+                worldPoint.Y <= end1.Y + halfSize)
+            {
+                return HandleType.LineEnd1;
+            }
+
+            // Проверяем второй конец
+            var end2 = new Point(line.X2, line.Y2);
+            if (worldPoint.X >= end2.X - halfSize &&
+                worldPoint.X <= end2.X + halfSize &&
+                worldPoint.Y >= end2.Y - halfSize &&
+                worldPoint.Y <= end2.Y + halfSize)
+            {
+                return HandleType.LineEnd2;
+            }
+
+            // Проверяем центральную ручку
+            var center = GetPrimitiveCenter(primitive);
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для прямоугольника проверяем ручки с учетом поворота
+        if (primitive is RectanglePrimitive rect)
+        {
+            var (center, widthHandle, heightHandle, rotationHandle) = GetRectangleHandles(rect);
+            
+            // Проверяем ручку ширины (справа, посередине)
+            if (worldPoint.X >= widthHandle.X - halfSize &&
+                worldPoint.X <= widthHandle.X + halfSize &&
+                worldPoint.Y >= widthHandle.Y - halfSize &&
+                worldPoint.Y <= widthHandle.Y + halfSize)
+            {
+                return HandleType.RectWidth;
+            }
+
+            // Проверяем ручку высоты (сверху, посередине)
+            if (worldPoint.X >= heightHandle.X - halfSize &&
+                worldPoint.X <= heightHandle.X + halfSize &&
+                worldPoint.Y >= heightHandle.Y - halfSize &&
+                worldPoint.Y <= heightHandle.Y + halfSize)
+            {
+                return HandleType.RectHeight;
+            }
+
+            // Проверяем ручку поворота (в углу)
+            if (worldPoint.X >= rotationHandle.X - halfSize &&
+                worldPoint.X <= rotationHandle.X + halfSize &&
+                worldPoint.Y >= rotationHandle.Y - halfSize &&
+                worldPoint.Y <= rotationHandle.Y + halfSize)
+            {
+                return HandleType.RectRotation;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для эллипса проверяем ручки с учетом поворота
+        if (primitive is EllipsePrimitive ellipse)
+        {
+            var (center, radius1Handle, radius2Handle, rotationHandle) = GetEllipseHandles(ellipse);
+            
+            // Проверяем ручку первого радиуса (справа на оси X в неповернутом состоянии)
+            if (worldPoint.X >= radius1Handle.X - halfSize &&
+                worldPoint.X <= radius1Handle.X + halfSize &&
+                worldPoint.Y >= radius1Handle.Y - halfSize &&
+                worldPoint.Y <= radius1Handle.Y + halfSize)
+            {
+                return HandleType.EllipseRadius1;
+            }
+
+            // Проверяем ручку второго радиуса (сверху на оси Y в неповернутом состоянии)
+            if (worldPoint.X >= radius2Handle.X - halfSize &&
+                worldPoint.X <= radius2Handle.X + halfSize &&
+                worldPoint.Y >= radius2Handle.Y - halfSize &&
+                worldPoint.Y <= radius2Handle.Y + halfSize)
+            {
+                return HandleType.EllipseRadius2;
+            }
+
+            // Проверяем ручку поворота (в углу описанного прямоугольника)
+            if (worldPoint.X >= rotationHandle.X - halfSize &&
+                worldPoint.X <= rotationHandle.X + halfSize &&
+                worldPoint.Y >= rotationHandle.Y - halfSize &&
+                worldPoint.Y <= rotationHandle.Y + halfSize)
+            {
+                return HandleType.EllipseRotation;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для круга проверяем ручку радиуса (слева на оси X) и центральную ручку
+        if (primitive is CirclePrimitive circle)
+        {
+            // Проверяем ручку радиуса (слева от центра на оси X)
+            var radiusHandlePoint = new Point(circle.CenterX - circle.Radius, circle.CenterY);
+            if (worldPoint.X >= radiusHandlePoint.X - halfSize &&
+                worldPoint.X <= radiusHandlePoint.X + halfSize &&
+                worldPoint.Y >= radiusHandlePoint.Y - halfSize &&
+                worldPoint.Y <= radiusHandlePoint.Y + halfSize)
+            {
+                return HandleType.CircleRadius;
+            }
+
+            // Проверяем центральную ручку
+            var center = GetPrimitiveCenter(primitive);
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для дуги проверяем ручки
+        if (primitive is ArcPrimitive arc)
+        {
+            var (center, startAngleHandle, endAngleHandle, radiusHandle) = GetArcHandles(arc);
+            
+            // Проверяем ручку начального угла (в начале дуги)
+            if (worldPoint.X >= startAngleHandle.X - halfSize &&
+                worldPoint.X <= startAngleHandle.X + halfSize &&
+                worldPoint.Y >= startAngleHandle.Y - halfSize &&
+                worldPoint.Y <= startAngleHandle.Y + halfSize)
+            {
+                return HandleType.ArcStartAngle;
+            }
+
+            // Проверяем ручку конечного угла (в конце дуги)
+            if (worldPoint.X >= endAngleHandle.X - halfSize &&
+                worldPoint.X <= endAngleHandle.X + halfSize &&
+                worldPoint.Y >= endAngleHandle.Y - halfSize &&
+                worldPoint.Y <= endAngleHandle.Y + halfSize)
+            {
+                return HandleType.ArcEndAngle;
+            }
+
+            // Проверяем ручку радиуса (посередине дуги)
+            if (worldPoint.X >= radiusHandle.X - halfSize &&
+                worldPoint.X <= radiusHandle.X + halfSize &&
+                worldPoint.Y >= radiusHandle.Y - halfSize &&
+                worldPoint.Y <= radiusHandle.Y + halfSize)
+            {
+                return HandleType.ArcRadius;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для многоугольника проверяем ручки с учетом поворота
+        if (primitive is PolygonPrimitive polygon)
+        {
+            var (center, radiusHandle, rotationHandle) = GetPolygonHandles(polygon);
+            
+            // Проверяем ручку радиуса (в правой вершине)
+            if (worldPoint.X >= radiusHandle.X - halfSize &&
+                worldPoint.X <= radiusHandle.X + halfSize &&
+                worldPoint.Y >= radiusHandle.Y - halfSize &&
+                worldPoint.Y <= radiusHandle.Y + halfSize)
+            {
+                return HandleType.PolygonRadius;
+            }
+
+            // Проверяем ручку поворота (в углу габаритного квадрата)
+            if (worldPoint.X >= rotationHandle.X - halfSize &&
+                worldPoint.X <= rotationHandle.X + halfSize &&
+                worldPoint.Y >= rotationHandle.Y - halfSize &&
+                worldPoint.Y <= rotationHandle.Y + halfSize)
+            {
+                return HandleType.PolygonRotation;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для DXF-объекта проверяем ручку поворота и центральную ручку
+        if (primitive is DxfPrimitive dxf)
+        {
+            var center = GetPrimitiveCenter(primitive);
+            var rotationHandle = GetCompositeRotationHandle(dxf);
+            
+            // Проверяем ручку поворота
+            if (worldPoint.X >= rotationHandle.X - halfSize &&
+                worldPoint.X <= rotationHandle.X + halfSize &&
+                worldPoint.Y >= rotationHandle.Y - halfSize &&
+                worldPoint.Y <= rotationHandle.Y + halfSize)
+            {
+                return HandleType.DxfRotation;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для составного объекта проверяем ручку поворота и центральную ручку
+        if (primitive is CompositePrimitive composite)
+        {
+            var center = GetPrimitiveCenter(primitive);
+            var rotationHandle = GetCompositeRotationHandle(composite);
+            
+            // Проверяем ручку поворота
+            if (worldPoint.X >= rotationHandle.X - halfSize &&
+                worldPoint.X <= rotationHandle.X + halfSize &&
+                worldPoint.Y >= rotationHandle.Y - halfSize &&
+                worldPoint.Y <= rotationHandle.Y + halfSize)
+            {
+                return HandleType.CompositeRotation;
+            }
+
+            // Проверяем центральную ручку
+            if (worldPoint.X >= center.X - halfSize &&
+                worldPoint.X <= center.X + halfSize &&
+                worldPoint.Y >= center.Y - halfSize &&
+                worldPoint.Y <= center.Y + halfSize)
+            {
+                return HandleType.Center;
+            }
+
+            return null;
+        }
+
+        // Для остальных примитивов проверяем только центральную ручку
+        var centerPoint = GetPrimitiveCenter(primitive);
+        if (worldPoint.X >= centerPoint.X - halfSize &&
+            worldPoint.X <= centerPoint.X + halfSize &&
+            worldPoint.Y >= centerPoint.Y - halfSize &&
+            worldPoint.Y <= centerPoint.Y + halfSize)
+        {
+            return HandleType.Center;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -303,11 +950,127 @@ public class Preview2DCanvas : Control
                 var worldPoint = new Point(worldX, worldY);
 
                 // Проверяем, нажата ли ручка выделенного примитива
-                if (IsPointOnHandle(worldPoint, _viewModel.SelectedPrimitive, _viewModel.Scale))
+                var handleType = GetHandleAtPoint(worldPoint, _viewModel.SelectedPrimitive, _viewModel.Scale);
+                if (handleType.HasValue)
                 {
                     _isDragging = true;
                     _dragStartWorld = worldPoint;
-                    _dragStartCenter = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                    _draggedHandleType = handleType.Value;
+                    
+                    // Сохраняем начальную позицию в зависимости от типа ручки
+                    if (_viewModel.SelectedPrimitive is LinePrimitive line)
+                    {
+                        if (handleType.Value == HandleType.LineEnd1)
+                            _dragStartCenter = new Point(line.X1, line.Y1);
+                        else if (handleType.Value == HandleType.LineEnd2)
+                            _dragStartCenter = new Point(line.X2, line.Y2);
+                        else
+                            _dragStartCenter = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                    }
+                    else if (_viewModel.SelectedPrimitive is CirclePrimitive circle)
+                    {
+                        if (handleType.Value == HandleType.CircleRadius)
+                        {
+                            // Сохраняем начальную позицию ручки радиуса и начальный радиус
+                            _dragStartCenter = new Point(circle.CenterX - circle.Radius, circle.CenterY);
+                        }
+                        else
+                        {
+                            _dragStartCenter = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                        }
+                    }
+                    else if (_viewModel.SelectedPrimitive is RectanglePrimitive rect)
+                    {
+                        // Сохраняем начальные значения прямоугольника
+                        _dragStartWidth = rect.Width;
+                        _dragStartHeight = rect.Height;
+                        _dragStartRotationAngle = rect.RotationAngle;
+                        
+                        var (center, widthHandle, heightHandle, rotationHandle) = GetRectangleHandles(rect);
+                        if (handleType.Value == HandleType.RectWidth)
+                            _dragStartCenter = widthHandle;
+                        else if (handleType.Value == HandleType.RectHeight)
+                            _dragStartCenter = heightHandle;
+                        else if (handleType.Value == HandleType.RectRotation)
+                            _dragStartCenter = rotationHandle;
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else if (_viewModel.SelectedPrimitive is EllipsePrimitive ellipse)
+                    {
+                        // Сохраняем начальные значения эллипса
+                        _dragStartRadius1 = ellipse.Radius1;
+                        _dragStartRadius2 = ellipse.Radius2;
+                        _dragStartEllipseRotationAngle = ellipse.RotationAngle;
+                        
+                        var (center, radius1Handle, radius2Handle, rotationHandle) = GetEllipseHandles(ellipse);
+                        if (handleType.Value == HandleType.EllipseRadius1)
+                            _dragStartCenter = radius1Handle;
+                        else if (handleType.Value == HandleType.EllipseRadius2)
+                            _dragStartCenter = radius2Handle;
+                        else if (handleType.Value == HandleType.EllipseRotation)
+                            _dragStartCenter = rotationHandle;
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else if (_viewModel.SelectedPrimitive is DxfPrimitive dxf)
+                    {
+                        // Сохраняем начальный угол поворота DXF
+                        _dragStartDxfRotationAngle = dxf.RotationAngle;
+                        
+                        var center = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                        if (handleType.Value == HandleType.DxfRotation)
+                            _dragStartCenter = GetCompositeRotationHandle(dxf);
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else if (_viewModel.SelectedPrimitive is CompositePrimitive composite)
+                    {
+                        // Сохраняем начальный угол поворота Composite
+                        _dragStartCompositeRotationAngle = composite.RotationAngle;
+                        
+                        var center = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                        if (handleType.Value == HandleType.CompositeRotation)
+                            _dragStartCenter = GetCompositeRotationHandle(composite);
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else if (_viewModel.SelectedPrimitive is PolygonPrimitive polygon)
+                    {
+                        // Сохраняем начальные значения многоугольника
+                        _dragStartPolygonRadius = polygon.CircumscribedRadius;
+                        _dragStartPolygonRotationAngle = polygon.RotationAngle;
+                        
+                        var (center, radiusHandle, rotationHandle) = GetPolygonHandles(polygon);
+                        if (handleType.Value == HandleType.PolygonRadius)
+                            _dragStartCenter = radiusHandle;
+                        else if (handleType.Value == HandleType.PolygonRotation)
+                            _dragStartCenter = rotationHandle;
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else if (_viewModel.SelectedPrimitive is ArcPrimitive arc)
+                    {
+                        // Сохраняем начальные значения дуги
+                        _dragStartArcRadius = arc.Radius;
+                        _dragStartArcStartAngle = arc.StartAngle;
+                        _dragStartArcEndAngle = arc.EndAngle;
+                        
+                        var (center, startAngleHandle, endAngleHandle, radiusHandle) = GetArcHandles(arc);
+                        if (handleType.Value == HandleType.ArcStartAngle)
+                            _dragStartCenter = startAngleHandle;
+                        else if (handleType.Value == HandleType.ArcEndAngle)
+                            _dragStartCenter = endAngleHandle;
+                        else if (handleType.Value == HandleType.ArcRadius)
+                            _dragStartCenter = radiusHandle;
+                        else
+                            _dragStartCenter = center;
+                    }
+                    else
+                    {
+                        _dragStartCenter = GetPrimitiveCenter(_viewModel.SelectedPrimitive);
+                    }
+                    
                     _draggedPrimitive = _viewModel.SelectedPrimitive;
                     e.Pointer.Capture(this);
                     e.Handled = true;
@@ -372,15 +1135,444 @@ public class Preview2DCanvas : Control
             var deltaX = currentWorldPoint.X - _dragStartWorld.X;
             var deltaY = currentWorldPoint.Y - _dragStartWorld.Y;
             
-            // Перемещаем примитив
-            MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+            // Перемещаем примитив в зависимости от типа ручки
+            if (_draggedPrimitive is LinePrimitive line && _draggedHandleType != HandleType.Center)
+            {
+                // Для линии перемещаем только соответствующий конец
+                if (_draggedHandleType == HandleType.LineEnd1)
+                {
+                    line.X1 = _dragStartCenter.X + deltaX;
+                    line.Y1 = _dragStartCenter.Y + deltaY;
+                }
+                else if (_draggedHandleType == HandleType.LineEnd2)
+                {
+                    line.X2 = _dragStartCenter.X + deltaX;
+                    line.Y2 = _dragStartCenter.Y + deltaY;
+                }
+            }
+            else if (_draggedPrimitive is CirclePrimitive circle && _draggedHandleType == HandleType.CircleRadius)
+            {
+                // Для круга изменяем радиус на основе расстояния от центра до текущей позиции мыши
+                // Ручка находится слева на оси X, поэтому используем только X координату
+                var newRadius = circle.CenterX - currentWorldPoint.X;
+                // Ограничиваем минимальный радиус
+                if (newRadius > 0)
+                {
+                    circle.Radius = newRadius;
+                }
+            }
+            else if (_draggedPrimitive is RectanglePrimitive rect)
+            {
+                var center = new Point(rect.CenterX, rect.CenterY);
+                
+                if (_draggedHandleType == HandleType.RectWidth)
+                {
+                    // Изменяем ширину: вычисляем расстояние от центра до текущей позиции мыши
+                    // вдоль оси ширины (справа в неповернутом состоянии)
+                    var angleRad = _dragStartRotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    
+                    // Вектор от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    
+                    // Проецируем на ось ширины (направление (cos, sin) в неповернутом состоянии)
+                    var projection = dx * cos + dy * sin;
+                    var newWidth = Math.Abs(projection) * 2.0;
+                    
+                    // Ограничиваем минимальную ширину
+                    if (newWidth > 0.1)
+                    {
+                        rect.Width = newWidth;
+                    }
+                }
+                else if (_draggedHandleType == HandleType.RectHeight)
+                {
+                    // Изменяем высоту: вычисляем расстояние от центра до текущей позиции мыши
+                    // вдоль оси высоты (сверху в неповернутом состоянии)
+                    var angleRad = _dragStartRotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    
+                    // Вектор от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    
+                    // Проецируем на ось высоты (направление (-sin, cos) в неповернутом состоянии)
+                    var projection = -dx * sin + dy * cos;
+                    var newHeight = Math.Abs(projection) * 2.0;
+                    
+                    // Ограничиваем минимальную высоту
+                    if (newHeight > 0.1)
+                    {
+                        rect.Height = newHeight;
+                    }
+                }
+                else if (_draggedHandleType == HandleType.RectRotation)
+                {
+                    // Изменяем угол поворота: вычисляем угол между центром и текущей позицией мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var currentAngleRad = Math.Atan2(dy, dx);
+                    
+                    // Вычисляем начальный угол ручки относительно центра
+                    var startDx = _dragStartCenter.X - center.X;
+                    var startDy = _dragStartCenter.Y - center.Y;
+                    var startAngleRad = Math.Atan2(startDy, startDx);
+                    
+                    // Вычисляем изменение угла
+                    var deltaAngleRad = currentAngleRad - startAngleRad;
+                    var deltaAngleDeg = deltaAngleRad * 180.0 / Math.PI;
+                    
+                    // Применяем изменение к начальному углу поворота
+                    rect.RotationAngle = _dragStartRotationAngle + deltaAngleDeg;
+                }
+                else
+                {
+                    // Перемещаем весь прямоугольник
+                    MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+                }
+            }
+            else if (_draggedPrimitive is EllipsePrimitive ellipse)
+            {
+                var center = new Point(ellipse.CenterX, ellipse.CenterY);
+                
+                if (_draggedHandleType == HandleType.EllipseRadius1)
+                {
+                    // Изменяем первый радиус: вычисляем расстояние от центра до текущей позиции мыши
+                    // вдоль первой оси (справа на оси X в неповернутом состоянии)
+                    var angleRad = _dragStartEllipseRotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    
+                    // Вектор от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    
+                    // Проецируем на первую ось (направление (cos, sin) в неповернутом состоянии)
+                    var projection = dx * cos + dy * sin;
+                    var newRadius1 = Math.Abs(projection);
+                    
+                    // Ограничиваем минимальный радиус
+                    if (newRadius1 > 0.1)
+                    {
+                        ellipse.Radius1 = newRadius1;
+                    }
+                }
+                else if (_draggedHandleType == HandleType.EllipseRadius2)
+                {
+                    // Изменяем второй радиус: вычисляем расстояние от центра до текущей позиции мыши
+                    // вдоль второй оси (сверху на оси Y в неповернутом состоянии)
+                    var angleRad = _dragStartEllipseRotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    
+                    // Вектор от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    
+                    // Проецируем на вторую ось (направление (-sin, cos) в неповернутом состоянии)
+                    var projection = -dx * sin + dy * cos;
+                    var newRadius2 = Math.Abs(projection);
+                    
+                    // Ограничиваем минимальный радиус
+                    if (newRadius2 > 0.1)
+                    {
+                        ellipse.Radius2 = newRadius2;
+                    }
+                }
+                else if (_draggedHandleType == HandleType.EllipseRotation)
+                {
+                    // Изменяем угол поворота: вычисляем угол между центром и текущей позицией мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var currentAngleRad = Math.Atan2(dy, dx);
+                    
+                    // Вычисляем начальный угол ручки относительно центра
+                    var startDx = _dragStartCenter.X - center.X;
+                    var startDy = _dragStartCenter.Y - center.Y;
+                    var startAngleRad = Math.Atan2(startDy, startDx);
+                    
+                    // Вычисляем изменение угла
+                    var deltaAngleRad = currentAngleRad - startAngleRad;
+                    var deltaAngleDeg = deltaAngleRad * 180.0 / Math.PI;
+                    
+                    // Применяем изменение к начальному углу поворота
+                    ellipse.RotationAngle = _dragStartEllipseRotationAngle + deltaAngleDeg;
+                }
+                else
+                {
+                    // Перемещаем весь эллипс
+                    MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+                }
+            }
+            else if (_draggedPrimitive is DxfPrimitive dxf && _draggedHandleType == HandleType.DxfRotation)
+            {
+                // Изменяем угол поворота DXF-объекта
+                var center = GetPrimitiveCenter(dxf);
+                var dx = currentWorldPoint.X - center.X;
+                var dy = currentWorldPoint.Y - center.Y;
+                var currentAngleRad = Math.Atan2(dy, dx);
+                
+                // Вычисляем начальный угол ручки относительно центра
+                var startDx = _dragStartCenter.X - center.X;
+                var startDy = _dragStartCenter.Y - center.Y;
+                var startAngleRad = Math.Atan2(startDy, startDx);
+                
+                // Вычисляем изменение угла
+                var deltaAngleRad = currentAngleRad - startAngleRad;
+                var deltaAngleDeg = deltaAngleRad * 180.0 / Math.PI;
+                
+                // Применяем изменение к начальному углу поворота
+                dxf.RotationAngle = _dragStartDxfRotationAngle + deltaAngleDeg;
+            }
+            else if (_draggedPrimitive is CompositePrimitive composite && _draggedHandleType == HandleType.CompositeRotation)
+            {
+                // Изменяем угол поворота составного объекта
+                var center = GetPrimitiveCenter(composite);
+                var dx = currentWorldPoint.X - center.X;
+                var dy = currentWorldPoint.Y - center.Y;
+                var currentAngleRad = Math.Atan2(dy, dx);
+                
+                // Вычисляем начальный угол ручки относительно центра
+                var startDx = _dragStartCenter.X - center.X;
+                var startDy = _dragStartCenter.Y - center.Y;
+                var startAngleRad = Math.Atan2(startDy, startDx);
+                
+                // Вычисляем изменение угла
+                var deltaAngleRad = currentAngleRad - startAngleRad;
+                var deltaAngleDeg = deltaAngleRad * 180.0 / Math.PI;
+                
+                // Применяем изменение к начальному углу поворота
+                composite.RotationAngle = _dragStartCompositeRotationAngle + deltaAngleDeg;
+            }
+            else if (_draggedPrimitive is PolygonPrimitive polygon)
+            {
+                var center = new Point(polygon.CenterX, polygon.CenterY);
+                
+                if (_draggedHandleType == HandleType.PolygonRadius)
+                {
+                    // Изменяем радиус: вычисляем расстояние от центра до текущей позиции мыши
+                    // вдоль направления правой вершины (угол = 0 в неповернутом состоянии)
+                    var angleRad = _dragStartPolygonRotationAngle * Math.PI / 180.0;
+                    var cos = Math.Cos(angleRad);
+                    var sin = Math.Sin(angleRad);
+                    
+                    // Вектор от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    
+                    // Проецируем на направление правой вершины (направление (cos, sin) в неповернутом состоянии)
+                    var projection = dx * cos + dy * sin;
+                    var newRadius = Math.Abs(projection);
+                    
+                    // Ограничиваем минимальный радиус
+                    if (newRadius > 0.1)
+                    {
+                        polygon.CircumscribedRadius = newRadius;
+                    }
+                }
+                else if (_draggedHandleType == HandleType.PolygonRotation)
+                {
+                    // Изменяем угол поворота: вычисляем угол между центром и текущей позицией мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var currentAngleRad = Math.Atan2(dy, dx);
+                    
+                    // Вычисляем начальный угол ручки относительно центра
+                    var startDx = _dragStartCenter.X - center.X;
+                    var startDy = _dragStartCenter.Y - center.Y;
+                    var startAngleRad = Math.Atan2(startDy, startDx);
+                    
+                    // Вычисляем изменение угла
+                    var deltaAngleRad = currentAngleRad - startAngleRad;
+                    var deltaAngleDeg = deltaAngleRad * 180.0 / Math.PI;
+                    
+                    // Применяем изменение к начальному углу поворота
+                    polygon.RotationAngle = _dragStartPolygonRotationAngle + deltaAngleDeg;
+                }
+                else
+                {
+                    // Перемещаем весь многоугольник
+                    MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+                }
+            }
+            else if (_draggedPrimitive is ArcPrimitive arc)
+            {
+                var center = new Point(arc.CenterX, arc.CenterY);
+                
+                if (_draggedHandleType == HandleType.ArcStartAngle)
+                {
+                    // Изменяем начальный угол: вычисляем угол между центром и текущей позицией мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var currentAngleRad = Math.Atan2(dy, dx);
+                    var currentAngleDeg = currentAngleRad * 180.0 / Math.PI;
+                    
+                    // Нормализуем угол в диапазон [0, 360)
+                    while (currentAngleDeg < 0) currentAngleDeg += 360;
+                    while (currentAngleDeg >= 360) currentAngleDeg -= 360;
+                    
+                    arc.StartAngle = currentAngleDeg;
+                    
+                    // Убеждаемся, что дуга строится против часовой стрелки
+                    // Если EndAngle < StartAngle, добавляем 360 к EndAngle
+                    var normalizedEnd = arc.EndAngle;
+                    while (normalizedEnd < 0) normalizedEnd += 360;
+                    while (normalizedEnd >= 360) normalizedEnd -= 360;
+                    
+                    if (normalizedEnd < currentAngleDeg)
+                    {
+                        normalizedEnd += 360;
+                    }
+                    arc.EndAngle = normalizedEnd;
+                }
+                else if (_draggedHandleType == HandleType.ArcEndAngle)
+                {
+                    // Изменяем конечный угол: вычисляем угол между центром и текущей позицией мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var currentAngleRad = Math.Atan2(dy, dx);
+                    var currentAngleDeg = currentAngleRad * 180.0 / Math.PI;
+                    
+                    // Нормализуем угол в диапазон [0, 360)
+                    while (currentAngleDeg < 0) currentAngleDeg += 360;
+                    while (currentAngleDeg >= 360) currentAngleDeg -= 360;
+                    
+                    // Убеждаемся, что дуга строится против часовой стрелки
+                    // Если новый EndAngle < StartAngle, добавляем 360 к EndAngle
+                    var normalizedStart = arc.StartAngle;
+                    while (normalizedStart < 0) normalizedStart += 360;
+                    while (normalizedStart >= 360) normalizedStart -= 360;
+                    
+                    var normalizedEnd = currentAngleDeg;
+                    if (normalizedEnd < normalizedStart)
+                    {
+                        normalizedEnd += 360;
+                    }
+                    
+                    arc.EndAngle = normalizedEnd;
+                }
+                else if (_draggedHandleType == HandleType.ArcRadius)
+                {
+                    // Изменяем радиус: вычисляем расстояние от центра до текущей позиции мыши
+                    var dx = currentWorldPoint.X - center.X;
+                    var dy = currentWorldPoint.Y - center.Y;
+                    var distance = Math.Sqrt(dx * dx + dy * dy);
+                    
+                    // Ограничиваем минимальный радиус
+                    if (distance > 0.1)
+                    {
+                        arc.Radius = distance;
+                    }
+                }
+                else
+                {
+                    // Перемещаем всю дугу
+                    MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+                }
+            }
+            else
+            {
+                // Для остальных примитивов перемещаем весь примитив
+                MovePrimitive(_draggedPrimitive, deltaX, deltaY);
+            }
             
             // Уведомляем об изменении свойств примитива для обновления панели свойств
             _viewModel.NotifyPrimitivePropertyChanged();
             
             // Обновляем начальную позицию для следующего движения
             _dragStartWorld = currentWorldPoint;
-            _dragStartCenter = GetPrimitiveCenter(_draggedPrimitive);
+            
+            // Обновляем начальную позицию ручки
+            if (_draggedPrimitive is LinePrimitive linePrimitive)
+            {
+                if (_draggedHandleType == HandleType.LineEnd1)
+                    _dragStartCenter = new Point(linePrimitive.X1, linePrimitive.Y1);
+                else if (_draggedHandleType == HandleType.LineEnd2)
+                    _dragStartCenter = new Point(linePrimitive.X2, linePrimitive.Y2);
+                else
+                    _dragStartCenter = GetPrimitiveCenter(_draggedPrimitive);
+            }
+            else if (_draggedPrimitive is CirclePrimitive circlePrimitive)
+            {
+                if (_draggedHandleType == HandleType.CircleRadius)
+                {
+                    // Обновляем позицию ручки радиуса
+                    _dragStartCenter = new Point(circlePrimitive.CenterX - circlePrimitive.Radius, circlePrimitive.CenterY);
+                }
+                else
+                {
+                    _dragStartCenter = GetPrimitiveCenter(_draggedPrimitive);
+                }
+            }
+            else if (_draggedPrimitive is RectanglePrimitive rectPrimitive)
+            {
+                var (center, widthHandle, heightHandle, rotationHandle) = GetRectangleHandles(rectPrimitive);
+                if (_draggedHandleType == HandleType.RectWidth)
+                    _dragStartCenter = widthHandle;
+                else if (_draggedHandleType == HandleType.RectHeight)
+                    _dragStartCenter = heightHandle;
+                else if (_draggedHandleType == HandleType.RectRotation)
+                    _dragStartCenter = rotationHandle;
+                else
+                    _dragStartCenter = center;
+            }
+            else if (_draggedPrimitive is EllipsePrimitive ellipsePrimitive)
+            {
+                var (center, radius1Handle, radius2Handle, rotationHandle) = GetEllipseHandles(ellipsePrimitive);
+                if (_draggedHandleType == HandleType.EllipseRadius1)
+                    _dragStartCenter = radius1Handle;
+                else if (_draggedHandleType == HandleType.EllipseRadius2)
+                    _dragStartCenter = radius2Handle;
+                else if (_draggedHandleType == HandleType.EllipseRotation)
+                    _dragStartCenter = rotationHandle;
+                else
+                    _dragStartCenter = center;
+            }
+            else if (_draggedPrimitive is DxfPrimitive dxfPrimitive)
+            {
+                var center = GetPrimitiveCenter(_draggedPrimitive);
+                if (_draggedHandleType == HandleType.DxfRotation)
+                    _dragStartCenter = GetCompositeRotationHandle(dxfPrimitive);
+                else
+                    _dragStartCenter = center;
+            }
+            else if (_draggedPrimitive is CompositePrimitive compositePrimitive)
+            {
+                var center = GetPrimitiveCenter(_draggedPrimitive);
+                if (_draggedHandleType == HandleType.CompositeRotation)
+                    _dragStartCenter = GetCompositeRotationHandle(compositePrimitive);
+                else
+                    _dragStartCenter = center;
+            }
+            else if (_draggedPrimitive is PolygonPrimitive polygonPrimitive)
+            {
+                var (center, radiusHandle, rotationHandle) = GetPolygonHandles(polygonPrimitive);
+                if (_draggedHandleType == HandleType.PolygonRadius)
+                    _dragStartCenter = radiusHandle;
+                else if (_draggedHandleType == HandleType.PolygonRotation)
+                    _dragStartCenter = rotationHandle;
+                else
+                    _dragStartCenter = center;
+            }
+            else if (_draggedPrimitive is ArcPrimitive arcPrimitive)
+            {
+                var (center, startAngleHandle, endAngleHandle, radiusHandle) = GetArcHandles(arcPrimitive);
+                if (_draggedHandleType == HandleType.ArcStartAngle)
+                    _dragStartCenter = startAngleHandle;
+                else if (_draggedHandleType == HandleType.ArcEndAngle)
+                    _dragStartCenter = endAngleHandle;
+                else if (_draggedHandleType == HandleType.ArcRadius)
+                    _dragStartCenter = radiusHandle;
+                else
+                    _dragStartCenter = center;
+            }
+            else
+            {
+                _dragStartCenter = GetPrimitiveCenter(_draggedPrimitive);
+            }
             
             e.Handled = true;
             RequestRender();
@@ -845,12 +2037,10 @@ public class Preview2DCanvas : Control
     }
 
     /// <summary>
-    /// Рисует ручку в центре примитива (квадрат 5x5 пикселей независимо от масштаба).
+    /// Рисует ручку в указанной точке (квадрат 5x5 пикселей независимо от масштаба).
     /// </summary>
-    private void DrawHandle(DrawingContext context, PrimitiveItem primitive, double scale)
+    private static void DrawHandleAtPoint(DrawingContext context, Point worldPoint, double scale)
     {
-        var center = GetPrimitiveCenter(primitive);
-        
         // Размер ручки в пикселях экрана (постоянный 5x5)
         const double handleSizePixels = 5.0;
         var halfSizePixels = handleSizePixels / 2.0;
@@ -860,8 +2050,8 @@ public class Preview2DCanvas : Control
         
         // Создаем квадрат для ручки
         var handleRect = new Rect(
-            center.X - halfSizeWorld,
-            center.Y - halfSizeWorld,
+            worldPoint.X - halfSizeWorld,
+            worldPoint.Y - halfSizeWorld,
             handleSizePixels / scale,
             handleSizePixels / scale
         );
@@ -870,6 +2060,84 @@ public class Preview2DCanvas : Control
         var handleBrush = new SolidColorBrush(Colors.White);
         var handlePen = new Pen(new SolidColorBrush(Colors.Black), 1.0 / scale);
         context.DrawRectangle(handleBrush, handlePen, handleRect);
+    }
+
+    /// <summary>
+    /// Рисует ручки для примитива (квадрат 5x5 пикселей независимо от масштаба).
+    /// Для линии рисует ручки на концах и в центре, для остальных - только в центре.
+    /// </summary>
+    private void DrawHandle(DrawingContext context, PrimitiveItem primitive, double scale)
+    {
+        if (primitive is LinePrimitive line)
+        {
+            // Для линии рисуем ручки на концах и в центре
+            DrawHandleAtPoint(context, new Point(line.X1, line.Y1), scale);
+            DrawHandleAtPoint(context, new Point(line.X2, line.Y2), scale);
+            DrawHandleAtPoint(context, GetPrimitiveCenter(primitive), scale);
+        }
+        else if (primitive is CirclePrimitive circle)
+        {
+            // Для круга рисуем ручку радиуса (слева на оси X) и центральную ручку
+            DrawHandleAtPoint(context, new Point(circle.CenterX - circle.Radius, circle.CenterY), scale);
+            DrawHandleAtPoint(context, GetPrimitiveCenter(primitive), scale);
+        }
+        else if (primitive is RectanglePrimitive rect)
+        {
+            // Для прямоугольника рисуем ручки ширины, высоты, поворота и центральную
+            var (center, widthHandle, heightHandle, rotationHandle) = GetRectangleHandles(rect);
+            DrawHandleAtPoint(context, widthHandle, scale);
+            DrawHandleAtPoint(context, heightHandle, scale);
+            DrawHandleAtPoint(context, rotationHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else if (primitive is EllipsePrimitive ellipse)
+        {
+            // Для эллипса рисуем ручки первого радиуса, второго радиуса, поворота и центральную
+            var (center, radius1Handle, radius2Handle, rotationHandle) = GetEllipseHandles(ellipse);
+            DrawHandleAtPoint(context, radius1Handle, scale);
+            DrawHandleAtPoint(context, radius2Handle, scale);
+            DrawHandleAtPoint(context, rotationHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else if (primitive is PolygonPrimitive polygon)
+        {
+            // Для многоугольника рисуем ручку радиуса, ручку поворота и центральную
+            var (center, radiusHandle, rotationHandle) = GetPolygonHandles(polygon);
+            DrawHandleAtPoint(context, radiusHandle, scale);
+            DrawHandleAtPoint(context, rotationHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else if (primitive is ArcPrimitive arc)
+        {
+            // Для дуги рисуем ручки начального угла, конечного угла, радиуса и центральную
+            var (center, startAngleHandle, endAngleHandle, radiusHandle) = GetArcHandles(arc);
+            DrawHandleAtPoint(context, startAngleHandle, scale);
+            DrawHandleAtPoint(context, endAngleHandle, scale);
+            DrawHandleAtPoint(context, radiusHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else if (primitive is DxfPrimitive dxf)
+        {
+            // Для DXF-объекта рисуем ручку поворота и центральную ручку
+            var center = GetPrimitiveCenter(primitive);
+            var rotationHandle = GetCompositeRotationHandle(dxf);
+            DrawHandleAtPoint(context, rotationHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else if (primitive is CompositePrimitive composite)
+        {
+            // Для составного объекта рисуем ручку поворота и центральную ручку
+            var center = GetPrimitiveCenter(primitive);
+            var rotationHandle = GetCompositeRotationHandle(composite);
+            DrawHandleAtPoint(context, rotationHandle, scale);
+            DrawHandleAtPoint(context, center, scale);
+        }
+        else
+        {
+            // Для остальных примитивов рисуем только центральную ручку
+            var center = GetPrimitiveCenter(primitive);
+            DrawHandleAtPoint(context, center, scale);
+        }
     }
 
     private static void DrawPrimitive(DrawingContext context, Pen pen, PrimitiveItem primitive, double pointRadiusWorld)
@@ -946,11 +2214,26 @@ public class Preview2DCanvas : Control
                     return false;
 
                 var angle = Math.Atan2(v.Y, v.X) * 180.0 / Math.PI;
-                var start = arc.StartAngle;
-                var end = arc.EndAngle;
-                if (end < start)
-                    (start, end) = (end, start);
-                return angle >= start - 0.5 && angle <= end + 0.5;
+                // Нормализуем угол в диапазон [0, 360)
+                while (angle < 0) angle += 360;
+                while (angle >= 360) angle -= 360;
+                
+                // Нормализуем углы дуги для проверки против часовой стрелки
+                var (normalizedStart, normalizedEnd) = NormalizeArcAngles(arc.StartAngle, arc.EndAngle);
+                
+                // Проверяем, находится ли угол в диапазоне дуги
+                if (normalizedEnd <= 360)
+                {
+                    // Обычный случай: дуга не пересекает 0 градусов
+                    return angle >= normalizedStart - 0.5 && angle <= normalizedEnd + 0.5;
+                }
+                else
+                {
+                    // Дуга пересекает 0 градусов (EndAngle был нормализован добавлением 360)
+                    // Проверяем два диапазона: [start, 360) и [0, end-360]
+                    return (angle >= normalizedStart - 0.5 && angle <= 360) ||
+                           (angle >= 0 && angle <= (normalizedEnd - 360) + 0.5);
+                }
             }
 
             case RectanglePrimitive rect:
@@ -1221,8 +2504,12 @@ public class Preview2DCanvas : Control
     private static void DrawArc(DrawingContext context, Pen pen, ArcPrimitive arc)
     {
         const int segments = 32;
-        var startRad = arc.StartAngle * Math.PI / 180.0;
-        var endRad = arc.EndAngle * Math.PI / 180.0;
+        
+        // Нормализуем углы так, чтобы дуга всегда строилась против часовой стрелки
+        var (normalizedStart, normalizedEnd) = NormalizeArcAngles(arc.StartAngle, arc.EndAngle);
+        
+        var startRad = normalizedStart * Math.PI / 180.0;
+        var endRad = normalizedEnd * Math.PI / 180.0;
         var total = endRad - startRad;
 
         if (Math.Abs(total) < 0.0001)
