@@ -17,6 +17,9 @@
     <AvaloniaXaml Include="Views\MainView\MainView.axaml" />
     <AvaloniaXaml Include="Views\SettingsView\SettingsView.axaml" />
     <AvaloniaXaml Include="Views\Preview2DView\Preview2DView.axaml" />
+    <AvaloniaXaml Include="Views\RightPanel\GCodeView\GCodeView.axaml" />
+    <AvaloniaXaml Include="Views\RightPanel\OperationsListView\OperationsListView.axaml" />
+    <AvaloniaXaml Include="Views\RightPanel\PrimitivesListView\PrimitivesListView.axaml" />
   </ItemGroup>
 
   <ItemGroup>

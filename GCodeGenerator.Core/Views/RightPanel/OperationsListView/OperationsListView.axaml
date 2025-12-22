@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.RightPanel.OperationsListViewModel"
+             xmlns:models="clr-namespace:GCodeGenerator.Core.Models"
+             x:Class="GCodeGenerator.Core.Views.RightPanel.OperationsListView.OperationsListView"
+             x:DataType="viewModels:OperationsListViewModel">
+  <DockPanel Margin="4">
+    <!-- Кнопки управления списком операций -->
+    <StackPanel DockPanel.Dock="Top"
+                Orientation="Horizontal"
+                Spacing="4"
+                Margin="0,0,0,4">
+      <Button Content="Вверх"
+              Command="{Binding MoveUpCommand}"
+              IsEnabled="{Binding CanMoveUp}" />
+      <Button Content="Вниз"
+              Command="{Binding MoveDownCommand}"
+              IsEnabled="{Binding CanMoveDown}" />
+      <Button Content="Удалить"
+              Command="{Binding DeleteCommand}"
+              IsEnabled="{Binding CanDelete}" />
+    </StackPanel>
+
+    <!-- Список операций -->
+    <ListBox ItemsSource="{Binding Operations}"
+             SelectedItem="{Binding SelectedOperation}"
+             SelectionMode="Single">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="models:OperationItem">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <CheckBox IsChecked="{Binding IsEnabled}"
+                      VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Name}"
+                       VerticalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>
+
+

@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.RightPanel.PrimitivesListViewModel"
+             xmlns:models="clr-namespace:GCodeGenerator.Core.Models"
+             x:Class="GCodeGenerator.Core.Views.RightPanel.PrimitivesListView.PrimitivesListView"
+             x:DataType="viewModels:PrimitivesListViewModel">
+  <Grid Margin="4">
+    <ListBox ItemsSource="{Binding Primitives}"
+             SelectedItem="{Binding SelectedPrimitive}"
+             SelectionMode="Single">
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="models:PrimitiveItem">
+          <TextBlock Text="{Binding Name}" />
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</UserControl>
+
+

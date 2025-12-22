@@ -165,5 +165,14 @@
   <data name="Status_Coordinates" xml:space="preserve">
     <value>x: {0:F3}; y: {1:F3}</value>
   </data>
+  <data name="RightPanel_PrimitivesList_DisplayName" xml:space="preserve">
+    <value>Список примитивов</value>
+  </data>
+  <data name="RightPanel_OperationsList_DisplayName" xml:space="preserve">
+    <value>Список операций</value>
+  </data>
+  <data name="RightPanel_GCode_DisplayName" xml:space="preserve">
+    <value>G-код</value>
+  </data>
 </root>
 

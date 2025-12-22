@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.RightPanel.GCodeViewModel"
+             x:Class="GCodeGenerator.Core.Views.RightPanel.GCodeView.GCodeView"
+             x:DataType="viewModels:GCodeViewModel">
+  <Grid>
+    <TextBox Text="{Binding GCodeText}"
+             AcceptsReturn="True"
+             ScrollViewer.VerticalScrollBarVisibility="Auto"
+             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+             FontFamily="Consolas, Courier New, monospace"
+             Margin="4"
+             IsReadOnly="True"
+             TextWrapping="NoWrap" />
+  </Grid>
+</UserControl>
+
+

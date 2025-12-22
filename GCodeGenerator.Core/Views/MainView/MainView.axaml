@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:GCodeGenerator.Core.ViewModels.MainViewModel"
              xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.MainViewModel"
+             xmlns:interfaces="clr-namespace:GCodeGenerator.Core.Interfaces"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="GCodeGenerator.Core.Views.MainView.MainView"
              x:DataType="viewModels:MainViewModel">
@@ -36,7 +37,7 @@
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
-        <ColumnDefinition Width="Auto" MinWidth="200"/>
+        <ColumnDefinition Width="300" MinWidth="300"/>
       </Grid.ColumnDefinitions>
       
       <!-- Верхняя строка - панель управления -->
@@ -66,7 +67,7 @@
       <ContentPresenter Grid.Row="1" Grid.Column="2" 
                         Content="{Binding Preview2DViewModel}"/>
       
-      <!-- GridSplitter между основным полем и списком операций -->
+      <!-- GridSplitter между основным полем и правой панелью -->
       <GridSplitter Grid.Row="1" Grid.Column="3" 
                     Width="2" 
                     MinWidth="2"
@@ -76,11 +77,23 @@
                     VerticalAlignment="Stretch"
                     Background="#7f7f7f7f"/>
       
-      <!-- Список операций и код -->
-      <TextBlock Grid.Row="1" Grid.Column="4" 
-                 Text="Список операций и код" 
-                 VerticalAlignment="Center" 
-                 HorizontalAlignment="Center"/>
+      <!-- Правая панель с вкладками -->
+      <TabControl Grid.Row="1"
+                  Grid.Column="4"
+                  ItemsSource="{Binding RightPanelTabs}"
+                  SelectedItem="{Binding SelectedRightPanelTab}">
+        <TabControl.ItemTemplate>
+          <DataTemplate x:DataType="interfaces:IHasDisplayName">
+            <TextBlock Text="{Binding DisplayName}" />
+          </DataTemplate>
+        </TabControl.ItemTemplate>
+        <TabControl.ContentTemplate>
+          <DataTemplate>
+            <!-- ViewLocator построит соответствующее представление по типу ViewModel -->
+            <ContentControl Content="{Binding}" />
+          </DataTemplate>
+        </TabControl.ContentTemplate>
+      </TabControl>
     </Grid>
   </DockPanel>
 </UserControl>
