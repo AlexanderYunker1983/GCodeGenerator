@@ -20,6 +20,19 @@ public partial class PrimitivesListViewModel : ViewModelBase, IHasDisplayName
         InitializeResources();
         _preview2DViewModel = preview2DViewModel;
 
+        // Синхронизируем выделение между 2D-просмотром и списком
+        _preview2DViewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(Preview2DViewModelNamespace.Preview2DViewModel.SelectedPrimitive))
+            {
+                var vmSelected = _preview2DViewModel.SelectedPrimitive;
+                if (!ReferenceEquals(SelectedPrimitive, vmSelected))
+                {
+                    SelectedPrimitive = vmSelected;
+                }
+            }
+        };
+
         // Временный список примитивов с реальными данными недалеко от начала координат.
         Primitives.Add(new PointPrimitive("Точка (0,0)", 0, 0));
         Primitives.Add(new LinePrimitive("Линия (0,0)-(10,0)", 0, 0, 10, 0));

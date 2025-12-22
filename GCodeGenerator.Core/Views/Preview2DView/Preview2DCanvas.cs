@@ -81,7 +81,8 @@ public class Preview2DCanvas : Control
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive))
+        if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive) ||
+            e.PropertyName == nameof(Preview2DViewModel.HoveredPrimitive))
         {
             RequestRender();
         }
@@ -119,6 +120,29 @@ public class Preview2DCanvas : Control
         }, Avalonia.Threading.DispatcherPriority.Render);
     }
 
+    private void UpdateHoveredPrimitive(Point worldPoint)
+    {
+        if (_viewModel == null)
+            return;
+
+        var toleranceWorld = 2.0 / _viewModel.Scale; // ~2 пикселя
+
+        PrimitiveItem? hit = null;
+
+        // Ищем сверху вниз — от последнего к первому
+        for (int i = _viewModel.Primitives.Count - 1; i >= 0; i--)
+        {
+            var primitive = _viewModel.Primitives[i];
+            if (IsPointNearPrimitive(worldPoint, primitive, toleranceWorld))
+            {
+                hit = primitive;
+                break;
+            }
+        }
+
+        _viewModel.HoveredPrimitive = hit;
+    }
+
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
         base.OnPointerPressed(e);
@@ -129,9 +153,40 @@ public class Preview2DCanvas : Control
         var point = e.GetCurrentPoint(this);
         if (point.Properties.IsLeftButtonPressed)
         {
+            // Если есть ViewModel, пробуем сначала выбрать примитив под курсором
+            if (_viewModel != null)
+            {
+                var mousePosition = point.Position;
+                var inverseScale = 1.0 / _viewModel.Scale;
+                var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
+                var worldY = (mousePosition.Y - _viewModel.Offset.Y) * inverseScale;
+                var worldPoint = new Point(worldX, worldY);
+
+                var toleranceWorld = 2.0 / _viewModel.Scale;
+                PrimitiveItem? hit = null;
+                for (int i = _viewModel.Primitives.Count - 1; i >= 0; i--)
+                {
+                    var primitive = _viewModel.Primitives[i];
+                    if (IsPointNearPrimitive(worldPoint, primitive, toleranceWorld))
+                    {
+                        hit = primitive;
+                        break;
+                    }
+                }
+
+                if (hit != null)
+                {
+                    _viewModel.SelectedPrimitive = hit;
+                    e.Handled = true;
+                    RequestRender();
+                    return;
+                }
+            }
+
+            // Если примитив не найден — начинаем панорамирование
             _isPanning = true;
             _lastMousePosition = point.Position;
-            
+
             // Захватываем указатель для получения всех событий, даже вне контрола
             e.Pointer.Capture(this);
             e.Handled = true;
@@ -160,14 +215,17 @@ public class Preview2DCanvas : Control
             return;
         }
         
-        // Обновляем координаты мыши в мировых координатах
+        // Обновляем координаты мыши в мировых координатах и подсветку примитивов
         if (_viewModel != null)
         {
             var mousePosition = e.GetPosition(this);
             var inverseScale = 1.0 / _viewModel.Scale;
             var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
             var worldY = (mousePosition.Y - _viewModel.Offset.Y) * inverseScale;
-            _viewModel.MouseWorldCoordinates = new Point(worldX, worldY);
+            var worldPoint = new Point(worldX, worldY);
+
+            _viewModel.MouseWorldCoordinates = worldPoint;
+            UpdateHoveredPrimitive(worldPoint);
         }
         
         base.OnPointerMoved(e);
@@ -218,10 +276,11 @@ public class Preview2DCanvas : Control
     {
         base.OnPointerExited(e);
         
-        // Очищаем координаты мыши когда мышь покидает канвас
+        // Очищаем координаты мыши и подсветку, когда мышь покидает канвас
         if (_viewModel != null)
         {
             _viewModel.MouseWorldCoordinates = null;
+            _viewModel.HoveredPrimitive = null;
         }
     }
 
@@ -452,22 +511,30 @@ public class Preview2DCanvas : Control
         // Толщина линии в мировых координатах, чтобы на экране она была тонкой (~1 пиксель)
         var strokeThickness = 1.0 / viewModel.Scale;
         var normalPen = new Pen(new SolidColorBrush(Colors.Blue), strokeThickness);
+        var hoverPen = new Pen(new SolidColorBrush(Colors.Yellow), strokeThickness * 2);
         var selectedPen = new Pen(new SolidColorBrush(Colors.LimeGreen), strokeThickness * 2);
 
         var selected = viewModel.SelectedPrimitive;
+        var hovered = viewModel.HoveredPrimitive;
         // Радиус точки в мировых координатах, чтобы на экране он был ~5 пикселей
         var pointRadiusWorld = 5.0 / viewModel.Scale;
 
-        // Сначала рисуем все невыделенные примитивы
+        // Сначала рисуем все примитивы, кроме выделенного и подсвеченного
         foreach (var primitive in viewModel.Primitives)
         {
-            if (ReferenceEquals(primitive, selected))
+            if (ReferenceEquals(primitive, selected) || ReferenceEquals(primitive, hovered))
                 continue;
 
             DrawPrimitive(context, normalPen, primitive, pointRadiusWorld);
         }
 
-        // Затем поверх всех остальных — выделенный примитив (если есть)
+        // Затем поверх остальных — примитив под мышью (если есть и он не совпадает с выделенным)
+        if (hovered != null && !ReferenceEquals(hovered, selected))
+        {
+            DrawPrimitive(context, hoverPen, hovered, pointRadiusWorld);
+        }
+
+        // И в самом верху — выделенный примитив (если есть)
         if (selected != null)
         {
             DrawPrimitive(context, selectedPen, selected, pointRadiusWorld);
@@ -511,6 +578,211 @@ public class Preview2DCanvas : Control
                 DrawComposite(context, pen, pointRadiusWorld, composite.InsertX, composite.InsertY, composite.RotationAngle, composite.Children);
                 break;
         }
+    }
+
+    private static bool IsPointNearPrimitive(Point worldPoint, PrimitiveItem primitive, double tolerance)
+    {
+        switch (primitive)
+        {
+            case PointPrimitive p:
+                // Для точки считаем «примерное попадание» радиусом ~5 пикселей экрана.
+                // Здесь tolerance передаётся уже в мировых координатах (~2 пикселя),
+                // поэтому используем максимум между текущим допуском и радиусом точки.
+                // Поскольку радиус точки в мировых координатах равен 5/Scale,
+                // а tolerance = 2/Scale, то 2 * tolerance ≈ 4/Scale близко к нужному.
+                var pointTolerance = Math.Max(tolerance, tolerance * 2.5);
+                return Distance(worldPoint, new Point(p.X, p.Y)) <= pointTolerance;
+
+            case LinePrimitive line:
+                return IsPointNearSegment(worldPoint,
+                    new Point(line.X1, line.Y1),
+                    new Point(line.X2, line.Y2),
+                    tolerance);
+
+            case CirclePrimitive circle:
+            {
+                var center = new Point(circle.CenterX, circle.CenterY);
+                var dist = Distance(worldPoint, center);
+                return Math.Abs(dist - circle.Radius) <= tolerance;
+            }
+
+            case ArcPrimitive arc:
+            {
+                var center = new Point(arc.CenterX, arc.CenterY);
+                var v = worldPoint - center;
+                var dist = Math.Sqrt(v.X * v.X + v.Y * v.Y);
+                if (Math.Abs(dist - arc.Radius) > tolerance)
+                    return false;
+
+                var angle = Math.Atan2(v.Y, v.X) * 180.0 / Math.PI;
+                var start = arc.StartAngle;
+                var end = arc.EndAngle;
+                if (end < start)
+                    (start, end) = (end, start);
+                return angle >= start - 0.5 && angle <= end + 0.5;
+            }
+
+            case RectanglePrimitive rect:
+                return IsPointNearOrientedRectEdges(worldPoint,
+                    new Point(rect.CenterX, rect.CenterY),
+                    rect.Width,
+                    rect.Height,
+                    rect.RotationAngle,
+                    tolerance);
+
+            case EllipsePrimitive ellipse:
+                return IsPointNearOrientedEllipse(worldPoint,
+                    new Point(ellipse.CenterX, ellipse.CenterY),
+                    ellipse.Radius1,
+                    ellipse.Radius2,
+                    ellipse.RotationAngle,
+                    tolerance);
+
+            case PolygonPrimitive polygon:
+                return IsPointNearPolygonEdges(worldPoint, polygon, tolerance);
+
+            case DxfPrimitive dxf:
+            {
+                var localPoint = new Point(worldPoint.X - dxf.InsertX, worldPoint.Y - dxf.InsertY);
+                foreach (var child in dxf.Children)
+                {
+                    if (IsPointNearPrimitive(localPoint, child, tolerance))
+                        return true;
+                }
+                return false;
+            }
+
+            case CompositePrimitive composite:
+            {
+                var localPoint = new Point(worldPoint.X - composite.InsertX, worldPoint.Y - composite.InsertY);
+                foreach (var child in composite.Children)
+                {
+                    if (IsPointNearPrimitive(localPoint, child, tolerance))
+                        return true;
+                }
+                return false;
+            }
+
+            default:
+                return false;
+        }
+    }
+
+    private static bool IsPointNearSegment(Point p, Point a, Point b, double tolerance)
+    {
+        var ab = b - a;
+        var abLen2 = ab.X * ab.X + ab.Y * ab.Y;
+        if (abLen2 < double.Epsilon)
+            return Distance(p, a) <= tolerance;
+
+        var t = ((p.X - a.X) * ab.X + (p.Y - a.Y) * ab.Y) / abLen2;
+        t = Math.Clamp(t, 0, 1);
+        var proj = new Point(a.X + t * ab.X, a.Y + t * ab.Y);
+        return Distance(p, proj) <= tolerance;
+    }
+
+    private static double Distance(Point a, Point b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        return Math.Sqrt(dx * dx + dy * dy);
+    }
+
+    private static bool IsPointNearOrientedRectEdges(
+        Point p,
+        Point center,
+        double width,
+        double height,
+        double angleDeg,
+        double tolerance)
+    {
+        // Строим те же 4 угла, что и при отрисовке прямоугольника
+        var hw = width / 2.0;
+        var hh = height / 2.0;
+        var pts = new[]
+        {
+            new Point(-hw, -hh),
+            new Point(hw, -hh),
+            new Point(hw, hh),
+            new Point(-hw, hh)
+        };
+
+        var angleRad = angleDeg * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        for (var i = 0; i < pts.Length; i++)
+        {
+            var x = pts[i].X;
+            var y = pts[i].Y;
+            var rx = x * cos - y * sin + center.X;
+            var ry = x * sin + y * cos + center.Y;
+            pts[i] = new Point(rx, ry);
+        }
+
+        // Проверяем близость к каждому ребру
+        for (int i = 0; i < pts.Length; i++)
+        {
+            var a = pts[i];
+            var b = pts[(i + 1) % pts.Length];
+            if (IsPointNearSegment(p, a, b, tolerance))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool IsPointNearOrientedEllipse(
+        Point p,
+        Point center,
+        double radius1,
+        double radius2,
+        double angleDeg,
+        double tolerance)
+    {
+        if (radius1 <= 0 || radius2 <= 0)
+            return false;
+
+        var angleRad = -angleDeg * Math.PI / 180.0;
+        var cos = Math.Cos(angleRad);
+        var sin = Math.Sin(angleRad);
+
+        var dx = p.X - center.X;
+        var dy = p.Y - center.Y;
+        var localX = dx * cos - dy * sin;
+        var localY = dx * sin + dy * cos;
+
+        var value = (localX * localX) / (radius1 * radius1) + (localY * localY) / (radius2 * radius2);
+
+        // value == 1 — на линии эллипса, допускаем небольшое кольцо вокруг
+        var band = tolerance / Math.Max(radius1, radius2);
+        return Math.Abs(value - 1.0) <= band;
+    }
+
+    private static bool IsPointNearPolygonEdges(Point p, PolygonPrimitive polygon, double tolerance)
+    {
+        if (polygon.SidesCount < 3 || polygon.CircumscribedRadius <= 0)
+            return false;
+
+        var pts = new Point[polygon.SidesCount];
+        for (int i = 0; i < polygon.SidesCount; i++)
+        {
+            var angle = 2 * Math.PI * i / polygon.SidesCount;
+            var x = polygon.CenterX + polygon.CircumscribedRadius * Math.Cos(angle);
+            var y = polygon.CenterY + polygon.CircumscribedRadius * Math.Sin(angle);
+            pts[i] = new Point(x, y);
+        }
+
+        // Проверяем близость к рёбрам
+        for (int i = 0; i < pts.Length; i++)
+        {
+            var a = pts[i];
+            var b = pts[(i + 1) % pts.Length];
+            if (IsPointNearSegment(p, a, b, tolerance))
+                return true;
+        }
+
+        return false;
     }
 
     private static void DrawPoint(DrawingContext context, Pen pen, PointPrimitive p, double radiusWorld)

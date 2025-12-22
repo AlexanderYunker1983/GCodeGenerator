@@ -35,6 +35,12 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
     private Point? mouseWorldCoordinates;
 
     /// <summary>
+    /// Примитив под курсором мыши (hover). Используется для подсветки и отображения имени.
+    /// </summary>
+    [ObservableProperty]
+    private PrimitiveItem? hoveredPrimitive;
+
+    /// <summary>
     /// Текущий выделенный примитив (для подсветки в 2D-предпросмотре).
     /// </summary>
     [ObservableProperty]

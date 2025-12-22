@@ -48,10 +48,11 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
 
         InitializeRightPanelTabs();
         
-        // Подписываемся на изменения координат мыши в Preview2DViewModel
+        // Подписываемся на изменения координат мыши и подсветки примитивов в Preview2DViewModel
         Preview2DViewModel.PropertyChanged += (s, e) =>
         {
-            if (e.PropertyName == nameof(Preview2DViewModel.MouseWorldCoordinates))
+            if (e.PropertyName == nameof(Preview2DViewModel.MouseWorldCoordinates) ||
+                e.PropertyName == nameof(Preview2DViewModel.HoveredPrimitive))
             {
                 UpdateStatusText();
             }
@@ -83,13 +84,21 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     private void UpdateStatusText()
     {
         var coords = Preview2DViewModel.MouseWorldCoordinates;
-        if (coords.HasValue)
+        var hovered = Preview2DViewModel.HoveredPrimitive;
+
+        string coordsText = coords.HasValue
+            ? string.Format(Resources.Status_Coordinates, coords.Value.X, coords.Value.Y)
+            : string.Empty;
+
+        if (hovered != null && !string.IsNullOrEmpty(hovered.Name))
         {
-            StatusText = string.Format(Resources.Status_Coordinates, coords.Value.X, coords.Value.Y);
+            StatusText = string.IsNullOrEmpty(coordsText)
+                ? hovered.Name
+                : $"{coordsText} - {hovered.Name}";
         }
         else
         {
-            StatusText = string.Empty;
+            StatusText = coordsText;
         }
     }
 
