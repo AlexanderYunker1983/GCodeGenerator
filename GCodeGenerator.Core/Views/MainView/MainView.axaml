@@ -54,10 +54,8 @@
                  HorizontalAlignment="Left" />
       
       <!-- Вторая строка - панель свойств -->
-      <TextBlock Grid.Row="1" Grid.Column="0" 
-                 Text="панель свойств" 
-                 VerticalAlignment="Center" 
-                 HorizontalAlignment="Center"/>
+      <ContentPresenter Grid.Row="1" Grid.Column="0"
+                        Content="{Binding PropertiesViewModel}"/>
       
       <!-- GridSplitter между панелью свойств и основным полем -->
       <GridSplitter Grid.Row="1" Grid.Column="1" 

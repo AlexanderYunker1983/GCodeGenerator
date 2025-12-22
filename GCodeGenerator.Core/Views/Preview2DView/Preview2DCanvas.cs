@@ -59,6 +59,7 @@ public class Preview2DCanvas : Control
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+            _viewModel.RedrawRequested -= OnViewModelRedrawRequested;
         }
 
         // Подписываемся на новый ViewModel
@@ -68,6 +69,7 @@ public class Preview2DCanvas : Control
         if (_viewModel != null)
         {
             _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+            _viewModel.RedrawRequested += OnViewModelRedrawRequested;
 
             // Ждем следующего кадра для получения правильных размеров
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -86,6 +88,11 @@ public class Preview2DCanvas : Control
         {
             RequestRender();
         }
+    }
+    
+    private void OnViewModelRedrawRequested(object? sender, EventArgs e)
+    {
+        RequestRender();
     }
     
     private void TryInitializeOffset()
@@ -159,7 +166,7 @@ public class Preview2DCanvas : Control
                 var mousePosition = point.Position;
                 var inverseScale = 1.0 / _viewModel.Scale;
                 var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
-                var worldY = (mousePosition.Y - _viewModel.Offset.Y) * inverseScale;
+                var worldY = (_viewModel.Offset.Y - mousePosition.Y) * inverseScale;
                 var worldPoint = new Point(worldX, worldY);
 
                 var toleranceWorld = 2.0 / _viewModel.Scale;
@@ -221,7 +228,7 @@ public class Preview2DCanvas : Control
             var mousePosition = e.GetPosition(this);
             var inverseScale = 1.0 / _viewModel.Scale;
             var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
-            var worldY = (mousePosition.Y - _viewModel.Offset.Y) * inverseScale;
+            var worldY = (_viewModel.Offset.Y - mousePosition.Y) * inverseScale;
             var worldPoint = new Point(worldX, worldY);
 
             _viewModel.MouseWorldCoordinates = worldPoint;
@@ -267,7 +274,7 @@ public class Preview2DCanvas : Control
             var mousePosition = e.GetPosition(this);
             var inverseScale = 1.0 / _viewModel.Scale;
             var worldX = (mousePosition.X - _viewModel.Offset.X) * inverseScale;
-            var worldY = (mousePosition.Y - _viewModel.Offset.Y) * inverseScale;
+            var worldY = (_viewModel.Offset.Y - mousePosition.Y) * inverseScale;
             _viewModel.MouseWorldCoordinates = new Point(worldX, worldY);
         }
     }
@@ -319,19 +326,22 @@ public class Preview2DCanvas : Control
         }
         
         // Вычисляем точку в мировых координатах, которая была в центре старого контрола
-        // Формула: world = (screen - offset) / scale
+        // Формула при текущем преобразовании: 
+        // x_screen = x_world * scale + offset.X
+        // y_screen = -y_world * scale + offset.Y
         var oldCenterX = _previousSize.Width / 2;
         var oldCenterY = _previousSize.Height / 2;
         var worldX = (oldCenterX - _viewModel.Offset.X) / _viewModel.Scale;
-        var worldY = (oldCenterY - _viewModel.Offset.Y) / _viewModel.Scale;
+        var worldY = (_viewModel.Offset.Y - oldCenterY) / _viewModel.Scale;
         
         // Вычисляем новый offset так, чтобы эта же точка осталась в центре нового контрола
-        // Формула: screen = world * scale + offset => offset = screen - world * scale
+        // x_screen = x_world * scale + offset.X => offset.X = centerX - x_world * scale
+        // y_screen = -y_world * scale + offset.Y => offset.Y = centerY + y_world * scale
         var newCenterX = e.NewSize.Width / 2;
         var newCenterY = e.NewSize.Height / 2;
         _viewModel.Offset = new Point(
             newCenterX - worldX * _viewModel.Scale,
-            newCenterY - worldY * _viewModel.Scale
+            newCenterY + worldY * _viewModel.Scale
         );
         
         // Сохраняем новый размер для следующего изменения
@@ -361,11 +371,13 @@ public class Preview2DCanvas : Control
         using (context.PushClip(bounds))
         {
             // Применяем трансформацию
-            // Формула преобразования: screen = (world * scale) + offset
+            // Формула преобразования:
+            //   x_screen = x_world * scale + offset.X
+            //   y_screen = -y_world * scale + offset.Y  (ось Y направлена вверх в мировых координатах)
             // В Avalonia матрицы умножаются: A * B означает сначала B, потом A
-            // Нам нужно: Scale * Translation = сначала Scale (world * scale), потом Translation (+ offset)
+            // Нам нужно: сначала масштаб, затем смещение.
             using (context.PushTransform(
-                Matrix.CreateScale(_viewModel.Scale, _viewModel.Scale) *
+                Matrix.CreateScale(_viewModel.Scale, -_viewModel.Scale) *
                 Matrix.CreateTranslation(_viewModel.Offset.X, _viewModel.Offset.Y)))
             {
                 DrawGrid(context, bounds, _viewModel);
@@ -379,10 +391,12 @@ public class Preview2DCanvas : Control
         var inverseScale = 1.0 / viewModel.Scale;
         
         // Преобразуем границы экрана в логические координаты
+        // x_screen = x_world * scale + offset.X
+        // y_screen = -y_world * scale + offset.Y
         var worldLeft = (0 - viewModel.Offset.X) * inverseScale;
-        var worldTop = (0 - viewModel.Offset.Y) * inverseScale;
         var worldRight = (bounds.Width - viewModel.Offset.X) * inverseScale;
-        var worldBottom = (bounds.Height - viewModel.Offset.Y) * inverseScale;
+        var worldTop = (viewModel.Offset.Y - 0) * inverseScale;
+        var worldBottom = (viewModel.Offset.Y - bounds.Height) * inverseScale;
         
         // Определяем видимую область
         var visibleLeft = Math.Min(worldLeft, worldRight);

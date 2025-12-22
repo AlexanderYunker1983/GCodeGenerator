@@ -20,6 +20,7 @@
     <AvaloniaXaml Include="Views\RightPanel\GCodeView\GCodeView.axaml" />
     <AvaloniaXaml Include="Views\RightPanel\OperationsListView\OperationsListView.axaml" />
     <AvaloniaXaml Include="Views\RightPanel\PrimitivesListView\PrimitivesListView.axaml" />
+    <AvaloniaXaml Include="Views\PropertiesView\PropertiesView.axaml" />
   </ItemGroup>
 
   <ItemGroup>

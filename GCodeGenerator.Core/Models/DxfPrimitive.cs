@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GCodeGenerator.Core.Attributes;
 
 namespace GCodeGenerator.Core.Models;
 
@@ -7,12 +8,16 @@ namespace GCodeGenerator.Core.Models;
 /// </summary>
 public class DxfPrimitive : PrimitiveItem
 {
+    [PropertyEditor("Property_InsertX", Order = 10)]
     public double InsertX { get; set; }
+
+    [PropertyEditor("Property_InsertY", Order = 20)]
     public double InsertY { get; set; }
 
     /// <summary>
     /// Путь к исходному DXF-файлу.
     /// </summary>
+    [PropertyEditor("Property_SourceFilePath", Order = 30)]
     public string SourceFilePath { get; set; }
 
     /// <summary>
@@ -23,6 +28,7 @@ public class DxfPrimitive : PrimitiveItem
     /// <summary>
     /// Угол поворота в градусах относительно оси X.
     /// </summary>
+    [PropertyEditor("Property_RotationAngle", Order = 40)]
     public double RotationAngle { get; set; }
 
     public DxfPrimitive(

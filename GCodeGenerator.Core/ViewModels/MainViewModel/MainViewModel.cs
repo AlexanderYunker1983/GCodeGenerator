@@ -4,9 +4,11 @@ using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Core.Helpers;
 using GCodeGenerator.Core.Interfaces;
 using GCodeGenerator.Core.Localization;
+using GCodeGenerator.Core.Models;
 using GCodeGenerator.Core.ViewModels.RightPanel.GCodeViewModel;
 using GCodeGenerator.Core.ViewModels.RightPanel.OperationsListViewModel;
 using GCodeGenerator.Core.ViewModels.RightPanel.PrimitivesListViewModel;
+using GCodeGenerator.Core.ViewModels.PropertiesViewModel;
 
 namespace GCodeGenerator.Core.ViewModels.MainViewModel;
 
@@ -17,6 +19,9 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
 
     [ObservableProperty]
     private string _statusText = string.Empty;
+
+    [ObservableProperty]
+    private PropertiesViewModel.PropertiesViewModel _propertiesViewModel;
 
     /// <summary>
     /// Список вкладок правой панели.
@@ -46,6 +51,8 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     {
         InitializeResources();
 
+        _propertiesViewModel = new PropertiesViewModel.PropertiesViewModel(Preview2DViewModel);
+
         InitializeRightPanelTabs();
         
         // Подписываемся на изменения координат мыши и подсветки примитивов в Preview2DViewModel
@@ -55,6 +62,11 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
                 e.PropertyName == nameof(Preview2DViewModel.HoveredPrimitive))
             {
                 UpdateStatusText();
+            }
+
+            if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive))
+            {
+                UpdatePropertiesSourceFromSelection();
             }
         };
     }
@@ -73,9 +85,25 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
     {
         // Список примитивов разделяется между правой панелью и 2D-предпросмотром
         var primitivesListViewModel = new PrimitivesListViewModel(Preview2DViewModel);
-        
+        primitivesListViewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(PrimitivesListViewModel.SelectedPrimitive))
+            {
+                UpdatePropertiesSourceFromSelection();
+            }
+        };
+
+        var operationsListViewModel = new OperationsListViewModel();
+        operationsListViewModel.PropertyChanged += (s, e) =>
+        {
+            if (e.PropertyName == nameof(OperationsListViewModel.SelectedOperation))
+            {
+                UpdatePropertiesSourceFromSelection();
+            }
+        };
+
         RightPanelTabs.Add(primitivesListViewModel);
-        RightPanelTabs.Add(new OperationsListViewModel());
+        RightPanelTabs.Add(operationsListViewModel);
         RightPanelTabs.Add(new GCodeViewModel());
 
         SelectedRightPanelTab = RightPanelTabs.Count > 0 ? RightPanelTabs[0] : null;
@@ -99,6 +127,38 @@ public partial class MainViewModel : ViewModelBase, IHasDisplayName
         else
         {
             StatusText = coordsText;
+        }
+    }
+
+    private void UpdatePropertiesSourceFromSelection()
+    {
+        // Приоритет: выбранный примитив, затем выбранная операция.
+        PrimitiveItem? selectedPrimitive = null;
+        OperationItem? selectedOperation = null;
+
+        foreach (var tab in RightPanelTabs)
+        {
+            if (tab is PrimitivesListViewModel primitivesVm)
+            {
+                selectedPrimitive = primitivesVm.SelectedPrimitive as PrimitiveItem ?? selectedPrimitive;
+            }
+            else if (tab is OperationsListViewModel operationsVm)
+            {
+                selectedOperation = operationsVm.SelectedOperation as OperationItem ?? selectedOperation;
+            }
+        }
+
+        if (selectedPrimitive != null)
+        {
+            PropertiesViewModel.SetSource(selectedPrimitive);
+        }
+        else if (selectedOperation != null)
+        {
+            PropertiesViewModel.SetSource(selectedOperation);
+        }
+        else
+        {
+            PropertiesViewModel.SetSource(null);
         }
     }
 

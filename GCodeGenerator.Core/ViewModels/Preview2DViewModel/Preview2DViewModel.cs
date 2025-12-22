@@ -1,3 +1,4 @@
+using System;
 using System.Collections.ObjectModel;
 using Avalonia;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -46,6 +47,8 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
     [ObservableProperty]
     private PrimitiveItem? selectedPrimitive;
 
+    public event EventHandler? RedrawRequested;
+
     public Preview2DViewModel()
     {
         InitializeResources();
@@ -86,6 +89,15 @@ public partial class Preview2DViewModel : ViewModelBase, IHasDisplayName
     public void Pan(Point delta)
     {
         _offset = new Point(_offset.X + delta.X, _offset.Y + delta.Y);
+    }
+
+    /// <summary>
+    /// Явно запросить перерисовку холста.
+    /// Вызывает событие RedrawRequested, на которое подписан Preview2DCanvas.
+    /// </summary>
+    public void RequestRedraw()
+    {
+        RedrawRequested?.Invoke(this, EventArgs.Empty);
     }
 }
 

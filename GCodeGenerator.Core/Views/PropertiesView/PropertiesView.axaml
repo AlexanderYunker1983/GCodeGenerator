@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:viewModels="clr-namespace:GCodeGenerator.Core.ViewModels.PropertiesViewModel"
+             xmlns:conv="clr-namespace:GCodeGenerator.Core.Converters"
+             x:Class="GCodeGenerator.Core.Views.PropertiesView.PropertiesView"
+             x:DataType="viewModels:PropertiesViewModel">
+  <UserControl.Resources>
+    <conv:BooleanInverter x:Key="BooleanInverter" />
+  </UserControl.Resources>
+  <Border Padding="8">
+    <ScrollViewer>
+      <ItemsControl ItemsSource="{Binding Properties}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="viewModels:PropertyItemViewModel">
+            <Grid ColumnDefinitions="*,2*"
+                  Margin="0,0,0,4">
+              <TextBlock Grid.Column="0"
+                         Text="{Binding DisplayName}"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0" />
+
+              <!-- Булевы свойства -->
+              <CheckBox Grid.Column="1"
+                        IsChecked="{Binding BoolValue, Mode=TwoWay}"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Center"
+                        IsVisible="{Binding IsBoolean}" />
+
+              <!-- Небулевые свойства -->
+              <TextBox Grid.Column="1"
+                       Text="{Binding Value, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                       IsEnabled="{Binding IsEditable}"
+                       VerticalAlignment="Center"
+                       IsVisible="{Binding IsBoolean, Converter={StaticResource BooleanInverter}}" />
+            </Grid>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Border>
+</UserControl>
+

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using GCodeGenerator.Core.Attributes;
 
 namespace GCodeGenerator.Core.Models;
 
@@ -7,7 +8,10 @@ namespace GCodeGenerator.Core.Models;
 /// </summary>
 public class CompositePrimitive : PrimitiveItem
 {
+    [PropertyEditor("Property_InsertX", Order = 10)]
     public double InsertX { get; set; }
+
+    [PropertyEditor("Property_InsertY", Order = 20)]
     public double InsertY { get; set; }
 
     /// <summary>
@@ -18,6 +22,7 @@ public class CompositePrimitive : PrimitiveItem
     /// <summary>
     /// Угол поворота в градусах относительно оси X.
     /// </summary>
+    [PropertyEditor("Property_RotationAngle", Order = 30)]
     public double RotationAngle { get; set; }
 
     public CompositePrimitive(

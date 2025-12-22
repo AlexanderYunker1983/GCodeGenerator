@@ -28,7 +28,7 @@ public partial class PrimitivesListViewModel : ViewModelBase, IHasDisplayName
                 var vmSelected = _preview2DViewModel.SelectedPrimitive;
                 if (!ReferenceEquals(SelectedPrimitive, vmSelected))
                 {
-                    SelectedPrimitive = vmSelected;
+                    SelectedPrimitive = vmSelected as PrimitiveItem;
                 }
             }
         };

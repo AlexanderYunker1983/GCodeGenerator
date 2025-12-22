@@ -174,5 +174,65 @@
   <data name="RightPanel_GCode_DisplayName" xml:space="preserve">
     <value>G-code</value>
   </data>
+  <data name="Property_Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Property_CenterX" xml:space="preserve">
+    <value>Center X</value>
+  </data>
+  <data name="Property_CenterY" xml:space="preserve">
+    <value>Center Y</value>
+  </data>
+  <data name="Property_X1" xml:space="preserve">
+    <value>X1</value>
+  </data>
+  <data name="Property_Y1" xml:space="preserve">
+    <value>Y1</value>
+  </data>
+  <data name="Property_X2" xml:space="preserve">
+    <value>X2</value>
+  </data>
+  <data name="Property_Y2" xml:space="preserve">
+    <value>Y2</value>
+  </data>
+  <data name="Property_Radius" xml:space="preserve">
+    <value>Radius</value>
+  </data>
+  <data name="Property_StartAngle" xml:space="preserve">
+    <value>Start angle</value>
+  </data>
+  <data name="Property_EndAngle" xml:space="preserve">
+    <value>End angle</value>
+  </data>
+  <data name="Property_Width" xml:space="preserve">
+    <value>Width</value>
+  </data>
+  <data name="Property_Height" xml:space="preserve">
+    <value>Height</value>
+  </data>
+  <data name="Property_RotationAngle" xml:space="preserve">
+    <value>Rotation</value>
+  </data>
+  <data name="Property_Radius1" xml:space="preserve">
+    <value>Radius 1</value>
+  </data>
+  <data name="Property_Radius2" xml:space="preserve">
+    <value>Radius 2</value>
+  </data>
+  <data name="Property_SidesCount" xml:space="preserve">
+    <value>Sides</value>
+  </data>
+  <data name="Property_InsertX" xml:space="preserve">
+    <value>Insert X</value>
+  </data>
+  <data name="Property_InsertY" xml:space="preserve">
+    <value>Insert Y</value>
+  </data>
+  <data name="Property_SourceFilePath" xml:space="preserve">
+    <value>Source file</value>
+  </data>
+  <data name="Property_IsEnabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
 </root>
 
