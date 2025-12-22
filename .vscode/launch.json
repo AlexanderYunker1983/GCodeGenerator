@@ -2,6 +2,23 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run (macOS) - dotnet run",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "run",
+            "program": "${workspaceFolder}/GCodeGenerator/bin/Debug/net9.0/GCodeGenerator.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/GCodeGenerator",
+            "stopAtEntry": false,
+            "env": {
+                "DOTNET_ENVIRONMENT": "Development"
+            },
+            "console": "integratedTerminal",
+            "osx": {
+                "console": "integratedTerminal"
+            }
+        },
+        {
             "name": ".NET Core Launch (GCodeGenerator)",
             "type": "coreclr",
             "request": "launch",
