@@ -16,6 +16,7 @@
     <AvaloniaXaml Include="App.axaml" />
     <AvaloniaXaml Include="Views\MainView\MainView.axaml" />
     <AvaloniaXaml Include="Views\SettingsView\SettingsView.axaml" />
+    <AvaloniaXaml Include="Views\Preview2DView\Preview2DView.axaml" />
   </ItemGroup>
 
   <ItemGroup>

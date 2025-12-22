@@ -105,6 +105,11 @@ public static class Resources
     public static string Main_DisplayName => ResourceManager.GetString("Main_DisplayName", Culture) ?? string.Empty;
 
     /// <summary>
+    /// Ищет локализованную строку, похожую на x: {0:F3}; y: {1:F3}.
+    /// </summary>
+    public static string Status_Coordinates => ResourceManager.GetString("Status_Coordinates", Culture) ?? string.Empty;
+
+    /// <summary>
     /// Получает локализованную строку по ключу
     /// </summary>
     public static string GetString(string key)

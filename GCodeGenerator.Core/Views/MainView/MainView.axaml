@@ -21,7 +21,7 @@
     </Menu>
     
     <Border DockPanel.Dock="Bottom" Height="25" Background="{DynamicResource ThemeControlBackgroundBrush}">
-      <TextBlock Text="панель статуса" 
+      <TextBlock Text="{Binding StatusText}" 
                  VerticalAlignment="Center" 
                  Margin="5"/>
     </Border>
@@ -32,11 +32,11 @@
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto" MinWidth="200"/>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
-        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto" MinWidth="200"/>
       </Grid.ColumnDefinitions>
       
       <!-- Верхняя строка - панель управления -->
@@ -63,10 +63,8 @@
                     Background="#7f7f7f7f"/>
       
       <!-- Основное рабочее поле -->
-      <TextBlock Grid.Row="1" Grid.Column="2" 
-                 Text="основное рабочее поле" 
-                 VerticalAlignment="Center" 
-                 HorizontalAlignment="Center"/>
+      <ContentPresenter Grid.Row="1" Grid.Column="2" 
+                        Content="{Binding Preview2DViewModel}"/>
       
       <!-- GridSplitter между основным полем и списком операций -->
       <GridSplitter Grid.Row="1" Grid.Column="3" 

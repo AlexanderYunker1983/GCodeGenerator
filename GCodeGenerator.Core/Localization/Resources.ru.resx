@@ -159,5 +159,11 @@
   <data name="Main_DisplayName" xml:space="preserve">
     <value>GCodeGenerator v.{0}</value>
   </data>
+  <data name="Preview2D_DisplayName" xml:space="preserve">
+    <value>2D Предпросмотр</value>
+  </data>
+  <data name="Status_Coordinates" xml:space="preserve">
+    <value>x: {0:F3}; y: {1:F3}</value>
+  </data>
 </root>
 
