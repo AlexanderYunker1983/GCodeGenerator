@@ -78,6 +78,9 @@ public class Preview2DCanvas : Control
     private PrimitiveItem? _draggedPrimitive;
     private HandleType _draggedHandleType = HandleType.Center;
     
+    // Для отслеживания наведения мыши на ручку
+    private HandleType? _hoveredHandleType;
+    
     // Для перетаскивания прямоугольника - начальные значения
     private double _dragStartWidth;
     private double _dragStartHeight;
@@ -148,6 +151,11 @@ public class Preview2DCanvas : Control
         if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive) ||
             e.PropertyName == nameof(Preview2DViewModel.HoveredPrimitive))
         {
+            // Сбрасываем наведенную ручку при изменении выделенного примитива
+            if (e.PropertyName == nameof(Preview2DViewModel.SelectedPrimitive))
+            {
+                _hoveredHandleType = null;
+            }
             RequestRender();
         }
     }
@@ -956,6 +964,7 @@ public class Preview2DCanvas : Control
                     _isDragging = true;
                     _dragStartWorld = worldPoint;
                     _draggedHandleType = handleType.Value;
+                    _hoveredHandleType = null; // Сбрасываем наведенную ручку при начале перетаскивания
                     
                     // Сохраняем начальную позицию в зависимости от типа ручки
                     if (_viewModel.SelectedPrimitive is LinePrimitive line)
@@ -1661,6 +1670,20 @@ public class Preview2DCanvas : Control
 
             _viewModel.MouseWorldCoordinates = worldPoint;
             UpdateHoveredPrimitive(worldPoint);
+            
+            // Проверяем, находится ли мышь над ручкой выделенного примитива
+            HandleType? newHoveredHandle = null;
+            if (_viewModel.SelectedPrimitive != null && !_isDragging)
+            {
+                newHoveredHandle = GetHandleAtPoint(worldPoint, _viewModel.SelectedPrimitive, _viewModel.Scale);
+            }
+            
+            // Обновляем наведенную ручку и перерисовываем, если изменилось
+            if (_hoveredHandleType != newHoveredHandle)
+            {
+                _hoveredHandleType = newHoveredHandle;
+                RequestRender();
+            }
         }
         
         base.OnPointerMoved(e);
@@ -1766,6 +1789,13 @@ public class Preview2DCanvas : Control
         {
             _viewModel.MouseWorldCoordinates = null;
             _viewModel.HoveredPrimitive = null;
+        }
+        
+        // Сбрасываем наведенную ручку
+        if (_hoveredHandleType != null)
+        {
+            _hoveredHandleType = null;
+            RequestRender();
         }
     }
 
@@ -2039,7 +2069,12 @@ public class Preview2DCanvas : Control
     /// <summary>
     /// Рисует ручку в указанной точке (квадрат 5x5 пикселей независимо от масштаба).
     /// </summary>
-    private static void DrawHandleAtPoint(DrawingContext context, Point worldPoint, double scale)
+    private static void DrawHandleAtPoint(
+        DrawingContext context,
+        Point worldPoint,
+        double scale,
+        bool isHovered = false,
+        bool isActive = false)
     {
         // Размер ручки в пикселях экрана (постоянный 5x5)
         const double handleSizePixels = 5.0;
@@ -2056,6 +2091,29 @@ public class Preview2DCanvas : Control
             handleSizePixels / scale
         );
         
+        // Если ручка под мышью или активно перетаскивается, рисуем цветной контур
+        // (квадрат 7x7 пикселей, прилегающий к внешнему черному контуру)
+        if (isHovered || isActive)
+        {
+            const double hoverOutlineSizePixels = 7.0; // 5 + 2 пикселя с каждой стороны
+            var halfHoverSizePixels = hoverOutlineSizePixels / 2.0;
+            var halfHoverSizeWorld = halfHoverSizePixels / scale;
+            
+            var hoverRect = new Rect(
+                worldPoint.X - halfHoverSizeWorld,
+                worldPoint.Y - halfHoverSizeWorld,
+                hoverOutlineSizePixels / scale,
+                hoverOutlineSizePixels / scale
+            );
+            
+            // Рисуем контур (2 пикселя толщиной):
+            // - зеленый при наведении
+            // - красный при зажатой/перетаскиваемой ручке
+            var outlineColor = isActive ? Colors.Red : Colors.Green;
+            var hoverPen = new Pen(new SolidColorBrush(outlineColor), 2.0 / scale);
+            context.DrawRectangle(null, hoverPen, hoverRect);
+        }
+        
         // Рисуем заливку и контур ручки
         var handleBrush = new SolidColorBrush(Colors.White);
         var handlePen = new Pen(new SolidColorBrush(Colors.Black), 1.0 / scale);
@@ -2071,72 +2129,206 @@ public class Preview2DCanvas : Control
         if (primitive is LinePrimitive line)
         {
             // Для линии рисуем ручки на концах и в центре
-            DrawHandleAtPoint(context, new Point(line.X1, line.Y1), scale);
-            DrawHandleAtPoint(context, new Point(line.X2, line.Y2), scale);
-            DrawHandleAtPoint(context, GetPrimitiveCenter(primitive), scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                new Point(line.X1, line.Y1),
+                scale,
+                _hoveredHandleType == HandleType.LineEnd1,
+                isActive && _draggedHandleType == HandleType.LineEnd1);
+            DrawHandleAtPoint(
+                context,
+                new Point(line.X2, line.Y2),
+                scale,
+                _hoveredHandleType == HandleType.LineEnd2,
+                isActive && _draggedHandleType == HandleType.LineEnd2);
+            DrawHandleAtPoint(
+                context,
+                GetPrimitiveCenter(primitive),
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is CirclePrimitive circle)
         {
             // Для круга рисуем ручку радиуса (слева на оси X) и центральную ручку
-            DrawHandleAtPoint(context, new Point(circle.CenterX - circle.Radius, circle.CenterY), scale);
-            DrawHandleAtPoint(context, GetPrimitiveCenter(primitive), scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                new Point(circle.CenterX - circle.Radius, circle.CenterY),
+                scale,
+                _hoveredHandleType == HandleType.CircleRadius,
+                isActive && _draggedHandleType == HandleType.CircleRadius);
+            DrawHandleAtPoint(
+                context,
+                GetPrimitiveCenter(primitive),
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is RectanglePrimitive rect)
         {
             // Для прямоугольника рисуем ручки ширины, высоты, поворота и центральную
             var (center, widthHandle, heightHandle, rotationHandle) = GetRectangleHandles(rect);
-            DrawHandleAtPoint(context, widthHandle, scale);
-            DrawHandleAtPoint(context, heightHandle, scale);
-            DrawHandleAtPoint(context, rotationHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                widthHandle,
+                scale,
+                _hoveredHandleType == HandleType.RectWidth,
+                isActive && _draggedHandleType == HandleType.RectWidth);
+            DrawHandleAtPoint(
+                context,
+                heightHandle,
+                scale,
+                _hoveredHandleType == HandleType.RectHeight,
+                isActive && _draggedHandleType == HandleType.RectHeight);
+            DrawHandleAtPoint(
+                context,
+                rotationHandle,
+                scale,
+                _hoveredHandleType == HandleType.RectRotation,
+                isActive && _draggedHandleType == HandleType.RectRotation);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is EllipsePrimitive ellipse)
         {
             // Для эллипса рисуем ручки первого радиуса, второго радиуса, поворота и центральную
             var (center, radius1Handle, radius2Handle, rotationHandle) = GetEllipseHandles(ellipse);
-            DrawHandleAtPoint(context, radius1Handle, scale);
-            DrawHandleAtPoint(context, radius2Handle, scale);
-            DrawHandleAtPoint(context, rotationHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                radius1Handle,
+                scale,
+                _hoveredHandleType == HandleType.EllipseRadius1,
+                isActive && _draggedHandleType == HandleType.EllipseRadius1);
+            DrawHandleAtPoint(
+                context,
+                radius2Handle,
+                scale,
+                _hoveredHandleType == HandleType.EllipseRadius2,
+                isActive && _draggedHandleType == HandleType.EllipseRadius2);
+            DrawHandleAtPoint(
+                context,
+                rotationHandle,
+                scale,
+                _hoveredHandleType == HandleType.EllipseRotation,
+                isActive && _draggedHandleType == HandleType.EllipseRotation);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is PolygonPrimitive polygon)
         {
             // Для многоугольника рисуем ручку радиуса, ручку поворота и центральную
             var (center, radiusHandle, rotationHandle) = GetPolygonHandles(polygon);
-            DrawHandleAtPoint(context, radiusHandle, scale);
-            DrawHandleAtPoint(context, rotationHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                radiusHandle,
+                scale,
+                _hoveredHandleType == HandleType.PolygonRadius,
+                isActive && _draggedHandleType == HandleType.PolygonRadius);
+            DrawHandleAtPoint(
+                context,
+                rotationHandle,
+                scale,
+                _hoveredHandleType == HandleType.PolygonRotation,
+                isActive && _draggedHandleType == HandleType.PolygonRotation);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is ArcPrimitive arc)
         {
             // Для дуги рисуем ручки начального угла, конечного угла, радиуса и центральную
             var (center, startAngleHandle, endAngleHandle, radiusHandle) = GetArcHandles(arc);
-            DrawHandleAtPoint(context, startAngleHandle, scale);
-            DrawHandleAtPoint(context, endAngleHandle, scale);
-            DrawHandleAtPoint(context, radiusHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                startAngleHandle,
+                scale,
+                _hoveredHandleType == HandleType.ArcStartAngle,
+                isActive && _draggedHandleType == HandleType.ArcStartAngle);
+            DrawHandleAtPoint(
+                context,
+                endAngleHandle,
+                scale,
+                _hoveredHandleType == HandleType.ArcEndAngle,
+                isActive && _draggedHandleType == HandleType.ArcEndAngle);
+            DrawHandleAtPoint(
+                context,
+                radiusHandle,
+                scale,
+                _hoveredHandleType == HandleType.ArcRadius,
+                isActive && _draggedHandleType == HandleType.ArcRadius);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is DxfPrimitive dxf)
         {
             // Для DXF-объекта рисуем ручку поворота и центральную ручку
             var center = GetPrimitiveCenter(primitive);
             var rotationHandle = GetCompositeRotationHandle(dxf);
-            DrawHandleAtPoint(context, rotationHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                rotationHandle,
+                scale,
+                _hoveredHandleType == HandleType.DxfRotation,
+                isActive && _draggedHandleType == HandleType.DxfRotation);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else if (primitive is CompositePrimitive composite)
         {
             // Для составного объекта рисуем ручку поворота и центральную ручку
             var center = GetPrimitiveCenter(primitive);
             var rotationHandle = GetCompositeRotationHandle(composite);
-            DrawHandleAtPoint(context, rotationHandle, scale);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                rotationHandle,
+                scale,
+                _hoveredHandleType == HandleType.CompositeRotation,
+                isActive && _draggedHandleType == HandleType.CompositeRotation);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
         else
         {
             // Для остальных примитивов рисуем только центральную ручку
             var center = GetPrimitiveCenter(primitive);
-            DrawHandleAtPoint(context, center, scale);
+            var isActive = _isDragging && ReferenceEquals(_draggedPrimitive, primitive);
+            DrawHandleAtPoint(
+                context,
+                center,
+                scale,
+                _hoveredHandleType == HandleType.Center,
+                isActive && _draggedHandleType == HandleType.Center);
         }
     }
 
