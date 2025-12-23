@@ -13,7 +13,7 @@ public class LeftPanelWidthConverter : IValueConverter
     {
         if (value is bool isVisible)
         {
-            return new GridLength(isVisible ? 200 : 0);
+            return new GridLength(isVisible ? 150 : 0);
         }
 
         return new GridLength(0);
