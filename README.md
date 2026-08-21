@@ -51,7 +51,6 @@ GCodeGenerator — это приложение для Windows, которое п
 - Windows 7 или выше
 - .NET Framework 4.8.1
 - Visual Studio 2022 или выше (для сборки из исходников)
-*Остальные зависимости автоматически стягиваются с github при генерации проекта (см. ниже)
 
 ## Установка
 
@@ -66,24 +65,12 @@ git clone https://github.com/yourusername/GCodeGenerator.git
 cd GCodeGenerator
 ```
 
-2. Восстановите зависимости NuGet и генерация файлов:
+2. Восстановите зависимости NuGet:
 ```bash
-gen-gcodegenerator.cmd
+nuget restore GCodeGenerator.sln
 ```
 
 3. Откройте `GCodeGenerator.sln` в Visual Studio и соберите решение.
-
-### Сборка инсталлятора
-
-1. Проставьте новый тег git-а в формате x.y.z
-Если z не равно 0, считается что это сборка для тестирования
-
-2. Запустите скрипт сборки
-```bash
-gen-gcodegenerator_install.cmd
-```
-
-3. После окончания сборки в каталоге * _build_GCODEGENERATOR_NMake_VS17/_install/Release * будет находиться файл инсталлятора с именем * GCodeGenerator_ru_RU_[тег].exe
 
 ## Использование
 
@@ -125,11 +112,12 @@ GCodeGenerator/
 │   ├── Models/              # Модели данных
 │   ├── ViewModels/          # ViewModel'и (MVVM)
 │   ├── Views/               # Представления (XAML)
-│   ├── Services/            # Сервисы генерации G-кода
+│   ├── GCodeGenerators/     # Сервисы генерации G-кода
 │   ├── Localization/        # Модуль локализации
 │   └── Infrastructure/      # Вспомогательные классы
-├── install/                 # Скрипты установщика
-└── CMakeLists.txt           # Файл конфигурации CMake
+├── packages/                # Пакеты NuGet
+├── GCodeGenerator.sln       # Решение Visual Studio
+└── LICENSE                  # Лицензия MIT
 ```
 
 ## Технологии
@@ -138,8 +126,7 @@ GCodeGenerator/
 - **WPF** — графический интерфейс
 - **MugenMvvmToolkit** — фреймворк для MVVM
 - **Autofac** — контейнер зависимостей
-- **CMake** — система сборки
-- **YBuild** — система сборки и управления зависимостями
+- **NuGet** — управление зависимостями
 
 ## Лицензия
 
