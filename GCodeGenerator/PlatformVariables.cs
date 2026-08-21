@@ -1,4 +1,4 @@
-using YLocalization;
+using GCodeGenerator.Localization;
 
 namespace GCodeGenerator
 {

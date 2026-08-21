@@ -6,7 +6,7 @@ using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
-using YLocalization;
+using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels
 {

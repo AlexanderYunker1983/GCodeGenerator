@@ -151,6 +151,9 @@
     <Compile Include="GCodeGenerators\UnifiedProfileGenerator.cs" />
     <Compile Include="GCodeGenerators\UnifiedPocketGenerator.cs" />
     <Compile Include="GCodeGenerators\SimpleGCodeGenerator.cs" />
+    <Compile Include="Localization\ILocalizationManager.cs" />
+    <Compile Include="Localization\LocalizationManager.cs" />
+    <Compile Include="Localization\MugenLocalizationManager.cs" />
     <Compile Include="LocalizationModule.cs" />
     <Compile Include="PlatformVariables.cs" />
     <Compile Include="ViewModels\Drill\DrillOperationsViewModel.cs" />
@@ -261,7 +264,6 @@
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="Properties\AssemblyVersionInfo.Generated.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -399,16 +401,6 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\LocalizableResources.resx" />
     <None Include="App.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\YLocalization\YLocalization.csproj">
-      <Project>{195c9b8c-4f0d-df55-2190-c17baf73717d}</Project>
-      <Name>YLocalization</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\YMugenExtensions\YMugenExtensions.csproj">
-      <Project>{a0eeea4d-c6e4-5714-a1c9-307a7dac7cc5}</Project>
-      <Name>YMugenExtensions</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <Resource Include="cnc_machine.ico" />

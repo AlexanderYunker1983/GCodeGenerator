@@ -16,7 +16,7 @@ using System.Web.Script.Serialization;
 using System.Windows.Input;
 using System.ComponentModel;
 using GCodeGenerator.GCodeGenerators;
-using YLocalization;
+using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels
 {

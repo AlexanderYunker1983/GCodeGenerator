@@ -3,8 +3,7 @@ using MugenMvvmToolkit;
 using MugenMvvmToolkit.Interfaces;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.Models.IoC;
-using YLocalization;
-using YMugenExtensions;
+using GCodeGenerator.Localization;
 
 namespace GCodeGenerator
 {

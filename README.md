@@ -126,9 +126,8 @@ GCodeGenerator/
 │   ├── ViewModels/          # ViewModel'и (MVVM)
 │   ├── Views/               # Представления (XAML)
 │   ├── Services/            # Сервисы генерации G-кода
+│   ├── Localization/        # Модуль локализации
 │   └── Infrastructure/      # Вспомогательные классы
-├── YLocalization/           # Модуль локализации
-├── YMugenExtensions/        # Расширения для MugenMvvmToolkit
 ├── install/                 # Скрипты установщика
 └── CMakeLists.txt           # Файл конфигурации CMake
 ```

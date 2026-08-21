@@ -5,7 +5,7 @@ using System.Windows.Threading;
 using GCodeGenerator.Models;
 using MugenMvvmToolkit.Interfaces.Models;
 using MugenMvvmToolkit.ViewModels;
-using YLocalization;
+using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
