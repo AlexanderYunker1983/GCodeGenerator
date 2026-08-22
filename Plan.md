@@ -8,7 +8,7 @@
 | Фаза | Название | Статус |
 |------|----------|--------|
 | 0 | Сеть безопасности (тесты, CI, golden) | ✅ готово (0.1–0.8: 48 тестов, 29 golden + эталонный набор) |
-| 1 | Миграция платформы на .NET 10 (D5) | ◐ в работе (1.1–1.2 готовы) |
+| 1 | Миграция платформы на .NET 10 (D5) | ◐ в работе (1.1–1.2 готовы; 1.3: локализация) |
 | 2 | Структурное разделение (Core) | ☐ не начата |
 | 3 | Очистка доменной модели | ☐ не начата |
 | 4 | Структурный G-код и генераторы | ☐ не начата |
@@ -78,7 +78,7 @@
   - [ ] свой `RelayCommand` → `RelayCommand`/`AsyncRelayCommand`;
   - [ ] composition root: `Bootstrapper`/`BootstrapperEx`/`GCodeGeneratorMvvmApp` → прямой Autofac в `App.xaml.cs`;
   - [ ] `IDialogService` (WPF-реализация: `ShowInfo/ShowError/ShowConfirm`, `ShowSaveDialog/ShowOpenDialog`) — замена `GetViewModel<T>()` + `ShowAsync()` и `MessageBox`/`FileDialog` в VM;
-  - [ ] XAML: связки `{DataBinding '$i18n.Key'}` (Mugen Binding) → собственный механизм локализации (MarkupExtension/конвертер + `INotifyPropertyChanged`-провайдер), механическая замена по всем XAML (~40 файлов).
+  - [x] XAML: связки `{DataBinding '$i18n.Key'}` (Mugen Binding) → собственный механизм локализации (MarkupExtension/конвертер + `INotifyPropertyChanged`-провайдер), механическая замена по всем XAML (~40 файлов). — 2026-08-22, commit 0ce9e96. *Примечание: `LocExtension` возвращает локализованную строку (а не WPF `Binding`+конвертер) — нативная привязка со статическим `Source` некорректно применяется при загрузке вложенных UserControls в приложении на базе Mugen (зависание при старте, окно не отображается); культура не меняется во время выполнения (нет вызовов `ChangeCulture`), поэтому динамическое обновление не требуется. `AppLocalizationManager` реализует `INotifyPropertyChanged` (задел на будущее). Убран `MugenLocalizationManager` (в т.ч. неиспользуемый `TimeToKindString`). Проверено: сборка, 53/53 теста, старт приложения, рендер главного окна и кнопок.*
 - [ ] **1.4** MahApps.Metro 2.x (+ обновление ControlzEx, Microsoft.Xaml.Behaviors).
 - [ ] **1.5** Переключение TFM на **net10.0-windows**; `Properties.Settings` — через пакет System.Configuration.ConfigurationManager. CI: `actions/setup-dotnet` + `dotnet build` / `dotnet test` (убрать шаги msbuild/nuget/targeting-pack).
 - [ ] **1.6** README: требования ОС (Windows 10 22H2+ / Windows 11 — зафиксировать точную минимальную сборку), .NET 10 Desktop Runtime (или self-contained-установщик), обновление разделов «Требования» и «Сборка из исходников».
@@ -240,7 +240,7 @@
 | Фаза | Содержание | Оценка | Зависимости |
 |------|-----------|--------|-------------|
 | 0 | Тесты, CI, golden-файлы | 3–5 дн. (готово: 0.1–0.8, 2026-08-22) | — |
-| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (1.1–1.2 готовы) | 0 |
+| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (1.1–1.2 готовы; 1.3: локализация) | 0 |
 | 2 | Выделение Core | 3–5 дн. | 1 |
 | 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
 | 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
