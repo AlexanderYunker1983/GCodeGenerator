@@ -46,13 +46,29 @@
     <Reference Include="Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter">
       <HintPath>..\packages\MSTest.TestAdapter.3.1.1\build\net462\Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.dll</HintPath>
     </Reference>
+    <!-- Базовый класс VM (CloseableViewModel) для загрузки DXF-фикстур через реальные парсеры. -->
+    <Reference Include="MugenMvvmToolkit, Version=6.5.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MugenMvvmToolkit.6.5.0\lib\net45\MugenMvvmToolkit.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+    <None Include="Assets\pocket_sample.dxf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Assets\profile_sample.dxf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SmokeTests.cs" />
+    <Compile Include="FixtureTests.cs" />
+    <Compile Include="Fixtures\FixtureCase.cs" />
+    <Compile Include="Fixtures\DxfFixtureLoader.cs" />
+    <Compile Include="Fixtures\FixtureCatalog.cs" />
+    <Compile Include="Fixtures\OperationFixtures.cs" />
+    <Compile Include="Fixtures\SettingsFixtures.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\GCodeGenerator\GCodeGenerator.csproj">

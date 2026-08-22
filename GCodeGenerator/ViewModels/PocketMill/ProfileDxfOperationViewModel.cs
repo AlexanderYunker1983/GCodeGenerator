@@ -224,7 +224,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             }
         }
 
-        private List<DxfPolyline> ParseDxfLines(string path)
+        // internal — чтобы тестовые фикстуры (пункт 0.3 плана) грузили DXF через реальный парсер.
+        internal List<DxfPolyline> ParseDxfLines(string path)
         {
             var polylines = new List<DxfPolyline>();
             var lines = File.ReadAllLines(path);

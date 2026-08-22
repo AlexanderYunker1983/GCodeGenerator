@@ -420,7 +420,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        private List<DxfPolyline> ParseDxfClosedContours(string path)
+        // internal — чтобы тестовые фикстуры (пункт 0.3 плана) грузили DXF через реальный парсер.
+        internal List<DxfPolyline> ParseDxfClosedContours(string path)
         {
             var allPolylines = new List<DxfPolyline>();
             var lines = File.ReadAllLines(path);
