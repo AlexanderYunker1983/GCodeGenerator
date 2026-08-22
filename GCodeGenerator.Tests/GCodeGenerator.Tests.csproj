@@ -69,6 +69,7 @@
     <Compile Include="FixtureTests.cs" />
     <Compile Include="GoldenTests.cs" />
     <Compile Include="RiskyLogicTests.cs" />
+    <Compile Include="ProjectFileServiceTests.cs" />
     <Compile Include="Fixtures\FixtureCase.cs" />
     <Compile Include="Fixtures\DxfFixtureLoader.cs" />
     <Compile Include="Fixtures\FixtureCatalog.cs" />

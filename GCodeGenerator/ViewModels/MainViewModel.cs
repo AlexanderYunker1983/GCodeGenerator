@@ -9,14 +9,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.IO;
 using System.Linq;
 using System.Text;
-using System.Web.Script.Serialization;
 using System.Windows.Input;
 using System.ComponentModel;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels
 {
@@ -25,7 +24,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
         private readonly ILocalizationManager _localizationManager;
-        private readonly JavaScriptSerializer _serializer = new JavaScriptSerializer();
+        private readonly ProjectFileService _projectFileService = new ProjectFileService();
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
@@ -501,17 +500,7 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                var project = new ProjectData
-                {
-                    Operations = AllOperations.Select(op => new SerializableOperation
-                    {
-                        Type = op.GetType().AssemblyQualifiedName,
-                        Data = _serializer.Serialize(op)
-                    }).ToList()
-                };
-
-                var json = _serializer.Serialize(project);
-                File.WriteAllText(dialog.FileName, json, Encoding.UTF8);
+                _projectFileService.Save(dialog.FileName, AllOperations);
             }
             catch (Exception ex)
             {
@@ -540,8 +529,7 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                var json = File.ReadAllText(dialog.FileName, Encoding.UTF8);
-                var project = _serializer.Deserialize<ProjectData>(json);
+                var project = _projectFileService.Load(dialog.FileName);
                 if (project?.Operations == null)
                 {
                     ShowInvalidProjectMessage(title);
@@ -587,19 +575,8 @@ namespace GCodeGenerator.ViewModels
             SelectedOperation = null;
             GCodePreview = string.Empty;
 
-            foreach (var opDto in project.Operations)
+            foreach (var operation in _projectFileService.ExtractOperations(project))
             {
-                if (string.IsNullOrWhiteSpace(opDto?.Type) || string.IsNullOrWhiteSpace(opDto.Data))
-                    continue;
-
-                var type = Type.GetType(opDto.Type);
-                if (type == null)
-                    continue;
-
-                var operation = _serializer.Deserialize(opDto.Data, type) as OperationBase;
-                if (operation == null)
-                    continue;
-
                 AddOperationToCollections(operation);
             }
 
@@ -663,17 +640,5 @@ namespace GCodeGenerator.ViewModels
                 }
             }
         }
-
-        private class ProjectData
-        {
-            public List<SerializableOperation> Operations { get; set; }
-        }
-
-        private class SerializableOperation
-        {
-            public string Type { get; set; }
-            public string Data { get; set; }
-        }
-
     }
 }
