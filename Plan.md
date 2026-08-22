@@ -7,16 +7,15 @@
 
 | Фаза | Название | Статус |
 |------|----------|--------|
-| 0 | Сеть безопасности (тесты, CI, golden) | ☐ не начата |
-| 1 | Структурное разделение (SDK-style, Core) | ☐ не начата |
-| 2 | Очистка доменной модели | ☐ не начата |
-| 3 | Структурный G-код и генераторы | ☐ не начата |
-| 4 | Доработка карманов: стратегии + roughing/finishing (D1) | ☐ не начата |
-| 5 | Предпросмотр без ре-парсинга | ☐ не начата |
-| 6 | MVVM-гигиена | ☐ не начата |
-| 7 | Замена MVVM-стека: MugenMvvmToolkit → CommunityToolkit.Mvvm (D3) | ☐ не начата |
+| 0 | Сеть безопасности (тесты, CI, golden) | ◐ в работе (0.1 готов) |
+| 1 | Миграция платформы на .NET 10 (D5) | ☐ не начата |
+| 2 | Структурное разделение (Core) | ☐ не начата |
+| 3 | Очистка доменной модели | ☐ не начата |
+| 4 | Структурный G-код и генераторы | ☐ не начата |
+| 5 | Доработка карманов: стратегии + roughing/finishing (D1) | ☐ не начата |
+| 6 | Предпросмотр без ре-парсинга | ☐ не начата |
+| 7 | MVVM-гигиена | ☐ не начата |
 | 8 | Персистентность, настройки, локализация | ☐ не начата |
-| 9 | Модернизация в рамках WPF (D2) | ☐ не начата |
 
 ---
 
@@ -25,19 +24,18 @@
 1. **Сначала сеть безопасности, потом рефакторинг.** Любое изменение поведения генератора/модели — только после фиксации текущего поведения тестами.
 2. **Одна забота на коммит/PR.** Каждый шаг независимо собирается, проходит тесты и может быть откатан (`git revert`).
 3. **Совместимость `.ygc` — жёсткое требование.** Старые файлы проектов обязаны открываться после каждого релиза.
-4. **Совместимость G-кода — жёсткое требование.** Для фиксированных входов вывод генератора не меняется без явного решения (это код для станков). *Исключение: новые стратегии карманов (фаза 4) — новая функциональность, её вывод фиксируется собственными тестами, а не golden-сравнением со старым.*
-5. **Ограничение платформы:** .NET Framework 4.8.1 собирается и тестится только на Windows → CI на Windows-раннере GitHub Actions.
-6. **Изменения, видимые пользователю** (OK/Cancel в диалогах, единый список операций, новые опции карманов) — отдельными шагами с полным ручным прогоном чек-листа (§8).
+4. **Совместимость G-кода — жёсткое требование.** Для фиксированных входов вывод генератора не меняется без явного решения (это код для станков). *Исключение: новые стратегии карманов (фаза 5) — новая функциональность, её вывод фиксируется собственными тестами, а не golden-сравнением со старым.*
+5. **Изменения, видимые пользователю** (OK/Cancel в диалогах, единый список операций, новые опции карманов, смена ОС-требований) — отдельными шагами с полным ручным прогоном чек-листа (§8).
 
 ## 1. Решения, принятые заранее
 
 | # | Решение | Варианты | Выбрано | Дата |
 |---|---------|----------|---------|------|
-| D1 | Неработающие опции карманов (стратегии Concentric/Radial/ZigZag/Lines, roughing/finishing) | (а) реализовать, (б) заблокировать в UI | ✅ **(а) Реализовать** (фаза 4) | 2026-08-22 |
+| D1 | Неработающие опции карманов (стратегии Concentric/Radial/ZigZag/Lines, roughing/finishing) | (а) реализовать, (б) заблокировать в UI | ✅ **(а) Реализовать** (фаза 5) | 2026-08-22 |
 | D2 | Финальный стек | WPF / Avalonia | ✅ **Остаёмся на WPF.** Переход на Avalonia — отдельный проект, планируется после полного завершения всех работ в WPF (в настоящий план не входит) | 2026-08-22 |
-| D3 | Фреймворк MVVM | MugenMvvmToolkit до конца / CommunityToolkit.Mvvm | ✅ **CommunityToolkit.Mvvm** (фаза 7) | 2026-08-22 |
-| D4 | Настройки шпинделя/СОЖ в файле проекта | включать в `.ygc` / оставить глобальными | ✅ **Включаем в `.ygc`** (фаза 8, п. 8.4) | 2026-08-22 |
-| D5 | Целевая платформа в фазе 9 | net481 (Windows 7+) / .NET 8 WPF (Windows 10+) | ☐ открыт (README заявляет Windows 7; .NET 8 её не поддерживает) | |
+| D3 | Фреймворк MVVM | MugenMvvmToolkit до конца / CommunityToolkit.Mvvm | ✅ **CommunityToolkit.Mvvm** (фаза 1, п. 1.3) | 2026-08-22 |
+| D4 | Настройки шпинделя/СОЖ в файле проекта | включать в `.ygc` / оставить глобальными | ✅ **Включаем в `.ygc`** (фаза 8, п. 8.2) | 2026-08-22 |
+| D5 | Целевая платформа | net481 (Windows 7+) / .NET 10 WPF | ✅ **.NET 10 (net10.0-windows); поддержка Windows 7 не требуется.** Миграция — фаза 1, серией малых PR. Требования: Windows 10 22H2+ / Windows 11 (точную минимальную сборку зафиксировать в п. 1.6) | 2026-08-22 |
 
 ---
 
@@ -45,8 +43,8 @@
 
 **Цель:** зафиксировать текущее поведение, чтобы любой последующий шаг был проверяем.
 
-- [x] **0.1** CI-пайплайн (GitHub Actions, `windows-latest`): сборка `GCodeGenerator.sln` (Release) + запуск тестов. Гейт на каждый push/PR. — 2026-08-22, commit 46bfa5a (`.github/workflows/ci.yml`; сборка Release проверена локально MSBuild 18.8)
-- [ ] **0.2** Тестовый проект `GCodeGenerator.Tests` (xUnit, net481, `ProjectReference` на основной проект).
+- [x] **0.1** CI-пайплайн (GitHub Actions, `windows-latest`): сборка `GCodeGenerator.sln` (Release) + запуск тестов. Гейт на каждый push/PR. — 2026-08-22, commit 46bfa5a + 8319c9c (`.github/workflows/ci.yml`; фикс: `microsoft/setup-msbuild@v2`, т.к. msbuild не в PATH на образе; `dotnet vstest`). *Примечание: после фазы 1 пайплайн упрощается до `dotnet build`/`dotnet test` (п. 1.5).*
+- [ ] **0.2** Тестовый проект `GCodeGenerator.Tests` (xUnit, TFM = TFM основного проекта, `ProjectReference`).
 - [ ] **0.3** Фикстуры операций (`Tests/Fixtures`): 9 видов сверления, 6 профилей, 4 кармана (включая DXF-карман и DXF-профиль с образцовыми `.dxf` в `Tests/Assets`), варианты настроек (линейные номера вкл/выкл, padded G, AllowArcs вкл/выкл, шпиндель/СОЖ вкл/выкл, G54–G59, G92-старт/финиш).
 - [ ] **0.4** Золотые тесты генератора: для каждой фикстуры `SimpleGCodeGenerator.Generate(...)` → golden-файлы `Tests/Golden/*.nc`, сравнение построчно (инвариантная культура).
 - [ ] **0.5** Характеризационные тесты рискованной логики:
@@ -62,156 +60,147 @@
 
 ---
 
-## Фаза 1. Структурное разделение без изменения поведения (3–5 дней)
+## Фаза 1. Миграция платформы на .NET 10 (D5) (8–12 дней)
+
+**Цель:** современный стек (net10.0-windows) серией независимых зелёных PR. Каждый подшаг — отдельный коммит/PR с проверкой (сборка + тесты + smoke).
+**Почему сейчас:** (а) CI упрощается до `dotnet build`/`dotnet test`; (б) две net48-only зависимости всё равно придётся убирать — `JavaScriptSerializer` (System.Web.Extensions отсутствует в .NET) и MugenMvvmToolkit (net45, абандон); (в) System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, C# 14 — first-class.
+
+- [ ] **1.1** SDK-style csproj + PackageReference (TFM пока без изменений — net481). Проверить: resx, `Settings.settings`, иконка, binding redirects.
+- [ ] **1.2** Заменить `JavaScriptSerializer` (System.Web.Extensions) на **System.Text.Json** в `ProjectFileService` (из 0.6): схема с полем `version`, явный дискриминатор типов (короткие имена из белого списка, не `AssemblyQualifiedName`). **Легаси-ридер:** старые файлы (JSON от JavaScriptSerializer — обычный JSON) читаются и мигрируются при открытии; сохранение — всегда в новом формате. Тесты round-trip + эталонные старые файлы.
+- [ ] **1.3** MugenMvvmToolkit → **CommunityToolkit.Mvvm** (D3):
+  - [ ] базовые классы: `ViewModelBase` → `ObservableObject`; `CloseableViewModel` → собственный базовый класс диалога;
+  - [ ] свой `RelayCommand` → `RelayCommand`/`AsyncRelayCommand`;
+  - [ ] composition root: `Bootstrapper`/`BootstrapperEx`/`GCodeGeneratorMvvmApp` → прямой Autofac в `App.xaml.cs`;
+  - [ ] `IDialogService` (WPF-реализация: `ShowInfo/ShowError/ShowConfirm`, `ShowSaveDialog/ShowOpenDialog`) — замена `GetViewModel<T>()` + `ShowAsync()` и `MessageBox`/`FileDialog` в VM;
+  - [ ] XAML: связки `{DataBinding '$i18n.Key'}` (Mugen Binding) → собственный механизм локализации (MarkupExtension/конвертер + `INotifyPropertyChanged`-провайдер), механическая замена по всем XAML (~40 файлов).
+- [ ] **1.4** MahApps.Metro 2.x (+ обновление ControlzEx, Microsoft.Xaml.Behaviors).
+- [ ] **1.5** Переключение TFM на **net10.0-windows**; `Properties.Settings` — через пакет System.Configuration.ConfigurationManager. CI: `actions/setup-dotnet` + `dotnet build` / `dotnet test` (убрать шаги msbuild/nuget/targeting-pack).
+- [ ] **1.6** README: требования ОС (Windows 10 22H2+ / Windows 11 — зафиксировать точную минимальную сборку), .NET 10 Desktop Runtime (или self-contained-установщик), обновление разделов «Требования» и «Сборка из исходников».
+
+**DoD фазы 1:** ☐ все тесты зелёные (включая round-trip старых `.ygc`); ☐ golden без изменений; ☐ в проекте нет ссылок на MugenMvvmToolkit и System.Web.Extensions; ☐ CI зелёный на `dotnet build`/`dotnet test`; ☐ smoke-чек-лист §8 зелёный; ☐ README актуален.
+
+**Риски:** Mugen на .NET — исключён заменой в 1.3 до переключения TFM; JS-сериализатор — заменён в 1.2; `Properties.Settings` — поддерживается через ConfigurationManager. Откат каждого подшага — revert одного PR.
+
+---
+
+## Фаза 2. Структурное разделение: выделение Core (3–5 дней)
 
 **Цель:** ядро продукта (модели + генерация) вынести из WPF-сборки.
 
-- [ ] **1.1** SDK-style csproj + PackageReference (целевая платформа без изменений: `net481`, `UseWPF=true`). Проверить: resx, `Settings.settings`, иконка, binding redirects. Гейт: сборка + тесты + ручной запуск.
-- [ ] **1.2** Новый проект `GCodeGenerator.Core` (класс-библиотека, `net481`, без WPF):
-  - [ ] `Models/*` (кроме `GCodeSettingsStore` — остаётся в App, зависит от `Properties.Settings`);
+- [ ] **2.1** Новый проект `GCodeGenerator.Core` (класс-библиотека, TFM = TFM приложения, без WPF):
+  - [ ] `Models/*` (кроме `GCodeSettingsStore` — остаётся в App как инфраструктура пользовательских настроек);
   - [ ] `GCodeGenerators/*` (генераторы, геометрия, хелперы, интерфейсы);
-  - [ ] `ILocalizationManager` + базовый `LocalizationManager` (без Mugen-зависимости).
-- [ ] **1.3** App ссылается на Core (`ProjectReference`); перенесённые файлы удалены из App.
-- [ ] **1.4** Проверка чистоты Core: нет ссылок на `PresentationCore`/`WindowsBase` (проверка в CI или ревью).
+  - [ ] `ILocalizationManager` + базовый `LocalizationManager` (без зависимостей UI-стека).
+- [ ] **2.2** App ссылается на Core (`ProjectReference`); перенесённые файлы удалены из App.
+- [ ] **2.3** Проверка чистоты Core: нет ссылок на `PresentationCore`/`WindowsBase`/WPF (проверка в CI или ревью).
 
-**DoD фазы 1:** ☐ сборка + все тесты зелёные; ☐ golden без изменений; ☐ Core без WPF-зависимостей; ☐ приложение работает.
+**DoD фазы 2:** ☐ сборка + все тесты зелёные; ☐ golden без изменений; ☐ Core без WPF-зависимостей; ☐ приложение работает.
 
 ---
 
-## Фаза 2. Очистка доменной модели (5–8 дней)
+## Фаза 3. Очистка доменной модели (5–8 дней)
 
 **Цель:** убрать `Metadata`-словари, двойной источник истины и name-based dispatch.
 
-- [ ] **2.1** Сверление: в `DrillPointsOperation` добавить `DrillMode { Points, Line, Array, Rect, Circle, Arc, Polygon, Ellipse, Package }` + типизированные параметры (`StartX/Y/Z`, `Distance`, `HoleCount`, `AngleDeg`, `RowCount/ColCount`, `Radius`, `Sides` и т.д. — по фактическим ключам `Metadata`).
-- [ ] **2.2** Миграция при загрузке `.ygc`: `Metadata` с ключами → типизированные свойства, `Metadata` очищается. Старые файлы открываются, новые сохраняются без `Metadata`.
-- [ ] **2.3** VM сверления читают/пишут только типизированные свойства (без двойной записи).
-- [ ] **2.4** `DrillOperationsViewModel.EditSelectedOperation`: `switch (drillOp.DrillMode)` вместо сравнения по `Name`. Тест: переименованная операция открывает верный диалог.
-- [ ] **2.5** Профили: удалить двойную запись в `OnClosed` (только типизированные свойства); чтение — только из свойств; миграция из `Metadata` при загрузке.
-- [ ] **2.6** Удалить `Metadata` из `Profile*Operation` (после зелёных golden и round-trip; на один релиз оставить `[Obsolete]`/`[JsonIgnore]`).
-- [ ] **2.7** Валидация в домене: `IValidatable { IReadOnlyList<ValidationIssue> Validate(); }` в Core для всех операций (глубины, диаметры, шаги, количество отверстий, замкнутость контуров).
-- [ ] **2.8** Защитные проверки в генераторах (`StepDepth <= 0` → `ArgumentException` вместо бесконечного цикла).
-- [ ] **2.9** (Опционально) `OperationBase`: `INotifyPropertyChanged` вынести за интерфейс `IEnabledOperation` либо зафиксировать статус-кво с комментарием.
+- [ ] **3.1** Сверление: в `DrillPointsOperation` добавить `DrillMode { Points, Line, Array, Rect, Circle, Arc, Polygon, Ellipse, Package }` + типизированные параметры (`StartX/Y/Z`, `Distance`, `HoleCount`, `AngleDeg`, `RowCount/ColCount`, `Radius`, `Sides` и т.д. — по фактическим ключам `Metadata`).
+- [ ] **3.2** Миграция при загрузке `.ygc`: `Metadata` с ключами → типизированные свойства, `Metadata` очищается. Старые файлы открываются, новые сохраняются без `Metadata`.
+- [ ] **3.3** VM сверления читают/пишут только типизированные свойства (без двойной записи).
+- [ ] **3.4** `DrillOperationsViewModel.EditSelectedOperation`: `switch (drillOp.DrillMode)` вместо сравнения по `Name`. Тест: переименованная операция открывает верный диалог.
+- [ ] **3.5** Профили: удалить двойную запись в `OnClosed` (только типизированные свойства); чтение — только из свойств; миграция из `Metadata` при загрузке.
+- [ ] **3.6** Удалить `Metadata` из `Profile*Operation` (после зелёных golden и round-trip; на один релиз оставить `[Obsolete]`/`[JsonIgnore]`).
+- [ ] **3.7** Валидация в домене: `IValidatable { IReadOnlyList<ValidationIssue> Validate(); }` в Core для всех операций (глубины, диаметры, шаги, количество отверстий, замкнутость контуров).
+- [ ] **3.8** Защитные проверки в генераторах (`StepDepth <= 0` → `ArgumentException` вместо бесконечного цикла).
+- [ ] **3.9** (Опционально) `OperationBase`: `INotifyPropertyChanged` вынести за интерфейс `IEnabledOperation` либо зафиксировать статус-кво с комментарием.
 
-**DoD фазы 2:** ☐ все тесты зелёные; ☐ golden без изменений; ☐ тест миграции (старый `.ygc` → открыт → сохранён → `Metadata` пуст, значения сохранены); ☐ smoke-чек-лист §8 зелёный.
+**DoD фазы 3:** ☐ все тесты зелёные; ☐ golden без изменений; ☐ тест миграции (старый `.ygc` → открыт → сохранён → `Metadata` пуст, значения сохранены); ☐ smoke-чек-лист §8 зелёный.
 
 ---
 
-## Фаза 3. Структурный G-код и генераторы (8–12 дней) — ключевая фаза
+## Фаза 4. Структурный G-код и генераторы (8–12 дней) — ключевая фаза
 
 **Цель:** убрать string round-trip, хрупкую рефлексию и god-class.
 
-- [ ] **3.1** Структурированная модель программы в Core: `GCodeProgram { List<GCodeBlock> }`, `GCodeBlock { LineNumber, Words, Comment }`, `GCodeWord { Letter, Number, Text }` + `ProgramBuilder` (`RapidTo`, `LinearTo`, `ArcCW/CCW`, `Dwell`, `SpindleOn/Off`, `CoolantOn/Off`, `Comment`, `SetWcs`, `SetStart/EndPosition`).
-- [ ] **3.2** `GCodeFormatter` в Core: `GCodeProgram → List<string>` с учётом `UseLineNumbers/LineNumberStart/Step`, `UsePaddedGCodes`, `UseComments` (перенос локальных функций `FormatG/FormatM/AddLine` из `SimpleGCodeGenerator`).
-- [ ] **3.3** Дифференциальный тест: для всех фикстур старое (строки) == новое (структура → форматтер) построчно. Переключение только при 100% равенстве.
-- [ ] **3.4** Порт генераторов на `ProgramBuilder` по одному за коммит (Drill → Profile → Pocket), после каждого — golden-тесты.
-- [ ] **3.5** Явная регистрация: `IOperationGeneratorRegistry` (явные маппинги `Type → IOperationGenerator`, резолв через IoC); name-based рефлексия в `SimpleGCodeGenerator.LoadGenerators` удалена.
-- [ ] **3.6** Декомпозиция `UnifiedPocketGenerator`:
+- [ ] **4.1** Структурированная модель программы в Core: `GCodeProgram { List<GCodeBlock> }`, `GCodeBlock { LineNumber, Words, Comment }`, `GCodeWord { Letter, Number, Text }` + `ProgramBuilder` (`RapidTo`, `LinearTo`, `ArcCW/CCW`, `Dwell`, `SpindleOn/Off`, `CoolantOn/Off`, `Comment`, `SetWcs`, `SetStart/EndPosition`).
+- [ ] **4.2** `GCodeFormatter` в Core: `GCodeProgram → List<string>` с учётом `UseLineNumbers/LineNumberStart/Step`, `UsePaddedGCodes`, `UseComments` (перенос локальных функций `FormatG/FormatM/AddLine` из `SimpleGCodeGenerator`).
+- [ ] **4.3** Дифференциальный тест: для всех фикстур старое (строки) == новое (структура → форматтер) построчно. Переключение только при 100% равенстве.
+- [ ] **4.4** Порт генераторов на `ProgramBuilder` по одному за коммит (Drill → Profile → Pocket), после каждого — golden-тесты.
+- [ ] **4.5** Явная регистрация: `IOperationGeneratorRegistry` (явные маппинги `Type → IOperationGenerator`, резолв через IoC); name-based рефлексия в `SimpleGCodeGenerator.LoadGenerators` удалена.
+- [ ] **4.6** Декомпозиция `UnifiedPocketGenerator`:
   - [ ] `DxfPocketLayerGenerator` — слой DXF-кармана;
   - [ ] `ContourCutoffAnalyzer` — эвристики отсечки (площади, «песочные часы», обход, векторы) как чистый класс, ≥ 15 юнит-тестов;
-  - [ ] `IPocketPocketingStrategy` + `SpiralPocketingStrategy` (инфраструктура для новых стратегий — реализация в фазе 4).
-- [ ] **3.7** Опции стратегий ≠ Spiral и roughing/finishing в UI **временно заблокировать** (пометка «в разработке»); разблокировка — после фазы 4 (D1). Мёртвый `PocketGenerationHelper.ProcessRoughingFinishing` — доработать и подключить в фазе 4.
+  - [ ] `IPocketPocketingStrategy` + `SpiralPocketingStrategy` (инфраструктура для новых стратегий — реализация в фазе 5).
+- [ ] **4.7** Опции стратегий ≠ Spiral и roughing/finishing в UI **временно заблокировать** (пометка «в разработке»); разблокировка — после фазы 5 (D1). Мёртвый `PocketGenerationHelper.ProcessRoughingFinishing` — доработать и подключить в фазе 5.
 
-**DoD фазы 3:** ☐ `IOperationGenerator` работает через `ProgramBuilder`; ☐ форматтер покрывает 100% golden; ☐ рефлексивная регистрация удалена; ☐ `UnifiedPocketGenerator` < 400 строк; ☐ golden без изменений.
+**DoD фазы 4:** ☐ `IOperationGenerator` работает через `ProgramBuilder`; ☐ форматтер покрывает 100% golden; ☐ рефлексивная регистрация удалена; ☐ `UnifiedPocketGenerator` < 400 строк; ☐ golden без изменений.
 
 ---
 
-## Фаза 4. Доработка карманов: стратегии + roughing/finishing (D1) (8–12 дней)
+## Фаза 5. Доработка карманов: стратегии + roughing/finishing (D1) (8–12 дней)
 
 **Цель:** реализовать объявленные в UI, но неработающие опции: стратегии Concentric, Radial, ZigZag, Lines и черновую/чистовую обработку.
 **Важно:** это новая функциональность — её вывод не сравнивается со старым golden, а покрывается собственными поведенческими тестами (геометрия траектории).
 
-- [ ] **4.1** Завершить `IPocketPocketingStrategy` (фаза 3): контракт `GenerateLayer(IPocketGeometry, слой, параметры) → блоки ProgramBuilder`; учёт taper, радиуса инструмента, шага, направления фрезерования (climb/conventional), `ContourCutoffAnalyzer`.
-- [ ] **4.2** `ConcentricPocketingStrategy` — концентрические проходы вдоль эквидистантного контура.
-- [ ] **4.3** `RadialPocketingStrategy` — радиальные проходы от центра к контуру (с учётом формы контура и DXF-контуров).
-- [ ] **4.4** `ZigZagPocketingStrategy` — зигзаг (чёрпковые проходы с разворотом).
-- [ ] **4.5** `LinesPocketingStrategy` — линии под углом `LineAngleDeg` (сечение контура прямыми, обработка островов/разрывов).
-- [ ] **4.6** Roughing/finishing: доработать и подключить `ProcessRoughingFinishing` (черновая с припуском `FinishAllowance`, чистовая: Walls / Bottom / All, `PocketFinishingMode`); корректная работа в связке с каждой стратегией и DXF-карманами.
-- [ ] **4.7** Тесты:
+- [ ] **5.1** Завершить `IPocketPocketingStrategy` (фаза 4): контракт `GenerateLayer(IPocketGeometry, слой, параметры) → блоки ProgramBuilder`; учёт taper, радиуса инструмента, шага, направления фрезерования (climb/conventional), `ContourCutoffAnalyzer`.
+- [ ] **5.2** `ConcentricPocketingStrategy` — концентрические проходы вдоль эквидистантного контура.
+- [ ] **5.3** `RadialPocketingStrategy` — радиальные проходы от центра к контуру (с учётом формы контура и DXF-контуров).
+- [ ] **5.4** `ZigZagPocketingStrategy` — зигзаг (чёрпковые проходы с разворотом).
+- [ ] **5.5** `LinesPocketingStrategy` — линии под углом `LineAngleDeg` (сечение контура прямыми, обработка островов/разрывов).
+- [ ] **5.6** Roughing/finishing: доработать и подключить `ProcessRoughingFinishing` (черновая с припуском `FinishAllowance`, чистовая: Walls / Bottom / All, `PocketFinishingMode`); корректная работа в связке с каждой стратегией и DXF-карманами.
+- [ ] **5.7** Тесты:
   - [ ] юнит-тесты каждой стратегии (покрытие области, шаг, отсутствие выхода за контур, корректные Z-переходы между проходами);
   - [ ] интеграционные тесты «операция → G-код» для каждой стратегии × (прямоугольник, круг, эллипс, DXF);
   - [ ] тесты roughing/finishing (припуск по контуру и глубине, режимы Walls/Bottom/All, карман «слишком маленький после припуска»).
-- [ ] **4.8** Разблокировать опции в UI (снять пометку «в разработке» из 3.7); ручной прогон: каждая стратегия на каждом типе кармана + roughing/finishing.
-- [ ] **4.9** Документация: описание стратегий и roughing/finishing в README.
+- [ ] **5.8** Разблокировать опции в UI (снять пометку «в разработке» из 4.7); ручной прогон: каждая стратегия на каждом типе кармана + roughing/finishing.
+- [ ] **5.9** Документация: описание стратегий и roughing/finishing в README.
 
-**DoD фазы 4:** ☐ 5 стратегий + roughing/finishing работают на всех типах карманов (включая DXF); ☐ тесты по 4.7 зелёные; ☐ существующий golden (Spiral) без изменений; ☐ smoke-чек-лист §8 зелёный; ☐ README обновлён.
+**DoD фазы 5:** ☐ 5 стратегий + roughing/finishing работают на всех типах карманов (включая DXF); ☐ тесты по 5.7 зелёные; ☐ существующий golden (Spiral) без изменений; ☐ smoke-чек-лист §8 зелёный; ☐ README обновлён.
 
 ---
 
-## Фаза 5. Предпросмотр без ре-парсинга (5–7 дней)
+## Фаза 6. Предпросмотр без ре-парсинга (5–7 дней)
 
 **Цель:** 2D/3D превью потребляют структуру, а не текст; WPF-объекты вне VM.
 
-- [ ] **5.1** `PreviewViewModel` получает `GCodeProgram` (объект) вместо `GCodeText`; рукописный парсер G-кода удалён (решение: оставить ли как утилиту для будущего импорта чужих файлов).
-- [ ] **5.2** `TrajectoryScene` — чистые данные сцены (сегменты: тип движения, точки, радиус дуги); `SceneRenderer` (слой Views) превращает сцену в `Model3DGroup`.
-- [ ] **5.3** 2D: генерация точек контуров — в Core через существующие `IProfileGeometry`/`IPocketGeometry` (убрать «одноразовые» `Profile*Operation` из code-behind); `OperationsPreviewView` получает `OperationScene` из нового `OperationsPreviewViewModel`; code-behind — только отрисовка и мышь.
-- [ ] **5.4** Тесты: юнит-тесты `SceneBuilder` (сегменты из `GCodeProgram`), дифференциально со старым парсером на эталонных программах (включая программы с новыми стратегиями фазы 4).
+- [ ] **6.1** `PreviewViewModel` получает `GCodeProgram` (объект) вместо `GCodeText`; рукописный парсер G-кода удалён (решение: оставить ли как утилиту для будущего импорта чужих файлов).
+- [ ] **6.2** `TrajectoryScene` — чистые данные сцены (сегменты: тип движения, точки, радиус дуги); `SceneRenderer` (слой Views) превращает сцену в `Model3DGroup`.
+- [ ] **6.3** 2D: генерация точек контуров — в Core через существующие `IProfileGeometry`/`IPocketGeometry` (убрать «одноразовые» `Profile*Operation` из code-behind); `OperationsPreviewView` получает `OperationScene` из нового `OperationsPreviewViewModel`; code-behind — только отрисовка и мышь.
+- [ ] **6.4** Тесты: юнит-тесты `SceneBuilder` (сегменты из `GCodeProgram`), дифференциально со старым парсером на эталонных программах (включая программы с новыми стратегиями фазы 5).
 
-**DoD фазы 5:** ☐ в `PreviewViewModel` и code-behind нет парсеров G-кода и построителей геометрии; ☐ VM не ссылается на `System.Windows.Media.*`; ☐ визуальное совпадение 2D/3D со старым (ручная проверка).
+**DoD фазы 6:** ☐ в `PreviewViewModel` и code-behind нет парсеров G-кода и построителей геометрии; ☐ VM не ссылается на `System.Windows.Media.*`; ☐ визуальное совпадение 2D/3D со старым (ручная проверка).
 
 ---
 
-## Фаза 6. Представление: MVVM-гигиена (8–12 дней)
+## Фаза 7. Представление: MVVM-гигиена (6–10 дней)
 
-**Цель:** VM без WPF, единый источник истины по операциям, базовый класс диалогов.
+**Цель:** VM без WPF, единый источник истины по операциям, базовый класс диалогов. (Замена фреймворка MVVM выполнена в фазе 1; `IDialogService` — там же, п. 1.3.)
 
-- [ ] **6.1** `IDialogService` (в App, WPF-реализация): `ShowInfo/ShowError/ShowConfirm`, `ShowSaveDialog/ShowOpenDialog`; инъекция во все VM; `MessageBox`/`FileDialog` из VM удалены.
-- [ ] **6.2** Убрать `Application.Current.Dispatcher` из всех 15+ VM (прямой вызов; проверить каждый, тест + ручной прогон).
-- [ ] **6.3** Единая коллекция операций: `MainViewModel.AllOperations` — единственный источник; у операции — `Category` (Drill/Profile/Pocket); под-VM/UI — фильтрованные представления. Удалить: ручную синхронизацию `CollectionChanged` ×3, ручные `Add/Remove` в под-VM, свойство `MainViewModel` в дочерних VM (вверх — через команды/события), switch `AddOperationToCollections`.
+- [ ] **7.1** Убрать `Application.Current.Dispatcher` из всех 15+ VM (прямой вызов; проверить каждый, тест + ручной прогон).
+- [ ] **7.2** Единая коллекция операций: `MainViewModel.AllOperations` — единственный источник; у операции — `Category` (Drill/Profile/Pocket); под-VM/UI — фильтрованные представления. Удалить: ручную синхронизацию `CollectionChanged` ×3, ручные `Add/Remove` в под-VM, свойство `MainViewModel` в дочерних VM (вверх — через команды/события), switch `AddOperationToCollections`.
   - ⚠️ Видимое изменение: полный прогон чек-листа §8.
-- [ ] **6.4** `OperationEditorViewModelBase<T>` + `IOperationEditorFactory` (реестр `Type операции → фабрика VM диалога`); диалоги с явными **OK/Cancel** (OK — валидация + сохранение; Cancel — без изменений; `OnClosed` больше не сохраняет).
+- [ ] **7.3** `OperationEditorViewModelBase<T>` + `IOperationEditorFactory` (реестр `Type операции → фабрика VM диалога`); диалоги с явными **OK/Cancel** (OK — валидация + сохранение; Cancel — без изменений; `OnClosed` больше не сохраняет).
   - ⚠️ Видимое UX-изменение.
-- [ ] **6.5** Консолидация 15 VM операций на базовый класс (по одному за коммит, golden + smoke после каждого).
-- [ ] **6.6** Убрать статик: `PlatformVariables` → IoC (версия, `ILocalizationManager`); `GCodeSettingsStore.Current` → экземпляр `ISettingsStore` из IoC (статический фасад `[Obsolete]` на один релиз); `ThemeHelper` → `IThemeService`.
-- [ ] **6.7** `SimpleGCodeGenerator` и всё остальное — только через IoC (убрать `new` из VM).
+- [ ] **7.4** Консолидация 15 VM операций на базовый класс (по одному за коммит, golden + smoke после каждого).
+- [ ] **7.5** Убрать статик: `PlatformVariables` → IoC (версия, `ILocalizationManager`); `GCodeSettingsStore.Current` → экземпляр `ISettingsStore` из IoC (статический фасад `[Obsolete]` на один релиз); `ThemeHelper` → `IThemeService`.
+- [ ] **7.6** `SimpleGCodeGenerator` и всё остальное — только через IoC (убрать `new` из VM).
 
-**DoD фазы 6:** ☐ в `ViewModels/` нет `System.Windows.*` (grep-гейт в CI); ☐ циклические ссылки VM убраны; ☐ чек-лист §8 зелёный; ☐ все golden зелёные.
-
----
-
-## Фаза 7. Замена MVVM-стека: MugenMvvmToolkit → CommunityToolkit.Mvvm (D3) (5–8 дней)
-
-**Цель:** уйти с абандонированного MugenMvvmToolkit на поддерживаемый CommunityToolkit.Mvvm. Фаза выполняется после 6: `IDialogService` и базовые классы уже изолируют зависимости от Mugen.
-
-- [ ] **7.1** Добавить пакет CommunityToolkit.Mvvm (совместим с net481); на время перехода стеки сосуществуют.
-- [ ] **7.2** Заменить базовые классы: `ViewModelBase` → `ObservableObject`; `CloseableViewModel` → собственный базовый класс диалога (результат OK/Cancel, закрытие через `IDialogService`).
-- [ ] **7.3** Свой `RelayCommand` (Infrastructure) → `RelayCommand`/`AsyncRelayCommand` CommunityToolkit (включая `RaiseCanExecuteChanged`).
-- [ ] **7.4** Composition root: `Bootstrapper<GCodeGeneratorMvvmApp>` + `AutofacContainer` (Mugen) → прямой Autofac в `App.xaml.cs` (явная регистрация VM/сервисов), удалить `BootstrapperEx` и `GCodeGeneratorMvvmApp`.
-- [ ] **7.5** Убрать последние вызовы Mugen в VM: `GetViewModel<T>()` + `ShowAsync()` → `IDialogService` (из 6.1).
-- [ ] **7.6** Локализация в XAML: связки `{DataBinding '$i18n.Key'}` (синтаксис Mugen Binding) заменить на собственный механизм (MarkupExtension/конвертер локализации + `INotifyPropertyChanged`-провайдер для смены культуры); механическая замена по всем XAML (~40 файлов).
-- [ ] **7.7** Удалить все пакеты MugenMvvmToolkit* из проекта; проверить, что `MugenLocalizationManager` заменён (или удалён) полностью.
-
-**DoD фазы 7:** ☐ в проекте нет ссылок на MugenMvvmToolkit (grep + csproj); ☐ все тесты зелёные; ☐ XAML корректно рендерится, `$i18n`-замены работают (включая смену культуры, если реализуется); ☐ smoke-чек-лист §8 зелёный.
+**DoD фазы 7:** ☐ в `ViewModels/` нет `System.Windows.*` (grep-гейт в CI); ☐ циклические ссылки VM убраны; ☐ чек-лист §8 зелёный; ☐ все golden зелёные.
 
 ---
 
-## Фаза 8. Персистентность, настройки, локализация (4–6 дней)
+## Фаза 8. Персистентность, настройки, локализация (3–5 дней)
 
-**Цель:** безопасный формат проекта, аккуратные настройки, честная локализация, отзывчивый UI.
+**Цель:** аккуратные настройки, честная локализация, отзывчивый UI. (Сериализация `.ygc` на System.Text.Json + легаси-ридер выполнены в фазе 1, п. 1.2.)
 
-- [ ] **8.1** `.ygc` на System.Text.Json: поле `version`, явный дискриминатор типов (короткие имена из белого списка, не `AssemblyQualifiedName`), сериализация только типизированных свойств.
-- [ ] **8.2** Легаси-ридер: детект формата старого JSON (JavaScriptSerializer) → миграция при открытии; сохранение всегда в новом формате. Тесты на всех эталонных старых файлах.
-- [ ] **8.3** Разделить `GCodeSettings`: `GCodeFormatSettings`, `SpindleSettings`, `CoolantSettings`, `WorkCoordinateSettings` + `UiSettings` (тема); маппинг `Properties.Settings` — одна таблица вместо ручной копии ×2.
-- [ ] **8.4** (D4) Секции spindle/coolant в `.ygc` (обязательно): при сохранении проекта настройки шпинделя/СОЖ пишутся в файл; при открытии — подставляются в сессию; нет секции (старые файлы) → глобальные настройки из `Properties.Settings`. Тесты: старый файл без секций, новый файл с секциями, переоткрытие.
-- [ ] **8.5** Локализация: resx на культуру (RU + заготовка EN); убрать захардкоженные fallback'ы из кода (пустота → лог + ключ); имена операций — через ключ, а не значение; `?key?` → логирование + сам ключ.
-- [ ] **8.6** async/await: импорт DXF и генерация G-кода — `async` с прогрессом (UI не блокируется); в Core — чистые синхронные методы.
+- [ ] **8.1** Разделить `GCodeSettings`: `GCodeFormatSettings`, `SpindleSettings`, `CoolantSettings`, `WorkCoordinateSettings` + `UiSettings` (тема); маппинг `Properties.Settings` — одна таблица вместо ручной копии ×2.
+- [ ] **8.2** (D4) Секции spindle/coolant в `.ygc` (обязательно): при сохранении проекта настройки шпинделя/СОЖ пишутся в файл; при открытии — подставляются в сессию; нет секции (старые файлы) → глобальные настройки из `Properties.Settings`. Тесты: старый файл без секций, новый файл с секциями, переоткрытие.
+- [ ] **8.3** Локализация: resx на культуру (RU + заготовка EN); убрать захардкоженные fallback'ы из кода (пустота → лог + ключ); имена операций — через ключ, а не значение; `?key?` → логирование + сам ключ.
+- [ ] **8.4** async/await: импорт DXF и генерация G-кода — `async` с прогрессом (UI не блокируется); в Core — чистые синхронные методы.
 
 **DoD фазы 8:** ☐ старые `.ygc` открываются (тесты на эталонах), новые — в новой схеме с секциями spindle/coolant; ☐ `GCodeSettingsStore` < 100 строк; ☐ в VM нет захардкоженных строк (grep); ☐ большой DXF (>10k сегментов) не блокирует UI.
 
 ---
 
-## Фаза 9. Модернизация в рамках WPF (D2) (3–5 дней)
-
-**Цель:** актуальные зависимости внутри WPF-стека. Переход на Avalonia/кроссплатформу — **не входит** в настоящий план (отдельный проект после завершения всех работ в WPF, D2).
-
-- [ ] **9.1** Обновление зависимостей: MahApps.Metro 2.x (совместим с net481), Autofac 7 (или Microsoft.Extensions.DependencyInjection).
-- [ ] **9.2** (по решению D5) .NET 8 WPF — только если согласован отказ от Windows 7 (README сейчас заявляет «Windows 7 или выше»; .NET 8 WPF требует Windows 10+). Иначе остаёмся на net481.
-- [ ] **9.3** CI: обновить раннеры под целевую платформу; автопубликация артефактов релиза.
-
-**DoD фазы 9:** ☐ сборка + все тесты + smoke зелёные на новых зависимостях; ☐ решение D5 зафиксировано; ☐ требования по ОС в README актуализированы.
-
----
-
-## 8. Ручной smoke-чек-лист (прогонять после каждого PR фаз 2–8)
+## 8. Ручной smoke-чек-лист (прогонять после каждого PR фаз 1–8)
 
 Прогон: __________ Дата: __________ Итог: ☐ зелёный / ☐ есть проблемы (описать ниже)
 
@@ -244,15 +233,14 @@
 
 | Фаза | Содержание | Оценка | Зависимости |
 |------|-----------|--------|-------------|
-| 0 | Тесты, CI, golden-файлы | 3–5 дн. | — |
-| 1 | SDK-style csproj, выделение Core | 3–5 дн. | 0 |
-| 2 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 0–1 |
-| 3 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 2 |
-| 4 | Стратегии карманов + roughing/finishing (D1) | 8–12 дн. | 3 |
-| 5 | Превью 2D/3D без ре-парсинга, WPF вне VM | 5–7 дн. | 3 |
-| 6 | MVVM: IDialogService, единая коллекция, базовый класс диалогов, OK/Cancel | 8–12 дн. | 2–3 |
-| 7 | MugenMvvmToolkit → CommunityToolkit.Mvvm (D3) | 5–8 дн. | 6 |
-| 8 | System.Text.Json + миграция, настройки в `.ygc` (D4), локализация, async | 4–6 дн. | 2, 6 |
-| 9 | Обновление зависимостей в WPF, решение по .NET 8 (D2, D5) | 3–5 дн. | 7–8 |
+| 0 | Тесты, CI, golden-файлы | 3–5 дн. (0.1 готов) | — |
+| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. | 0 |
+| 2 | Выделение Core | 3–5 дн. | 1 |
+| 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
+| 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
+| 5 | Стратегии карманов + roughing/finishing (D1) | 8–12 дн. | 4 |
+| 6 | Превью 2D/3D без ре-парсинга, WPF вне VM | 5–7 дн. | 4 |
+| 7 | MVVM: единая коллекция, базовый класс диалогов, OK/Cancel, статик | 6–10 дн. | 3–4 |
+| 8 | Настройки в `.ygc` (D4), локализация, async | 3–5 дн. | 3, 7 |
 
-**Итого фазы 0–9: ~52–80 рабочих дней (≈ 2,5–4 месяца)** работы одного разработчика; каждая фаза заканчивается релизируемым состоянием (сборка + тесты + smoke-чек-лист зелёные).
+**Итого фазы 0–8: ~49–76 рабочих дней (≈ 2,5–3,5 месяца)** работы одного разработчика; каждая фаза заканчивается релизируемым состоянием (сборка + тесты + smoke-чек-лист зелёные).
