@@ -62,6 +62,12 @@
     <None Include="Golden\*.nc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="Reference\reference_project.ygc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Reference\reference_project.nc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -70,6 +76,7 @@
     <Compile Include="GoldenTests.cs" />
     <Compile Include="RiskyLogicTests.cs" />
     <Compile Include="ProjectFileServiceTests.cs" />
+    <Compile Include="ReferenceProjectTests.cs" />
     <Compile Include="Fixtures\FixtureCase.cs" />
     <Compile Include="Fixtures\DxfFixtureLoader.cs" />
     <Compile Include="Fixtures\FixtureCatalog.cs" />
