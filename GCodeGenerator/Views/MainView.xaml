@@ -77,15 +77,16 @@
         
         <!-- Left side: operation type selector inside TabControl -->
         <mah:MetroTabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
-            <TabItem Header="{loc:Loc DrillingTab}">
+            <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->
+            <mah:MetroTabItem Header="{loc:Loc DrillingTab}">
                 <drillViews:DrillOperationsView DataContext="{Binding DrillOperations}"/>
-            </TabItem>
-            <TabItem Header="{loc:Loc ProfileTab}">
+            </mah:MetroTabItem>
+            <mah:MetroTabItem Header="{loc:Loc ProfileTab}">
                 <pocketMillViews:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
-            </TabItem>
-            <TabItem Header="{loc:Loc PocketTab}">
+            </mah:MetroTabItem>
+            <mah:MetroTabItem Header="{loc:Loc PocketTab}">
                 <pocketViews:PocketOperationsView DataContext="{Binding PocketOperations}"/>
-            </TabItem>
+            </mah:MetroTabItem>
         </mah:MetroTabControl>
 
         <!-- Top-right: operations list controls + generate & settings -->
@@ -159,11 +160,13 @@
         <!-- Right: G-code preview with initial width ~250 and resizable -->
         <GroupBox Header="{loc:Loc GCodePreviewHeader}"
                   Grid.Row="2" Grid.Column="2">
+            <!-- Пункт 1.4: 1.x-ключи ControlBackgroundBrush/TextBrush/TextBoxBorderBrush
+                 заменены на 2.x-аналоги из темы MahApps. -->
             <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
-                     Style="{StaticResource MetroTextBox}"
-                     Background="{DynamicResource ControlBackgroundBrush}"
-                     Foreground="{DynamicResource TextBrush}"
-                     BorderBrush="{DynamicResource TextBoxBorderBrush}"
+                     Style="{StaticResource MahApps.Styles.TextBox}"
+                     Background="{DynamicResource MahApps.Brushes.Control.Background}"
+                     Foreground="{DynamicResource MahApps.Brushes.Text}"
+                     BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
                      VerticalScrollBarVisibility="Auto"
                      HorizontalScrollBarVisibility="Auto"
                      AcceptsReturn="True"

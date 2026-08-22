@@ -5,11 +5,12 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d"
              d:DesignWidth="1200" d:DesignHeight="220">
-    <Border BorderBrush="{DynamicResource TextBoxBorderBrush}"
+    <!-- Пункт 1.4: 1.x-ключи TextBoxBorderBrush/ControlBackgroundBrush → 2.x-аналоги из темы MahApps. -->
+    <Border BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
             BorderThickness="1"
-            Background="{DynamicResource ControlBackgroundBrush}">
+            Background="{DynamicResource MahApps.Brushes.Control.Background}">
         <Canvas x:Name="PreviewCanvas"
-                Background="{DynamicResource ControlBackgroundBrush}"
+                Background="{DynamicResource MahApps.Brushes.Control.Background}"
                 ClipToBounds="True"
                 MouseWheel="PreviewCanvas_OnMouseWheel"
                 MouseDown="PreviewCanvas_OnMouseDown"

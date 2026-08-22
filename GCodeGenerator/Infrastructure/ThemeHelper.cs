@@ -1,11 +1,15 @@
 using System;
 using System.Windows;
-using MahApps.Metro;
+using ControlzEx.Theming;
+using MahApps.Metro.Theming;
 
 namespace GCodeGenerator.Infrastructure
 {
     /// <summary>
     /// Helper for switching MahApps themes at runtime.
+    /// MahApps 2.x: ThemeManager перенесён из MahApps.Metro в ControlzEx
+    /// (ControlzEx.Theming.ThemeManager.Current); темы MahApps регистрируются
+    /// через MahAppsLibraryThemeProvider (регистрация идемпотентна).
     /// </summary>
     public static class ThemeHelper
     {
@@ -17,18 +21,25 @@ namespace GCodeGenerator.Infrastructure
             if (application == null)
                 return;
 
-            // Try to get configured accent; fall back to current detected accent.
-            var accent = ThemeManager.GetAccent("Blue") ?? ThemeManager.DetectAppStyle(application)?.Item2;
+            // MahApps 2.x: регистрируем провайдер тем библиотеки (идемпотентно).
+            ThemeManager.Current.RegisterLibraryThemeProvider(MahAppsLibraryThemeProvider.DefaultInstance);
 
-            var appTheme = ThemeManager.GetAppTheme(useDarkTheme ? "BaseDark" : "BaseLight")
-                           ?? ThemeManager.DetectAppStyle(application)?.Item1;
+            var baseColor = useDarkTheme ? ThemeManager.BaseColorDark : ThemeManager.BaseColorLight;
 
-            if (accent != null && appTheme != null)
+            // Try to get configured accent; fall back to current detected color scheme.
+            string colorScheme = "Blue";
+            if (ThemeManager.Current.GetTheme(baseColor, colorScheme) == null)
             {
-                ThemeManager.ChangeAppStyle(application, accent, appTheme);
-                ThemeChanged?.Invoke(null, EventArgs.Empty);
+                var detected = ThemeManager.Current.DetectTheme(application);
+                if (detected == null)
+                    return;
+                colorScheme = detected.ColorScheme;
             }
+
+            // ChangeTheme подменяет словарь темы в Application.Resources
+            // (Styles/Themes/{Light|Dark}.{Accent}.xaml) — как в 1.x ChangeAppStyle.
+            ThemeManager.Current.ChangeTheme(application, baseColor, colorScheme);
+            ThemeChanged?.Invoke(null, EventArgs.Empty);
         }
     }
 }
-

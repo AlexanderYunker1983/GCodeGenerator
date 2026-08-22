@@ -14,7 +14,8 @@
         Width="640"
         Height="480">
     <mah:MetroTabControl Margin="8">
-        <TabItem Header="{loc:Loc CodeGenerationSettingsTab}">
+        <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->
+        <mah:MetroTabItem Header="{loc:Loc CodeGenerationSettingsTab}">
             <StackPanel Margin="8">
                 <CheckBox
                     Content="{loc:Loc UseLineNumbers}"
@@ -23,14 +24,14 @@
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <Label Content="{loc:Loc LineNumberStart}" Width="180" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <Label Content="{loc:Loc LineNumberStep}" Width="180" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
@@ -58,7 +59,7 @@
                     <ComboBox Width="100"
                               SelectedValuePath="Content"
                               SelectedValue="{Binding WorkCoordinateSystem}"
-                              Style="{StaticResource MetroComboBox}">
+                              Style="{StaticResource MahApps.Styles.ComboBox}">
                         <ComboBoxItem Content="G54"/>
                         <ComboBoxItem Content="G55"/>
                         <ComboBoxItem Content="G56"/>
@@ -78,15 +79,15 @@
                             IsEnabled="{Binding AddStartPosition}">
                     <Label Content="{loc:Loc StartPositionX}" Width="60" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
                     <Label Content="{loc:Loc StartPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
                     <Label Content="{loc:Loc StartPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
@@ -98,21 +99,21 @@
                             IsEnabled="{Binding AddEndPosition}">
                     <Label Content="{loc:Loc EndPositionX}" Width="60" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged}"/>
                     <Label Content="{loc:Loc EndPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged}"/>
                     <Label Content="{loc:Loc EndPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                     <TextBox Width="80"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
             </StackPanel>
-        </TabItem>
+        </mah:MetroTabItem>
 
-        <TabItem Header="{loc:Loc SpindleSettingsTab}">
+        <mah:MetroTabItem Header="{loc:Loc SpindleSettingsTab}">
             <StackPanel Margin="8">
                 <CheckBox
                     Content="{loc:Loc SpindleControlEnabled}"
@@ -128,7 +129,7 @@
                             IsEnabled="{Binding SpindleControlEnabled}">
                     <Label Content="{loc:Loc SpindleSpeedRpm}" Width="200" VerticalAlignment="Center"/>
                     <TextBox Width="100"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
@@ -142,7 +143,7 @@
                     <ComboBox Width="100"
                               SelectedValuePath="Content"
                               SelectedValue="{Binding SpindleStartCommand}"
-                              Style="{StaticResource MetroComboBox}">
+                              Style="{StaticResource MahApps.Styles.ComboBox}">
                         <ComboBoxItem Content="M3"/>
                         <ComboBoxItem Content="M4"/>
                     </ComboBox>
@@ -161,13 +162,13 @@
                             IsEnabled="{Binding SpindleControlEnabled}">
                     <Label Content="{loc:Loc SpindleDelaySeconds}" Width="200" VerticalAlignment="Center"/>
                     <TextBox Width="100"
-                             Style="{StaticResource MetroTextBox}"
+                             Style="{StaticResource MahApps.Styles.TextBox}"
                              Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
             </StackPanel>
-        </TabItem>
+        </mah:MetroTabItem>
 
-        <TabItem Header="{loc:Loc CoolantSettingsTab}">
+        <mah:MetroTabItem Header="{loc:Loc CoolantSettingsTab}">
             <StackPanel Margin="8">
                 <CheckBox
                     Content="{loc:Loc CoolantControlEnabled}"
@@ -185,17 +186,18 @@
                           IsChecked="{Binding CoolantStopEnabled}"
                           IsEnabled="{Binding CoolantControlEnabled}"/>
             </StackPanel>
-        </TabItem>
+        </mah:MetroTabItem>
 
-        <TabItem Header="{loc:Loc InterfaceSettingsTab}">
+        <mah:MetroTabItem Header="{loc:Loc InterfaceSettingsTab}">
             <StackPanel Margin="8">
+                <!-- MahApps 2.x: OnLabel/OffLabel → OnContent/OffContent, IsChecked → IsOn (two-way). -->
                 <mah:ToggleSwitch
                     Header="{loc:Loc DarkTheme}"
-                    OnLabel="{loc:Loc ToggleOn}"
-                    OffLabel="{loc:Loc ToggleOff}"
-                    IsChecked="{Binding UseDarkTheme}"/>
+                    OnContent="{loc:Loc ToggleOn}"
+                    OffContent="{loc:Loc ToggleOff}"
+                    IsOn="{Binding UseDarkTheme}"/>
             </StackPanel>
-        </TabItem>
+        </mah:MetroTabItem>
     </mah:MetroTabControl>
 </Window>
 

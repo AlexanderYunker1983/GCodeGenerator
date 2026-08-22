@@ -5,50 +5,47 @@
              xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Пункт 1.4: набор MergedDictionaries MahApps.Metro 2.4.11 (официальный,
+                 как в демо-приложении 2.4.11: Controls + Fonts + combined-тема Light.Blue).
+                 Тёмная тема подменяется на Styles/Themes/Dark.Blue.xaml через ThemeHelper. -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GCodeGenerator;component/Images/OperationImages.xaml"/>
                 <ResourceDictionary Source="/GCodeGenerator;component/Images/Images.xaml"/>
 
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/colors.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/validationerrortemplate.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/sizes.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.buttons.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.toggleswitch.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.textblock.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.textbox.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.passwordbox.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.datagrid.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.checkbox.xaml"/>
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/controls.RadioButton.xaml"/>
-
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/styles/accents/blue.xaml" />
-                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/accents/baselight.xaml" />
-
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Controls.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Fonts.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/MahApps.Metro;component/Styles/Themes/Light.Blue.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <!-- Пункт 1.4: 1.x-ключ TextBrush отсутствует в темах MahApps 2.x, но массово
+                 используется в Images/OperationImages.xaml и в OperationsPreviewView.xaml.cs
+                 (TryFindResource) — локальный псевдоним, привязанный к теме (DynamicResource
+                 на Color обновляется при смене Light/Dark). -->
+            <SolidColorBrush x:Key="TextBrush" Color="{DynamicResource MahApps.Colors.ThemeForeground}"/>
+
             <infrastructure:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
 
+            <!-- Пункт 1.4 (MahApps 2.x): заголовок выбранной вкладки — жирный, контрастный
+                 к акцентному фону (IdealForeground = «идеальный» текст на акценте, в т.ч. тёмной теме).
+                 Невыбранная вкладка — дефолтный стиль 2.x (тема-зависимый серый текст). -->
             <DataTemplate x:Key="TabItemHeaderTemplate">
-                <TextBlock FontSize="14" 
+                <TextBlock FontSize="14"
                            Text="{Binding }"
-                           Foreground="{DynamicResource MetroDataGrid.HighlightTextBrush}"
-                           Margin="2,2,2,2" 
+                           Foreground="{DynamicResource MahApps.Brushes.IdealForeground}"
+                           Margin="2,2,2,2"
                            FontWeight="Bold">
                 </TextBlock>
             </DataTemplate>
 
-            <Style TargetType="TabItem" BasedOn="{StaticResource MetroTabItem}">
+            <!-- MahApps 2.x: стиль MetroTabItem типизирован под mah:MetroTabItem (в 1.x был
+                 строковый ключ MetroTabItem с TargetType TabItem), поэтому в XAML используются
+                 элементы mah:MetroTabItem, а не TabItem. -->
+            <Style TargetType="mah:MetroTabItem" BasedOn="{StaticResource {x:Type mah:MetroTabItem}}">
                 <Setter Property="mah:ControlsHelper.ContentCharacterCasing" Value="Normal"/>
-                <Setter Property="HeaderTemplate">
-                    <Setter.Value>
-                        <DataTemplate>
-                            <TextBlock Foreground="{DynamicResource BlackBrush}" Text="{Binding}"/>
-                        </DataTemplate>
-                    </Setter.Value>
-                </Setter>
+                <Setter Property="mah:HeaderedControlHelper.HeaderFontSize" Value="14"/>
                 <Style.Triggers>
                     <Trigger Property="IsSelected" Value="True">
-                        <Setter Property="Background" Value="{DynamicResource AccentColorBrush}"/>
+                        <Setter Property="Background" Value="{DynamicResource MahApps.Brushes.Accent}"/>
                         <Setter Property="HeaderTemplate" Value="{StaticResource TabItemHeaderTemplate}"/>
                     </Trigger>
                 </Style.Triggers>

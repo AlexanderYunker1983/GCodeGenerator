@@ -42,9 +42,11 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="4.4.0" />
-    <PackageReference Include="ControlzEx" Version="3.0.2.4" />
-    <PackageReference Include="MahApps.Metro" Version="1.6.5" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.19" />
+    <!-- Пункт 1.4: MahApps.Metro 2.x + ControlzEx 4.x + Behaviors 1.1.142.
+         MahApps 2.x нет в локальном зеркале — берётся с nuget.org (см. NuGet.config в корне). -->
+    <PackageReference Include="ControlzEx" Version="4.4.0" />
+    <PackageReference Include="MahApps.Metro" Version="2.4.11" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
     <!-- Пункт 1.3: MVVM-фреймворк (замена MugenMvvmToolkit). -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <!-- Пункт 1.2: сериализация .ygc на System.Text.Json (вместо JavaScriptSerializer). -->
