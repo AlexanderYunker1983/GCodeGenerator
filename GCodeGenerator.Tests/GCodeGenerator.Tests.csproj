@@ -1,62 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    SDK-style (пункт 1.1 плана): TFM пока net481, переключение на net10.0-windows — пункт 1.5.
+    - GenerateAssemblyInfo=false: свойства сборки объявлены вручную в Properties/AssemblyInfo.cs.
+    - LangVersion=latest: как до миграции (в старом csproj LangVersion не задан).
+    - Явная ссылка на MSTest.TestAdapter из старого csproj (обходной путь для packages.config)
+      больше не нужна: PackageReference + Microsoft.NET.Test.Sdk корректно размещают
+      адаптер в каталоге сборки для dotnet vstest.
+  -->
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{43E8B5AC-154C-4DF5-8B10-22DA3413DA5D}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <TargetFramework>net481</TargetFramework>
     <RootNamespace>GCodeGenerator.Tests</RootNamespace>
     <AssemblyName>GCodeGenerator.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <LangVersion>latest</LangVersion>
     <WarningLevel>4</WarningLevel>
+    <IsPackable>false</IsPackable>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <!-- Классическая раскладка bin\Release (без подпапки TFM): CI ищет bin\Release\GCodeGenerator.Tests.dll -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
+
   <ItemGroup>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework">
-      <HintPath>..\packages\MSTest.TestFramework.3.1.1\lib\net462\Microsoft.VisualStudio.TestPlatform.TestFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions">
-      <HintPath>..\packages\MSTest.TestFramework.3.1.1\lib\net462\Microsoft.VisualStudio.TestPlatform.TestFramework.Extensions.dll</HintPath>
-    </Reference>
-    <!-- Адаптер MSTest для vstest: с packages.config копируется явной ссылкой,
-         чтобы попасть в каталог сборки и быть обнаруженным dotnet vstest. -->
-    <Reference Include="Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter">
-      <HintPath>..\packages\MSTest.TestAdapter.3.1.1\build\net462\Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.dll</HintPath>
-    </Reference>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
     <!-- Базовый класс VM (CloseableViewModel) для загрузки DXF-фикстур через реальные парсеры. -->
-    <Reference Include="MugenMvvmToolkit, Version=6.5.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\MugenMvvmToolkit.6.5.0\lib\net45\MugenMvvmToolkit.dll</HintPath>
-    </Reference>
+    <PackageReference Include="MugenMvvmToolkit" Version="6.5.0" />
   </ItemGroup>
+
   <ItemGroup>
-    <None Include="packages.config" />
-    <None Include="Assets\pocket_sample.dxf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Assets\profile_sample.dxf">
+    <ProjectReference Include="..\GCodeGenerator\GCodeGenerator.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\*.dxf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Golden\*.nc">
@@ -69,25 +47,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SmokeTests.cs" />
-    <Compile Include="FixtureTests.cs" />
-    <Compile Include="GoldenTests.cs" />
-    <Compile Include="RiskyLogicTests.cs" />
-    <Compile Include="ProjectFileServiceTests.cs" />
-    <Compile Include="ReferenceProjectTests.cs" />
-    <Compile Include="Fixtures\FixtureCase.cs" />
-    <Compile Include="Fixtures\DxfFixtureLoader.cs" />
-    <Compile Include="Fixtures\FixtureCatalog.cs" />
-    <Compile Include="Fixtures\OperationFixtures.cs" />
-    <Compile Include="Fixtures\SettingsFixtures.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\GCodeGenerator\GCodeGenerator.csproj">
-      <Project>{8BB38985-C017-4E38-AA2A-8DC3B30E3479}</Project>
-      <Name>GCodeGenerator</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
 </Project>
