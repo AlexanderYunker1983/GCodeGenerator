@@ -8,7 +8,7 @@ using GCodeGenerator.Localization;
 namespace GCodeGenerator
 {
     /// <summary>
-    /// Registers localization manager and connects it with GCodeGenerator resources for $i18n bindings.
+    /// Registers localization manager and connects it with GCodeGenerator resources.
     /// </summary>
     public class LocalizationModule : IModule
     {
@@ -17,10 +17,12 @@ namespace GCodeGenerator
             var ioc = context.IocContainer;
 
             if (!ioc.CanResolve<ILocalizationManager>())
-                ioc.Bind<ILocalizationManager, MugenLocalizationManager>(DependencyLifecycle.SingleInstance);
+                ioc.Bind<ILocalizationManager, AppLocalizationManager>(DependencyLifecycle.SingleInstance);
 
             var localizationManager = ioc.Get<ILocalizationManager>();
             localizationManager.AddAssembly("GCodeGenerator");
+            // Статический доступ для XAML-расширения {loc:Loc Key} (пункт 1.3).
+            LocalizationProvider.Instance = localizationManager;
 
             // Set ProgramVersion from assembly version
             var version = Assembly.GetAssembly(GetType()).GetName().Version;
@@ -39,5 +41,3 @@ namespace GCodeGenerator
         public int Priority => ApplicationSettings.ModulePriorityDefault - 1;
     }
 }
-
-

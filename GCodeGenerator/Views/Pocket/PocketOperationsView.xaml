@@ -1,6 +1,7 @@
 <UserControl x:Class="GCodeGenerator.Views.Pocket.PocketOperationsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:GCodeGenerator.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Pocket"
@@ -20,7 +21,7 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.PocketRectangleName'}"
+                        <TextBlock Text="{loc:Loc PocketRectangleName}"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
                                Margin="4,0,4,0"/>
@@ -33,7 +34,7 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.PocketCircleName'}"
+                        <TextBlock Text="{loc:Loc PocketCircleName}"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
                                Margin="4,0,4,0"/>
@@ -46,7 +47,7 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.PocketEllipseName'}"
+                        <TextBlock Text="{loc:Loc PocketEllipseName}"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
                                Margin="4,0,4,0"/>
@@ -54,7 +55,7 @@
                 </Button>
                 <Button Command="{Binding AddPocketDxfCommand}" Margin="0,0,8,8">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="{DataBinding '$i18n.PocketDxfName'}"
+                        <TextBlock Text="{loc:Loc PocketDxfName}"
                                TextAlignment="Center"
                                TextWrapping="Wrap"
                                Margin="4,0,4,0"/>

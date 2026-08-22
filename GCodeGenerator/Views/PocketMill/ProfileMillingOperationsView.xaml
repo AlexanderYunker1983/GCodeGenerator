@@ -1,6 +1,7 @@
 <UserControl x:Class="GCodeGenerator.Views.PocketMill.ProfileMillingOperationsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:GCodeGenerator.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.PocketMill"
@@ -21,7 +22,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.ProfileRectangleName'}"
+                        <TextBlock Text="{loc:Loc ProfileRectangleName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -34,7 +35,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.ProfileRoundedRectangleName'}"
+                        <TextBlock Text="{loc:Loc ProfileRoundedRectangleName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -47,7 +48,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.ProfileCircleName'}"
+                        <TextBlock Text="{loc:Loc ProfileCircleName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -60,7 +61,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.ProfileEllipseName'}"
+                        <TextBlock Text="{loc:Loc ProfileEllipseName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -73,7 +74,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.ProfilePolygonName'}"
+                        <TextBlock Text="{loc:Loc ProfilePolygonName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -81,7 +82,7 @@
                 </Button>
                 <Button Command="{Binding AddProfileDxfCommand}" Margin="0,0,8,8">
                     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="{DataBinding '$i18n.ProfileDxfName'}"
+                        <TextBlock Text="{loc:Loc ProfileDxfName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>

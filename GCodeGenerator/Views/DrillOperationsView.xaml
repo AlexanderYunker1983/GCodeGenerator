@@ -1,6 +1,7 @@
 <UserControl x:Class="GCodeGenerator.Views.Drill.DrillOperationsView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:GCodeGenerator.Localization"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Drill"
@@ -17,7 +18,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.DrillPointsName'}"
+                        <TextBlock Text="{loc:Loc DrillPointsName}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -31,7 +32,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.AddDrillLine'}"
+                        <TextBlock Text="{loc:Loc AddDrillLine}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -45,7 +46,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.AddDrillArray'}"
+                        <TextBlock Text="{loc:Loc AddDrillArray}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -59,7 +60,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.AddDrillRect'}"
+                        <TextBlock Text="{loc:Loc AddDrillRect}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -73,7 +74,7 @@
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
                                         Margin="0,0,0,4"/>
-                        <TextBlock Text="{DataBinding '$i18n.AddDrillCircle'}"
+                        <TextBlock Text="{loc:Loc AddDrillCircle}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
@@ -91,7 +92,7 @@
                                        Width="64" Height="64"/>
                             </Viewbox>
                         </Viewbox>
-                        <TextBlock Text="{DataBinding '$i18n.AddDrillPackage'}"
+                        <TextBlock Text="{loc:Loc AddDrillPackage}"
                                    TextAlignment="Center"
                                    TextWrapping="Wrap"
                                    Margin="4,0,4,0"/>
