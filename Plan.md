@@ -8,7 +8,7 @@
 | Фаза | Название | Статус |
 |------|----------|--------|
 | 0 | Сеть безопасности (тесты, CI, golden) | ✅ готово (0.1–0.8: 48 тестов, 29 golden + эталонный набор) |
-| 1 | Миграция платформы на .NET 10 (D5) | ☐ не начата |
+| 1 | Миграция платформы на .NET 10 (D5) | ◐ в работе (1.1 готов) |
 | 2 | Структурное разделение (Core) | ☐ не начата |
 | 3 | Очистка доменной модели | ☐ не начата |
 | 4 | Структурный G-код и генераторы | ☐ не начата |
@@ -69,7 +69,8 @@
 **Цель:** современный стек (net10.0-windows) серией независимых зелёных PR. Каждый подшаг — отдельный коммит/PR с проверкой (сборка + тесты + smoke).
 **Почему сейчас:** (а) CI упрощается до `dotnet build`/`dotnet test`; (б) две net48-only зависимости всё равно придётся убирать — `JavaScriptSerializer` (System.Web.Extensions отсутствует в .NET) и MugenMvvmToolkit (net45, абандон); (в) System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, C# 14 — first-class.
 
-- [ ] **1.1** SDK-style csproj + PackageReference (TFM пока без изменений — net481). Проверить: resx, `Settings.settings`, иконка, binding redirects.
+- [x] **1.1** SDK-style csproj + PackageReference (TFM пока без изменений — net481). Проверить: resx, `Settings.settings`, иконка, binding redirects. — 2026-08-22, commit 7a2a1b6.
+  *Примечания: (а) `AppendTargetFrameworkToOutputPath=false` — классическая раскладка `bin\Release` без подпапки TFM (CI-пути и документация без изменений); (б) `LangVersion=latest` — как до миграции (в старом csproj LangVersion не задан); (в) `GenerateAssemblyInfo=false` — `Properties/AssemblyInfo.cs` сохранён (в т.ч. InternalsVisibleTo); (г) проверено: resx встроены (Properties.Resources + LocalizableResources), Settings.settings работает (приложение читает настройки), иконка встроена в exe, `GCodeGenerator.exe.config` идентичен старому App.config (redirect Autofac), у тестов — автогенерация redirects для MSTest; (д) обходная явная ссылка на MSTest.TestAdapter из старого тестового csproj убрана (PackageReference сам размещает адаптер); (е) SDK-style автоматически включил 4 устаревших файла после переноса Views/Drill (b9ff348) — исключены `<Compile/Page Remove>` (Views/DrillOperationsView.xaml объявляет тот же класс, что и Views/Drill/DrillOperationsView.xaml), кандидаты на удаление в фазе 2/7; (ж) CI без изменений: `nuget restore` поддерживает SDK-проекты, `msbuild`/`dotnet vstest` работают (упрощение CI — п. 1.5); (з) 48/48 тестов, golden без изменений (вывод G-кода идентичен).
 - [ ] **1.2** Заменить `JavaScriptSerializer` (System.Web.Extensions) на **System.Text.Json** в `ProjectFileService` (из 0.6): схема с полем `version`, явный дискриминатор типов (короткие имена из белого списка, не `AssemblyQualifiedName`). **Легаси-ридер:** старые файлы (JSON от JavaScriptSerializer — обычный JSON) читаются и мигрируются при открытии; сохранение — всегда в новом формате. Тесты round-trip + эталонные старые файлы.
 - [ ] **1.3** MugenMvvmToolkit → **CommunityToolkit.Mvvm** (D3):
   - [ ] базовые классы: `ViewModelBase` → `ObservableObject`; `CloseableViewModel` → собственный базовый класс диалога;
@@ -238,7 +239,7 @@
 | Фаза | Содержание | Оценка | Зависимости |
 |------|-----------|--------|-------------|
 | 0 | Тесты, CI, golden-файлы | 3–5 дн. (готово: 0.1–0.8, 2026-08-22) | — |
-| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. | 0 |
+| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (1.1 готов) | 0 |
 | 2 | Выделение Core | 3–5 дн. | 1 |
 | 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
 | 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
