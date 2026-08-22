@@ -8,7 +8,7 @@
 | Фаза | Название | Статус |
 |------|----------|--------|
 | 0 | Сеть безопасности (тесты, CI, golden) | ✅ готово (0.1–0.8: 48 тестов, 29 golden + эталонный набор) |
-| 1 | Миграция платформы на .NET 10 (D5) | ◐ в работе (1.1 готов) |
+| 1 | Миграция платформы на .NET 10 (D5) | ◐ в работе (1.1–1.2 готовы) |
 | 2 | Структурное разделение (Core) | ☐ не начата |
 | 3 | Очистка доменной модели | ☐ не начата |
 | 4 | Структурный G-код и генераторы | ☐ не начата |
@@ -71,7 +71,8 @@
 
 - [x] **1.1** SDK-style csproj + PackageReference (TFM пока без изменений — net481). Проверить: resx, `Settings.settings`, иконка, binding redirects. — 2026-08-22, commit 7a2a1b6.
   *Примечания: (а) `AppendTargetFrameworkToOutputPath=false` — классическая раскладка `bin\Release` без подпапки TFM (CI-пути и документация без изменений); (б) `LangVersion=latest` — как до миграции (в старом csproj LangVersion не задан); (в) `GenerateAssemblyInfo=false` — `Properties/AssemblyInfo.cs` сохранён (в т.ч. InternalsVisibleTo); (г) проверено: resx встроены (Properties.Resources + LocalizableResources), Settings.settings работает (приложение читает настройки), иконка встроена в exe, `GCodeGenerator.exe.config` идентичен старому App.config (redirect Autofac), у тестов — автогенерация redirects для MSTest; (д) обходная явная ссылка на MSTest.TestAdapter из старого тестового csproj убрана (PackageReference сам размещает адаптер); (е) SDK-style автоматически включил 4 устаревших файла после переноса Views/Drill (b9ff348) — исключены `<Compile/Page Remove>` (Views/DrillOperationsView.xaml объявляет тот же класс, что и Views/Drill/DrillOperationsView.xaml), кандидаты на удаление в фазе 2/7; (ж) CI без изменений: `nuget restore` поддерживает SDK-проекты, `msbuild`/`dotnet vstest` работают (упрощение CI — п. 1.5); (з) 48/48 тестов, golden без изменений (вывод G-кода идентичен).
-- [ ] **1.2** Заменить `JavaScriptSerializer` (System.Web.Extensions) на **System.Text.Json** в `ProjectFileService` (из 0.6): схема с полем `version`, явный дискриминатор типов (короткие имена из белого списка, не `AssemblyQualifiedName`). **Легаси-ридер:** старые файлы (JSON от JavaScriptSerializer — обычный JSON) читаются и мигрируются при открытии; сохранение — всегда в новом формате. Тесты round-trip + эталонные старые файлы.
+- [x] **1.2** Заменить `JavaScriptSerializer` (System.Web.Extensions) на **System.Text.Json** в `ProjectFileService` (из 0.6): схема с полем `version`, явный дискриминатор типов (короткие имена из белого списка, не `AssemblyQualifiedName`). **Легаси-ридер:** старые файлы (JSON от JavaScriptSerializer — обычный JSON) читаются и мигрируются при открытии; сохранение — всегда в новом формате. Тесты round-trip + эталонные старые файлы. — 2026-08-22, commit 5bfa73c (53 теста; golden и эталонный `.nc` без изменений).
+  *Примечания: (а) формат v2: `{"version":2,"operations":[{"type":"<короткое имя>","data":{...}}]}` — конверт camelCase, payload PascalCase как в модели; короткий дискриминатор из белого списка `OperationTypeNames` (11 типов) вместо `AssemblyQualifiedName`; (б) легаси-ридер: v1 определяется отсутствием поля `version`, тип разрешается по имени класса из AQN (часть до запятой → после последней точки), **версия сборки игнорируется** — устраняет уязвимость версий из 0.7 (файл сборки с версией теперь открывается); (в) `PrimitiveDictionaryConverter` (поле `Metadata`): **точно повторяет JavaScriptSerializer** — целое→`Int32`/`Int64`, дробное→`Decimal`, строка→`string`, bool→`bool`, null→`null`, enum→`Int32`; критично, что enum читается как `Int32`, т.к. VM приводят их прямым кастом `(MillingDirection)Metadata["Direction"]` (double упал бы с `InvalidCastException`); (г) `DoubleJsonConverter`: краткий round-trip double (формат `R`) — на .NET Framework STJ по умолчанию пишет `0.3` как `0.29999999999999999`, исправлено; форматирование чисел в v2 совпадает с v1 (76 значений проверено); (д) убраны ссылки `System.Web`/`System.Web.Extensions`, добавлен `System.Text.Json 9.0.19` (net462-совместим; в 1.5 при переходе на net10.0 можно поднять версию); (е) тесты: round-trip v2 (19 операций, все поля), структура v2, пропуск некорректных записей, не-объектный data→исключение, нет секции→null, пустой массив→пустой список, некорректный JSON→исключение, легаси: загрузка `legacy_project_v1.ygc` (19 операций), поля совпадают с in-memory эталоном, AQN с Version=9.9.9.9 открывается, миграция v1→v2 при сохранении; (ж) `Reference/reference_project.ygc` перегенерирован в v2 (через `GCG_WRITE_REFERENCE=1`), `reference_project.nc` **байт-в-байт идентичен**; новый эталонный легаси-файл `Reference/legacy_project_v1.ygc` (копия v1 до 1.2).
 - [ ] **1.3** MugenMvvmToolkit → **CommunityToolkit.Mvvm** (D3):
   - [ ] базовые классы: `ViewModelBase` → `ObservableObject`; `CloseableViewModel` → собственный базовый класс диалога;
   - [ ] свой `RelayCommand` → `RelayCommand`/`AsyncRelayCommand`;
@@ -239,7 +240,7 @@
 | Фаза | Содержание | Оценка | Зависимости |
 |------|-----------|--------|-------------|
 | 0 | Тесты, CI, golden-файлы | 3–5 дн. (готово: 0.1–0.8, 2026-08-22) | — |
-| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (1.1 готов) | 0 |
+| 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (1.1–1.2 готовы) | 0 |
 | 2 | Выделение Core | 3–5 дн. | 1 |
 | 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
 | 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
