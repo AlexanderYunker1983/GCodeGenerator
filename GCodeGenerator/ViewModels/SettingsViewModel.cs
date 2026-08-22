@@ -1,7 +1,5 @@
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels
@@ -386,9 +384,9 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        protected override void OnClosed(MugenMvvmToolkit.Interfaces.Models.IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
 
             // Apply changes back to shared settings when window is closed
             _settings.UseLineNumbers = UseLineNumbers;

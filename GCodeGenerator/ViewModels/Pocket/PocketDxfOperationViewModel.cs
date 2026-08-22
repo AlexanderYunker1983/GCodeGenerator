@@ -1,3 +1,4 @@
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -5,22 +6,27 @@ using System.IO;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.Pocket
 {
     public class PocketDxfOperationViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
         private const double ClosedContourTolerance = 0.001; // Точность для определения замкнутости контура
 
-        public PocketDxfOperationViewModel(ILocalizationManager localizationManager)
+        public PocketDxfOperationViewModel()
+            : this(null, null)
+        {
+        }
+
+        public PocketDxfOperationViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
             var title = _localizationManager?.GetString("PocketDxfName");
             DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - карманы" : title;
@@ -385,29 +391,24 @@ namespace GCodeGenerator.ViewModels.Pocket
 
         private void ImportDxfFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
-                DefaultExt = "dxf",
-                Title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF"
-            };
-
-            if (dialog.ShowDialog() != true)
+            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF";
+            var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
+            if (fileName == null)
                 return;
 
             try
             {
-                var closedContours = ParseDxfClosedContours(dialog.FileName);
+                var closedContours = ParseDxfClosedContours(fileName);
                 if (closedContours.Count == 0)
                 {
                     var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "В файле не найдено замкнутых контуров для импорта.";
-                    System.Windows.MessageBox.Show(msg, dialog.Title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    _dialogService?.ShowInfo(msg, title);
                     return;
                 }
 
                 Operation.ClosedContours = closedContours;
-                Operation.DxfFilePath = dialog.FileName;
-                FilePath = dialog.FileName;
+                Operation.DxfFilePath = fileName;
+                FilePath = fileName;
                 var contourCount = closedContours.Count;
                 var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "Импортировано замкнутых контуров: {0}";
                 ImportInfo = string.Format(infoTemplate, contourCount);
@@ -416,7 +417,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             catch (Exception ex)
             {
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "Ошибка импорта DXF:";
-                System.Windows.MessageBox.Show($"{msg} {ex.Message}", dialog.Title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
         }
 
@@ -1566,9 +1567,9 @@ namespace GCodeGenerator.ViewModels.Pocket
             return points;
         }
 
-        protected override void OnClosed(IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
             if (_operation == null) return;
 
             if (ToolDiameter <= 0 || StepPercentOfTool <= 0 || _operation.ClosedContours == null || _operation.ClosedContours.Count == 0)

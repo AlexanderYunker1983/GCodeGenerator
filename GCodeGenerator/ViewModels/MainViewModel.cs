@@ -1,10 +1,8 @@
-using GCodeGenerator.Infrastructure;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using GCodeGenerator.ViewModels.Pocket;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -24,21 +22,23 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
         private readonly ProjectFileService _projectFileService = new ProjectFileService();
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
 
-        public MainViewModel(ILocalizationManager localizationManager)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             _generator = new SimpleGCodeGenerator();
 
-            DrillOperations = new DrillOperationsViewModel(localizationManager);
+            DrillOperations = new DrillOperationsViewModel(localizationManager, dialogService);
             DrillOperations.MainViewModel = this;
-            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager);
+            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager, dialogService);
             ProfileMillingOperations.MainViewModel = this;
-            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager);
+            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, dialogService);
             PocketOperations.MainViewModel = this;
             
             AllOperations = new ObservableCollection<OperationBase>();
@@ -149,8 +149,8 @@ namespace GCodeGenerator.ViewModels
                 if (Equals(value, _gCodePreview)) return;
                 _gCodePreview = value;
                 OnPropertyChanged();
-                ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
-                ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
+                ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
+                ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
             }
         }
 
@@ -234,14 +234,14 @@ namespace GCodeGenerator.ViewModels
             }
             
             // Update command state after collection changes
-            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
             NotifyOperationsChanged();
         }
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
 
             if (e?.NewItems != null)
             {
@@ -285,7 +285,7 @@ namespace GCodeGenerator.ViewModels
             foreach (var line in program.Lines)
                 sb.AppendLine(line);
             GCodePreview = sb.ToString();
-            ((RelayCommand)SaveGCodeCommand).RaiseCanExecuteChanged();
+            ((RelayCommand)SaveGCodeCommand).NotifyCanExecuteChanged();
         }
 
         private void SaveGCode()
@@ -293,26 +293,22 @@ namespace GCodeGenerator.ViewModels
             if (string.IsNullOrEmpty(GCodePreview))
                 return;
 
-            var saveDialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
-                DefaultExt = "nc",
-                FileName = "program.nc"
-            };
-
-            if (saveDialog.ShowDialog() == true)
+            var fileName = _dialogService.ShowSaveDialog(
+                "",
+                "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
+                "nc",
+                "program.nc");
+            if (fileName != null)
             {
                 try
                 {
-                    System.IO.File.WriteAllText(saveDialog.FileName, GCodePreview, System.Text.Encoding.UTF8);
+                    System.IO.File.WriteAllText(fileName, GCodePreview, System.Text.Encoding.UTF8);
                 }
                 catch (System.Exception ex)
                 {
-                    System.Windows.MessageBox.Show(
+                    _dialogService.ShowError(
                         $"Ошибка при сохранении файла:\n{ex.Message}",
-                        "Ошибка",
-                        System.Windows.MessageBoxButton.OK,
-                        System.Windows.MessageBoxImage.Error);
+                        "Ошибка");
                 }
             }
         }
@@ -322,19 +318,15 @@ namespace GCodeGenerator.ViewModels
             if (string.IsNullOrEmpty(GCodePreview))
                 return;
 
-            using (var vm = GetViewModel<PreviewViewModel>())
-            {
-                vm.GCodeText = GCodePreview;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<PreviewViewModel>();
+            vm.GCodeText = GCodePreview;
+            _dialogService.ShowDialog(vm);
         }
 
         private void OpenSettings()
         {
-            using (var vm = GetViewModel<SettingsViewModel>())
-            {
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<SettingsViewModel>();
+            _dialogService.ShowDialog(vm);
         }
 
         private void ShowAllPreview()
@@ -435,11 +427,11 @@ namespace GCodeGenerator.ViewModels
 
         private void UpdateOperationCommandsCanExecute()
         {
-            ((RelayCommand)MoveOperationUpCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)MoveOperationDownCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)RemoveOperationCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)EditOperationCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)SaveProjectCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)MoveOperationUpCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)MoveOperationDownCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)RemoveOperationCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)EditOperationCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)SaveProjectCommand)?.NotifyCanExecuteChanged();
         }
 
         private void CreateNewProgram()
@@ -453,13 +445,7 @@ namespace GCodeGenerator.ViewModels
                           "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
             var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
 
-            var result = System.Windows.MessageBox.Show(
-                message,
-                title,
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning);
-
-            if (result != System.Windows.MessageBoxResult.Yes)
+            if (!_dialogService.ShowConfirm(message, title))
                 return;
 
             // Clear all operations in specific collections first
@@ -471,9 +457,9 @@ namespace GCodeGenerator.ViewModels
             SelectedOperation = null;
             GCodePreview = string.Empty;
 
-            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
             NotifyOperationsChanged();
         }
@@ -487,25 +473,18 @@ namespace GCodeGenerator.ViewModels
             var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
             var title = _localizationManager?.GetString("SaveProjectTitle") ?? "Сохранить проект";
 
-            var dialog = new Microsoft.Win32.SaveFileDialog
-            {
-                Filter = filter,
-                DefaultExt = "ygc",
-                Title = title,
-                FileName = "project.ygc"
-            };
-
-            if (dialog.ShowDialog() != true)
+            var fileName = _dialogService.ShowSaveDialog(title, filter, "ygc", "project.ygc");
+            if (fileName == null)
                 return;
 
             try
             {
-                _projectFileService.Save(dialog.FileName, AllOperations);
+                _projectFileService.Save(fileName, AllOperations);
             }
             catch (Exception ex)
             {
                 var message = _localizationManager?.GetString("ErrorSavingProject") ?? "Ошибка при сохранении проекта:";
-                System.Windows.MessageBox.Show($"{message}\n{ex.Message}", title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }
         }
 
@@ -517,19 +496,13 @@ namespace GCodeGenerator.ViewModels
             var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
             var title = _localizationManager?.GetString("OpenProjectTitle") ?? "Открыть проект";
 
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = filter,
-                DefaultExt = "ygc",
-                Title = title
-            };
-
-            if (dialog.ShowDialog() != true)
+            var fileName = _dialogService.ShowOpenDialog(title, filter, "ygc");
+            if (fileName == null)
                 return;
 
             try
             {
-                var operations = _projectFileService.Load(dialog.FileName);
+                var operations = _projectFileService.Load(fileName);
                 if (operations == null)
                 {
                     ShowInvalidProjectMessage(title);
@@ -541,7 +514,7 @@ namespace GCodeGenerator.ViewModels
             catch (Exception ex)
             {
                 var message = _localizationManager?.GetString("ErrorOpeningProject") ?? "Ошибка при загрузке проекта:";
-                System.Windows.MessageBox.Show($"{message}\n{ex.Message}", title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }
         }
 
@@ -556,13 +529,7 @@ namespace GCodeGenerator.ViewModels
                           "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
             var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
 
-            var result = System.Windows.MessageBox.Show(
-                message,
-                title,
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning);
-
-            return result == System.Windows.MessageBoxResult.Yes;
+            return _dialogService.ShowConfirm(message, title);
         }
 
         private void LoadOperationsFromProject(List<OperationBase> operations)
@@ -580,9 +547,9 @@ namespace GCodeGenerator.ViewModels
                 AddOperationToCollections(operation);
             }
 
-            ((RelayCommand)GenerateGCodeCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)SaveGCodeCommand)?.RaiseCanExecuteChanged();
-            ((RelayCommand)PreviewGCodeCommand)?.RaiseCanExecuteChanged();
+            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
+            ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
             NotifyOperationsChanged();
         }
@@ -616,7 +583,7 @@ namespace GCodeGenerator.ViewModels
         private void ShowInvalidProjectMessage(string title)
         {
             var message = _localizationManager?.GetString("InvalidProjectFile") ?? "Невозможно прочитать файл проекта.";
-            System.Windows.MessageBox.Show(message, title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            _dialogService.ShowError(message, title);
         }
 
         private void SyncOperationCollectionsOrder()

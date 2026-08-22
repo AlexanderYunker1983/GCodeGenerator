@@ -1,20 +1,20 @@
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Windows.Input;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
     public class ProfileDxfOperationViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
         private ProfileDxfOperation _operation;
         public ProfileDxfOperation Operation 
         { 
@@ -31,13 +31,14 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ICommand ImportDxfCommand { get; }
 
         public ProfileDxfOperationViewModel()
-            : this(null)
+            : this(null, null)
         {
         }
 
-        public ProfileDxfOperationViewModel(ILocalizationManager localizationManager)
+        public ProfileDxfOperationViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
 
             var title = _localizationManager?.GetString("ProfileDxfName");
@@ -189,29 +190,24 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         private void ImportDxfFile()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*",
-                DefaultExt = "dxf",
-                Title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF"
-            };
-
-            if (dialog.ShowDialog() != true)
+            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF";
+            var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
+            if (fileName == null)
                 return;
 
             try
             {
-                var polylines = ParseDxfLines(dialog.FileName);
+                var polylines = ParseDxfLines(fileName);
                 if (polylines.Count == 0)
                 {
                     var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "В файле не найдено линий для импорта.";
-                    System.Windows.MessageBox.Show(msg, dialog.Title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    _dialogService?.ShowInfo(msg, title);
                     return;
                 }
 
                 Operation.Polylines = polylines;
-                Operation.DxfFilePath = dialog.FileName;
-                FilePath = dialog.FileName;
+                Operation.DxfFilePath = fileName;
+                FilePath = fileName;
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
                 ImportInfo = string.Format(infoTemplate, lineCount);
@@ -220,7 +216,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             catch (Exception ex)
             {
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "Ошибка импорта DXF:";
-                System.Windows.MessageBox.Show($"{msg} {ex.Message}", dialog.Title, System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
         }
 
@@ -470,9 +466,9 @@ namespace GCodeGenerator.ViewModels.PocketMill
             return points;
         }
 
-        protected override void OnClosed(IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
             ProfileMillingOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }
     }

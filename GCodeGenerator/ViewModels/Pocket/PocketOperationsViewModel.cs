@@ -1,20 +1,21 @@
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.Pocket
 {
     public class PocketOperationsViewModel : ViewModelBase, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
 
-        public PocketOperationsViewModel(ILocalizationManager localizationManager)
+        public PocketOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             var title = _localizationManager?.GetString("PocketTab") ?? "Карман";
             DisplayName = title;
 
@@ -42,8 +43,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                 OnPropertyChanged();
                 if (MainViewModel != null && value != null)
                     MainViewModel.SelectedOperation = value;
-                (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-                (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                (EditOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
+                (RemoveOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
             }
         }
 
@@ -76,12 +77,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<PocketRectangleOperationViewModel>())
-            {
-                vm.PocketOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<PocketRectangleOperationViewModel>();
+            vm.PocketOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
 
             if (MainViewModel != null)
             {
@@ -101,12 +100,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<PocketCircleOperationViewModel>())
-            {
-                vm.PocketOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<PocketCircleOperationViewModel>();
+            vm.PocketOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
 
             if (MainViewModel != null)
             {
@@ -126,12 +123,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<PocketEllipseOperationViewModel>())
-            {
-                vm.PocketOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<PocketEllipseOperationViewModel>();
+            vm.PocketOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
 
             if (MainViewModel != null)
             {
@@ -154,8 +149,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                 MainViewModel.AllOperations.Remove(operation);
                 MainViewModel.NotifyOperationsChanged();
             }
-            (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (EditOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (RemoveOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
 
         public void RemoveSelectedOperation()
@@ -173,12 +168,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<PocketDxfOperationViewModel>())
-            {
-                vm.PocketOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<PocketDxfOperationViewModel>();
+            vm.PocketOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
 
             if (MainViewModel != null)
             {
@@ -192,39 +185,31 @@ namespace GCodeGenerator.ViewModels.Pocket
         {
             if (SelectedOperation is PocketRectangleOperation pocketRect)
             {
-                using (var vm = GetViewModel<PocketRectangleOperationViewModel>())
-                {
-                    vm.PocketOperationsViewModel = this;
-                    vm.Operation = pocketRect;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<PocketRectangleOperationViewModel>();
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = pocketRect;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is PocketCircleOperation pocketCircle)
             {
-                using (var vm = GetViewModel<PocketCircleOperationViewModel>())
-                {
-                    vm.PocketOperationsViewModel = this;
-                    vm.Operation = pocketCircle;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<PocketCircleOperationViewModel>();
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = pocketCircle;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is PocketEllipseOperation pocketEllipse)
             {
-                using (var vm = GetViewModel<PocketEllipseOperationViewModel>())
-                {
-                    vm.PocketOperationsViewModel = this;
-                    vm.Operation = pocketEllipse;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<PocketEllipseOperationViewModel>();
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = pocketEllipse;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is PocketDxfOperation pocketDxf)
             {
-                using (var vm = GetViewModel<PocketDxfOperationViewModel>())
-                {
-                    vm.PocketOperationsViewModel = this;
-                    vm.Operation = pocketDxf;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<PocketDxfOperationViewModel>();
+                vm.PocketOperationsViewModel = this;
+                vm.Operation = pocketDxf;
+                _dialogService.ShowDialog(vm);
             }
         }
     }

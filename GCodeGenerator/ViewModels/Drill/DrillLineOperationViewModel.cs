@@ -5,8 +5,6 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
@@ -299,9 +297,9 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        protected override void OnClosed(IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
             if (_operation == null) return;
 
             // Remove operation if no holes were created

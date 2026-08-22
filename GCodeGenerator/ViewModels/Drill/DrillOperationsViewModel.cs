@@ -1,20 +1,22 @@
-using GCodeGenerator.Infrastructure;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
-using MugenMvvmToolkit.ViewModels;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
     public class DrillOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
 
-        public DrillOperationsViewModel(ILocalizationManager localizationManager)
+        public DrillOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             Operations = new ObservableCollection<OperationBase>();
             
             AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
@@ -81,12 +83,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillPointsOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillPointsOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -100,12 +100,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillLineOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillLineOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -119,12 +117,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillArrayOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillArrayOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -138,12 +134,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillRectOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillRectOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -157,12 +151,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillCircleOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillCircleOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -176,12 +168,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillArcOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillArcOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -195,12 +185,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillPolygonOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillPolygonOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -214,12 +202,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillEllipseOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillEllipseOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -233,12 +219,10 @@ namespace GCodeGenerator.ViewModels.Drill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<DrillPackageOperationViewModel>())
-            {
-                vm.MainViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<DrillPackageOperationViewModel>();
+            vm.MainViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -316,85 +300,67 @@ namespace GCodeGenerator.ViewModels.Drill
 
             if (!string.IsNullOrEmpty(addDrillLineName) && operationName == addDrillLineName)
             {
-                using (var vm = GetViewModel<DrillLineOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillLineOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillArrayName) && operationName == addDrillArrayName)
             {
-                using (var vm = GetViewModel<DrillArrayOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillArrayOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillRectName) && operationName == addDrillRectName)
             {
-                using (var vm = GetViewModel<DrillRectOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillRectOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillCircleName) && operationName == addDrillCircleName)
             {
-                using (var vm = GetViewModel<DrillCircleOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillCircleOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillArcName) && operationName == addDrillArcName)
             {
-                using (var vm = GetViewModel<DrillArcOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillArcOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillPolygonName) && operationName == addDrillPolygonName)
             {
-                using (var vm = GetViewModel<DrillPolygonOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillPolygonOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillEllipseName) && operationName == addDrillEllipseName)
             {
-                using (var vm = GetViewModel<DrillEllipseOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillEllipseOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (!string.IsNullOrEmpty(addDrillPackageName) && operationName == addDrillPackageName)
             {
-                using (var vm = GetViewModel<DrillPackageOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillPackageOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
             else
             {
                 // По умолчанию открываем DrillPointsOperationViewModel
-                using (var vm = GetViewModel<DrillPointsOperationViewModel>())
-                {
-                    vm.MainViewModel = this;
-                    vm.Operation = drillOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<DrillPointsOperationViewModel>();
+                vm.MainViewModel = this;
+                vm.Operation = drillOp;
+                _dialogService.ShowDialog(vm);
             }
 
             MainViewModel?.NotifyOperationsChanged();
@@ -402,10 +368,10 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void UpdateOperationCommandsCanExecute()
         {
-            (MoveOperationUpCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (MoveOperationDownCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (MoveOperationUpCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (MoveOperationDownCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (RemoveOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (EditOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 }

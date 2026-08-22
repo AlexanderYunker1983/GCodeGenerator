@@ -1,12 +1,10 @@
+using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
 using System.Windows.Threading;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
@@ -147,9 +145,9 @@ namespace GCodeGenerator.ViewModels.Drill
         public ICommand MoveHoleUpCommand { get; }
         public ICommand MoveHoleDownCommand { get; }
 
-        protected override void OnClosed(IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
             if (_operation == null) return;
 
             // Remove operation only if no holes were created or user deleted all holes
@@ -258,9 +256,9 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void UpdateCommands()
         {
-            (RemoveHoleCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (MoveHoleUpCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (MoveHoleDownCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RemoveHoleCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (MoveHoleUpCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (MoveHoleDownCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 }

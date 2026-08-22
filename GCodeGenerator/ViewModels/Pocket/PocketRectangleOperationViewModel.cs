@@ -2,8 +2,6 @@ using System;
 using System.Windows.Threading;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Pocket
@@ -459,9 +457,9 @@ namespace GCodeGenerator.ViewModels.Pocket
         }
 
 
-        protected override void OnClosed(IDataContext context)
+        public override void OnClosed()
         {
-            base.OnClosed(context);
+            base.OnClosed();
             if (_operation == null) return;
 
             if (Width <= 0 || Height <= 0 || ToolDiameter <= 0 || StepPercentOfTool <= 0)

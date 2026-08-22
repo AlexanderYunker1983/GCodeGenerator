@@ -1,20 +1,21 @@
-using GCodeGenerator.Infrastructure;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
     public class ProfileMillingOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
+        private readonly IDialogService _dialogService;
 
-        public ProfileMillingOperationsViewModel(ILocalizationManager localizationManager)
+        public ProfileMillingOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
         {
             _localizationManager = localizationManager;
+            _dialogService = dialogService;
             Operations = new ObservableCollection<OperationBase>();
             
             AddProfileRectangleCommand = new RelayCommand(AddProfileRectangle);
@@ -76,12 +77,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfileRectangleOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -95,12 +94,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfileRoundedRectangleOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfileRoundedRectangleOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -114,12 +111,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfileCircleOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfileCircleOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -133,12 +128,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfileEllipseOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfileEllipseOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -152,12 +145,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfilePolygonOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfilePolygonOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -171,12 +162,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
             Operations.Add(op);
             SelectedOperation = op;
 
-            using (var vm = GetViewModel<ProfileDxfOperationViewModel>())
-            {
-                vm.ProfileMillingOperationsViewModel = this;
-                vm.Operation = op;
-                vm.ShowAsync();
-            }
+            var vm = _dialogService.CreateViewModel<ProfileDxfOperationViewModel>();
+            vm.ProfileMillingOperationsViewModel = this;
+            vm.Operation = op;
+            _dialogService.ShowDialog(vm);
             MainViewModel?.NotifyOperationsChanged();
         }
 
@@ -239,57 +228,45 @@ namespace GCodeGenerator.ViewModels.PocketMill
         {
             if (SelectedOperation is ProfileRectangleOperation profileRectOp)
             {
-                using (var vm = GetViewModel<ProfileRectangleOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = profileRectOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfileRectangleOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = profileRectOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is ProfileRoundedRectangleOperation roundedOp)
             {
-                using (var vm = GetViewModel<ProfileRoundedRectangleOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = roundedOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfileRoundedRectangleOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = roundedOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is ProfileCircleOperation profileCircleOp)
             {
-                using (var vm = GetViewModel<ProfileCircleOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = profileCircleOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfileCircleOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = profileCircleOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is ProfileEllipseOperation profileEllipseOp)
             {
-                using (var vm = GetViewModel<ProfileEllipseOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = profileEllipseOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfileEllipseOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = profileEllipseOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is ProfilePolygonOperation profilePolygonOp)
             {
-                using (var vm = GetViewModel<ProfilePolygonOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = profilePolygonOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfilePolygonOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = profilePolygonOp;
+                _dialogService.ShowDialog(vm);
             }
             else if (SelectedOperation is ProfileDxfOperation profileDxfOp)
             {
-                using (var vm = GetViewModel<ProfileDxfOperationViewModel>())
-                {
-                    vm.ProfileMillingOperationsViewModel = this;
-                    vm.Operation = profileDxfOp;
-                    vm.ShowAsync();
-                }
+                var vm = _dialogService.CreateViewModel<ProfileDxfOperationViewModel>();
+                vm.ProfileMillingOperationsViewModel = this;
+                vm.Operation = profileDxfOp;
+                _dialogService.ShowDialog(vm);
             }
 
             MainViewModel?.NotifyOperationsChanged();
@@ -297,10 +274,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         private void UpdateOperationCommandsCanExecute()
         {
-            (MoveOperationUpCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (MoveOperationDownCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (RemoveOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (EditOperationCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (MoveOperationUpCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (MoveOperationDownCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (RemoveOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            (EditOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 }

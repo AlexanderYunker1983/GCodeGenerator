@@ -37,7 +37,7 @@ namespace GCodeGenerator.Tests.Fixtures
         /// </summary>
         public static List<DxfPolyline> LoadPocketClosedContours(string fileName)
         {
-            var vm = new PocketDxfOperationViewModel(null);
+            var vm = new PocketDxfOperationViewModel();
             return vm.ParseDxfClosedContours(GetAssetPath(fileName));
         }
     }

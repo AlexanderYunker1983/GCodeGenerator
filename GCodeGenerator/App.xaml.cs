@@ -1,12 +1,13 @@
-﻿using System.Collections.Generic;
+using System;
 using System.Reflection;
 using System.Windows;
+using Autofac;
 using GCodeGenerator.Infrastructure;
+using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
-using MugenMvvmToolkit;
-using MugenMvvmToolkit.Interfaces;
-using MugenMvvmToolkit.Models;
-using MugenMvvmToolkit.WPF.Infrastructure;
+using GCodeGenerator.Services;
+using GCodeGenerator.ViewModels;
+using GCodeGenerator.Views;
 
 namespace GCodeGenerator
 {
@@ -15,25 +16,47 @@ namespace GCodeGenerator
     /// </summary>
     public partial class App
     {
-        public App()
-        {
-            // ReSharper disable once ObjectCreationAsStatement
-            new BootstrapperEx(this, new AutofacContainer());
-        }
-
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            ThemeHelper.ApplyTheme(GCodeSettingsStore.Current.UseDarkTheme);
+            StartupCore();
         }
-    }
 
-    public class BootstrapperEx : Bootstrapper<GCodeGeneratorMvvmApp>
-    {
-        public BootstrapperEx(Application application, IIocContainer iocContainer,
-            IEnumerable<Assembly> assemblies = null, PlatformInfo platform = null)
-            : base(application, iocContainer, assemblies, platform)
+        /// <summary>
+        /// Composition root (пункт 1.3 плана): замена Mugen <c>Bootstrapper</c>/
+        /// <c>BootstrapperEx</c>/<c>GCodeGeneratorMvvmApp</c> и <c>LocalizationModule</c>
+        /// на прямой Autofac.
+        /// </summary>
+        private void StartupCore()
         {
+            // Локализация (ранее — LocalizationModule.Load).
+            var localizationManager = new AppLocalizationManager();
+            localizationManager.AddAssembly("GCodeGenerator");
+            LocalizationProvider.Instance = localizationManager;
+
+            // Версия программы (ранее — LocalizationModule.Load).
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            PlatformVariables.ProgramVersion = version.Build == 0
+                ? $"{version.Major}.{version.Minor}"
+                : $"{version.Major}.{version.Minor}.{version.Build}-Developer Version";
+            PlatformVariables.LocalizationManager = localizationManager;
+
+            // Autofac: регистрация сервисов и view-моделей.
+            var builder = new ContainerBuilder();
+            builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
+            builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
+            builder.RegisterAssemblyTypes(typeof(MainViewModel).Assembly)
+                .AssignableTo<ViewModelBase>()
+                .InstancePerDependency();
+            var scope = builder.Build();
+
+            // Главное окно (ранее — MvvmApplication.GetStartViewModelType + ShowAsync).
+            var mainViewModel = scope.Resolve<MainViewModel>();
+            var mainWindow = new MainView { DataContext = mainViewModel };
+            MainWindow = mainWindow;
+            mainWindow.Show();
+
+            ThemeHelper.ApplyTheme(GCodeSettingsStore.Current.UseDarkTheme);
         }
     }
 }

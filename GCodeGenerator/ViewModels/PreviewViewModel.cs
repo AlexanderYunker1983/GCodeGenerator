@@ -4,8 +4,6 @@ using System.Globalization;
 using System.Linq;
 using System.Windows.Media;
 using System.Windows.Media.Media3D;
-using MugenMvvmToolkit.Interfaces.Models;
-using MugenMvvmToolkit.ViewModels;
 using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels
