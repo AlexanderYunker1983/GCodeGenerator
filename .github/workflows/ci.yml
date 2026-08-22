@@ -16,6 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # MSBuild на образе runners не всегда доступен в PATH —
+      # официальный action находит его через vswhere и добавляет в PATH.
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
       - name: NuGet restore
         run: nuget restore GCodeGenerator.sln
 
@@ -63,5 +68,5 @@ jobs:
               Write-Host "Test assembly not found: $dll"
               exit 1
             }
-            & vstest $dll
+            & dotnet vstest $dll
           }
