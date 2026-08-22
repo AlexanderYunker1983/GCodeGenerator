@@ -45,7 +45,7 @@
 
 **Цель:** зафиксировать текущее поведение, чтобы любой последующий шаг был проверяем.
 
-- [ ] **0.1** CI-пайплайн (GitHub Actions, `windows-latest`): сборка `GCodeGenerator.sln` (Release) + запуск тестов. Гейт на каждый push/PR.
+- [x] **0.1** CI-пайплайн (GitHub Actions, `windows-latest`): сборка `GCodeGenerator.sln` (Release) + запуск тестов. Гейт на каждый push/PR. — 2026-08-22, commit 46bfa5a (`.github/workflows/ci.yml`; сборка Release проверена локально MSBuild 18.8)
 - [ ] **0.2** Тестовый проект `GCodeGenerator.Tests` (xUnit, net481, `ProjectReference` на основной проект).
 - [ ] **0.3** Фикстуры операций (`Tests/Fixtures`): 9 видов сверления, 6 профилей, 4 кармана (включая DXF-карман и DXF-профиль с образцовыми `.dxf` в `Tests/Assets`), варианты настроек (линейные номера вкл/выкл, padded G, AllowArcs вкл/выкл, шпиндель/СОЖ вкл/выкл, G54–G59, G92-старт/финиш).
 - [ ] **0.4** Золотые тесты генератора: для каждой фикстуры `SimpleGCodeGenerator.Generate(...)` → golden-файлы `Tests/Golden/*.nc`, сравнение построчно (инвариантная культура).
