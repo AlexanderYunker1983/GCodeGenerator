@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: NuGet restore
+        run: nuget restore GCodeGenerator.sln
+
+      # windows-latest обычно содержит .NET Framework 4.8.1 Developer Pack,
+      # но на случай его отсутствия ставим reference assemblies из NuGet.
+      - name: Check .NET Framework 4.8.1 targeting pack
+        id: fw
+        shell: pwsh
+        run: |
+          $pack = 'C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8.1'
+          if (Test-Path $pack) {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=true'
+          } else {
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=false'
+          }
+
+      - name: Install .NET Framework 4.8.1 reference assemblies
+        if: steps.fw.outputs.found == 'false'
+        run: nuget install Microsoft.NETFramework.ReferenceAssemblies.net481 -OutputDirectory packages-ci
+
+      - name: Build (Release)
+        shell: pwsh
+        run: |
+          if ('${{ steps.fw.outputs.found }}' -eq 'false') {
+            $ref = Get-ChildItem 'packages-ci\Microsoft.NETFramework.ReferenceAssemblies.net481*\build\.NETFramework\v4.8.1' -Directory |
+              Select-Object -First 1 -ExpandProperty FullName
+            & msbuild GCodeGenerator.sln /p:Configuration=Release /p:FrameworkPathOverride="$ref" /m /v:m
+          } else {
+            & msbuild GCodeGenerator.sln /p:Configuration=Release /m /v:m
+          }
+
+      # Тестовый проект появится в пункте 0.2 плана; до этого шаг пропускается.
+      - name: Run tests
+        shell: pwsh
+        run: |
+          $testProjects = Get-ChildItem -Path . -Recurse -Filter '*.Tests.csproj' -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' }
+          if (-not $testProjects) {
+            Write-Host 'No test projects found - skipping (plan item 0.2).'
+            exit 0
+          }
+          foreach ($tp in $testProjects) {
+            $dll = Join-Path $tp.DirectoryName "bin\Release\$($tp.BaseName).dll"
+            if (-not (Test-Path $dll)) {
+              Write-Host "Test assembly not found: $dll"
+              exit 1
+            }
+            & vstest $dll
+          }
