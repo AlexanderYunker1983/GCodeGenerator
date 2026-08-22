@@ -69,44 +69,10 @@ namespace GCodeGenerator.Tests
             Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Reference"));
 
         /// <summary>
-        /// Состав эталонного проекта: все 19 операций фикстур 0.3 в порядке каталога.
-        /// DxfFilePath нормализован к именам ассетов (без машинного пути).
+        /// Состав эталонного проекта: все 19 операций фикстур 0.3 в порядке каталога
+        /// (DxfFilePath нормализован к именам ассетов). Общий helper — Fixtures/ReferenceOperations.
         /// </summary>
-        private static List<OperationBase> BuildReferenceOperations()
-        {
-            var ops = new List<OperationBase>
-            {
-                // Сверление (9)
-                OperationFixtures.DrillPoints(),
-                OperationFixtures.DrillLine(),
-                OperationFixtures.DrillArray(),
-                OperationFixtures.DrillRect(),
-                OperationFixtures.DrillCircle(),
-                OperationFixtures.DrillArc(),
-                OperationFixtures.DrillPolygon(),
-                OperationFixtures.DrillEllipse(),
-                OperationFixtures.DrillPackage(),
-                // Профили (6)
-                OperationFixtures.ProfileRectangle(),
-                OperationFixtures.ProfileRoundedRectangle(),
-                OperationFixtures.ProfileCircle(),
-                OperationFixtures.ProfileEllipse(),
-                OperationFixtures.ProfilePolygon(),
-                OperationFixtures.ProfileDxf(),
-                // Карманы (4)
-                OperationFixtures.PocketRectangle(),
-                OperationFixtures.PocketCircle(),
-                OperationFixtures.PocketEllipse(),
-                OperationFixtures.PocketDxf()
-            };
-
-            foreach (var op in ops.OfType<ProfileDxfOperation>())
-                op.DxfFilePath = "profile_sample.dxf";
-            foreach (var op in ops.OfType<PocketDxfOperation>())
-                op.DxfFilePath = "pocket_sample.dxf";
-
-            return ops;
-        }
+        private static List<OperationBase> BuildReferenceOperations() => ReferenceOperations.Build();
 
         /// <summary>
         /// Эталонный .ygc открывается через ProjectFileService (реальный путь загрузки):
@@ -120,9 +86,8 @@ namespace GCodeGenerator.Tests
                 "Нет эталонного проекта Reference/reference_project.ygc " +
                 "(запустите Write_Reference_Set с GCG_WRITE_REFERENCE=1 и закоммитьте файлы)");
 
-            var project = Service.Load(ygcPath);
-            var ops = Service.ExtractOperations(project);
-
+            var ops = Service.Load(ygcPath);
+            Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             Assert.AreEqual(19, ops.Count, "Число операций в эталонном проекте");
 
             var expectedTypes = new[]
@@ -147,8 +112,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Reference_Project_GCode_Matches_Reference_File()
         {
-            var ops = Service.ExtractOperations(
-                Service.Load(Path.Combine(ReferenceOutputDirectory, "reference_project.ygc")));
+            var ops = Service.Load(Path.Combine(ReferenceOutputDirectory, "reference_project.ygc"));
+            Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             var program = Generator.Generate(ops, SettingsFixtures.Default());
 
             var ncPath = Path.Combine(ReferenceOutputDirectory, "reference_project.nc");

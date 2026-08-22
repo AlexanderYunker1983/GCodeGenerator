@@ -529,14 +529,14 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                var project = _projectFileService.Load(dialog.FileName);
-                if (project?.Operations == null)
+                var operations = _projectFileService.Load(dialog.FileName);
+                if (operations == null)
                 {
                     ShowInvalidProjectMessage(title);
                     return;
                 }
 
-                LoadOperationsFromProject(project);
+                LoadOperationsFromProject(operations);
             }
             catch (Exception ex)
             {
@@ -565,7 +565,7 @@ namespace GCodeGenerator.ViewModels
             return result == System.Windows.MessageBoxResult.Yes;
         }
 
-        private void LoadOperationsFromProject(ProjectData project)
+        private void LoadOperationsFromProject(List<OperationBase> operations)
         {
             // Clear current data
             DrillOperations?.Operations.Clear();
@@ -575,7 +575,7 @@ namespace GCodeGenerator.ViewModels
             SelectedOperation = null;
             GCodePreview = string.Empty;
 
-            foreach (var operation in _projectFileService.ExtractOperations(project))
+            foreach (var operation in operations)
             {
                 AddOperationToCollections(operation);
             }

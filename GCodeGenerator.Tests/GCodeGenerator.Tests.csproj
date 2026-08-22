@@ -43,6 +43,10 @@
     <None Include="Reference\reference_project.ygc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- Пункт 1.2: эталонный легаси-файл v1 (формат JavaScriptSerializer) для тестов легаси-ридера. -->
+    <None Include="Reference\legacy_project_v1.ygc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Reference\reference_project.nc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
