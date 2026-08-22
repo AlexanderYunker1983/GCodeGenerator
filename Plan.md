@@ -44,7 +44,7 @@
 **Цель:** зафиксировать текущее поведение, чтобы любой последующий шаг был проверяем.
 
 - [x] **0.1** CI-пайплайн (GitHub Actions, `windows-latest`): сборка `GCodeGenerator.sln` (Release) + запуск тестов. Гейт на каждый push/PR. — 2026-08-22, commit 46bfa5a + 8319c9c (`.github/workflows/ci.yml`; фикс: `microsoft/setup-msbuild@v2`, т.к. msbuild не в PATH на образе; `dotnet vstest`). *Примечание: после фазы 1 пайплайн упрощается до `dotnet build`/`dotnet test` (п. 1.5).*
-- [ ] **0.2** Тестовый проект `GCodeGenerator.Tests` (xUnit, TFM = TFM основного проекта, `ProjectReference`).
+- [x] **0.2** Тестовый проект `GCodeGenerator.Tests` (TFM = TFM основного проекта, `ProjectReference`). — 2026-08-22, commit 6044047. *Отклонение от плана: вместо xUnit — **MSTest 3.1.1** (MSTest.TestFramework + MSTest.TestAdapter + Microsoft.NET.Test.Sdk 17.8.0): пакеты xunit в локальном NuGet-зеркале (localhost:8624) повреждены (stub'ы без lib/), сеть отдаёт зеркало вместо nuget.org. Если зеркало починят — можно вернуться к xUnit (механическая замена атрибутов). CI не зависит от этого (на раннере — nuget.org).*
 - [ ] **0.3** Фикстуры операций (`Tests/Fixtures`): 9 видов сверления, 6 профилей, 4 кармана (включая DXF-карман и DXF-профиль с образцовыми `.dxf` в `Tests/Assets`), варианты настроек (линейные номера вкл/выкл, padded G, AllowArcs вкл/выкл, шпиндель/СОЖ вкл/выкл, G54–G59, G92-старт/финиш).
 - [ ] **0.4** Золотые тесты генератора: для каждой фикстуры `SimpleGCodeGenerator.Generate(...)` → golden-файлы `Tests/Golden/*.nc`, сравнение построчно (инвариантная культура).
 - [ ] **0.5** Характеризационные тесты рискованной логики:
