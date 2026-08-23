@@ -2,11 +2,10 @@ using System;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
-using System.Collections.ObjectModel;
 
 namespace GCodeGenerator.ViewModels.Pocket
 {
-    public class PocketEllipseOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class PocketEllipseOperationViewModel : OperationEditorViewModelBase<PocketEllipseOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
 
@@ -17,46 +16,34 @@ namespace GCodeGenerator.ViewModels.Pocket
             DisplayName = string.IsNullOrEmpty(title) ? "Карман эллиптический" : title;
         }
 
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private PocketEllipseOperation _operation;
-
-        public PocketEllipseOperation Operation
+        protected override void LoadFromOperation(PocketEllipseOperation operation)
         {
-            get => _operation;
-            set
-            {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                if (_operation == null) return;
+            Direction = operation.Direction;
+            PocketStrategy = operation.PocketStrategy;
+            CenterX = operation.CenterX;
+            CenterY = operation.CenterY;
+            RadiusX = operation.RadiusX;
+            RadiusY = operation.RadiusY;
+            RotationAngle = operation.RotationAngle;
+            TotalDepth = operation.TotalDepth;
+            StepDepth = operation.StepDepth;
+            ToolDiameter = operation.ToolDiameter;
+            ContourHeight = operation.ContourHeight;
+            FeedXYRapid = operation.FeedXYRapid;
+            FeedXYWork = operation.FeedXYWork;
+            FeedZRapid = operation.FeedZRapid;
+            FeedZWork = operation.FeedZWork;
+            SafeZHeight = operation.SafeZHeight;
+            RetractHeight = operation.RetractHeight;
+            StepPercentOfTool = operation.StepPercentOfTool;
+            Decimals = operation.Decimals;
+            LineAngleDeg = operation.LineAngleDeg;
+            WallTaperAngleDeg = Math.Max(0, operation.WallTaperAngleDeg);
 
-                Direction = _operation.Direction;
-                PocketStrategy = _operation.PocketStrategy;
-                CenterX = _operation.CenterX;
-                CenterY = _operation.CenterY;
-                RadiusX = _operation.RadiusX;
-                RadiusY = _operation.RadiusY;
-                RotationAngle = _operation.RotationAngle;
-                TotalDepth = _operation.TotalDepth;
-                StepDepth = _operation.StepDepth;
-                ToolDiameter = _operation.ToolDiameter;
-                ContourHeight = _operation.ContourHeight;
-                FeedXYRapid = _operation.FeedXYRapid;
-                FeedXYWork = _operation.FeedXYWork;
-                FeedZRapid = _operation.FeedZRapid;
-                FeedZWork = _operation.FeedZWork;
-                SafeZHeight = _operation.SafeZHeight;
-                RetractHeight = _operation.RetractHeight;
-                StepPercentOfTool = _operation.StepPercentOfTool;
-                Decimals = _operation.Decimals;
-                LineAngleDeg = _operation.LineAngleDeg;
-                WallTaperAngleDeg = Math.Max(0, _operation.WallTaperAngleDeg);
-
-                IsRoughingEnabled = _operation.IsRoughingEnabled;
-                IsFinishingEnabled = _operation.IsFinishingEnabled;
-                FinishAllowance = _operation.FinishAllowance;
-                FinishingMode = _operation.FinishingMode;
-            }
+            IsRoughingEnabled = operation.IsRoughingEnabled;
+            IsFinishingEnabled = operation.IsFinishingEnabled;
+            FinishAllowance = operation.FinishAllowance;
+            FinishingMode = operation.FinishingMode;
         }
 
         private string _displayName;
@@ -400,51 +387,37 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            if (RadiusX <= 0 || RadiusY <= 0 || ToolDiameter <= 0 || StepPercentOfTool <= 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
-            _operation.Direction = Direction;
-            _operation.PocketStrategy = PocketStrategy;
-            _operation.CenterX = CenterX;
-            _operation.CenterY = CenterY;
-            _operation.RadiusX = RadiusX;
-            _operation.RadiusY = RadiusY;
-            _operation.RotationAngle = RotationAngle;
-            _operation.TotalDepth = TotalDepth;
-            _operation.StepDepth = StepDepth;
-            _operation.ToolDiameter = ToolDiameter;
-            _operation.ContourHeight = ContourHeight;
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.FeedZRapid = FeedZRapid;
-            _operation.FeedZWork = FeedZWork;
-            _operation.SafeZHeight = SafeZHeight;
-            _operation.RetractHeight = RetractHeight;
-            _operation.StepPercentOfTool = StepPercentOfTool;
-            _operation.Decimals = Decimals;
-            _operation.LineAngleDeg = LineAngleDeg;
-            _operation.WallTaperAngleDeg = WallTaperAngleDeg;
-            _operation.IsRoughingEnabled = IsRoughingEnabled;
-            _operation.IsFinishingEnabled = IsFinishingEnabled;
-            _operation.FinishAllowance = FinishAllowance;
-            _operation.FinishingMode = FinishingMode;
+            Operation.Direction = Direction;
+            Operation.PocketStrategy = PocketStrategy;
+            Operation.CenterX = CenterX;
+            Operation.CenterY = CenterY;
+            Operation.RadiusX = RadiusX;
+            Operation.RadiusY = RadiusY;
+            Operation.RotationAngle = RotationAngle;
+            Operation.TotalDepth = TotalDepth;
+            Operation.StepDepth = StepDepth;
+            Operation.ToolDiameter = ToolDiameter;
+            Operation.ContourHeight = ContourHeight;
+            Operation.FeedXYRapid = FeedXYRapid;
+            Operation.FeedXYWork = FeedXYWork;
+            Operation.FeedZRapid = FeedZRapid;
+            Operation.FeedZWork = FeedZWork;
+            Operation.SafeZHeight = SafeZHeight;
+            Operation.RetractHeight = RetractHeight;
+            Operation.StepPercentOfTool = StepPercentOfTool;
+            Operation.Decimals = Decimals;
+            Operation.LineAngleDeg = LineAngleDeg;
+            Operation.WallTaperAngleDeg = WallTaperAngleDeg;
+            Operation.IsRoughingEnabled = IsRoughingEnabled;
+            Operation.IsFinishingEnabled = IsFinishingEnabled;
+            Operation.FinishAllowance = FinishAllowance;
+            Operation.FinishingMode = FinishingMode;
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3).
+        protected override bool IsValid() => RadiusX > 0 && RadiusY > 0 && ToolDiameter > 0 && StepPercentOfTool > 0;
     }
 }
 
