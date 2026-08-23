@@ -35,17 +35,24 @@ namespace GCodeGenerator
             localizationManager.AddAssembly("GCodeGenerator");
             LocalizationProvider.Instance = localizationManager;
 
-            // Версия программы (ранее — LocalizationModule.Load).
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            PlatformVariables.ProgramVersion = version.Build == 0
-                ? $"{version.Major}.{version.Minor}"
-                : $"{version.Major}.{version.Minor}.{version.Build}-Developer Version";
-            PlatformVariables.LocalizationManager = localizationManager;
-
             // Autofac: регистрация сервисов и view-моделей.
             var builder = new ContainerBuilder();
             builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
             builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
+
+            // Пункт 7.5 плана: версия программы через IoC (ранее статика PlatformVariables).
+            var version = Assembly.GetExecutingAssembly().GetName().Version;
+            var versionString = version.Build == 0
+                ? $"{version.Major}.{version.Minor}"
+                : $"{version.Major}.{version.Minor}.{version.Build}-Developer Version";
+            builder.RegisterInstance(new ProgramInfo(versionString)).As<IProgramInfo>().SingleInstance();
+
+            // Пункт 7.5 плана: хранилище настроек через IoC (статический фасад
+            // GCodeSettingsStore делегирует тому же экземпляру).
+            builder.RegisterInstance(GCodeSettingsStore.Instance).As<ISettingsStore>().SingleInstance();
+
+            // Пункт 7.5 плана: сервис темы через IoC (ранее статика ThemeHelper).
+            builder.RegisterType<WpfThemeService>().As<IThemeService>().SingleInstance();
 
             // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
             // Type операции → VM диалога; сверление — по DrillMode).
@@ -75,7 +82,7 @@ namespace GCodeGenerator
             MainWindow = mainWindow;
             mainWindow.Show();
 
-            ThemeHelper.ApplyTheme(GCodeSettingsStore.Current.UseDarkTheme);
+            scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.UseDarkTheme);
         }
     }
 }

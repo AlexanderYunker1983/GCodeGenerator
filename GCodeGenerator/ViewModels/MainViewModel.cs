@@ -20,16 +20,18 @@ namespace GCodeGenerator.ViewModels
     public class MainViewModel : ViewModelBase, IHasDisplayName
     {
         private readonly IGCodeGenerator _generator;
-        private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
+        private readonly GCodeSettings _settings;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IOperationEditorFactory _operationEditorFactory;
+        private readonly IProgramInfo _programInfo;
+        private readonly IThemeService _themeService;
         private readonly ProjectFileService _projectFileService = new ProjectFileService();
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
@@ -38,6 +40,11 @@ namespace GCodeGenerator.ViewModels
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
             // Пункт 7.3 плана: фабрика диалогов редактора операций.
             _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
+            // Пункт 7.5 плана: версия, настройки и тема — через IoC (ранее статика
+            // PlatformVariables/GCodeSettingsStore/ThemeHelper).
+            _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
+            _settings = (settingsStore ?? throw new ArgumentNullException(nameof(settingsStore))).Current;
+            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
@@ -69,7 +76,7 @@ namespace GCodeGenerator.ViewModels
 
             var title = _localizationManager?.GetString("MainTitle");
             var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
-            var version = PlatformVariables.ProgramVersion;
+            var version = _programInfo.Version;
             _displayName = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
 
             // Attach property change handlers to existing operations
@@ -80,7 +87,9 @@ namespace GCodeGenerator.ViewModels
 
             // Пункт 6.3 плана: 2D-превью получает чистую OperationScene из
             // отдельного VM (code-behind — только отрисовка и мышь).
-            OperationsPreview = new OperationsPreviewViewModel(this);
+            // Пункт 7.5 плана: VM получает IThemeService (ранее code-behind
+            // подписывался на статический ThemeHelper.ThemeChanged).
+            OperationsPreview = new OperationsPreviewViewModel(this, _themeService);
         }
 
         private string _displayName;

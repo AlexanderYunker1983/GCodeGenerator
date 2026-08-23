@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels
 {
@@ -16,12 +17,16 @@ namespace GCodeGenerator.ViewModels
     public class OperationsPreviewViewModel : ViewModelBase
     {
         private readonly MainViewModel _main;
+        private readonly IThemeService _themeService;
         private OperationScene _scene;
         private OperationBase _selectedOperation;
 
-        public OperationsPreviewViewModel(MainViewModel main)
+        public OperationsPreviewViewModel(MainViewModel main, IThemeService themeService)
         {
             _main = main ?? throw new ArgumentNullException(nameof(main));
+            // Пункт 7.5 плана: тема через IoC (ранее code-behind подписывался
+            // на статический ThemeHelper.ThemeChanged).
+            _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             _scene = OperationSceneBuilder.Build(main.AllOperations);
             _selectedOperation = main.SelectedOperation;
 
@@ -29,6 +34,7 @@ namespace GCodeGenerator.ViewModels
             (_main.AllOperations as INotifyCollectionChanged).CollectionChanged += (s, e) => RebuildScene();
             _main.ShowAllRequested += OnShowAllRequested;
             _main.PropertyChanged += OnMainPropertyChanged;
+            _themeService.ThemeChanged += OnThemeServiceChanged;
         }
 
         /// <summary>The pure 2D scene of all operations (Core types only).</summary>
@@ -66,6 +72,14 @@ namespace GCodeGenerator.ViewModels
 
         /// <summary>Raised when "show all" is requested (fit the view to the scene).</summary>
         public event EventHandler ShowAllRequested;
+
+        /// <summary>Raised when the application theme changed (view redraws the scene) — пункт 7.5 плана.</summary>
+        public event EventHandler ThemeChanged;
+
+        private void OnThemeServiceChanged(object sender, EventArgs e)
+        {
+            ThemeChanged?.Invoke(this, EventArgs.Empty);
+        }
 
         private void OnMainPropertyChanged(object sender, PropertyChangedEventArgs e)
         {

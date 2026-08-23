@@ -1,4 +1,4 @@
-﻿<Application x:Class="GCodeGenerator.App"
+<Application x:Class="GCodeGenerator.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
@@ -7,7 +7,7 @@
         <ResourceDictionary>
             <!-- Пункт 1.4: набор MergedDictionaries MahApps.Metro 2.4.11 (официальный,
                  как в демо-приложении 2.4.11: Controls + Fonts + combined-тема Light.Blue).
-                 Тёмная тема подменяется на Styles/Themes/Dark.Blue.xaml через ThemeHelper. -->
+                 Тёмная тема подменяется на Styles/Themes/Dark.Blue.xaml через IThemeService (WpfThemeService). -->
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="/GCodeGenerator;component/Images/OperationImages.xaml"/>
                 <ResourceDictionary Source="/GCodeGenerator;component/Images/Images.xaml"/>

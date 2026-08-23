@@ -63,8 +63,24 @@ namespace GCodeGenerator.Tests
         {
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
-            var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory);
+            // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
+            var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory,
+                new ProgramInfo("1.0"), new FakeSettingsStore(), new FakeThemeService());
             return (main, factory, dialogService);
+        }
+
+        /// <summary>Фикс ISettingsStore (пункт 7.5 плана): настройки по умолчанию, без персистентности.</summary>
+        private sealed class FakeSettingsStore : ISettingsStore
+        {
+            public GCodeSettings Current { get; } = new GCodeSettings();
+            public void Save() { }
+        }
+
+        /// <summary>Фикс IThemeService (пункт 7.5 плана): без WPF.</summary>
+        private sealed class FakeThemeService : IThemeService
+        {
+            public event EventHandler ThemeChanged;
+            public void ApplyTheme(bool useDarkTheme) => ThemeChanged?.Invoke(this, EventArgs.Empty);
         }
 
         [TestMethod]

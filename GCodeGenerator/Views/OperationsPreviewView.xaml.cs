@@ -6,7 +6,6 @@ using System.Windows.Media;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Shapes;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.ViewModels;
@@ -34,9 +33,7 @@ namespace GCodeGenerator.Views
         {
             InitializeComponent();
             Loaded += OnLoaded;
-            Unloaded += OnUnloaded;
             DataContextChanged += OnDataContextChanged;
-            ThemeHelper.ThemeChanged += OnThemeChanged;
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -60,6 +57,8 @@ namespace GCodeGenerator.Views
             {
                 _vm.PropertyChanged += OnVmPropertyChanged;
                 _vm.ShowAllRequested += OnShowAllRequested;
+                // Пункт 7.5 плана: тема — через VM (ранее статический ThemeHelper).
+                _vm.ThemeChanged += OnThemeChanged;
             }
         }
 
@@ -69,6 +68,7 @@ namespace GCodeGenerator.Views
             {
                 _vm.PropertyChanged -= OnVmPropertyChanged;
                 _vm.ShowAllRequested -= OnShowAllRequested;
+                _vm.ThemeChanged -= OnThemeChanged;
             }
             _vm = null;
         }
@@ -218,11 +218,6 @@ namespace GCodeGenerator.Views
         private void OnThemeChanged(object sender, EventArgs e)
         {
             Redraw();
-        }
-
-        private void OnUnloaded(object sender, RoutedEventArgs e)
-        {
-            ThemeHelper.ThemeChanged -= OnThemeChanged;
         }
 
         // ------------------------------------------------------------------

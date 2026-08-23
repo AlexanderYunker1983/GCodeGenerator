@@ -3,19 +3,20 @@ using System.Windows;
 using ControlzEx.Theming;
 using MahApps.Metro.Theming;
 
-namespace GCodeGenerator.Infrastructure
+namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Helper for switching MahApps themes at runtime.
+    /// WPF-реализация <see cref="IThemeService"/> (пункт 7.5 плана):
+    /// тело бывшего статического <c>ThemeHelper</c>.
     /// MahApps 2.x: ThemeManager перенесён из MahApps.Metro в ControlzEx
     /// (ControlzEx.Theming.ThemeManager.Current); темы MahApps регистрируются
     /// через MahAppsLibraryThemeProvider (регистрация идемпотентна).
     /// </summary>
-    public static class ThemeHelper
+    public sealed class WpfThemeService : IThemeService
     {
-        public static event EventHandler ThemeChanged;
+        public event EventHandler ThemeChanged;
 
-        public static void ApplyTheme(bool useDarkTheme)
+        public void ApplyTheme(bool useDarkTheme)
         {
             var application = Application.Current;
             if (application == null)
@@ -39,7 +40,7 @@ namespace GCodeGenerator.Infrastructure
             // ChangeTheme подменяет словарь темы в Application.Resources
             // (Styles/Themes/{Light|Dark}.{Accent}.xaml) — как в 1.x ChangeAppStyle.
             ThemeManager.Current.ChangeTheme(application, baseColor, colorScheme);
-            ThemeChanged?.Invoke(null, EventArgs.Empty);
+            ThemeChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

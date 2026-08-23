@@ -1,21 +1,28 @@
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels
 {
     public class SettingsViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly GCodeSettings _settings;
+        private readonly ISettingsStore _settingsStore;
+        private readonly IThemeService _themeService;
 
         public SettingsViewModel()
-            : this(null)
+            : this(null, null, null)
         {
         }
 
-        public SettingsViewModel(ILocalizationManager localizationManager)
+        public SettingsViewModel(ILocalizationManager localizationManager, ISettingsStore settingsStore, IThemeService themeService)
         {
-            _settings = GCodeSettingsStore.Current;
+            // Пункт 7.5 плана: настройки и тема — через IoC (ранее статика
+            // GCodeSettingsStore/ThemeHelper). Безаргументный конструктор —
+            // для XAML-дизайнера: фолбэк на настройки по умолчанию.
+            _settings = settingsStore?.Current ?? new GCodeSettings();
+            _settingsStore = settingsStore;
+            _themeService = themeService;
 
             var title = localizationManager?.GetString("GCodeSettingsTitle");
             DisplayName = string.IsNullOrEmpty(title) ? "Настройки G-кода" : title;
@@ -152,7 +159,7 @@ namespace GCodeGenerator.ViewModels
                 if (value == _useDarkTheme) return;
                 _useDarkTheme = value;
                 OnPropertyChanged();
-                ThemeHelper.ApplyTheme(value);
+                _themeService?.ApplyTheme(value);
             }
         }
 
@@ -417,7 +424,7 @@ namespace GCodeGenerator.ViewModels
             _settings.EndZ = EndZ;
             _settings.SetWorkCoordinateSystem = SetWorkCoordinateSystem;
             _settings.WorkCoordinateSystem = WorkCoordinateSystem ?? "G54";
-            GCodeSettingsStore.Save();
+            _settingsStore?.Save();
         }
 
         private bool _setWorkCoordinateSystem;
