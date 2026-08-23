@@ -8,7 +8,7 @@ using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillLineOperationViewModel : CloseableViewModel, IHasDisplayName, IDrillDialogViewModel
+    public class DrillLineOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName, IDrillDialogViewModel
     {
         private readonly ILocalizationManager _localizationManager;
 
@@ -21,41 +21,29 @@ namespace GCodeGenerator.ViewModels.Drill
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
 
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private DrillPointsOperation _operation;
-
-        public DrillPointsOperation Operation
+        protected override void LoadFromOperation(DrillPointsOperation operation)
         {
-            get => _operation;
-            set
-            {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                if (_operation == null) return;
+            // Читаем типизированные свойства (пункт 3.3 плана): для новой
+            // операции это дефолты модели, для загруженной — значения,
+            // мигрированные из Metadata (пункт 3.2).
+            StartX = operation.StartX;
+            StartY = operation.StartY;
+            StartZ = operation.StartZ;
+            Distance = operation.Distance;
+            HoleCount = operation.HoleCount;
+            AngleDeg = operation.AngleDeg;
+            TotalDepth = operation.TotalDepth;
+            StepDepth = operation.StepDepth;
+            FeedZRapid = operation.FeedZRapid;
+            FeedZWork = operation.FeedZWork;
+            RetractHeight = operation.RetractHeight;
 
-                // Читаем типизированные свойства (пункт 3.3 плана): для новой
-                // операции это дефолты модели, для загруженной — значения,
-                // мигрированные из Metadata (пункт 3.2).
-                StartX = _operation.StartX;
-                StartY = _operation.StartY;
-                StartZ = _operation.StartZ;
-                Distance = _operation.Distance;
-                HoleCount = _operation.HoleCount;
-                AngleDeg = _operation.AngleDeg;
-                TotalDepth = _operation.TotalDepth;
-                StepDepth = _operation.StepDepth;
-                FeedZRapid = _operation.FeedZRapid;
-                FeedZWork = _operation.FeedZWork;
-                RetractHeight = _operation.RetractHeight;
+            FeedXYRapid = operation.FeedXYRapid;
+            FeedXYWork = operation.FeedXYWork;
+            SafeZBetweenHoles = operation.SafeZBetweenHoles;
+            Decimals = operation.Decimals;
 
-                FeedXYRapid = _operation.FeedXYRapid;
-                FeedXYWork = _operation.FeedXYWork;
-                SafeZBetweenHoles = _operation.SafeZBetweenHoles;
-                Decimals = _operation.Decimals;
-
-                RebuildHoles();
-            }
+            RebuildHoles();
         }
 
         public ObservableCollection<DrillHole> PreviewHoles { get; }
@@ -264,51 +252,37 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            // Remove operation if no holes were created
-            if (PreviewHoles.Count == 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
             // Save common parameters to operation.
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            _operation.Decimals = Decimals;
+            Operation.FeedXYRapid = FeedXYRapid;
+            Operation.FeedXYWork = FeedXYWork;
+            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
+            Operation.Decimals = Decimals;
 
             // Save operation-specific parameters to typed properties (пункт 3.3).
-            _operation.DrillMode = DrillMode.Line;
-            _operation.StartX = StartX;
-            _operation.StartY = StartY;
-            _operation.StartZ = StartZ;
-            _operation.Distance = Distance;
-            _operation.HoleCount = HoleCount;
-            _operation.AngleDeg = AngleDeg;
-            _operation.TotalDepth = TotalDepth;
-            _operation.StepDepth = StepDepth;
-            _operation.FeedZRapid = FeedZRapid;
-            _operation.FeedZWork = FeedZWork;
-            _operation.RetractHeight = RetractHeight;
+            Operation.DrillMode = DrillMode.Line;
+            Operation.StartX = StartX;
+            Operation.StartY = StartY;
+            Operation.StartZ = StartZ;
+            Operation.Distance = Distance;
+            Operation.HoleCount = HoleCount;
+            Operation.AngleDeg = AngleDeg;
+            Operation.TotalDepth = TotalDepth;
+            Operation.StepDepth = StepDepth;
+            Operation.FeedZRapid = FeedZRapid;
+            Operation.FeedZWork = FeedZWork;
+            Operation.RetractHeight = RetractHeight;
 
             // Save generated holes.
-            _operation.Holes.Clear();
+            Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
-                _operation.Holes.Add(hole);
+                Operation.Holes.Add(hole);
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
+        // линия без отверстий (HoleCount<=0 или Distance==0) не имеет смысла.
+        protected override bool IsValid() => PreviewHoles.Count > 0;
 
         private void RebuildHoles()
         {
