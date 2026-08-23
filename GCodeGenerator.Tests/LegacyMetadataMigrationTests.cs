@@ -314,69 +314,43 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
-        // Профили
+        // Профили (пункт 3.6: Metadata — [Obsolete] + [JsonIgnore])
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Профиль с Metadata (двойная запись старых диалогов): значения
-        /// попадают в типизированные свойства, Metadata очищается.
+        /// Пункт 3.6: поле Metadata в JSON старого файла профиля игнорируется
+        /// при загрузке ([JsonIgnore]), типизированные свойства из JSON
+        /// сохраняются, Metadata не заполняется и не пишется при сохранении.
         /// </summary>
         [TestMethod]
-        public void MigrateProfile_MetadataMovedToTypedProperties()
+        public void Profile_MetadataInJson_IgnoredOnLoad_AndNotSaved()
         {
-            var op = new ProfileCircleOperation
-            {
-                CenterX = 10,
-                CenterY = 20,
-                Radius = 15
-            };
-            op.Metadata["ToolPathMode"] = (int)ToolPathMode.Outside;
-            op.Metadata["Direction"] = (int)MillingDirection.CounterClockwise;
-            op.Metadata["CenterX"] = 30.0;
-            op.Metadata["CenterY"] = 40.0;
-            op.Metadata["Radius"] = 50.0;
-            op.Metadata["TotalDepth"] = 6.0;
-            op.Metadata["StepDepth"] = 1.5;
-            op.Metadata["ToolDiameter"] = 4.0;
-            op.Metadata["EntryMode"] = (int)EntryMode.Angled;
-            op.Metadata["EntryAngle"] = 7.0;
-            op.Metadata["SafeDistanceBetweenPasses"] = 2.5;
+            const string json = "{\"version\":2,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{"
+                + "\"CenterX\":30,\"CenterY\":40,\"Radius\":50,\"TotalDepth\":6,"
+                + "\"Metadata\":{\"Radius\":999,\"ToolPathMode\":1}}}]}";
 
-            LegacyMetadataMigrator.Migrate(op);
+            var loaded = Service.Deserialize(json);
+            Assert.AreEqual(1, loaded.Count);
+            var op = (ProfileCircleOperation)loaded[0];
 
-            Assert.AreEqual(ToolPathMode.Outside, op.ToolPathMode);
-            Assert.AreEqual(MillingDirection.CounterClockwise, op.Direction);
+            // Типизированные свойства из JSON сохранены.
             Assert.AreEqual(30.0, op.CenterX, 1e-9);
             Assert.AreEqual(40.0, op.CenterY, 1e-9);
-            Assert.AreEqual(50.0, op.Radius, 1e-9);
+            Assert.AreEqual(50.0, op.Radius, 1e-9, "Radius из типизированного свойства, а не из Metadata");
             Assert.AreEqual(6.0, op.TotalDepth, 1e-9);
-            Assert.AreEqual(1.5, op.StepDepth, 1e-9);
-            Assert.AreEqual(4.0, op.ToolDiameter, 1e-9);
-            Assert.AreEqual(EntryMode.Angled, op.EntryMode);
-            Assert.AreEqual(7.0, op.EntryAngle, 1e-9);
-            Assert.AreEqual(2.5, op.SafeDistanceBetweenPasses, 1e-9);
-            Assert.AreEqual(0, op.Metadata.Count, "Metadata очищена");
-        }
 
-        /// <summary>
-        /// Профиль с пустым Metadata (реальный случай легаси-файлов) не изменяется.
-        /// </summary>
-        [TestMethod]
-        public void MigrateProfile_EmptyMetadata_NoChange()
-        {
-            var op = new ProfileRectangleOperation
-            {
-                Width = 40,
-                Height = 20,
-                TotalDepth = 3
-            };
+            // Metadata не десериализуется ([JsonIgnore], пункт 3.6).
+#pragma warning disable CS0618 // намеренная проверка устаревшего свойства
+            Assert.IsNull(op.Metadata, "Metadata не должна заполняться из JSON");
+#pragma warning restore CS0618
 
-            LegacyMetadataMigrator.Migrate(op);
+            // При сохранении Metadata не пишется.
+            var saved = Service.Serialize(loaded);
+            Assert.IsFalse(saved.Contains("\"Metadata\""), "в сохранённом JSON нет поля Metadata");
 
-            Assert.AreEqual(40.0, op.Width, 1e-9);
-            Assert.AreEqual(20.0, op.Height, 1e-9);
-            Assert.AreEqual(3.0, op.TotalDepth, 1e-9);
-            Assert.AreEqual(0, op.Metadata.Count);
+            // Повторная загрузка — те же значения.
+            var reloaded = (ProfileCircleOperation)Service.Deserialize(saved)[0];
+            Assert.AreEqual(50.0, reloaded.Radius, 1e-9);
         }
     }
 }
