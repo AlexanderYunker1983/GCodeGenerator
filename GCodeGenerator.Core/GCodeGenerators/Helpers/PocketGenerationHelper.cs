@@ -13,6 +13,8 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
     {
         /// <summary>
         /// Обрабатывает логику черновой и чистовой обработки кармана.
+        /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
+        /// Мёртвый код: подключение — фаза 5 (пункт 5.6 плана).
         /// </summary>
         /// <typeparam name="T">Тип операции кармана</typeparam>
         /// <param name="operation">Операция кармана</param>
@@ -22,9 +24,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="applyRoughingAllowance">Делегат для применения припуска при черновой обработке</param>
         /// <param name="isOperationTooSmall">Делегат для проверки, не стал ли карман слишком маленьким</param>
         /// <param name="applyBottomFinishingAllowance">Делегат для применения припуска при чистовой обработке дна</param>
-        /// <param name="addLine">Делегат для добавления строки G-кода</param>
-        /// <param name="g0">Команда быстрого перемещения (обычно G0)</param>
-        /// <param name="g1">Команда рабочей подачи (обычно G1)</param>
+        /// <param name="builder">Построитель структурированной программы</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void ProcessRoughingFinishing<T>(
             T operation,
@@ -34,9 +34,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             Action<T, double> applyRoughingAllowance,
             Func<T, bool> isOperationTooSmall,
             Action<T, double> applyBottomFinishingAllowance,
-            Action<string> addLine,
-            string g0,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
             where T : IPocketOperation
         {
@@ -63,8 +61,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
                     if (isOperationTooSmall(roughOp))
                     {
-                        if (settings.UseComments)
-                            addLine("(Pocket too small after roughing allowance, skipping)");
+                        builder.Comment("Pocket too small after roughing allowance, skipping");
                         return;
                     }
                 }
@@ -119,19 +116,16 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
         /// <summary>
         /// Генерирует цикл обработки по слоям.
+        /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
         /// </summary>
         /// <param name="op">Операция кармана</param>
         /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber) - возвращает false, если обработку нужно прекратить</param>
-        /// <param name="addLine">Делегат для добавления строки G-кода</param>
-        /// <param name="g0">Команда быстрого перемещения</param>
-        /// <param name="g1">Команда рабочей подачи</param>
+        /// <param name="builder">Построитель структурированной программы</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
             IPocketOperation op,
             Func<double, double, int, bool> generateLayer,
-            Action<string> addLine,
-            string g0,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
         {
             // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл по слоям
@@ -140,7 +134,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 throw new ArgumentOutOfRangeException(nameof(op),
                     $"StepDepth must be greater than zero (got {op.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the layer loop would run forever.");
 
-            var fmt = $"0.{new string('0', op.Decimals)}";
+            int decimals = op.Decimals;
 
             double currentZ = op.ContourHeight;
             double finalZ = op.ContourHeight - op.TotalDepth;
@@ -152,20 +146,20 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (nextZ < finalZ) nextZ = finalZ;
                 pass++;
 
-                if (settings.UseComments)
-                    addLine($"(Pass {pass}, depth {GCodeGenerationHelper.FormatNumber(nextZ, fmt)})");
+                builder.Comment($"Pass {pass}, depth {GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))}");
 
                 // Если generateLayer возвращает false, прекращаем обработку
                 if (!generateLayer(currentZ, nextZ, pass))
                 {
-                    if (settings.UseComments)
-                        addLine("(Contour too small for tool, stopping)");
+                    builder.Comment("Contour too small for tool, stopping");
                     break;
                 }
 
                 currentZ = nextZ;
             }
         }
+
+        private static string Fmt(int decimals) => "0." + new string('0', decimals);
 
         /// <summary>
         /// Вычисляет эффективный радиус инструмента с учетом уклона стенок.
