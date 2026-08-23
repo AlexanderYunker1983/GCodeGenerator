@@ -89,16 +89,17 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 double ex = p2.x - p1.x;
                 double ey = p2.y - p1.y;
 
-                // Луч: C + t*d; сегмент: P1 + u*e
-                double denom = dx * ey - dy * ex;
+                // Луч: C + t*d; сегмент: P1 + u*e. Система t*d - u*e = w решается
+                // правилом Крамера: det = ex*dy - dx*ey.
+                double denom = ex * dy - dx * ey;
                 if (Math.Abs(denom) < eps)
                     continue; // параллельны
 
                 double wx = p1.x - center.x;
                 double wy = p1.y - center.y;
 
-                double t = (wx * ey - wy * ex) / denom;
-                double u = (dx * wy - dy * wx) / denom;
+                double t = (ex * wy - wx * ey) / denom;
+                double u = (dx * wy - wx * dy) / denom;
 
                 if (t > eps && u >= -1e-6 && u <= 1.0 + 1e-6)
                 {
