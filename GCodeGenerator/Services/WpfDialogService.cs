@@ -63,11 +63,23 @@ namespace GCodeGenerator.Services
             return _scope.Resolve<TViewModel>();
         }
 
+        public object CreateViewModel(Type viewModelType)
+        {
+            if (viewModelType == null) throw new ArgumentNullException(nameof(viewModelType));
+            return _scope.Resolve(viewModelType);
+        }
+
         public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class
         {
+            ShowDialog(typeof(TViewModel), viewModel);
+        }
+
+        public void ShowDialog(Type viewModelType, object viewModel)
+        {
+            if (viewModelType == null) throw new ArgumentNullException(nameof(viewModelType));
             if (viewModel == null) throw new ArgumentNullException(nameof(viewModel));
 
-            var window = (Window)Activator.CreateInstance(GetViewType(typeof(TViewModel)));
+            var window = (Window)Activator.CreateInstance(GetViewType(viewModelType));
             window.DataContext = viewModel;
             window.Owner = Application.Current?.MainWindow;
             // Модальный показ: блокирует до закрытия окна.

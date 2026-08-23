@@ -1,6 +1,7 @@
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
+using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
@@ -281,87 +282,37 @@ namespace GCodeGenerator.ViewModels.Drill
             UpdateOperationCommandsCanExecute();
         }
 
+        /// <summary>
+        /// Тип диалоговой view-модели для режима сверления (пункт 3.4 плана):
+        /// диспетчеризация по <see cref="DrillMode"/>, а не по имени операции.
+        /// </summary>
+        public Type GetDialogViewModelType(DrillMode mode)
+        {
+            switch (mode)
+            {
+                case DrillMode.Line: return typeof(DrillLineOperationViewModel);
+                case DrillMode.Array: return typeof(DrillArrayOperationViewModel);
+                case DrillMode.Rect: return typeof(DrillRectOperationViewModel);
+                case DrillMode.Circle: return typeof(DrillCircleOperationViewModel);
+                case DrillMode.Arc: return typeof(DrillArcOperationViewModel);
+                case DrillMode.Polygon: return typeof(DrillPolygonOperationViewModel);
+                case DrillMode.Ellipse: return typeof(DrillEllipseOperationViewModel);
+                case DrillMode.Package: return typeof(DrillPackageOperationViewModel);
+                default: return typeof(DrillPointsOperationViewModel);
+            }
+        }
+
         public void EditSelectedOperation()
         {
             if (!(SelectedOperation is DrillPointsOperation drillOp))
                 return;
 
-            // Определяем тип операции по имени
-            var operationName = drillOp.Name;
-            var addDrillLineName = _localizationManager?.GetString("AddDrillLine");
-            var addDrillArrayName = _localizationManager?.GetString("AddDrillArray");
-            var addDrillRectName = _localizationManager?.GetString("AddDrillRect");
-            var addDrillCircleName = _localizationManager?.GetString("AddDrillCircle");
-            var addDrillArcName = _localizationManager?.GetString("AddDrillArc");
-            var addDrillPolygonName = _localizationManager?.GetString("AddDrillPolygon");
-            var addDrillEllipseName = _localizationManager?.GetString("AddDrillEllipse");
-            var addDrillPackageName = _localizationManager?.GetString("AddDrillPackage");
-            var drillPointsName = _localizationManager?.GetString("DrillPointsName");
-
-            if (!string.IsNullOrEmpty(addDrillLineName) && operationName == addDrillLineName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillLineOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillArrayName) && operationName == addDrillArrayName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillArrayOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillRectName) && operationName == addDrillRectName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillRectOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillCircleName) && operationName == addDrillCircleName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillCircleOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillArcName) && operationName == addDrillArcName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillArcOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillPolygonName) && operationName == addDrillPolygonName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillPolygonOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillEllipseName) && operationName == addDrillEllipseName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillEllipseOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else if (!string.IsNullOrEmpty(addDrillPackageName) && operationName == addDrillPackageName)
-            {
-                var vm = _dialogService.CreateViewModel<DrillPackageOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
-            else
-            {
-                // По умолчанию открываем DrillPointsOperationViewModel
-                var vm = _dialogService.CreateViewModel<DrillPointsOperationViewModel>();
-                vm.MainViewModel = this;
-                vm.Operation = drillOp;
-                _dialogService.ShowDialog(vm);
-            }
+            // Открываем диалог по режиму операции (пункт 3.4), а не по её имени.
+            var vmType = GetDialogViewModelType(drillOp.DrillMode);
+            var vm = (IDrillDialogViewModel)_dialogService.CreateViewModel(vmType);
+            vm.MainViewModel = this;
+            vm.Operation = drillOp;
+            _dialogService.ShowDialog(vmType, vm);
 
             MainViewModel?.NotifyOperationsChanged();
         }

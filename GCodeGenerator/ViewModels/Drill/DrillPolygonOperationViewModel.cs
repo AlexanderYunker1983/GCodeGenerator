@@ -7,7 +7,7 @@ using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillPolygonOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class DrillPolygonOperationViewModel : CloseableViewModel, IHasDisplayName, IDrillDialogViewModel
     {
         private readonly ILocalizationManager _localizationManager;
 

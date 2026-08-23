@@ -1,3 +1,5 @@
+using System;
+
 namespace GCodeGenerator.Services
 {
     /// <summary>
@@ -26,11 +28,17 @@ namespace GCodeGenerator.Services
         /// <summary>Создаёт view-модель диалога через IoC (Autofac).</summary>
         TViewModel CreateViewModel<TViewModel>() where TViewModel : class;
 
+        /// <summary>Создаёт view-модель диалога по типу через IoC (Autofac).</summary>
+        object CreateViewModel(Type viewModelType);
+
         /// <summary>
         /// Показывает view-модель как модальное диалоговое окно (view ищется по конвенции
         /// <c>XxxViewModel → XxxView</c>). Блокирует до закрытия окна; после закрытия
         /// вызывает <c>CloseableViewModel.OnClosed()</c>.
         /// </summary>
         void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class;
+
+        /// <summary>Показывает view-модель как модальное диалоговое окно по типу (см. <see cref="ShowDialog{TViewModel}"/>).</summary>
+        void ShowDialog(Type viewModelType, object viewModel);
     }
 }
