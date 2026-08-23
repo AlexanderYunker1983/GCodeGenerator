@@ -1597,30 +1597,6 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.IsFinishingEnabled = IsFinishingEnabled;
             _operation.FinishAllowance = FinishAllowance;
             _operation.FinishingMode = FinishingMode;
-
-            if (_operation.Metadata == null)
-                _operation.Metadata = new Dictionary<string, object>();
-
-            _operation.Metadata["Direction"] = Direction;
-            _operation.Metadata["PocketStrategy"] = PocketStrategy;
-            _operation.Metadata["TotalDepth"] = TotalDepth;
-            _operation.Metadata["StepDepth"] = StepDepth;
-            _operation.Metadata["ToolDiameter"] = ToolDiameter;
-            _operation.Metadata["ContourHeight"] = ContourHeight;
-            _operation.Metadata["FeedXYRapid"] = FeedXYRapid;
-            _operation.Metadata["FeedXYWork"] = FeedXYWork;
-            _operation.Metadata["FeedZRapid"] = FeedZRapid;
-            _operation.Metadata["FeedZWork"] = FeedZWork;
-            _operation.Metadata["SafeZHeight"] = SafeZHeight;
-            _operation.Metadata["RetractHeight"] = RetractHeight;
-            _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
-            _operation.Metadata["Decimals"] = Decimals;
-            _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
-            _operation.Metadata["WallTaperAngleDeg"] = WallTaperAngleDeg;
-            _operation.Metadata["IsRoughingEnabled"] = IsRoughingEnabled;
-            _operation.Metadata["IsFinishingEnabled"] = IsFinishingEnabled;
-            _operation.Metadata["FinishAllowance"] = FinishAllowance;
-            _operation.Metadata["FinishingMode"] = FinishingMode;
         }
 
         private void RemoveOperationFromMain()

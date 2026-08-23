@@ -293,6 +293,9 @@ namespace GCodeGenerator.GCodeGenerators
         /// Клонирует операцию кармана (пункт 5.6 плана; восстановлено из legacy,
         /// удалено в 4.6 как мёртвый код). Для DXF — глубокое клонирование контуров.
         /// </summary>
+        // Metadata устарело (пункт 7.2c плана) — копируется для полноты временного
+        // объекта; генерация читает только типизированные свойства.
+        #pragma warning disable CS0618
         private T CloneOperation<T>(T source) where T : IPocketOperation
         {
             if (source == null)
@@ -459,6 +462,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             throw new NotSupportedException($"Unsupported pocket operation type: {source.GetType().Name}");
         }
+        #pragma warning restore CS0618
 
         /// <summary>
         /// Проверяет, не стал ли карман слишком маленьким (пункт 5.6 плана):

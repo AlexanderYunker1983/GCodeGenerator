@@ -30,84 +30,32 @@ namespace GCodeGenerator.ViewModels.Pocket
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("RadiusX"))
-                {
-                    Direction = (MillingDirection)_operation.Metadata["Direction"];
-                    if (_operation.Metadata.ContainsKey("PocketStrategy"))
-                        PocketStrategy = (PocketStrategy)_operation.Metadata["PocketStrategy"];
-                    else
-                        PocketStrategy = _operation.PocketStrategy;
-                    CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
-                    CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
-                    RadiusX = Convert.ToDouble(_operation.Metadata["RadiusX"]);
-                    RadiusY = Convert.ToDouble(_operation.Metadata["RadiusY"]);
-                    RotationAngle = Convert.ToDouble(_operation.Metadata["RotationAngle"]);
-                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
-                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
-                    ToolDiameter = Convert.ToDouble(_operation.Metadata["ToolDiameter"]);
-                    ContourHeight = Convert.ToDouble(_operation.Metadata["ContourHeight"]);
-                    FeedXYRapid = Convert.ToDouble(_operation.Metadata["FeedXYRapid"]);
-                    FeedXYWork = Convert.ToDouble(_operation.Metadata["FeedXYWork"]);
-                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
-                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
-                    SafeZHeight = Convert.ToDouble(_operation.Metadata["SafeZHeight"]);
-                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
-                    StepPercentOfTool = Convert.ToDouble(_operation.Metadata["StepPercentOfTool"]);
-                    Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
-                    if (_operation.Metadata.ContainsKey("LineAngleDeg"))
-                        LineAngleDeg = Convert.ToDouble(_operation.Metadata["LineAngleDeg"]);
-                    if (_operation.Metadata.ContainsKey("WallTaperAngleDeg"))
-                        WallTaperAngleDeg = Math.Max(0, Convert.ToDouble(_operation.Metadata["WallTaperAngleDeg"]));
+                Direction = _operation.Direction;
+                PocketStrategy = _operation.PocketStrategy;
+                CenterX = _operation.CenterX;
+                CenterY = _operation.CenterY;
+                RadiusX = _operation.RadiusX;
+                RadiusY = _operation.RadiusY;
+                RotationAngle = _operation.RotationAngle;
+                TotalDepth = _operation.TotalDepth;
+                StepDepth = _operation.StepDepth;
+                ToolDiameter = _operation.ToolDiameter;
+                ContourHeight = _operation.ContourHeight;
+                FeedXYRapid = _operation.FeedXYRapid;
+                FeedXYWork = _operation.FeedXYWork;
+                FeedZRapid = _operation.FeedZRapid;
+                FeedZWork = _operation.FeedZWork;
+                SafeZHeight = _operation.SafeZHeight;
+                RetractHeight = _operation.RetractHeight;
+                StepPercentOfTool = _operation.StepPercentOfTool;
+                Decimals = _operation.Decimals;
+                LineAngleDeg = _operation.LineAngleDeg;
+                WallTaperAngleDeg = Math.Max(0, _operation.WallTaperAngleDeg);
 
-                    if (_operation.Metadata.ContainsKey("IsRoughingEnabled"))
-                        IsRoughingEnabled = Convert.ToBoolean(_operation.Metadata["IsRoughingEnabled"]);
-                    else
-                        IsRoughingEnabled = _operation.IsRoughingEnabled;
-
-                    if (_operation.Metadata.ContainsKey("IsFinishingEnabled"))
-                        IsFinishingEnabled = Convert.ToBoolean(_operation.Metadata["IsFinishingEnabled"]);
-                    else
-                        IsFinishingEnabled = _operation.IsFinishingEnabled;
-
-                    if (_operation.Metadata.ContainsKey("FinishAllowance"))
-                        FinishAllowance = Convert.ToDouble(_operation.Metadata["FinishAllowance"]);
-                    else
-                        FinishAllowance = _operation.FinishAllowance;
-
-                    if (_operation.Metadata.ContainsKey("FinishingMode"))
-                        FinishingMode = (PocketFinishingMode)_operation.Metadata["FinishingMode"];
-                    else
-                        FinishingMode = _operation.FinishingMode;
-                }
-                else
-                {
-                    Direction = _operation.Direction;
-                    PocketStrategy = _operation.PocketStrategy;
-                    CenterX = _operation.CenterX;
-                    CenterY = _operation.CenterY;
-                    RadiusX = _operation.RadiusX;
-                    RadiusY = _operation.RadiusY;
-                    RotationAngle = _operation.RotationAngle;
-                    TotalDepth = _operation.TotalDepth;
-                    StepDepth = _operation.StepDepth;
-                    ToolDiameter = _operation.ToolDiameter;
-                    ContourHeight = _operation.ContourHeight;
-                    FeedXYRapid = _operation.FeedXYRapid;
-                    FeedXYWork = _operation.FeedXYWork;
-                    FeedZRapid = _operation.FeedZRapid;
-                    FeedZWork = _operation.FeedZWork;
-                    SafeZHeight = _operation.SafeZHeight;
-                    RetractHeight = _operation.RetractHeight;
-                    StepPercentOfTool = _operation.StepPercentOfTool;
-                    Decimals = _operation.Decimals;
-                    LineAngleDeg = _operation.LineAngleDeg;
-                    WallTaperAngleDeg = Math.Max(0, _operation.WallTaperAngleDeg);
-
-                    IsRoughingEnabled = _operation.IsRoughingEnabled;
-                    IsFinishingEnabled = _operation.IsFinishingEnabled;
-                    FinishAllowance = _operation.FinishAllowance;
-                    FinishingMode = _operation.FinishingMode;
-                }
+                IsRoughingEnabled = _operation.IsRoughingEnabled;
+                IsFinishingEnabled = _operation.IsFinishingEnabled;
+                FinishAllowance = _operation.FinishAllowance;
+                FinishingMode = _operation.FinishingMode;
             }
         }
 
@@ -488,35 +436,6 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operation.IsFinishingEnabled = IsFinishingEnabled;
             _operation.FinishAllowance = FinishAllowance;
             _operation.FinishingMode = FinishingMode;
-
-            if (_operation.Metadata == null)
-                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
-
-            _operation.Metadata["Direction"] = Direction;
-            _operation.Metadata["PocketStrategy"] = PocketStrategy;
-            _operation.Metadata["CenterX"] = CenterX;
-            _operation.Metadata["CenterY"] = CenterY;
-            _operation.Metadata["RadiusX"] = RadiusX;
-            _operation.Metadata["RadiusY"] = RadiusY;
-            _operation.Metadata["RotationAngle"] = RotationAngle;
-            _operation.Metadata["TotalDepth"] = TotalDepth;
-            _operation.Metadata["StepDepth"] = StepDepth;
-            _operation.Metadata["ToolDiameter"] = ToolDiameter;
-            _operation.Metadata["ContourHeight"] = ContourHeight;
-            _operation.Metadata["FeedXYRapid"] = FeedXYRapid;
-            _operation.Metadata["FeedXYWork"] = FeedXYWork;
-            _operation.Metadata["FeedZRapid"] = FeedZRapid;
-            _operation.Metadata["FeedZWork"] = FeedZWork;
-            _operation.Metadata["SafeZHeight"] = SafeZHeight;
-            _operation.Metadata["RetractHeight"] = RetractHeight;
-            _operation.Metadata["StepPercentOfTool"] = StepPercentOfTool;
-            _operation.Metadata["Decimals"] = Decimals;
-            _operation.Metadata["LineAngleDeg"] = LineAngleDeg;
-            _operation.Metadata["WallTaperAngleDeg"] = WallTaperAngleDeg;
-            _operation.Metadata["IsRoughingEnabled"] = IsRoughingEnabled;
-            _operation.Metadata["IsFinishingEnabled"] = IsFinishingEnabled;
-            _operation.Metadata["FinishAllowance"] = FinishAllowance;
-            _operation.Metadata["FinishingMode"] = FinishingMode;
         }
 
         private void RemoveOperationFromMain()

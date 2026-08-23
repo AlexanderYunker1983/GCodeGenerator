@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 
@@ -10,7 +11,6 @@ namespace GCodeGenerator.Models
     {
         public PocketCircleOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Circle")
         {
-            Metadata = new Dictionary<string, object>();
         }
 
         public PocketStrategy PocketStrategy { get; set; } = PocketStrategy.Spiral;
@@ -80,7 +80,15 @@ namespace GCodeGenerator.Models
         /// </summary>
         public PocketFinishingMode FinishingMode { get; set; } = PocketFinishingMode.All;
 
-        public Dictionary<string, object> Metadata { get; set; }
+        /// <summary>
+        /// Legacy parameter storage (double-write of the old dialogs).
+        /// Deprecated (plan item 7.2c): values are stored in typed properties.
+        /// Unlike profiles the field stays serialized for one release: old .ygc
+        /// may store pocket parameters only in Metadata — LegacyMetadataMigrator
+        /// copies them into typed properties on load. Removed in the next release.
+        /// </summary>
+        [Obsolete("Use typed properties. Metadata will be removed in the next release (plan item 7.2c).")]
+        public Dictionary<string, object> Metadata { get; set; } = new Dictionary<string, object>();
 
         public override string GetDescription()
         {

@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
+// Metadata карманных операций помечено [Obsolete] (пункт 7.2c плана) —
+// мигратор намеренно читает и очищает его (разовая миграция легаси-.ygc;
+// после следующего сохранения мигрированные ключи из файла исчезают).
+#pragma warning disable CS0618
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
@@ -19,6 +24,11 @@ namespace GCodeGenerator.Models
     /// операций не десериализуется ([JsonIgnore]), а легаси-файлы профилей
     /// содержат типизированные свойства (старые диалоги писали значения дважды).
     ///
+    /// Карманы (пункт 7.2c): старые диалоги хранили параметры карманов в
+    /// <c>Metadata</c> (ключ-триггер геометрии Radius/Width/RadiusX) — значения
+    /// копируются в типизированные свойства, мигрированные ключи удаляются.
+    /// DXF-карманы не мигрируются: их диалог никогда не читал Metadata.
+    ///
     /// Метод идемпотентен: операция с пустым <c>Metadata</c> не изменяется.
     /// </summary>
     public static class LegacyMetadataMigrator
@@ -33,10 +43,19 @@ namespace GCodeGenerator.Models
                 case DrillPointsOperation drill:
                     MigrateDrill(drill);
                     break;
+                case PocketCircleOperation pocketCircle:
+                    MigratePocketCircle(pocketCircle);
+                    break;
+                case PocketRectangleOperation pocketRectangle:
+                    MigratePocketRectangle(pocketRectangle);
+                    break;
+                case PocketEllipseOperation pocketEllipse:
+                    MigratePocketEllipse(pocketEllipse);
+                    break;
                 default:
                     // Профили: Metadata не десериализуется (пункт 3.6), миграция не нужна.
-                    // Pocket*Operation: Metadata остаётся рабочим (аналогичная миграция —
-                    // в поздней фазе плана).
+                    // PocketDxfOperation: диалог никогда не читал Metadata (только
+                    // типизированные свойства) — миграция значений не требуется.
                     break;
             }
         }
@@ -252,5 +271,198 @@ namespace GCodeGenerator.Models
             }
             return 0;
         }
+
+        private static void ReadBool(IDictionary<string, object> meta, string key, Action<bool> apply)
+        {
+            if (meta.TryGetValue(key, out var value) && value != null)
+            {
+                try
+                {
+                    apply(Convert.ToBoolean(value, CultureInfo.InvariantCulture));
+                }
+                catch (Exception)
+                {
+                    // Некорректное значение — оставляем текущее свойство.
+                }
+                meta.Remove(key);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Карманы (пункт 7.2c плана)
+        //
+        // Старые диалоги карманов хранили параметры в Metadata (типизированные
+        // свойства при этом могли отсутствовать или быть устаревшими). Старое
+        // поведение диалогов: если в Metadata есть ключ геометрии (Radius/Width/
+        // RadiusX), значения берутся из Metadata (Metadata побеждает), иначе —
+        // из типизированных свойств. Миграция повторяет это поведение в Core:
+        // значения копируются в типизированные свойства, мигрированные ключи
+        // удаляются, при следующем сохранении файл их уже не содержит.
+        // Нераспознанные ключи сохраняются. Metadata остаётся сериализуемым
+        // на один релиз ([Obsolete] без [JsonIgnore]) — см. модели.
+        // ------------------------------------------------------------------
+
+        private static void MigratePocketCircle(PocketCircleOperation op)
+        {
+            var meta = op.Metadata;
+            if (meta == null)
+            {
+                op.Metadata = new Dictionary<string, object>();
+                return;
+            }
+            if (meta.Count == 0 || !meta.ContainsKey("Radius"))
+                return;
+
+            ReadDouble(meta, "CenterX", v => op.CenterX = v);
+            ReadDouble(meta, "CenterY", v => op.CenterY = v);
+            ReadDouble(meta, "Radius", v => op.Radius = v);
+            ReadCommonPocket(meta,
+                v => op.Direction = v,
+                v => op.PocketStrategy = v,
+                v => op.TotalDepth = v,
+                v => op.StepDepth = v,
+                v => op.ToolDiameter = v,
+                v => op.ContourHeight = v,
+                v => op.FeedXYRapid = v,
+                v => op.FeedXYWork = v,
+                v => op.FeedZRapid = v,
+                v => op.FeedZWork = v,
+                v => op.SafeZHeight = v,
+                v => op.RetractHeight = v,
+                v => op.StepPercentOfTool = v,
+                v => op.Decimals = v,
+                v => op.LineAngleDeg = v,
+                v => op.WallTaperAngleDeg = v,
+                v => op.IsRoughingEnabled = v,
+                v => op.IsFinishingEnabled = v,
+                v => op.FinishAllowance = v,
+                v => op.FinishingMode = v);
+        }
+
+        private static void MigratePocketRectangle(PocketRectangleOperation op)
+        {
+            var meta = op.Metadata;
+            if (meta == null)
+            {
+                op.Metadata = new Dictionary<string, object>();
+                return;
+            }
+            if (meta.Count == 0 || !meta.ContainsKey("Width"))
+                return;
+
+            ReadDouble(meta, "Width", v => op.Width = v);
+            ReadDouble(meta, "Height", v => op.Height = v);
+            ReadDouble(meta, "RotationAngle", v => op.RotationAngle = v);
+            ReadDouble(meta, "ReferencePointX", v => op.ReferencePointX = v);
+            ReadDouble(meta, "ReferencePointY", v => op.ReferencePointY = v);
+            ReadEnum<ReferencePointType>(meta, "ReferencePointType", v => op.ReferencePointType = v);
+            ReadCommonPocket(meta,
+                v => op.Direction = v,
+                v => op.PocketStrategy = v,
+                v => op.TotalDepth = v,
+                v => op.StepDepth = v,
+                v => op.ToolDiameter = v,
+                v => op.ContourHeight = v,
+                v => op.FeedXYRapid = v,
+                v => op.FeedXYWork = v,
+                v => op.FeedZRapid = v,
+                v => op.FeedZWork = v,
+                v => op.SafeZHeight = v,
+                v => op.RetractHeight = v,
+                v => op.StepPercentOfTool = v,
+                v => op.Decimals = v,
+                v => op.LineAngleDeg = v,
+                v => op.WallTaperAngleDeg = v,
+                v => op.IsRoughingEnabled = v,
+                v => op.IsFinishingEnabled = v,
+                v => op.FinishAllowance = v,
+                v => op.FinishingMode = v);
+        }
+
+        private static void MigratePocketEllipse(PocketEllipseOperation op)
+        {
+            var meta = op.Metadata;
+            if (meta == null)
+            {
+                op.Metadata = new Dictionary<string, object>();
+                return;
+            }
+            if (meta.Count == 0 || !meta.ContainsKey("RadiusX"))
+                return;
+
+            ReadDouble(meta, "CenterX", v => op.CenterX = v);
+            ReadDouble(meta, "CenterY", v => op.CenterY = v);
+            ReadDouble(meta, "RadiusX", v => op.RadiusX = v);
+            ReadDouble(meta, "RadiusY", v => op.RadiusY = v);
+            ReadDouble(meta, "RotationAngle", v => op.RotationAngle = v);
+            ReadCommonPocket(meta,
+                v => op.Direction = v,
+                v => op.PocketStrategy = v,
+                v => op.TotalDepth = v,
+                v => op.StepDepth = v,
+                v => op.ToolDiameter = v,
+                v => op.ContourHeight = v,
+                v => op.FeedXYRapid = v,
+                v => op.FeedXYWork = v,
+                v => op.FeedZRapid = v,
+                v => op.FeedZWork = v,
+                v => op.SafeZHeight = v,
+                v => op.RetractHeight = v,
+                v => op.StepPercentOfTool = v,
+                v => op.Decimals = v,
+                v => op.LineAngleDeg = v,
+                v => op.WallTaperAngleDeg = v,
+                v => op.IsRoughingEnabled = v,
+                v => op.IsFinishingEnabled = v,
+                v => op.FinishAllowance = v,
+                v => op.FinishingMode = v);
+        }
+
+        /// <summary>Общие фрезерные параметры карманов (одинаковый набор у всех типов).</summary>
+        private static void ReadCommonPocket(
+            IDictionary<string, object> meta,
+            Action<MillingDirection> direction,
+            Action<PocketStrategy> pocketStrategy,
+            Action<double> totalDepth,
+            Action<double> stepDepth,
+            Action<double> toolDiameter,
+            Action<double> contourHeight,
+            Action<double> feedXYRapid,
+            Action<double> feedXYWork,
+            Action<double> feedZRapid,
+            Action<double> feedZWork,
+            Action<double> safeZHeight,
+            Action<double> retractHeight,
+            Action<double> stepPercentOfTool,
+            Action<int> decimals,
+            Action<double> lineAngleDeg,
+            Action<double> wallTaperAngleDeg,
+            Action<bool> isRoughingEnabled,
+            Action<bool> isFinishingEnabled,
+            Action<double> finishAllowance,
+            Action<PocketFinishingMode> finishingMode)
+        {
+            ReadEnum<MillingDirection>(meta, "Direction", direction);
+            ReadEnum<PocketStrategy>(meta, "PocketStrategy", pocketStrategy);
+            ReadDouble(meta, "TotalDepth", totalDepth);
+            ReadDouble(meta, "StepDepth", stepDepth);
+            ReadDouble(meta, "ToolDiameter", toolDiameter);
+            ReadDouble(meta, "ContourHeight", contourHeight);
+            ReadDouble(meta, "FeedXYRapid", feedXYRapid);
+            ReadDouble(meta, "FeedXYWork", feedXYWork);
+            ReadDouble(meta, "FeedZRapid", feedZRapid);
+            ReadDouble(meta, "FeedZWork", feedZWork);
+            ReadDouble(meta, "SafeZHeight", safeZHeight);
+            ReadDouble(meta, "RetractHeight", retractHeight);
+            ReadDouble(meta, "StepPercentOfTool", stepPercentOfTool);
+            ReadInt(meta, "Decimals", decimals);
+            ReadDouble(meta, "LineAngleDeg", lineAngleDeg);
+            ReadDouble(meta, "WallTaperAngleDeg", wallTaperAngleDeg);
+            ReadBool(meta, "IsRoughingEnabled", isRoughingEnabled);
+            ReadBool(meta, "IsFinishingEnabled", isFinishingEnabled);
+            ReadDouble(meta, "FinishAllowance", finishAllowance);
+            ReadEnum<PocketFinishingMode>(meta, "FinishingMode", finishingMode);
+        }
     }
 }
+#pragma warning restore CS0618
