@@ -28,9 +28,6 @@ namespace GCodeGenerator.ViewModels
         private readonly IThemeService _themeService;
         private readonly IProjectFileService _projectFileService;
 
-        public event Action OperationsChanged;
-        public event Action ShowAllRequested;
-
         public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService)
         {
             _localizationManager = localizationManager;
@@ -91,7 +88,23 @@ namespace GCodeGenerator.ViewModels
             // отдельного VM (code-behind — только отрисовка и мышь).
             // Пункт 7.5 плана: VM получает IThemeService (ранее code-behind
             // подписывался на статический ThemeHelper.ThemeChanged).
-            OperationsPreview = new OperationsPreviewViewModel(this, _themeService);
+            // DoD фазы 7: без циклической ссылки — VM не хранит MainViewModel;
+            // MainViewModel пушит сцену/выбор и подписывается на события VM.
+            OperationsPreview = new OperationsPreviewViewModel(AllOperations, _themeService);
+            OperationsPreview.SelectionChanged += OnPreviewSelectionChanged;
+            OperationsPreview.EditRequested += OnPreviewEditRequested;
+        }
+
+        private void OnPreviewSelectionChanged(object sender, OperationBase operation)
+        {
+            if (Equals(operation, _selectedOperation)) return;
+            SelectedOperation = operation;
+        }
+
+        private void OnPreviewEditRequested(object sender, EventArgs e)
+        {
+            if (CanModifySelectedOperation())
+                EditSelectedOperation();
         }
 
         private string _displayName;
@@ -132,6 +145,8 @@ namespace GCodeGenerator.ViewModels
                 OnPropertyChanged();
                 UpdateOperationCommandsCanExecute();
                 NotifyOperationsChanged();
+                // DoD фазы 7: выбор пушится в 2D-превью VM (без циклической ссылки).
+                OperationsPreview?.SelectedOperation = value;
             }
         }
 
@@ -277,12 +292,14 @@ namespace GCodeGenerator.ViewModels
 
         private void ShowAllPreview()
         {
-            ShowAllRequested?.Invoke();
+            OperationsPreview?.RaiseShowAll();
         }
 
         public void NotifyOperationsChanged()
         {
-            OperationsChanged?.Invoke();
+            // Пункт 7.2 плана: любое изменение операций перерисовывает 2D-превью
+            // (push в preview VM, DoD фазы 7 — без циклической ссылки).
+            OperationsPreview?.RebuildScene();
         }
 
         private void OnCategoryOperationAdded(OperationBase operation)

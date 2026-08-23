@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Specialized;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.Services;
@@ -10,30 +9,28 @@ namespace GCodeGenerator.ViewModels
 {
     /// <summary>
     /// ViewModel of the 2D operations preview (plan item 6.3). Exposes a
-    /// pure <see cref="OperationScene"/> (Core data, no WPF types) and
-    /// forwards selection / editing / show-all to <see cref="MainViewModel"/>.
+    /// pure <see cref="OperationScene"/> (Core data, no WPF types).
     /// The view's code-behind only renders the scene and handles the mouse.
+    ///
+    /// DoD фазы 7: циклическая ссылка с MainViewModel убрана — VM не хранит
+    /// ссылку на MainViewModel. MainViewModel пушит состояние (пересборка
+    /// сцены, выбор) и подписывается на события
+    /// <see cref="SelectionChanged"/>/<see cref="EditRequested"/>/<see cref="ShowAllRequested"/>.
     /// </summary>
     public class OperationsPreviewViewModel : ViewModelBase
     {
-        private readonly MainViewModel _main;
+        private readonly ObservableCollection<OperationBase> _operations;
         private readonly IThemeService _themeService;
         private OperationScene _scene;
         private OperationBase _selectedOperation;
 
-        public OperationsPreviewViewModel(MainViewModel main, IThemeService themeService)
+        public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService themeService)
         {
-            _main = main ?? throw new ArgumentNullException(nameof(main));
+            _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             // Пункт 7.5 плана: тема через IoC (ранее code-behind подписывался
             // на статический ThemeHelper.ThemeChanged).
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
-            _scene = OperationSceneBuilder.Build(main.AllOperations);
-            _selectedOperation = main.SelectedOperation;
-
-            _main.OperationsChanged += RebuildScene;
-            (_main.AllOperations as INotifyCollectionChanged).CollectionChanged += (s, e) => RebuildScene();
-            _main.ShowAllRequested += OnShowAllRequested;
-            _main.PropertyChanged += OnMainPropertyChanged;
+            _scene = OperationSceneBuilder.Build(_operations);
             _themeService.ThemeChanged += OnThemeServiceChanged;
         }
 
@@ -50,25 +47,26 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// Selected operation; two-way with <see cref="MainViewModel.SelectedOperation"/>.
+        /// Selected operation. MainViewModel пушит выбор из списка и получает
+        /// изменения из 2D-превью через <see cref="SelectionChanged"/>.
         /// </summary>
         public OperationBase SelectedOperation
         {
             get => _selectedOperation;
             set
             {
-                if (ReferenceEquals(value, _selectedOperation)) return;
+                if (Equals(value, _selectedOperation)) return;
                 _selectedOperation = value;
                 OnPropertyChanged();
-                _main.SelectedOperation = value;
+                SelectionChanged?.Invoke(this, value);
             }
         }
 
-        /// <summary>
-        /// Opens the editor of the selected operation
-        /// (wraps <see cref="MainViewModel.EditOperationCommand"/>).
-        /// </summary>
-        public ICommand EditOperationCommand => _main.EditOperationCommand;
+        /// <summary>Raised when the selection changed in the 2D preview (операция может быть null).</summary>
+        public event EventHandler<OperationBase> SelectionChanged;
+
+        /// <summary>Raised when the user requests editing of the selected operation (двойной клик в 2D-превью).</summary>
+        public event EventHandler EditRequested;
 
         /// <summary>Raised when "show all" is requested (fit the view to the scene).</summary>
         public event EventHandler ShowAllRequested;
@@ -76,33 +74,27 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Raised when the application theme changed (view redraws the scene) — пункт 7.5 плана.</summary>
         public event EventHandler ThemeChanged;
 
+        /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
+        public void RebuildScene()
+        {
+            Scene = OperationSceneBuilder.Build(_operations);
+        }
+
+        /// <summary>Запрос редактирования выбранной операции (вызывается из view по двойному клику).</summary>
+        public void RequestEdit()
+        {
+            EditRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Поднятие "show all" (вызывается из MainViewModel).</summary>
+        public void RaiseShowAll()
+        {
+            ShowAllRequested?.Invoke(this, EventArgs.Empty);
+        }
+
         private void OnThemeServiceChanged(object sender, EventArgs e)
         {
             ThemeChanged?.Invoke(this, EventArgs.Empty);
-        }
-
-        private void OnMainPropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(MainViewModel.SelectedOperation))
-                SyncSelection();
-        }
-
-        private void SyncSelection()
-        {
-            if (ReferenceEquals(_selectedOperation, _main.SelectedOperation)) return;
-            _selectedOperation = _main.SelectedOperation;
-            OnPropertyChanged();
-        }
-
-        private void RebuildScene()
-        {
-            Scene = OperationSceneBuilder.Build(_main.AllOperations);
-            SyncSelection();
-        }
-
-        private void OnShowAllRequested()
-        {
-            ShowAllRequested?.Invoke(this, EventArgs.Empty);
         }
     }
 }

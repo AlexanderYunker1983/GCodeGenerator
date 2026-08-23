@@ -166,9 +166,11 @@ namespace GCodeGenerator.Views
 
             _vm.SelectedOperation = op;
 
-            if (e.ClickCount >= 2 && _vm.EditOperationCommand?.CanExecute(null) == true)
+            // DoD фазы 7: редактирование — через событие VM (без ссылки на MainViewModel);
+            // проверку CanExecute выполняет MainViewModel (SelectedOperation != null).
+            if (e.ClickCount >= 2)
             {
-                _vm.EditOperationCommand.Execute(null);
+                _vm.RequestEdit();
             }
         }
 
