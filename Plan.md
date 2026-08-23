@@ -9,7 +9,7 @@
 |------|----------|--------|
 | 0 | Сеть безопасности (тесты, CI, golden) | ✅ готово (0.1–0.8: 48 тестов, 29 golden + эталонный набор) |
 | 1 | Миграция платформы на .NET 10 (D5) | ✅ готово (1.1–1.6, 2026-08-22/23) |
-| 2 | Структурное разделение (Core) | ☐ не начата |
+| 2 | Структурное разделение (Core) | ✅ готово (2.1–2.3, 2026-08-23) |
 | 3 | Очистка доменной модели | ☐ не начата |
 | 4 | Структурный G-код и генераторы | ☐ не начата |
 | 5 | Доработка карманов: стратегии + roughing/finishing (D1) | ☐ не начата |
@@ -96,14 +96,17 @@
 
 **Цель:** ядро продукта (модели + генерация) вынести из WPF-сборки.
 
-- [ ] **2.1** Новый проект `GCodeGenerator.Core` (класс-библиотека, TFM = TFM приложения, без WPF):
-  - [ ] `Models/*` (кроме `GCodeSettingsStore` — остаётся в App как инфраструктура пользовательских настроек);
-  - [ ] `GCodeGenerators/*` (генераторы, геометрия, хелперы, интерфейсы);
-  - [ ] `ILocalizationManager` + базовый `LocalizationManager` (без зависимостей UI-стека).
-- [ ] **2.2** App ссылается на Core (`ProjectReference`); перенесённые файлы удалены из App.
-- [ ] **2.3** Проверка чистоты Core: нет ссылок на `PresentationCore`/`WindowsBase`/WPF (проверка в CI или ревью).
+- [x] **2.1** Новый проект `GCodeGenerator.Core` (класс-библиотека, TFM = TFM приложения, без WPF): — 2026-08-23, commit 7dc78d9.
+  - [x] `Models/*` (кроме `GCodeSettingsStore` — остаётся в App как инфраструктура пользовательских настроек); — 2026-08-23, commit 7dc78d9. *Примечание: перенесено 24 модели (все, кроме `GCodeSettingsStore`, который использует `Properties.Settings`).*
+  - [x] `GCodeGenerators/*` (генераторы, геометрия, хелперы, интерфейсы); — 2026-08-23, commit 7dc78d9. *Примечание: 25 файлов — 6 генераторов/интерфейсов верхнего уровня + 14 `Geometry/` + 3 `Helpers/` + 2 `Interfaces/`.*
+  - [x] `ILocalizationManager` + базовый `LocalizationManager` (без зависимостей UI-стека). — 2026-08-23, commit 7dc78d9. *Примечание: `LocalizationManager` — чистый BCL (System.Reflection/Resources, ресурсы загружаются по имени сборки в рантайме); WPF-часть механизма локализации (`AppLocalizationManager`, `LocalizationProvider`, `LocExtension`) остаётся в App.*
+  *Примечания (проект): (а) SDK-класс-библиотека, TFM **net10.0-windows** (как у приложения, по плану), без UseWPF, без пакетов NuGet — только BCL (System.Collections.Generic, System.ComponentModel, System.Globalization, System.Linq, System.Reflection, System.Resources); (б) **неймспейсы сохранены** (`GCodeGenerator.Models`, `GCodeGenerator.GCodeGenerators.*`, `GCodeGenerator.Localization`) — код App/тестов не менялся; переименование неймспеев — отдельный шаг (в пункт не входило); (в) `GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false`: SDK для net10.0-windows по умолчанию генерирует `[assembly: SupportedOSPlatform("Windows7.0")]`, а в App/Tests (ручной AssemblyInfo.cs, GenerateAssemblyInfo=false) таких атрибутов нет — рассогласование дало 6056 предупреждений CA1416 в App/Tests; код Core — чистый кроссплатформенный BCL, аннотация «только Windows» убрана; (г) перенос — `git mv` (100% rename, история файлов сохранена); (д) в перенесённых файлах нет internal-членов → InternalsVisibleTo в Core не требуется (internal-парсеры DXF — в VM App).*
+- [x] **2.2** App ссылается на Core (`ProjectReference`); перенесённые файлы удалены из App. — 2026-08-23, commit 7dc78d9.
+  *Примечания: (а) `GCodeGenerator.csproj`: `ProjectReference` на Core; решение: проект Core добавлен (GUID F064B360-9F95-4DE7-B37C-285D074BFA0C); (б) **9 XAML-файлов**: `xmlns:models="clr-namespace:GCodeGenerator.Models"` → `clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core` — XAML разрешает clr-namespace без `assembly=` в текущей сборке, после переноса типов без этого ошибки MC3050 (не удается найти тип); (в) тестовый проект не менялся: типы Core доступны транзитивно через ProjectReference на App, `InternalsVisibleTo("GCodeGenerator.Tests")` остался в App (нужен для internal-парсеров DXF в VM); (г) проверено: Release-сборка (только 2 предсуществующих warning), 53/53 теста, golden без изменений, UIA-смоук: окно + 3 вкладки, диалог настроек (4 вкладки), диалог операции, смена темы (255,255,255 → 37,37,37 → 255,255,255), чистый выход.*
+- [x] **2.3** Проверка чистоты Core: нет ссылок на `PresentationCore`/`WindowsBase`/WPF (проверка в CI или ревью). — 2026-08-23, commit 265a3e8.
+  *Примечания: (а) CI-шаг «Check Core purity (no WPF)» (pwsh): XML-парсинг `GCodeGenerator.Core.csproj` (нет `UseWPF`/`UseWindowsForms`) + grep исходников Core на WPF-using (`System.Windows*`, `System.Xaml`, `PresentationCore`, `WindowsBase`, `PresentationFramework`); проверен локально в обе стороны: чистый Core → pass, проба-файл с `using System.Windows;` → fail (exit 1); (б) локальная верификация: в `GCodeGenerator.Core.dll` нет строк PresentationCore/PresentationFramework/WindowsBase/System.Xaml/WinForms, в deps.json нет `Microsoft.WindowsDesktop.App`; (в) жёсткий гейт — сама сборка: без UseWPF WPF-типы компилятору недоступны, любая WPF-зависимость в исходниках Core не соберётся.*
 
-**DoD фазы 2:** ☐ сборка + все тесты зелёные; ☐ golden без изменений; ☐ Core без WPF-зависимостей; ☐ приложение работает.
+**DoD фазы 2:** ✅ сборка + все тесты зелёные (53/53, 2.2); ✅ golden без изменений (2.2); ✅ Core без WPF-зависимостей (2.3: CI-чек + бинарная верификация); ✅ приложение работает (UIA-смоук, 2.2).
 
 ---
 
@@ -244,7 +247,7 @@
 |------|-----------|--------|-------------|
 | 0 | Тесты, CI, golden-файлы | 3–5 дн. (готово: 0.1–0.8, 2026-08-22) | — |
 | 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (готово: 1.1–1.6, 2026-08-22/23) | 0 |
-| 2 | Выделение Core | 3–5 дн. | 1 |
+| 2 | Выделение Core | 3–5 дн. (готово: 2.1–2.3, 2026-08-23) | 1 |
 | 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
 | 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
 | 5 | Стратегии карманов + roughing/finishing (D1) | 8–12 дн. | 4 |
