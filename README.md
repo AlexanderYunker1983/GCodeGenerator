@@ -49,29 +49,40 @@ GCodeGenerator — это приложение для Windows, которое п
 
 ## Требования
 
-- Windows 7 или выше
-- .NET Framework 4.8.1
-- Visual Studio 2022 или выше (для сборки из исходников)
+- **Операционная система:**
+  - **Windows 11 24H2 (build 26100) или новее** — рекомендуемая платформа и минимальная поддерживаемая Windows 11 (23H2 поддерживается только в редакции Enterprise, до 10.11.2026);
+  - **Windows 10 22H2 (build 19045) или новее** — минимальная поддерживаемая Windows 10. Примечание: Windows 10 достиг конца поддержки 14.10.2025 и не входит в [официальный список ОС, поддерживаемых .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md) (официально поддерживаемые Windows 10: 21H2 Enterprise LTSC (build 19044) и новее).
+- **.NET 10 Desktop Runtime** (10.0.x) — необходим для запуска приложения; устанавливается с [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0). Релизный установщик может включать рантайм (self-contained) — уточняется к релизу.
+- Для сборки из исходников: **.NET 10 SDK** (10.0.x) — Visual Studio 2026 или командная строка.
 
 ## Установка
 
 ### Готовые сборки
-Скачайте последнюю версию установщика из раздела [Releases](https://github.com/yourusername/GCodeGenerator/releases) и запустите установщик.
+Скачайте последнюю версию установщика из раздела [Releases](https://github.com/AlexanderYunker1983/GCodeGenerator/releases) и запустите установщик.
 
 ### Сборка из исходников
 
+Требования: **.NET 10 SDK** (10.0.x).
+
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/GCodeGenerator.git
+git clone https://github.com/AlexanderYunker1983/GCodeGenerator.git
 cd GCodeGenerator
 ```
 
-2. Восстановите зависимости NuGet:
+2. Соберите решение (NuGet-зависимости восстановятся автоматически):
 ```bash
-nuget restore GCodeGenerator.sln
+dotnet build GCodeGenerator.sln -c Release
 ```
 
-3. Откройте `GCodeGenerator.sln` в Visual Studio и соберите решение.
+3. (Опционально) Запустите тесты:
+```bash
+dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
+```
+
+Приложение: `GCodeGenerator\bin\Release\GCodeGenerator.exe` (для запуска требуется .NET 10 Desktop Runtime).
+
+Альтернатива: откройте `GCodeGenerator.sln` в Visual Studio 2026 и соберите решение (конфигурация Release).
 
 ## Использование
 
@@ -116,16 +127,19 @@ GCodeGenerator/
 │   ├── GCodeGenerators/     # Сервисы генерации G-кода
 │   ├── Localization/        # Модуль локализации
 │   └── Infrastructure/      # Вспомогательные классы
-├── packages/                # Пакеты NuGet
+├── GCodeGenerator.Tests/    # Тесты (MSTest)
+├── docs/                    # Документация (smoke-чек-лист)
 ├── GCodeGenerator.sln       # Решение Visual Studio
+├── Plan.md                  # План рефакторинга
 └── LICENSE                  # Лицензия MIT
 ```
 
 ## Технологии
 
-- **.NET Framework 4.8.1** — платформа разработки
+- **.NET 10 (net10.0-windows)** — платформа разработки
 - **WPF** — графический интерфейс
-- **MugenMvvmToolkit** — фреймворк для MVVM
+- **CommunityToolkit.Mvvm** — фреймворк для MVVM
+- **MahApps.Metro** — UI-темы и контролы
 - **Autofac** — контейнер зависимостей
 - **NuGet** — управление зависимостями
 
@@ -149,5 +163,5 @@ Copyright (c) 2021 Alexander Yunker
 
 ## Поддержка
 
-Если у вас возникли вопросы или проблемы, пожалуйста, создайте [Issue](https://github.com/yourusername/GCodeGenerator/issues) в репозитории.
+Если у вас возникли вопросы или проблемы, пожалуйста, создайте [Issue](https://github.com/AlexanderYunker1983/GCodeGenerator/issues) в репозитории.
 
