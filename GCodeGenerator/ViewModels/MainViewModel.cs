@@ -36,30 +36,18 @@ namespace GCodeGenerator.ViewModels
             // new SimpleGCodeGenerator() удалён.
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
 
-            DrillOperations = new DrillOperationsViewModel(localizationManager, dialogService);
-            DrillOperations.MainViewModel = this;
-            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager, dialogService);
-            ProfileMillingOperations.MainViewModel = this;
-            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, dialogService);
-            PocketOperations.MainViewModel = this;
-            
+            // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
+            // категориальные VM получают его и открывают фильтрованные представления
+            // (FilteredOperationsView).
             AllOperations = new ObservableCollection<OperationBase>();
-            
-            // Subscribe to collection changes BEFORE initializing
-            DrillOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
-            ProfileMillingOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
-            PocketOperations.Operations.CollectionChanged += OnOperationsCollectionChanged;
-            
-            // Subscribe to AllOperations changes to update command
             AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
-            
-            // Initialize AllOperations with existing operations
-            foreach (var op in DrillOperations.Operations)
-                AllOperations.Add(op);
-            foreach (var op in ProfileMillingOperations.Operations)
-                AllOperations.Add(op);
-            foreach (var op in PocketOperations.Operations)
-                AllOperations.Add(op);
+
+            DrillOperations = new DrillOperationsViewModel(localizationManager, dialogService, AllOperations);
+            DrillOperations.OperationAdded += OnCategoryOperationAdded;
+            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager, dialogService, AllOperations);
+            ProfileMillingOperations.OperationAdded += OnCategoryOperationAdded;
+            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, dialogService, AllOperations);
+            PocketOperations.OperationAdded += OnCategoryOperationAdded;
             
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => AllOperations.Count > 0);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
@@ -127,24 +115,6 @@ namespace GCodeGenerator.ViewModels
                 if (Equals(value, _selectedOperation)) return;
                 _selectedOperation = value;
                 OnPropertyChanged();
-                
-                // Update selected operation in corresponding ViewModel
-                if (value != null)
-                {
-                    if (DrillOperations.Operations.Contains(value))
-                        DrillOperations.SelectedOperation = value;
-                    else if (ProfileMillingOperations.Operations.Contains(value))
-                        ProfileMillingOperations.SelectedOperation = value;
-                    else if (PocketOperations.Operations.Contains(value))
-                        PocketOperations.SelectedOperation = value;
-                }
-                else
-                {
-                    DrillOperations.SelectedOperation = null;
-                    ProfileMillingOperations.SelectedOperation = null;
-                    PocketOperations.SelectedOperation = null;
-                }
-                
                 UpdateOperationCommandsCanExecute();
                 NotifyOperationsChanged();
             }
@@ -190,66 +160,6 @@ namespace GCodeGenerator.ViewModels
         public ICommand OpenProjectCommand { get; }
 
 
-        private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            // Sync AllOperations collection
-            if (e.Action == NotifyCollectionChangedAction.Add)
-            {
-                foreach (OperationBase item in e.NewItems)
-                {
-                    if (!AllOperations.Contains(item))
-                        AllOperations.Add(item);
-                }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Remove)
-            {
-                foreach (OperationBase item in e.OldItems)
-                {
-                    DetachOperation(item);
-                    AllOperations.Remove(item);
-                    if (SelectedOperation == item)
-                        SelectedOperation = null;
-                }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Replace)
-            {
-                foreach (OperationBase item in e.OldItems)
-                {
-                    DetachOperation(item);
-                    AllOperations.Remove(item);
-                }
-                foreach (OperationBase item in e.NewItems)
-                {
-                    if (!AllOperations.Contains(item))
-                    {
-                        AllOperations.Add(item);
-                        AttachOperation(item);
-                    }
-                }
-            }
-            else if (e.Action == NotifyCollectionChangedAction.Reset)
-            {
-                // Remove all items from this collection
-                var toRemove = AllOperations.Where(op => 
-                    (sender == DrillOperations.Operations && DrillOperations.Operations.Contains(op)) ||
-                    (sender == ProfileMillingOperations.Operations && ProfileMillingOperations.Operations.Contains(op)) ||
-                    (sender == PocketOperations.Operations && PocketOperations.Operations.Contains(op))
-                ).ToList();
-                foreach (var item in toRemove)
-                {
-                    DetachOperation(item);
-                    AllOperations.Remove(item);
-                    if (SelectedOperation == item)
-                        SelectedOperation = null;
-                }
-            }
-            
-            // Update command state after collection changes
-            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
-            UpdateOperationCommandsCanExecute();
-            NotifyOperationsChanged();
-        }
-
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
@@ -263,8 +173,17 @@ namespace GCodeGenerator.ViewModels
             if (e?.OldItems != null)
             {
                 foreach (OperationBase op in e.OldItems)
+                {
                     DetachOperation(op);
+                    if (SelectedOperation == op)
+                        SelectedOperation = null;
+                }
             }
+
+            // Пункт 7.2 плана: категорийных коллекций больше нет — список,
+            // команды и 2D-превью обновляются от единой коллекции.
+            UpdateOperationCommandsCanExecute();
+            NotifyOperationsChanged();
         }
 
         private void AttachOperation(OperationBase op)
@@ -282,11 +201,9 @@ namespace GCodeGenerator.ViewModels
 
         private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(OperationBase.IsEnabled))
-            {
-                // When user toggles "Enabled" flag, force 2D preview redraw
-                NotifyOperationsChanged();
-            }
+            // Пункт 7.2 плана: любое изменение операции (сохранение из диалога,
+            // переключение «Включено», импорт DXF) перерисовывает 2D-превью.
+            NotifyOperationsChanged();
         }
 
         private GCodeProgram _generatedProgram;
@@ -352,6 +269,13 @@ namespace GCodeGenerator.ViewModels
         {
             OperationsChanged?.Invoke();
         }
+
+        private void OnCategoryOperationAdded(OperationBase operation)
+        {
+            // Пользователь добавил операцию через категорийную вкладку —
+            // выбираем её в общем списке (поведение как до пункта 7.2).
+            SelectedOperation = operation;
+        }
         
         private bool CanModifySelectedOperation() => SelectedOperation != null;
 
@@ -378,7 +302,6 @@ namespace GCodeGenerator.ViewModels
             if (allIndex > 0)
             {
                 AllOperations.Move(allIndex, allIndex - 1);
-                SyncOperationCollectionsOrder();
             }
 
             UpdateOperationCommandsCanExecute();
@@ -392,7 +315,6 @@ namespace GCodeGenerator.ViewModels
             if (allIndex >= 0 && allIndex < AllOperations.Count - 1)
             {
                 AllOperations.Move(allIndex, allIndex + 1);
-                SyncOperationCollectionsOrder();
             }
 
             UpdateOperationCommandsCanExecute();
@@ -401,41 +323,110 @@ namespace GCodeGenerator.ViewModels
         private void RemoveSelectedOperation()
         {
             if (!CanModifySelectedOperation()) return;
-            
-            var operationToRemove = SelectedOperation;
-            
-            if (DrillOperations.Operations.Contains(operationToRemove))
-            {
-                DrillOperations.RemoveSelectedOperation();
-            }
-            else if (ProfileMillingOperations.Operations.Contains(operationToRemove))
-            {
-                ProfileMillingOperations.RemoveSelectedOperation();
-            }
-            else if (PocketOperations.Operations.Contains(operationToRemove))
-            {
-                PocketOperations.RemoveSelectedOperation();
-            }
-            
-            // SelectedOperation will be updated by OnOperationsCollectionChanged
-            UpdateOperationCommandsCanExecute();
+
+            // Пункт 7.2 плана: единая коллекция — прямое удаление; выбор и
+            // команды обновляются в OnAllOperationsCollectionChanged.
+            AllOperations.Remove(SelectedOperation);
         }
 
         private void EditSelectedOperation()
         {
-            if (SelectedOperation == null) return;
-            
-            if (DrillOperations.Operations.Contains(SelectedOperation))
+            var op = SelectedOperation;
+            if (op == null) return;
+
+            // Пункт 7.2 плана: диспетчеризация по типу операции (категорийные
+            // VM больше не хранят логику редактирования); пункт 3.4: сверление —
+            // по DrillMode, а не по имени.
+            switch (op)
             {
-                DrillOperations.EditSelectedOperation();
+                case DrillPointsOperation drill:
+                    var drillType = GetDialogViewModelType(drill.DrillMode);
+                    var drillVm = (IDrillDialogViewModel)_dialogService.CreateViewModel(drillType);
+                    drillVm.Operations = AllOperations;
+                    drillVm.Operation = drill;
+                    _dialogService.ShowDialog(drillType, drillVm);
+                    break;
+                case PocketCircleOperation pocketCircle:
+                    var pocketCircleVm = _dialogService.CreateViewModel<PocketCircleOperationViewModel>();
+                    pocketCircleVm.Operations = AllOperations;
+                    pocketCircleVm.Operation = pocketCircle;
+                    _dialogService.ShowDialog(pocketCircleVm);
+                    break;
+                case PocketRectangleOperation pocketRectangle:
+                    var pocketRectangleVm = _dialogService.CreateViewModel<PocketRectangleOperationViewModel>();
+                    pocketRectangleVm.Operations = AllOperations;
+                    pocketRectangleVm.Operation = pocketRectangle;
+                    _dialogService.ShowDialog(pocketRectangleVm);
+                    break;
+                case PocketEllipseOperation pocketEllipse:
+                    var pocketEllipseVm = _dialogService.CreateViewModel<PocketEllipseOperationViewModel>();
+                    pocketEllipseVm.Operations = AllOperations;
+                    pocketEllipseVm.Operation = pocketEllipse;
+                    _dialogService.ShowDialog(pocketEllipseVm);
+                    break;
+                case PocketDxfOperation pocketDxf:
+                    var pocketDxfVm = _dialogService.CreateViewModel<PocketDxfOperationViewModel>();
+                    pocketDxfVm.Operations = AllOperations;
+                    pocketDxfVm.Operation = pocketDxf;
+                    _dialogService.ShowDialog(pocketDxfVm);
+                    break;
+                case ProfileCircleOperation profileCircle:
+                    var profileCircleVm = _dialogService.CreateViewModel<ProfileCircleOperationViewModel>();
+                    profileCircleVm.Operations = AllOperations;
+                    profileCircleVm.Operation = profileCircle;
+                    _dialogService.ShowDialog(profileCircleVm);
+                    break;
+                case ProfileRectangleOperation profileRectangle:
+                    var profileRectangleVm = _dialogService.CreateViewModel<ProfileRectangleOperationViewModel>();
+                    profileRectangleVm.Operations = AllOperations;
+                    profileRectangleVm.Operation = profileRectangle;
+                    _dialogService.ShowDialog(profileRectangleVm);
+                    break;
+                case ProfileRoundedRectangleOperation profileRoundedRectangle:
+                    var profileRoundedRectangleVm = _dialogService.CreateViewModel<ProfileRoundedRectangleOperationViewModel>();
+                    profileRoundedRectangleVm.Operations = AllOperations;
+                    profileRoundedRectangleVm.Operation = profileRoundedRectangle;
+                    _dialogService.ShowDialog(profileRoundedRectangleVm);
+                    break;
+                case ProfileEllipseOperation profileEllipse:
+                    var profileEllipseVm = _dialogService.CreateViewModel<ProfileEllipseOperationViewModel>();
+                    profileEllipseVm.Operations = AllOperations;
+                    profileEllipseVm.Operation = profileEllipse;
+                    _dialogService.ShowDialog(profileEllipseVm);
+                    break;
+                case ProfilePolygonOperation profilePolygon:
+                    var profilePolygonVm = _dialogService.CreateViewModel<ProfilePolygonOperationViewModel>();
+                    profilePolygonVm.Operations = AllOperations;
+                    profilePolygonVm.Operation = profilePolygon;
+                    _dialogService.ShowDialog(profilePolygonVm);
+                    break;
+                case ProfileDxfOperation profileDxf:
+                    var profileDxfVm = _dialogService.CreateViewModel<ProfileDxfOperationViewModel>();
+                    profileDxfVm.Operations = AllOperations;
+                    profileDxfVm.Operation = profileDxf;
+                    _dialogService.ShowDialog(profileDxfVm);
+                    break;
             }
-            else if (ProfileMillingOperations.Operations.Contains(SelectedOperation))
+        }
+
+        /// <summary>
+        /// Тип диалоговой view-модели для режима сверления (пункт 3.4 плана):
+        /// диспетчеризация по <see cref="DrillMode"/>, а не по имени операции.
+        /// Пункт 7.2: перенесён из DrillOperationsViewModel.
+        /// </summary>
+        internal Type GetDialogViewModelType(DrillMode mode)
+        {
+            switch (mode)
             {
-                ProfileMillingOperations.EditSelectedOperation();
-            }
-            else if (PocketOperations.Operations.Contains(SelectedOperation))
-            {
-                PocketOperations.EditSelectedOperation();
+                case DrillMode.Line: return typeof(DrillLineOperationViewModel);
+                case DrillMode.Array: return typeof(DrillArrayOperationViewModel);
+                case DrillMode.Rect: return typeof(DrillRectOperationViewModel);
+                case DrillMode.Circle: return typeof(DrillCircleOperationViewModel);
+                case DrillMode.Arc: return typeof(DrillArcOperationViewModel);
+                case DrillMode.Polygon: return typeof(DrillPolygonOperationViewModel);
+                case DrillMode.Ellipse: return typeof(DrillEllipseOperationViewModel);
+                case DrillMode.Package: return typeof(DrillPackageOperationViewModel);
+                default: return typeof(DrillPointsOperationViewModel);
             }
         }
 
@@ -462,11 +453,7 @@ namespace GCodeGenerator.ViewModels
             if (!_dialogService.ShowConfirm(message, title))
                 return;
 
-            // Clear all operations in specific collections first
-            DrillOperations?.Operations.Clear();
-            ProfileMillingOperations?.Operations.Clear();
-            PocketOperations?.Operations.Clear();
-
+            // Пункт 7.2 плана: единая коллекция — один Clear()
             AllOperations.Clear();
             SelectedOperation = null;
             GCodePreview = string.Empty;
@@ -549,18 +536,17 @@ namespace GCodeGenerator.ViewModels
 
         private void LoadOperationsFromProject(List<OperationBase> operations)
         {
-            // Clear current data
-            DrillOperations?.Operations.Clear();
-            ProfileMillingOperations?.Operations.Clear();
-            PocketOperations?.Operations.Clear();
+            // Clear current data (пункт 7.2: единая коллекция)
             AllOperations.Clear();
             SelectedOperation = null;
             GCodePreview = string.Empty;
             _generatedProgram = null;
 
+            // Пункт 7.2: switch AddOperationToCollections не нужен — все операции
+            // идут в единую коллекцию (категория хранится на самой операции).
             foreach (var operation in operations)
             {
-                AddOperationToCollections(operation);
+                AllOperations.Add(operation);
             }
 
             ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
@@ -570,58 +556,10 @@ namespace GCodeGenerator.ViewModels
             NotifyOperationsChanged();
         }
 
-        private void AddOperationToCollections(OperationBase operation)
-        {
-            switch (operation)
-            {
-                case Models.DrillPointsOperation drill:
-                    DrillOperations?.Operations.Add(drill);
-                    break;
-                case Models.ProfileRectangleOperation profileRect:
-                case Models.ProfileRoundedRectangleOperation profileRounded:
-                case Models.ProfileCircleOperation profileCircle:
-                case Models.ProfileEllipseOperation profileEllipse:
-                case Models.ProfilePolygonOperation profilePolygon:
-                case Models.ProfileDxfOperation profileDxf:
-                    ProfileMillingOperations?.Operations.Add(operation);
-                    break;
-                case Models.PocketRectangleOperation pocketRect:
-                case Models.PocketCircleOperation pocketCircle:
-                case Models.PocketEllipseOperation pocketEllipse:
-                    PocketOperations?.Operations.Add(operation);
-                    break;
-                default:
-                    AllOperations.Add(operation);
-                    break;
-            }
-        }
-
         private void ShowInvalidProjectMessage(string title)
         {
             var message = _localizationManager?.GetString("InvalidProjectFile") ?? "Невозможно прочитать файл проекта.";
             _dialogService.ShowError(message, title);
-        }
-
-        private void SyncOperationCollectionsOrder()
-        {
-            SyncCollectionOrder(AllOperations, DrillOperations?.Operations);
-            SyncCollectionOrder(AllOperations, ProfileMillingOperations?.Operations);
-            SyncCollectionOrder(AllOperations, PocketOperations?.Operations);
-        }
-
-        private static void SyncCollectionOrder(ObservableCollection<OperationBase> sourceOrder, ObservableCollection<OperationBase> target)
-        {
-            if (sourceOrder == null || target == null) return;
-
-            var desiredOrder = sourceOrder.Where(target.Contains).ToList();
-            for (int desiredIndex = 0; desiredIndex < desiredOrder.Count; desiredIndex++)
-            {
-                var currentIndex = target.IndexOf(desiredOrder[desiredIndex]);
-                if (currentIndex >= 0 && currentIndex != desiredIndex)
-                {
-                    target.Move(currentIndex, desiredIndex);
-                }
-            }
         }
     }
 }

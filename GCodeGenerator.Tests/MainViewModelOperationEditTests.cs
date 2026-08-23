@@ -1,22 +1,26 @@
 using System;
+using System.Collections.ObjectModel;
+using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Тесты DrillOperationsViewModel (пункт 3.4 плана): диалог редактирования
-    /// выбирается по DrillMode операции, а не по её имени.
+    /// Тесты редактирования операций в MainViewModel (пункты 3.4 и 7.2 плана):
+    /// диалог редактирования сверления выбирается по DrillMode операции, а не
+    /// по её имени; пункт 7.2: диалог получает единую коллекцию AllOperations.
     /// </summary>
     [TestClass]
-    public class DrillOperationsViewModelTests
+    public class MainViewModelOperationEditTests
     {
-        /// <summary>Заглушка диалоговой VM: фиксирует, что EditSelectedOperation передал операцию.</summary>
+        /// <summary>Заглушка диалоговой VM: фиксирует операцию и коллекцию, переданные в диалог.</summary>
         private sealed class StubDrillDialogVm : IDrillDialogViewModel
         {
-            public DrillOperationsViewModel MainViewModel { get; set; }
+            public ObservableCollection<OperationBase> Operations { get; set; }
             public DrillPointsOperation Operation { get; set; }
         }
 
@@ -52,20 +56,23 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        private static MainViewModel CreateMain(IDialogService dialogService)
+            => new MainViewModel(null, dialogService, new SimpleGCodeGenerator());
+
         [TestMethod]
         public void GetDialogViewModelType_AllModes_MappedCorrectly()
         {
-            var vm = new DrillOperationsViewModel(null, null);
+            var main = CreateMain(new RecordingDialogService());
 
-            Assert.AreEqual(typeof(DrillPointsOperationViewModel), vm.GetDialogViewModelType(DrillMode.Points));
-            Assert.AreEqual(typeof(DrillLineOperationViewModel), vm.GetDialogViewModelType(DrillMode.Line));
-            Assert.AreEqual(typeof(DrillArrayOperationViewModel), vm.GetDialogViewModelType(DrillMode.Array));
-            Assert.AreEqual(typeof(DrillRectOperationViewModel), vm.GetDialogViewModelType(DrillMode.Rect));
-            Assert.AreEqual(typeof(DrillCircleOperationViewModel), vm.GetDialogViewModelType(DrillMode.Circle));
-            Assert.AreEqual(typeof(DrillArcOperationViewModel), vm.GetDialogViewModelType(DrillMode.Arc));
-            Assert.AreEqual(typeof(DrillPolygonOperationViewModel), vm.GetDialogViewModelType(DrillMode.Polygon));
-            Assert.AreEqual(typeof(DrillEllipseOperationViewModel), vm.GetDialogViewModelType(DrillMode.Ellipse));
-            Assert.AreEqual(typeof(DrillPackageOperationViewModel), vm.GetDialogViewModelType(DrillMode.Package));
+            Assert.AreEqual(typeof(DrillPointsOperationViewModel), main.GetDialogViewModelType(DrillMode.Points));
+            Assert.AreEqual(typeof(DrillLineOperationViewModel), main.GetDialogViewModelType(DrillMode.Line));
+            Assert.AreEqual(typeof(DrillArrayOperationViewModel), main.GetDialogViewModelType(DrillMode.Array));
+            Assert.AreEqual(typeof(DrillRectOperationViewModel), main.GetDialogViewModelType(DrillMode.Rect));
+            Assert.AreEqual(typeof(DrillCircleOperationViewModel), main.GetDialogViewModelType(DrillMode.Circle));
+            Assert.AreEqual(typeof(DrillArcOperationViewModel), main.GetDialogViewModelType(DrillMode.Arc));
+            Assert.AreEqual(typeof(DrillPolygonOperationViewModel), main.GetDialogViewModelType(DrillMode.Polygon));
+            Assert.AreEqual(typeof(DrillEllipseOperationViewModel), main.GetDialogViewModelType(DrillMode.Ellipse));
+            Assert.AreEqual(typeof(DrillPackageOperationViewModel), main.GetDialogViewModelType(DrillMode.Package));
         }
 
         /// <summary>
@@ -76,23 +83,25 @@ namespace GCodeGenerator.Tests
         public void EditSelectedOperation_RenamedOperation_OpensDialogByMode()
         {
             var dialogService = new RecordingDialogService();
-            var vm = new DrillOperationsViewModel(null, dialogService);
+            var main = CreateMain(dialogService);
 
             var op = new DrillPointsOperation
             {
                 DrillMode = DrillMode.Arc,
                 Name = "Переименованная операция"
             };
-            vm.Operations.Add(op);
-            vm.SelectedOperation = op;
+            main.AllOperations.Add(op);
+            main.SelectedOperation = op;
 
-            vm.EditSelectedOperation();
+            main.EditOperationCommand.Execute(null);
 
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.CreatedType,
                 "Диалог выбирается по DrillMode, а не по имени");
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.ShownType);
             Assert.AreSame(op, ((IDrillDialogViewModel)dialogService.ShownVm).Operation,
                 "В диалог передана та же операция");
+            Assert.AreSame(main.AllOperations, ((IDrillDialogViewModel)dialogService.ShownVm).Operations,
+                "Диалог получает единую коллекцию операций (пункт 7.2)");
         }
 
         [TestMethod]
@@ -114,12 +123,12 @@ namespace GCodeGenerator.Tests
             foreach (var (mode, expectedType) in cases)
             {
                 var dialogService = new RecordingDialogService();
-                var vm = new DrillOperationsViewModel(null, dialogService);
+                var main = CreateMain(dialogService);
                 var op = new DrillPointsOperation { DrillMode = mode, Name = "Имя" };
-                vm.Operations.Add(op);
-                vm.SelectedOperation = op;
+                main.AllOperations.Add(op);
+                main.SelectedOperation = op;
 
-                vm.EditSelectedOperation();
+                main.EditOperationCommand.Execute(null);
 
                 Assert.AreEqual(expectedType, dialogService.CreatedType, $"mode={mode}");
             }

@@ -9,17 +9,26 @@ using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
+    /// <summary>
+    /// View-модель вкладки «Сверление» (пункт 7.2 плана): добавляет операции
+    /// сверления в единую коллекцию MainViewModel.AllOperations и открывает
+    /// диалоги операций. Собственной коллекции нет — <see cref="Operations"/>
+    /// — фильтрованное представление единой коллекции по категории.
+    /// </summary>
     public class DrillOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
+        private readonly ObservableCollection<OperationBase> _allOperations;
 
-        public DrillOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
+        public DrillOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService, ObservableCollection<OperationBase> allOperations)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
-            Operations = new ObservableCollection<OperationBase>();
-            
+            _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
+
+            Operations = new FilteredOperationsView(_allOperations, OperationCategory.Drill);
+
             AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
             AddDrillLineCommand = new RelayCommand(AddDrillLine);
             AddDrillArrayCommand = new RelayCommand(AddDrillArray);
@@ -29,36 +38,19 @@ namespace GCodeGenerator.ViewModels.Drill
             AddDrillPolygonCommand = new RelayCommand(AddDrillPolygon);
             AddDrillEllipseCommand = new RelayCommand(AddDrillEllipse);
             AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
-            
-            MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
-            MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
-            RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
-            EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
         }
 
-        public ObservableCollection<OperationBase> Operations { get; }
+        /// <summary>
+        /// Фильтрованное представление единой коллекции операций
+        /// (пункт 7.2 плана): только операции сверления, в порядке AllOperations.
+        /// </summary>
+        public FilteredOperationsView Operations { get; }
 
-        private OperationBase _selectedOperation;
-
-        public OperationBase SelectedOperation
-        {
-            get => _selectedOperation;
-            set
-            {
-                if (Equals(value, _selectedOperation)) return;
-                _selectedOperation = value;
-                OnPropertyChanged();
-                UpdateOperationCommandsCanExecute();
-                
-                // Notify parent ViewModel if needed
-                if (MainViewModel != null && value != null)
-                {
-                    MainViewModel.SelectedOperation = value;
-                }
-            }
-        }
-        
-        public MainViewModel MainViewModel { get; set; }
+        /// <summary>
+        /// Событие: пользователь добавил новую операцию через вкладку
+        /// (MainViewModel выбирает её в общем списке).
+        /// </summary>
+        public event Action<OperationBase> OperationAdded;
 
         public ICommand AddDrillPointsCommand { get; }
         public ICommand AddDrillLineCommand { get; }
@@ -69,10 +61,6 @@ namespace GCodeGenerator.ViewModels.Drill
         public ICommand AddDrillPolygonCommand { get; }
         public ICommand AddDrillEllipseCommand { get; }
         public ICommand AddDrillPackageCommand { get; }
-        public ICommand MoveOperationUpCommand { get; }
-        public ICommand MoveOperationDownCommand { get; }
-        public ICommand RemoveOperationCommand { get; }
-        public ICommand EditOperationCommand { get; }
 
         private void AddDrillPoints()
         {
@@ -81,14 +69,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillPointsOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillLine()
@@ -98,14 +85,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillLineOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillArray()
@@ -115,14 +101,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillArrayOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillRect()
@@ -132,14 +117,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillRectOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillCircle()
@@ -149,14 +133,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillCircleOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillArc()
@@ -166,14 +149,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillArcOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillPolygon()
@@ -183,14 +165,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillPolygonOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillEllipse()
@@ -200,14 +181,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillEllipseOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
         }
 
         private void AddDrillPackage()
@@ -217,113 +197,13 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            Operations.Add(op);
-            SelectedOperation = op;
+            _allOperations.Add(op);
+            OperationAdded?.Invoke(op);
 
             var vm = _dialogService.CreateViewModel<DrillPackageOperationViewModel>();
-            vm.MainViewModel = this;
+            vm.Operations = _allOperations;
             vm.Operation = op;
             _dialogService.ShowDialog(vm);
-            MainViewModel?.NotifyOperationsChanged();
-        }
-
-        private bool CanModifySelectedOperation() => SelectedOperation != null;
-
-        private bool CanMoveSelectedOperationUp()
-        {
-            if (SelectedOperation == null) return false;
-            var index = Operations.IndexOf(SelectedOperation);
-            return index > 0;
-        }
-
-        private bool CanMoveSelectedOperationDown()
-        {
-            if (SelectedOperation == null) return false;
-            var index = Operations.IndexOf(SelectedOperation);
-            return index >= 0 && index < Operations.Count - 1;
-        }
-
-        public void MoveSelectedOperationUp()
-        {
-            if (!CanMoveSelectedOperationUp()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            Operations.Move(index, index - 1);
-            UpdateOperationCommandsCanExecute();
-        }
-
-        public void MoveSelectedOperationDown()
-        {
-            if (!CanMoveSelectedOperationDown()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            Operations.Move(index, index + 1);
-            UpdateOperationCommandsCanExecute();
-        }
-
-        public void RemoveSelectedOperation()
-        {
-            if (!CanModifySelectedOperation()) return;
-            var index = Operations.IndexOf(SelectedOperation);
-            if (index < 0) return;
-            Operations.RemoveAt(index);
-            SelectedOperation = index < Operations.Count ? Operations[index] : null;
-            UpdateOperationCommandsCanExecute();
-        }
-
-        public void RemoveOperation(OperationBase operation)
-        {
-            if (operation == null) return;
-            var index = Operations.IndexOf(operation);
-            if (index < 0) return;
-            Operations.RemoveAt(index);
-            if (SelectedOperation == operation)
-            {
-                SelectedOperation = index < Operations.Count ? Operations[index] : null;
-            }
-            UpdateOperationCommandsCanExecute();
-        }
-
-        /// <summary>
-        /// Тип диалоговой view-модели для режима сверления (пункт 3.4 плана):
-        /// диспетчеризация по <see cref="DrillMode"/>, а не по имени операции.
-        /// </summary>
-        public Type GetDialogViewModelType(DrillMode mode)
-        {
-            switch (mode)
-            {
-                case DrillMode.Line: return typeof(DrillLineOperationViewModel);
-                case DrillMode.Array: return typeof(DrillArrayOperationViewModel);
-                case DrillMode.Rect: return typeof(DrillRectOperationViewModel);
-                case DrillMode.Circle: return typeof(DrillCircleOperationViewModel);
-                case DrillMode.Arc: return typeof(DrillArcOperationViewModel);
-                case DrillMode.Polygon: return typeof(DrillPolygonOperationViewModel);
-                case DrillMode.Ellipse: return typeof(DrillEllipseOperationViewModel);
-                case DrillMode.Package: return typeof(DrillPackageOperationViewModel);
-                default: return typeof(DrillPointsOperationViewModel);
-            }
-        }
-
-        public void EditSelectedOperation()
-        {
-            if (!(SelectedOperation is DrillPointsOperation drillOp))
-                return;
-
-            // Открываем диалог по режиму операции (пункт 3.4), а не по её имени.
-            var vmType = GetDialogViewModelType(drillOp.DrillMode);
-            var vm = (IDrillDialogViewModel)_dialogService.CreateViewModel(vmType);
-            vm.MainViewModel = this;
-            vm.Operation = drillOp;
-            _dialogService.ShowDialog(vmType, vm);
-
-            MainViewModel?.NotifyOperationsChanged();
-        }
-
-        private void UpdateOperationCommandsCanExecute()
-        {
-            (MoveOperationUpCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (MoveOperationDownCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (RemoveOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (EditOperationCommand as RelayCommand)?.NotifyCanExecuteChanged();
         }
     }
 }
-

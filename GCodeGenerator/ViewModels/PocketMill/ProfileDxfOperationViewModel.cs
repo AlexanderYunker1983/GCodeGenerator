@@ -8,6 +8,7 @@ using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
+using System.Collections.ObjectModel;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
@@ -26,7 +27,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 UpdateOperationData();
             }
         }
-        public ProfileMillingOperationsViewModel ProfileMillingOperationsViewModel { get; set; }
+        public ObservableCollection<OperationBase> Operations { get; set; }
 
         public ICommand ImportDxfCommand { get; }
 
@@ -211,7 +212,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
                 ImportInfo = string.Format(infoTemplate, lineCount);
-                ProfileMillingOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
             }
             catch (Exception ex)
             {
@@ -464,12 +464,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 });
             }
             return points;
-        }
-
-        public override void OnClosed()
-        {
-            base.OnClosed();
-            ProfileMillingOperationsViewModel?.MainViewModel?.NotifyOperationsChanged();
         }
     }
 }

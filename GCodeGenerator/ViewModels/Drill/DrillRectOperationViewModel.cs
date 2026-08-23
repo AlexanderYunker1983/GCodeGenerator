@@ -19,7 +19,7 @@ namespace GCodeGenerator.ViewModels.Drill
             PreviewHoles = new ObservableCollection<DrillHole>();
         }
 
-        public DrillOperationsViewModel MainViewModel { get; set; }
+        public ObservableCollection<OperationBase> Operations { get; set; }
 
         private DrillPointsOperation _operation;
 
@@ -332,10 +332,10 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void RemoveOperationFromMain()
         {
-            // \u041f\u0443\u043d\u043a\u0442 7.1 \u043f\u043b\u0430\u043d\u0430: OnClosed \u0432\u044b\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f IDialogService \u043d\u0430 UI-\u043f\u043e\u0442\u043e\u043a\u0435
-            // \u043f\u043e\u0441\u043b\u0435 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u044f \u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043e\u043a\u043d\u0430 (WpfDialogService.ShowDialog) \u2014
-            // \u043f\u0435\u0440\u0435\u0445\u043e\u0434 \u0447\u0435\u0440\u0435\u0437 Dispatcher \u043d\u0435 \u043d\u0443\u0436\u0435\u043d, \u0432\u044b\u0437\u043e\u0432 \u043f\u0440\u044f\u043c\u043e\u0439.
-            MainViewModel?.RemoveOperation(_operation);
+            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
+            // прямое удаление; MainViewModel реагирует на CollectionChanged
+            // и на PropertyChanged операции.
+            Operations?.Remove(_operation);
         }
 
         private void RebuildHoles()
