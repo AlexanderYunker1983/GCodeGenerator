@@ -8,11 +8,10 @@ using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
-using System.Collections.ObjectModel;
 
 namespace GCodeGenerator.ViewModels.Pocket
 {
-    public class PocketDxfOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class PocketDxfOperationViewModel : OperationEditorViewModelBase<PocketDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
@@ -31,26 +30,10 @@ namespace GCodeGenerator.ViewModels.Pocket
             var title = _localizationManager?.GetString("PocketDxfName");
             DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - карманы" : title;
 
+            // Пункт 7.3: операция по умолчанию для автономного создания
+            // (в потоках добавления/редактирования фабрику задаёт Operation).
             if (Operation == null)
                 Operation = new PocketDxfOperation();
-            else
-            {
-                UpdateOperationData();
-            }
-        }
-
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private PocketDxfOperation _operation;
-        public PocketDxfOperation Operation
-        {
-            get => _operation;
-            set
-            {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                UpdateOperationData();
-            }
         }
 
         private string _displayName;
@@ -349,16 +332,16 @@ namespace GCodeGenerator.ViewModels.Pocket
         }
 
 
-        private void UpdateOperationData()
+        protected override void LoadFromOperation(PocketDxfOperation operation)
         {
-            if (Operation == null)
+            if (operation == null)
                 return;
 
-            FilePath = Operation.DxfFilePath;
+            FilePath = operation.DxfFilePath;
 
-            if (Operation.ClosedContours != null && Operation.ClosedContours.Count > 0)
+            if (operation.ClosedContours != null && operation.ClosedContours.Count > 0)
             {
-                var contourCount = Operation.ClosedContours.Count;
+                var contourCount = operation.ClosedContours.Count;
                 var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "Импортировано замкнутых контуров: {0}";
                 ImportInfo = string.Format(infoTemplate, contourCount);
             }
@@ -367,26 +350,26 @@ namespace GCodeGenerator.ViewModels.Pocket
                 ImportInfo = null;
             }
 
-            Direction = Operation.Direction;
-            PocketStrategy = Operation.PocketStrategy;
-            TotalDepth = Operation.TotalDepth;
-            StepDepth = Operation.StepDepth;
-            ToolDiameter = Operation.ToolDiameter;
-            ContourHeight = Operation.ContourHeight;
-            FeedXYRapid = Operation.FeedXYRapid;
-            FeedXYWork = Operation.FeedXYWork;
-            FeedZRapid = Operation.FeedZRapid;
-            FeedZWork = Operation.FeedZWork;
-            SafeZHeight = Operation.SafeZHeight;
-            RetractHeight = Operation.RetractHeight;
-            StepPercentOfTool = Operation.StepPercentOfTool;
-            Decimals = Operation.Decimals;
-            LineAngleDeg = Operation.LineAngleDeg;
-            WallTaperAngleDeg = Math.Max(0, Operation.WallTaperAngleDeg);
-            IsRoughingEnabled = Operation.IsRoughingEnabled;
-            IsFinishingEnabled = Operation.IsFinishingEnabled;
-            FinishAllowance = Operation.FinishAllowance;
-            FinishingMode = Operation.FinishingMode;
+            Direction = operation.Direction;
+            PocketStrategy = operation.PocketStrategy;
+            TotalDepth = operation.TotalDepth;
+            StepDepth = operation.StepDepth;
+            ToolDiameter = operation.ToolDiameter;
+            ContourHeight = operation.ContourHeight;
+            FeedXYRapid = operation.FeedXYRapid;
+            FeedXYWork = operation.FeedXYWork;
+            FeedZRapid = operation.FeedZRapid;
+            FeedZWork = operation.FeedZWork;
+            SafeZHeight = operation.SafeZHeight;
+            RetractHeight = operation.RetractHeight;
+            StepPercentOfTool = operation.StepPercentOfTool;
+            Decimals = operation.Decimals;
+            LineAngleDeg = operation.LineAngleDeg;
+            WallTaperAngleDeg = Math.Max(0, operation.WallTaperAngleDeg);
+            IsRoughingEnabled = operation.IsRoughingEnabled;
+            IsFinishingEnabled = operation.IsFinishingEnabled;
+            FinishAllowance = operation.FinishAllowance;
+            FinishingMode = operation.FinishingMode;
         }
 
         private void ImportDxfFile()
@@ -1566,46 +1549,33 @@ namespace GCodeGenerator.ViewModels.Pocket
             return points;
         }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            if (ToolDiameter <= 0 || StepPercentOfTool <= 0 || _operation.ClosedContours == null || _operation.ClosedContours.Count == 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
-            _operation.Direction = Direction;
-            _operation.PocketStrategy = PocketStrategy;
-            _operation.TotalDepth = TotalDepth;
-            _operation.StepDepth = StepDepth;
-            _operation.ToolDiameter = ToolDiameter;
-            _operation.ContourHeight = ContourHeight;
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.FeedZRapid = FeedZRapid;
-            _operation.FeedZWork = FeedZWork;
-            _operation.SafeZHeight = SafeZHeight;
-            _operation.RetractHeight = RetractHeight;
-            _operation.StepPercentOfTool = StepPercentOfTool;
-            _operation.Decimals = Decimals;
-            _operation.LineAngleDeg = LineAngleDeg;
-            _operation.WallTaperAngleDeg = WallTaperAngleDeg;
-            _operation.IsRoughingEnabled = IsRoughingEnabled;
-            _operation.IsFinishingEnabled = IsFinishingEnabled;
-            _operation.FinishAllowance = FinishAllowance;
-            _operation.FinishingMode = FinishingMode;
+            Operation.Direction = Direction;
+            Operation.PocketStrategy = PocketStrategy;
+            Operation.TotalDepth = TotalDepth;
+            Operation.StepDepth = StepDepth;
+            Operation.ToolDiameter = ToolDiameter;
+            Operation.ContourHeight = ContourHeight;
+            Operation.FeedXYRapid = FeedXYRapid;
+            Operation.FeedXYWork = FeedXYWork;
+            Operation.FeedZRapid = FeedZRapid;
+            Operation.FeedZWork = FeedZWork;
+            Operation.SafeZHeight = SafeZHeight;
+            Operation.RetractHeight = RetractHeight;
+            Operation.StepPercentOfTool = StepPercentOfTool;
+            Operation.Decimals = Decimals;
+            Operation.LineAngleDeg = LineAngleDeg;
+            Operation.WallTaperAngleDeg = WallTaperAngleDeg;
+            Operation.IsRoughingEnabled = IsRoughingEnabled;
+            Operation.IsFinishingEnabled = IsFinishingEnabled;
+            Operation.FinishAllowance = FinishAllowance;
+            Operation.FinishingMode = FinishingMode;
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3).
+        protected override bool IsValid() => ToolDiameter > 0 && StepPercentOfTool > 0
+            && Operation.ClosedContours != null && Operation.ClosedContours.Count > 0;
     }
 }
 

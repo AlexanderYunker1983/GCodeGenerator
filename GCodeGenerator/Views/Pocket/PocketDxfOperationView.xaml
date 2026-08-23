@@ -12,6 +12,12 @@
         Width="780" Height="560"
         MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen">
+    <DockPanel>
+        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,8,10,10">
+            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
+            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
+        </StackPanel>
     <ScrollViewer VerticalScrollBarVisibility="Auto">
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -235,5 +241,6 @@
         </GroupBox>
     </Grid>
     </ScrollViewer>
+    </DockPanel>
 </Window>
 
