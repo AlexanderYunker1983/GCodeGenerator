@@ -8,7 +8,7 @@ using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillPointsOperationViewModel : CloseableViewModel, IHasDisplayName, IDrillDialogViewModel
+    public class DrillPointsOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName, IDrillDialogViewModel
     {
         private readonly ILocalizationManager _localizationManager;
 
@@ -26,44 +26,32 @@ namespace GCodeGenerator.ViewModels.Drill
             MoveHoleDownCommand = new RelayCommand(MoveSelectedHoleDown, CanMoveSelectedHoleDown);
         }
 
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private DrillPointsOperation _operation;
-
-        public DrillPointsOperation Operation
+        protected override void LoadFromOperation(DrillPointsOperation operation)
         {
-            get => _operation;
-            set
+            // Sync existing holes from operation into local collection.
+            Holes.Clear();
+            if (operation.Holes.Any())
             {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                if (_operation == null) return;
-
-                // Sync existing holes from operation into local collection.
-                Holes.Clear();
-                if (_operation.Holes.Any())
+                foreach (var hole in operation.Holes)
+                    Holes.Add(hole);
+                SelectedHole = Holes.FirstOrDefault();
+            }
+            else
+            {
+                // Create first default hole if list is empty
+                var defaultHole = new DrillHole
                 {
-                    foreach (var hole in _operation.Holes)
-                        Holes.Add(hole);
-                    SelectedHole = Holes.FirstOrDefault();
-                }
-                else
-                {
-                    // Create first default hole if list is empty
-                    var defaultHole = new DrillHole
-                    {
-                        X = 0,
-                        Y = 0,
-                        Z = 0,
-                        TotalDepth = 2,
-                        StepDepth = 1,
-                        FeedZRapid = 500,
-                        FeedZWork = 200,
-                        RetractHeight = 0.3
-                    };
-                    Holes.Add(defaultHole);
-                    SelectedHole = defaultHole;
-                }
+                    X = 0,
+                    Y = 0,
+                    Z = 0,
+                    TotalDepth = 2,
+                    StepDepth = 1,
+                    FeedZRapid = 500,
+                    FeedZWork = 200,
+                    RetractHeight = 0.3
+                };
+                Holes.Add(defaultHole);
+                SelectedHole = defaultHole;
             }
         }
 
@@ -144,32 +132,18 @@ namespace GCodeGenerator.ViewModels.Drill
         public ICommand MoveHoleUpCommand { get; }
         public ICommand MoveHoleDownCommand { get; }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            // Remove operation only if no holes were created or user deleted all holes
-            if (Holes.Count == 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
             // Save holes to operation (пункт 3.3: режим фиксируется в DrillMode).
-            _operation.DrillMode = DrillMode.Points;
-            _operation.Holes.Clear();
+            Operation.DrillMode = DrillMode.Points;
+            Operation.Holes.Clear();
             foreach (var hole in Holes)
-                _operation.Holes.Add(hole);
+                Operation.Holes.Add(hole);
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
+        // сверление без отверстий не имеет смысла.
+        protected override bool IsValid() => Holes.Count > 0;
 
         private void AddHole()
         {
