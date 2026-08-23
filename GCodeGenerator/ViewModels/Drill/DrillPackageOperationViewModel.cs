@@ -7,7 +7,7 @@ using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillPackageOperationViewModel : CloseableViewModel, IHasDisplayName, IDrillDialogViewModel
+    public class DrillPackageOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName, IDrillDialogViewModel
     {
         private readonly ILocalizationManager _localizationManager;
 
@@ -52,47 +52,35 @@ namespace GCodeGenerator.ViewModels.Drill
             Packages.Add(new PackageDefinition("SOIC-16", 8, 1.27, 5.3));
         }
 
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private DrillPointsOperation _operation;
-
-        public DrillPointsOperation Operation
+        protected override void LoadFromOperation(DrillPointsOperation operation)
         {
-            get => _operation;
-            set
+            // Читаем типизированные свойства (пункт 3.3 плана): для новой
+            // операции это дефолты модели, для загруженной — значения,
+            // мигрированные из Metadata (пункт 3.2).
+            CenterX = operation.CenterX;
+            CenterY = operation.CenterY;
+            Z = operation.Z;
+            RotationAngle = operation.RotationAngle;
+            TotalDepth = operation.TotalDepth;
+            StepDepth = operation.StepDepth;
+            FeedZRapid = operation.FeedZRapid;
+            FeedZWork = operation.FeedZWork;
+            RetractHeight = operation.RetractHeight;
+
+            // Restore package selection; пустое имя — дефолт диалога (DIP8).
+            if (!string.IsNullOrEmpty(operation.PackageName))
             {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                if (_operation == null) return;
-
-                // Читаем типизированные свойства (пункт 3.3 плана): для новой
-                // операции это дефолты модели, для загруженной — значения,
-                // мигрированные из Metadata (пункт 3.2).
-                CenterX = _operation.CenterX;
-                CenterY = _operation.CenterY;
-                Z = _operation.Z;
-                RotationAngle = _operation.RotationAngle;
-                TotalDepth = _operation.TotalDepth;
-                StepDepth = _operation.StepDepth;
-                FeedZRapid = _operation.FeedZRapid;
-                FeedZWork = _operation.FeedZWork;
-                RetractHeight = _operation.RetractHeight;
-
-                // Restore package selection; пустое имя — дефолт диалога (DIP8).
-                if (!string.IsNullOrEmpty(_operation.PackageName))
-                {
-                    var package = Packages.FirstOrDefault(p => p.Name == _operation.PackageName);
-                    if (package != null)
-                        SelectedPackage = package;
-                }
-
-                FeedXYRapid = _operation.FeedXYRapid;
-                FeedXYWork = _operation.FeedXYWork;
-                SafeZBetweenHoles = _operation.SafeZBetweenHoles;
-                Decimals = _operation.Decimals;
-
-                RebuildHoles();
+                var package = Packages.FirstOrDefault(p => p.Name == operation.PackageName);
+                if (package != null)
+                    SelectedPackage = package;
             }
+
+            FeedXYRapid = operation.FeedXYRapid;
+            FeedXYWork = operation.FeedXYWork;
+            SafeZBetweenHoles = operation.SafeZBetweenHoles;
+            Decimals = operation.Decimals;
+
+            RebuildHoles();
         }
 
         public ObservableCollection<DrillHole> PreviewHoles { get; }
@@ -381,48 +369,34 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            // Remove operation if no holes were created
-            if (PreviewHoles.Count == 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            _operation.Decimals = Decimals;
+            Operation.FeedXYRapid = FeedXYRapid;
+            Operation.FeedXYWork = FeedXYWork;
+            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
+            Operation.Decimals = Decimals;
 
             // Save operation-specific parameters to typed properties (пункт 3.3).
-            _operation.DrillMode = DrillMode.Package;
-            _operation.CenterX = CenterX;
-            _operation.CenterY = CenterY;
-            _operation.Z = Z;
-            _operation.RotationAngle = RotationAngle;
-            _operation.TotalDepth = TotalDepth;
-            _operation.StepDepth = StepDepth;
-            _operation.FeedZRapid = FeedZRapid;
-            _operation.FeedZWork = FeedZWork;
-            _operation.RetractHeight = RetractHeight;
-            _operation.PackageName = SelectedPackage?.Name ?? string.Empty;
+            Operation.DrillMode = DrillMode.Package;
+            Operation.CenterX = CenterX;
+            Operation.CenterY = CenterY;
+            Operation.Z = Z;
+            Operation.RotationAngle = RotationAngle;
+            Operation.TotalDepth = TotalDepth;
+            Operation.StepDepth = StepDepth;
+            Operation.FeedZRapid = FeedZRapid;
+            Operation.FeedZWork = FeedZWork;
+            Operation.RetractHeight = RetractHeight;
+            Operation.PackageName = SelectedPackage?.Name ?? string.Empty;
 
-            _operation.Holes.Clear();
+            Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
-                _operation.Holes.Add(hole);
+                Operation.Holes.Add(hole);
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
+        // корпус без отверстий не имеет смысла.
+        protected override bool IsValid() => PreviewHoles.Count > 0;
     }
 }
 
