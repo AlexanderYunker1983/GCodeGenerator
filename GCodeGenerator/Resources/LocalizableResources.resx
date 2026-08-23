@@ -234,6 +234,12 @@
   <data name="DeleteOperation" xml:space="preserve">
     <value>Удалить</value>
   </data>
+  <data name="Ok" xml:space="preserve">
+    <value>OK</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Отмена</value>
+  </data>
   <data name="GCodeSettingsTitle" xml:space="preserve">
     <value>Настройки</value>
   </data>
