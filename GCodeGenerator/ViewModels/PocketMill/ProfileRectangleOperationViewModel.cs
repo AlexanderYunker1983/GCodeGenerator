@@ -1,5 +1,4 @@
 using System;
-using System.Windows.Threading;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
@@ -374,18 +373,10 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         private void RemoveOperationFromMain()
         {
-            if (ProfileMillingOperationsViewModel != null)
-            {
-                var dispatcher = System.Windows.Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
-                if (dispatcher.CheckAccess())
-                {
-                    ProfileMillingOperationsViewModel.RemoveOperation(_operation);
-                }
-                else
-                {
-                    dispatcher.Invoke(() => ProfileMillingOperationsViewModel.RemoveOperation(_operation));
-                }
-            }
+            // \u041f\u0443\u043d\u043a\u0442 7.1 \u043f\u043b\u0430\u043d\u0430: OnClosed \u0432\u044b\u0437\u044b\u0432\u0430\u0435\u0442\u0441\u044f IDialogService \u043d\u0430 UI-\u043f\u043e\u0442\u043e\u043a\u0435
+            // \u043f\u043e\u0441\u043b\u0435 \u0437\u0430\u043a\u0440\u044b\u0442\u0438\u044f \u043c\u043e\u0434\u0430\u043b\u044c\u043d\u043e\u0433\u043e \u043e\u043a\u043d\u0430 (WpfDialogService.ShowDialog) \u2014
+            // \u043f\u0435\u0440\u0435\u0445\u043e\u0434 \u0447\u0435\u0440\u0435\u0437 Dispatcher \u043d\u0435 \u043d\u0443\u0436\u0435\u043d, \u0432\u044b\u0437\u043e\u0432 \u043f\u0440\u044f\u043c\u043e\u0439.
+            ProfileMillingOperationsViewModel?.RemoveOperation(_operation);
         }
     }
 }
