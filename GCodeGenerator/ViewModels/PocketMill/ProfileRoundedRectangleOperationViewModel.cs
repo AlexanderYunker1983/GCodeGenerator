@@ -30,66 +30,35 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 _operation = value;
                 if (_operation == null) return;
 
-                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("ToolPathMode"))
-                {
-                    ToolPathMode = (ToolPathMode)_operation.Metadata["ToolPathMode"];
-                    Direction = (MillingDirection)_operation.Metadata["Direction"];
-                    Width = Convert.ToDouble(_operation.Metadata["Width"]);
-                    Height = Convert.ToDouble(_operation.Metadata["Height"]);
-                    RotationAngle = Convert.ToDouble(_operation.Metadata["RotationAngle"]);
-                    RadiusTopLeft = Convert.ToDouble(_operation.Metadata["RadiusTopLeft"]);
-                    RadiusTopRight = Convert.ToDouble(_operation.Metadata["RadiusTopRight"]);
-                    RadiusBottomLeft = Convert.ToDouble(_operation.Metadata["RadiusBottomLeft"]);
-                    RadiusBottomRight = Convert.ToDouble(_operation.Metadata["RadiusBottomRight"]);
-                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
-                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
-                    ToolDiameter = Convert.ToDouble(_operation.Metadata["ToolDiameter"]);
-                    ContourHeight = Convert.ToDouble(_operation.Metadata["ContourHeight"]);
-                    FeedXYRapid = Convert.ToDouble(_operation.Metadata["FeedXYRapid"]);
-                    FeedXYWork = Convert.ToDouble(_operation.Metadata["FeedXYWork"]);
-                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
-                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
-                    SafeZHeight = Convert.ToDouble(_operation.Metadata["SafeZHeight"]);
-                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
-                    ReferencePointX = Convert.ToDouble(_operation.Metadata["ReferencePointX"]);
-                    ReferencePointY = Convert.ToDouble(_operation.Metadata["ReferencePointY"]);
-                    ReferencePointType = (ReferencePointType)_operation.Metadata["ReferencePointType"];
-                    EntryMode = (EntryMode)_operation.Metadata["EntryMode"];
-                    EntryAngle = Convert.ToDouble(_operation.Metadata["EntryAngle"]);
-                    SafeDistanceBetweenPasses = Convert.ToDouble(_operation.Metadata["SafeDistanceBetweenPasses"]);
-                    Decimals = Convert.ToInt32(_operation.Metadata["Decimals"]);
-                    MaxSegmentLength = Convert.ToDouble(_operation.Metadata["MaxSegmentLength"]);
-                }
-                else
-                {
-                    ToolPathMode = _operation.ToolPathMode;
-                    Direction = _operation.Direction;
-                    Width = _operation.Width;
-                    Height = _operation.Height;
-                    RotationAngle = _operation.RotationAngle;
-                    RadiusTopLeft = _operation.RadiusTopLeft;
-                    RadiusTopRight = _operation.RadiusTopRight;
-                    RadiusBottomLeft = _operation.RadiusBottomLeft;
-                    RadiusBottomRight = _operation.RadiusBottomRight;
-                    TotalDepth = _operation.TotalDepth;
-                    StepDepth = _operation.StepDepth;
-                    ToolDiameter = _operation.ToolDiameter;
-                    ContourHeight = _operation.ContourHeight;
-                    FeedXYRapid = _operation.FeedXYRapid;
-                    FeedXYWork = _operation.FeedXYWork;
-                    FeedZRapid = _operation.FeedZRapid;
-                    FeedZWork = _operation.FeedZWork;
-                    SafeZHeight = _operation.SafeZHeight;
-                    RetractHeight = _operation.RetractHeight;
-                    ReferencePointX = _operation.ReferencePointX;
-                    ReferencePointY = _operation.ReferencePointY;
-                    ReferencePointType = _operation.ReferencePointType;
-                    EntryMode = _operation.EntryMode;
-                    EntryAngle = _operation.EntryAngle;
-                    SafeDistanceBetweenPasses = _operation.SafeDistanceBetweenPasses;
-                    Decimals = _operation.Decimals;
-                    MaxSegmentLength = _operation.MaxSegmentLength;
-                }
+                // Читаем только типизированные свойства (пункт 3.5 плана):
+                // легаси-Metadata мигрируется в свойства при загрузке (пункт 3.2).
+                ToolPathMode = _operation.ToolPathMode;
+                Direction = _operation.Direction;
+                Width = _operation.Width;
+                Height = _operation.Height;
+                RotationAngle = _operation.RotationAngle;
+                RadiusTopLeft = _operation.RadiusTopLeft;
+                RadiusTopRight = _operation.RadiusTopRight;
+                RadiusBottomLeft = _operation.RadiusBottomLeft;
+                RadiusBottomRight = _operation.RadiusBottomRight;
+                TotalDepth = _operation.TotalDepth;
+                StepDepth = _operation.StepDepth;
+                ToolDiameter = _operation.ToolDiameter;
+                ContourHeight = _operation.ContourHeight;
+                FeedXYRapid = _operation.FeedXYRapid;
+                FeedXYWork = _operation.FeedXYWork;
+                FeedZRapid = _operation.FeedZRapid;
+                FeedZWork = _operation.FeedZWork;
+                SafeZHeight = _operation.SafeZHeight;
+                RetractHeight = _operation.RetractHeight;
+                ReferencePointX = _operation.ReferencePointX;
+                ReferencePointY = _operation.ReferencePointY;
+                ReferencePointType = _operation.ReferencePointType;
+                EntryMode = _operation.EntryMode;
+                EntryAngle = _operation.EntryAngle;
+                SafeDistanceBetweenPasses = _operation.SafeDistanceBetweenPasses;
+                Decimals = _operation.Decimals;
+                MaxSegmentLength = _operation.MaxSegmentLength;
             }
         }
 
@@ -470,37 +439,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
             _operation.SafeDistanceBetweenPasses = SafeDistanceBetweenPasses;
             _operation.Decimals = Decimals;
             _operation.MaxSegmentLength = MaxSegmentLength;
-
-            if (_operation.Metadata == null)
-                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
-
-            _operation.Metadata["ToolPathMode"] = ToolPathMode;
-            _operation.Metadata["Direction"] = Direction;
-            _operation.Metadata["Width"] = Width;
-            _operation.Metadata["Height"] = Height;
-            _operation.Metadata["RotationAngle"] = RotationAngle;
-            _operation.Metadata["RadiusTopLeft"] = RadiusTopLeft;
-            _operation.Metadata["RadiusTopRight"] = RadiusTopRight;
-            _operation.Metadata["RadiusBottomLeft"] = RadiusBottomLeft;
-            _operation.Metadata["RadiusBottomRight"] = RadiusBottomRight;
-            _operation.Metadata["TotalDepth"] = TotalDepth;
-            _operation.Metadata["StepDepth"] = StepDepth;
-            _operation.Metadata["ToolDiameter"] = ToolDiameter;
-            _operation.Metadata["ContourHeight"] = ContourHeight;
-            _operation.Metadata["FeedXYRapid"] = FeedXYRapid;
-            _operation.Metadata["FeedXYWork"] = FeedXYWork;
-            _operation.Metadata["FeedZRapid"] = FeedZRapid;
-            _operation.Metadata["FeedZWork"] = FeedZWork;
-            _operation.Metadata["SafeZHeight"] = SafeZHeight;
-            _operation.Metadata["RetractHeight"] = RetractHeight;
-            _operation.Metadata["ReferencePointX"] = ReferencePointX;
-            _operation.Metadata["ReferencePointY"] = ReferencePointY;
-            _operation.Metadata["ReferencePointType"] = ReferencePointType;
-            _operation.Metadata["EntryMode"] = EntryMode;
-            _operation.Metadata["EntryAngle"] = EntryAngle;
-            _operation.Metadata["SafeDistanceBetweenPasses"] = SafeDistanceBetweenPasses;
-            _operation.Metadata["Decimals"] = Decimals;
-            _operation.Metadata["MaxSegmentLength"] = MaxSegmentLength;
         }
 
         private void RemoveOperationFromMain()
