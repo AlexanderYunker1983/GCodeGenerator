@@ -8,26 +8,13 @@ using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
-using System.Collections.ObjectModel;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
-    public class ProfileDxfOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class ProfileDxfOperationViewModel : OperationEditorViewModelBase<ProfileDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
-        private ProfileDxfOperation _operation;
-        public ProfileDxfOperation Operation 
-        { 
-            get => _operation;
-            set 
-            {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                UpdateOperationData();
-            }
-        }
-        public ObservableCollection<OperationBase> Operations { get; set; }
 
         public ICommand ImportDxfCommand { get; }
 
@@ -45,26 +32,24 @@ namespace GCodeGenerator.ViewModels.PocketMill
             var title = _localizationManager?.GetString("ProfileDxfName");
             DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - контур" : title;
 
+            // Пункт 7.3: операция по умолчанию для автономного создания
+            // (в потоках добавления/редактирования фабрику задаёт Operation).
             if (Operation == null)
                 Operation = new ProfileDxfOperation();
-            else
-            {
-                UpdateOperationData();
-            }
         }
 
-        private void UpdateOperationData()
+        protected override void LoadFromOperation(ProfileDxfOperation operation)
         {
-            if (Operation == null)
+            if (operation == null)
                 return;
 
             // Загружаем сохраненный путь к файлу
-            FilePath = Operation.DxfFilePath;
+            FilePath = operation.DxfFilePath;
             
             // Показываем информацию об импорте, если данные уже загружены
-            if (Operation.Polylines != null && Operation.Polylines.Count > 0)
+            if (operation.Polylines != null && operation.Polylines.Count > 0)
             {
-                var lineCount = Operation.Polylines.Sum(p => p?.Points?.Count > 1 ? p.Points.Count - 1 : 0);
+                var lineCount = operation.Polylines.Sum(p => p?.Points?.Count > 1 ? p.Points.Count - 1 : 0);
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
                 ImportInfo = string.Format(infoTemplate, lineCount);
             }
@@ -85,6 +70,12 @@ namespace GCodeGenerator.ViewModels.PocketMill
             OnPropertyChanged(nameof(SafeZHeight));
             OnPropertyChanged(nameof(RetractHeight));
             OnPropertyChanged(nameof(Decimals));
+        }
+
+        // Пункт 7.3: свойства пишут в Operation напрямую (pass-through),
+        // отдельное сохранение не требуется.
+        protected override void ApplyToOperation()
+        {
         }
 
         private string _displayName;
