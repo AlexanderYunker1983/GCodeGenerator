@@ -30,7 +30,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Выбор стратегии обработки по <c>op.PocketStrategy</c> (пункт 5.1 плана).
-        /// Пока не все стратегии реализованы (5.4–5.5), незарегистрированные
+        /// Пока не все стратегии реализованы (5.5), незарегистрированные
         /// значения обрабатываются спиралью.
         /// </summary>
         private static IPocketPocketingStrategy GetStrategy(PocketStrategy strategy)
@@ -41,6 +41,8 @@ namespace GCodeGenerator.GCodeGenerators
                     return new ConcentricPocketingStrategy();
                 case PocketStrategy.Radial:
                     return new RadialPocketingStrategy();
+                case PocketStrategy.ZigZag:
+                    return new ZigZagPocketingStrategy();
                 case PocketStrategy.Spiral:
                 default:
                     return new SpiralPocketingStrategy();
