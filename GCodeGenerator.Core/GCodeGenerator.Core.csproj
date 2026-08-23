@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Фаза 2 плана (пункты 2.1/2.2): ядро продукта (модели + генерация G-кода +
+    базовая локализация) вынесено из WPF-сборки в отдельную класс-библиотеку.
+    - TFM совпадает с приложением (net10.0-windows, D5), но без UseWPF —
+      чистая класс-библиотека. Суффикс "-windows" задаёт только целевую
+      платформу (OS-дескриптор) и НЕ подключает WPF-фреймворк — для этого
+      потребовался бы UseWPF или FrameworkReference (их здесь нет, см. 2.3).
+    - Неймспейсы сохранены (GCodeGenerator.Models, GCodeGenerator.GCodeGenerators.*,
+      GCodeGenerator.Localization) — код приложения и тестов не меняется;
+      переименование неймспейсов — отдельный шаг (в данный пункт не входит).
+    - Пакетов NuGet нет: используются только BCL (System.Collections.Generic,
+      System.ComponentModel, System.Globalization, System.Linq, System.Reflection,
+      System.Resources).
+    - InternalsVisibleTo не требуется: в перенесённых файлах нет internal-членов
+      (internal-парсеры DXF находятся в VM приложения и остаются в App).
+    - GCodeSettingsStore (Properties.Settings) намеренно остаётся в App —
+      это инфраструктура пользовательских настроек, а не доменная модель.
+    - GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:
+      SDK для net10.0-windows по умолчанию генерирует
+      [assembly: SupportedOSPlatform("Windows7.0")], а в App/Tests (ручной
+      AssemblyInfo.cs, GenerateAssemblyInfo=false) таких атрибутов нет —
+      рассогласование вызывало тысячи предупреждений CA1416 в App/Tests.
+      Код Core — чистый BCL (кроссплатформенный), поэтому аннотация
+      «только Windows» здесь не нужна.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RootNamespace>GCodeGenerator.Core</RootNamespace>
+    <AssemblyName>GCodeGenerator.Core</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <WarningLevel>4</WarningLevel>
+    <Deterministic>true</Deterministic>
+    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
+    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+  </PropertyGroup>
+
+</Project>

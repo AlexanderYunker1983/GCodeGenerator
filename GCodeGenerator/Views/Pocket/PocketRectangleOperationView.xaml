@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Pocket"
-        xmlns:models="clr-namespace:GCodeGenerator.Models"
+        xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:PocketRectangleOperationViewModel}"
         Title="{Binding DisplayName}"

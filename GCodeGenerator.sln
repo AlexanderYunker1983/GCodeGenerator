@@ -6,6 +6,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCodeGenerator", "GCodeGene
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCodeGenerator.Tests", "GCodeGenerator.Tests\GCodeGenerator.Tests.csproj", "{43E8B5AC-154C-4DF5-8B10-22DA3413DA5D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCodeGenerator.Core", "GCodeGenerator.Core\GCodeGenerator.Core.csproj", "{F064B360-9F95-4DE7-B37C-285D074BFA0C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,6 +22,10 @@ Global
 		{43E8B5AC-154C-4DF5-8B10-22DA3413DA5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43E8B5AC-154C-4DF5-8B10-22DA3413DA5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{43E8B5AC-154C-4DF5-8B10-22DA3413DA5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F064B360-9F95-4DE7-B37C-285D074BFA0C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F064B360-9F95-4DE7-B37C-285D074BFA0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F064B360-9F95-4DE7-B37C-285D074BFA0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F064B360-9F95-4DE7-B37C-285D074BFA0C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

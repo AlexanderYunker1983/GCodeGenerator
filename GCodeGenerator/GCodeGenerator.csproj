@@ -44,6 +44,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Фаза 2 плана (пункт 2.2): ядро (Models, GCodeGenerators, базовая локализация)
+         вынесено в GCodeGenerator.Core — неймспейсы сохранены, код App не менялся. -->
+    <ProjectReference Include="..\GCodeGenerator.Core\GCodeGenerator.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Autofac" Version="4.4.0" />
     <!-- Пункт 1.4: MahApps.Metro 2.x + ControlzEx 4.x + Behaviors 1.1.142.
          MahApps 2.x нет в локальном зеркале — берётся с nuget.org (см. NuGet.config в корне). -->
