@@ -10,7 +10,7 @@
 | 0 | Сеть безопасности (тесты, CI, golden) | ✅ готово (0.1–0.8: 48 тестов, 29 golden + эталонный набор) |
 | 1 | Миграция платформы на .NET 10 (D5) | ✅ готово (1.1–1.6, 2026-08-22/23) |
 | 2 | Структурное разделение (Core) | ✅ готово (2.1–2.3, 2026-08-23) |
-| 3 | Очистка доменной модели | ☐ не начата |
+| 3 | Очистка доменной модели | ✅ готово (3.1–3.9, 2026-08-23) |
 | 4 | Структурный G-код и генераторы | ☐ не начата |
 | 5 | Доработка карманов: стратегии + roughing/finishing (D1) | ☐ не начата |
 | 6 | Предпросмотр без ре-парсинга | ☐ не начата |
@@ -114,17 +114,26 @@
 
 **Цель:** убрать `Metadata`-словари, двойной источник истины и name-based dispatch.
 
-- [ ] **3.1** Сверление: в `DrillPointsOperation` добавить `DrillMode { Points, Line, Array, Rect, Circle, Arc, Polygon, Ellipse, Package }` + типизированные параметры (`StartX/Y/Z`, `Distance`, `HoleCount`, `AngleDeg`, `RowCount/ColCount`, `Radius`, `Sides` и т.д. — по фактическим ключам `Metadata`).
-- [ ] **3.2** Миграция при загрузке `.ygc`: `Metadata` с ключами → типизированные свойства, `Metadata` очищается. Старые файлы открываются, новые сохраняются без `Metadata`.
-- [ ] **3.3** VM сверления читают/пишут только типизированные свойства (без двойной записи).
-- [ ] **3.4** `DrillOperationsViewModel.EditSelectedOperation`: `switch (drillOp.DrillMode)` вместо сравнения по `Name`. Тест: переименованная операция открывает верный диалог.
-- [ ] **3.5** Профили: удалить двойную запись в `OnClosed` (только типизированные свойства); чтение — только из свойств; миграция из `Metadata` при загрузке.
-- [ ] **3.6** Удалить `Metadata` из `Profile*Operation` (после зелёных golden и round-trip; на один релиз оставить `[Obsolete]`/`[JsonIgnore]`).
-- [ ] **3.7** Валидация в домене: `IValidatable { IReadOnlyList<ValidationIssue> Validate(); }` в Core для всех операций (глубины, диаметры, шаги, количество отверстий, замкнутость контуров).
-- [ ] **3.8** Защитные проверки в генераторах (`StepDepth <= 0` → `ArgumentException` вместо бесконечного цикла).
-- [ ] **3.9** (Опционально) `OperationBase`: `INotifyPropertyChanged` вынести за интерфейс `IEnabledOperation` либо зафиксировать статус-кво с комментарием.
+- [x] **3.1** Сверление: в `DrillPointsOperation` добавить `DrillMode { Points, Line, Array, Rect, Circle, Arc, Polygon, Ellipse, Package }` + типизированные параметры (`StartX/Y/Z`, `Distance`, `HoleCount`, `AngleDeg`, `RowCount/ColCount`, `Radius`, `Sides` и т.д. — по фактическим ключам `Metadata`). — 2026-08-23, commit 632891e.
+  *Примечания: (а) параметры — по фактическим ключам Metadata диалогов: Line: StartX/Y/Z, Distance, HoleCount, AngleDeg; Array/Rect: + RowPitch, RowCount; Circle: CenterX/Y, Z, Radius, HoleCount, StartAngleDeg; Arc: + EndAngleDeg; Polygon: CenterX/Y, Z, Radius, NumberOfSides, HolesPerSide, RotationAngle; Ellipse: CenterX/Y, Z, RadiusX, RadiusY, RotationAngle, HoleCount, StartAngleDeg; Package: CenterX/Y, Z, RotationAngle, PackageName; общие Z: TotalDepth, StepDepth, FeedZRapid, FeedZWork, RetractHeight; (б) фабрика `CreateNew(DrillMode)` — дефолты диалогов (HoleCount=2 для Circle/Arc/Ellipse, 3 для остальных); (в) дефолт DrillMode = Points (легаси-операции без Metadata сохраняют поведение); (г) коммит model-only: легаси-тест `Legacy_FieldsMatchInMemoryReference` пошёл зелёным после хука миграции в 3.2 (проверено через stash фикстур).*
+- [x] **3.2** Миграция при загрузке `.ygc`: `Metadata` с ключами → типизированные свойства, `Metadata` очищается. Старые файлы открываются, новые сохраняются без `Metadata`. — 2026-08-23, commit 4c58822.
+  *Примечания: (а) `LegacyMetadataMigrator` (Core) — только сверление (профильная ветка удалена в 3.6); хук в `ProjectFileService.ReadOperationsArray` после десериализации; (б) определение режима по набору ключей: PackageName→Package, NumberOfSides→Polygon, RadiusX→Ellipse, EndAngleDeg→Arc, CenterX→Circle, StartX+RowCount→Array/Rect, StartX→Line, иначе Points; (в) эвристика Array/Rect (одинаковые наборы ключей) — по числу отверстий: `Holes.Count == RowCount*HoleCount` → Array, `== 2*RowCount+2*HoleCount-4` → Rect; неоднозначно (RowCount==2 или HoleCount==2) → Array (G-код идентичен); (г) неизвестные ключи остаются в Metadata (без потери данных), режим остаётся Points; (д) фикстуры и эталонный `.ygc` перенесены на типизированные свойства; `.nc` побайтово без изменений; 9 тестов миграции (включая round-trip «открыть→сохранить → Metadata пуст, значения сохранены»).*
+- [x] **3.3** VM сверления читают/пишут только типизированные свойства (без двойной записи). — 2026-08-23, commit 5c76c94.
+  *Примечания: 9 диалоговых VM сверления; `Add*` создают операцию через `CreateNew(DrillMode)`; найден и исправлен баг: `DrillRectOperationViewModel.OnClosed` не записывал параметры (в отличие от 8 остальных паттерн-VM) — Rect-паттерны не переживали сохранение; теперь пишет типизированные свойства. Последствие: Rect-операции, сохранённые старыми версиями, при открытии деградируют в Points (отверстия и G-код сохранены, отличается только диалог редактирования).*
+- [x] **3.4** `DrillOperationsViewModel.EditSelectedOperation`: `switch (drillOp.DrillMode)` вместо сравнения по `Name`. Тест: переименованная операция открывает верный диалог. — 2026-08-23, commit 0b4089f.
+  *Примечания: (а) тестируемый switch вынесен в `GetDialogViewModelType(DrillMode)`; (б) новый интерфейс `IDrillDialogViewModel` (MainViewModel + Operation) у всех 9 drill-VM; (в) `IDialogService` — тип-базовые перегрузки `CreateViewModel(Type)`/`ShowDialog(Type, object)` (WpfDialogService реализует, generic-версии делегируют); (г) 3 теста: маппинг режим→VM, переименованная операция открывает верный диалог, все 9 режимов.*
+- [x] **3.5** Профили: удалить двойную запись в `OnClosed` (только типизированные свойства); чтение — только из свойств; миграция из `Metadata` при загрузке. — 2026-08-23, commit 08191a6.
+  *Примечания: 5 профильных VM (Circle/Ellipse/Polygon/Rectangle/RoundedRectangle) — OnClosed без записи в Metadata, чтение только из свойств; ProfileDxfOperationViewModel Metadata никогда не использовал. Миграция из Metadata не потребовалась: старые диалоги профилей двойно записывали типизированные свойства (проверено: в легаси v1-файле meta=0 для всех профилей) — значения уже в типизированных свойствах.*
+- [x] **3.6** Удалить `Metadata` из `Profile*Operation` (после зелёных golden и round-trip; на один релиз оставить `[Obsolete]`/`[JsonIgnore]`). — 2026-08-23, commit c313a8f.
+  *Примечания: (а) интерпретация «на один релиз»: свойства `Metadata` 5 профильных моделей — `[Obsolete] + [JsonIgnore]`, в памяти null, не сериализуются и не восстанавливаются (STJ игнорирует неизвестные JSON-свойства — старые файлы открываются); (б) профильная ветка мигратора удалена как мёртвый код (Metadata профилей не десериализуется); (в) эталонный `.ygc` перегенерирован без Metadata профилей, `.nc` побайтово без изменений; (г) полный removal свойств — в следующей фазе/релизе (CS0618-гейт уже работает).*
+- [x] **3.7** Валидация в домене: `IValidatable { IReadOnlyList<ValidationIssue> Validate(); }` в Core для всех операций (глубины, диаметры, шаги, количество отверстий, замкнутость контуров). — 2026-08-23, commit 71573d3.
+  *Примечания: (а) `ValidationIssue { Property, Message }` + `IValidatable` + хелпер `OperationValidation` (Core/Models); `Validate()` у всех 11 типов операций; (б) проверки консервативны — только физически невозможные значения, валидные проекты не помечаются (тест: все 19 эталонных операций валидны): сверление — `Holes` непусто, TotalDepth/StepDepth каждого отверстия > 0, общие Z паттерна > 0 (режим Points — только по отверстиям), HoleCount/RowCount >= 1, Distance/RowPitch/Radius/RadiusX/RadiusY > 0, NumberOfSides >= 3, HolesPerSide >= 1; профили/карманы — TotalDepth/StepDepth/ToolDiameter > 0 + геометрия > 0; (в) ProfileDxf — Polylines непусто, каждая >= 2 точек, **замкнутость НЕ требуется** (генератор поддерживает открытые полилинии); PocketDxf — ClosedContours непусто, каждый >= 3 точек + замкнут (допуск 1e-3 = допуск импортера DXF, импортированные контуры не помечаются); (г) радиусы скруглений rounded-rect не валидируются (геометрия их клэмпит); пустое PackageName допустимо (fallback DIP8 в диалоге); (д) 39 тестов.*
+- [x] **3.8** Защитные проверки в генераторах (`StepDepth <= 0` → `ArgumentException` вместо бесконечного цикла). — 2026-08-23, commit 1613160.
+  *Примечания: (а) `ProfileGenerationHelper.GenerateLayerLoop` и `PocketGenerationHelper.GenerateLayerLoop` — `StepDepth <= 0` → `ArgumentOutOfRangeException`; (б) `DrillPointsOperationGenerator` — `hole.StepDepth <= 0` → `ArgumentOutOfRangeException` (с индексом отверстия); (в) `GCodeGenerationHelper.CalculateStep` — `toolDiameter <= 0` → `ArgumentOutOfRangeException` (нулевой диаметр → нулевой шаг спирали → θMax=+Inf → бесконечный цикл); (г) гварды затрагивают только вырожденные входы — golden побайтово без изменений; 11 тестов (включая регрессию «валидные операции генерируются»).*
+- [x] **3.9** (Опционально) `OperationBase`: `INotifyPropertyChanged` вынести за интерфейс `IEnabledOperation` либо зафиксировать статус-кво с комментарием. — 2026-08-23, commit 68ab843.
+  *Примечания: выбран статус-кво (интерфейс не выносится): список операций в UI биндится на модель напрямую (MainView.xaml: `IsChecked={Binding IsEnabled}`, `Text={Binding Name}`), MainViewModel слушает `PropertyChanged` операции для перерисовки превью при смене IsEnabled — вынос за интерфейс не убирает зависимость (UI потребляет конкретные экземпляры операций), а лишь расщепляет контракт; решение зафиксировано doc-комментарием в `OperationBase`.*
 
-**DoD фазы 3:** ☐ все тесты зелёные; ☐ golden без изменений; ☐ тест миграции (старый `.ygc` → открыт → сохранён → `Metadata` пуст, значения сохранены); ☐ smoke-чек-лист §8 зелёный.
+**DoD фазы 3:** ✅ все тесты зелёные (114/114, 3.9); ✅ golden без изменений (`.nc` побайтово идентичен после перегенераций 3.2/3.6 и гвардов 3.8); ✅ тест миграции (старый `.ygc` → открыт → сохранён → `Metadata` пуст, значения сохранены — `LegacyMetadataMigrationTests`, 3.2); ✅ smoke-чек-лист §8 зелёный (UIA-смоук после 3.9: окно + 3 вкладки, диалог настроек (4 вкладки), диалог операции, смена темы (255,255,255 → 37,37,37 → 255,255,255), чистый выход).
 
 ---
 
@@ -248,7 +257,7 @@
 | 0 | Тесты, CI, golden-файлы | 3–5 дн. (готово: 0.1–0.8, 2026-08-22) | — |
 | 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (готово: 1.1–1.6, 2026-08-22/23) | 0 |
 | 2 | Выделение Core | 3–5 дн. (готово: 2.1–2.3, 2026-08-23) | 1 |
-| 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. | 2 |
+| 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. (готово: 3.1–3.9, 2026-08-23) | 2 |
 | 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
 | 5 | Стратегии карманов + roughing/finishing (D1) | 8–12 дн. | 4 |
 | 6 | Превью 2D/3D без ре-парсинга, WPF вне VM | 5–7 дн. | 4 |
