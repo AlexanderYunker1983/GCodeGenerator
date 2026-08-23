@@ -152,6 +152,10 @@ namespace GCodeGenerator.Services
                 if (operation == null)
                     continue;
 
+                // Миграция легаси-Metadata в типизированные свойства (пункт 3.2 плана):
+                // старые .ygc открываются, при сохранении Metadata уже не пишется.
+                LegacyMetadataMigrator.Migrate(operation);
+
                 result.Add(operation);
             }
 

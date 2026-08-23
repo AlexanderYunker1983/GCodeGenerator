@@ -1,0 +1,382 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text;
+using GCodeGenerator.Models;
+using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace GCodeGenerator.Tests
+{
+    /// <summary>
+    /// Тесты миграции легаси-Metadata в типизированные свойства (пункт 3.2 плана):
+    /// старый .ygc открывается, значения попадают в типизированные свойства,
+    /// Metadata очищается, новые файлы сохраняются без Metadata.
+    /// </summary>
+    [TestClass]
+    public class LegacyMetadataMigrationTests
+    {
+        private static CultureInfo _originalCulture;
+
+        [ClassInitialize]
+        public static void Initialize(TestContext context)
+        {
+            _originalCulture = CultureInfo.CurrentCulture;
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
+        }
+
+        [ClassCleanup]
+        public static void Cleanup()
+        {
+            CultureInfo.CurrentCulture = _originalCulture;
+        }
+
+        private static ProjectFileService Service { get; } = new ProjectFileService();
+
+        /// <summary>Эталонные файлы в каталоге сборки тестов (копия из исходников).</summary>
+        private static string ReferenceOutputDirectory =>
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference");
+
+        // ------------------------------------------------------------------
+        // Легаси-файл v1: сверление
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Легаси-файл v1: операции сверления после загрузки имеют корректный
+        /// DrillMode, типизированные свойства совпадают с эталонными (фикстуры),
+        /// Metadata пуст.
+        /// </summary>
+        [TestMethod]
+        public void LegacyV1_DrillOps_MigratedToTypedProperties()
+        {
+            var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
+            var loaded = Service.Load(path);
+            Assert.IsNotNull(loaded, "Легаси-файл должен открыться");
+            Assert.AreEqual(19, loaded.Count);
+
+            var expectedModes = new[]
+            {
+                DrillMode.Points, DrillMode.Line, DrillMode.Array, DrillMode.Rect,
+                DrillMode.Circle, DrillMode.Arc, DrillMode.Polygon, DrillMode.Ellipse,
+                DrillMode.Package
+            };
+
+            for (int i = 0; i < 9; i++)
+            {
+                var op = (DrillPointsOperation)loaded[i];
+                Assert.AreEqual(expectedModes[i], op.DrillMode, $"операция[{i}]: DrillMode");
+                Assert.IsTrue(op.Metadata == null || op.Metadata.Count == 0,
+                    $"операция[{i}]: Metadata должна быть пуста после миграции");
+            }
+
+            // Значения совпадают с эталонными in-memory операциями (фикстуры).
+            var expected = ReferenceOperations.Build();
+            for (int i = 0; i < 9; i++)
+            {
+                var a = (DrillPointsOperation)expected[i];
+                var b = (DrillPointsOperation)loaded[i];
+                Assert.AreEqual(a.DrillMode, b.DrillMode, $"[{i}]: DrillMode");
+                Assert.AreEqual(a.StartX, b.StartX, 1e-9, $"[{i}]: StartX");
+                Assert.AreEqual(a.StartY, b.StartY, 1e-9, $"[{i}]: StartY");
+                Assert.AreEqual(a.Distance, b.Distance, 1e-9, $"[{i}]: Distance");
+                Assert.AreEqual(a.HoleCount, b.HoleCount, $"[{i}]: HoleCount");
+                Assert.AreEqual(a.CenterX, b.CenterX, 1e-9, $"[{i}]: CenterX");
+                Assert.AreEqual(a.Radius, b.Radius, 1e-9, $"[{i}]: Radius");
+                Assert.AreEqual(a.TotalDepth, b.TotalDepth, 1e-9, $"[{i}]: TotalDepth");
+                Assert.AreEqual(a.StepDepth, b.StepDepth, 1e-9, $"[{i}]: StepDepth");
+                Assert.AreEqual(a.FeedZRapid, b.FeedZRapid, 1e-9, $"[{i}]: FeedZRapid");
+                Assert.AreEqual(a.FeedZWork, b.FeedZWork, 1e-9, $"[{i}]: FeedZWork");
+                Assert.AreEqual(a.RetractHeight, b.RetractHeight, 1e-9, $"[{i}]: RetractHeight");
+                Assert.AreEqual(a.Holes.Count, b.Holes.Count, $"[{i}]: Holes.Count");
+            }
+
+            // Конкретные значения ключевых операций (защита от «всё по умолчанию»).
+            var line = (DrillPointsOperation)loaded[1];
+            Assert.AreEqual(10.0, line.StartX, 1e-9, "Line: StartX");
+            Assert.AreEqual(5.0, line.Distance, 1e-9, "Line: Distance");
+            Assert.AreEqual(5, line.HoleCount, "Line: HoleCount");
+
+            var array = (DrillPointsOperation)loaded[2];
+            Assert.AreEqual(4, array.HoleCount, "Array: HoleCount");
+            Assert.AreEqual(3, array.RowCount, "Array: RowCount");
+            Assert.AreEqual(5.0, array.RowPitch, 1e-9, "Array: RowPitch");
+
+            var rect = (DrillPointsOperation)loaded[3];
+            Assert.AreEqual(10, rect.Holes.Count, "Rect: 10 отверстий по контуру");
+
+            var arc = (DrillPointsOperation)loaded[5];
+            Assert.AreEqual(180.0, arc.EndAngleDeg, 1e-9, "Arc: EndAngleDeg");
+
+            var polygon = (DrillPointsOperation)loaded[6];
+            Assert.AreEqual(4, polygon.NumberOfSides, "Polygon: NumberOfSides");
+            Assert.AreEqual(3, polygon.HolesPerSide, "Polygon: HolesPerSide");
+
+            var ellipse = (DrillPointsOperation)loaded[7];
+            Assert.AreEqual(25.0, ellipse.RadiusX, 1e-9, "Ellipse: RadiusX");
+            Assert.AreEqual(15.0, ellipse.RadiusY, 1e-9, "Ellipse: RadiusY");
+
+            var package = (DrillPointsOperation)loaded[8];
+            Assert.AreEqual("SOIC-8", package.PackageName, "Package: PackageName");
+        }
+
+        /// <summary>
+        /// DoD фазы 3: старый .ygc → открыт → сохранён → Metadata пуст,
+        /// значения сохранены (повторная загрузка даёт те же операции).
+        /// </summary>
+        [TestMethod]
+        public void LegacyV1_OpenSave_MetadataEmpty_ValuesPreserved()
+        {
+            var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
+            var loaded = Service.Load(legacyPath);
+            Assert.IsNotNull(loaded);
+
+            var v2Path = Path.Combine(Path.GetTempPath(), "gcg_meta_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
+            try
+            {
+                Service.Save(v2Path, loaded);
+
+                // В сохранённом JSON Metadata всех операций — пустой объект.
+                var json = File.ReadAllText(v2Path, Encoding.UTF8);
+                using (var doc = System.Text.Json.JsonDocument.Parse(json))
+                {
+                    var ops = doc.RootElement.GetProperty("operations");
+                    Assert.AreEqual(19, ops.GetArrayLength());
+                    foreach (var entry in ops.EnumerateArray())
+                    {
+                        var data = entry.GetProperty("data");
+                        if (!data.TryGetProperty("Metadata", out var metadata))
+                            continue; // у ProfileDxfOperation/Metadata может не быть
+                        Assert.AreEqual(System.Text.Json.JsonValueKind.Object, metadata.ValueKind,
+                            "Metadata — объект");
+                        Assert.AreEqual(0, metadata.EnumerateObject().Count(),
+                            $"type={entry.GetProperty("type").GetString()}: Metadata должна быть пуста");
+                    }
+                }
+
+                // Значения переживают цикл open → save → open.
+                var reloaded = Service.Load(v2Path);
+                Assert.AreEqual(19, reloaded.Count);
+                var expected = ReferenceOperations.Build();
+                for (int i = 0; i < 19; i++)
+                {
+                    Assert.AreEqual(expected[i].GetType(), reloaded[i].GetType(), $"[{i}]: тип");
+                    var a = expected[i] as DrillPointsOperation;
+                    var b = reloaded[i] as DrillPointsOperation;
+                    if (a != null)
+                    {
+                        Assert.AreEqual(a.DrillMode, b.DrillMode, $"[{i}]: DrillMode");
+                        Assert.AreEqual(a.Holes.Count, b.Holes.Count, $"[{i}]: Holes.Count");
+                    }
+                }
+            }
+            finally
+            {
+                if (File.Exists(v2Path))
+                    File.Delete(v2Path);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Heuristic Array/Rect
+        // ------------------------------------------------------------------
+
+        private static DrillPointsOperation LegacyDrillOp(int holeCount, params KeyValuePair<string, object>[] meta)
+        {
+            var op = new DrillPointsOperation();
+            for (int i = 0; i < holeCount; i++)
+                op.Holes.Add(new DrillHole { X = i, Y = 0, Z = 0, TotalDepth = 2, StepDepth = 1, FeedZRapid = 500, FeedZWork = 200, RetractHeight = 0.3 });
+            foreach (var kv in meta)
+                op.Metadata[kv.Key] = kv.Value;
+            return op;
+        }
+
+        /// <summary>
+        /// Array (все точки сетки 4×3 = 12 отверстий) распознаётся как Array.
+        /// </summary>
+        [TestMethod]
+        public void MigrateDrill_FullGrid_IsArray()
+        {
+            var op = LegacyDrillOp(12,
+                new KeyValuePair<string, object>("StartX", 10),
+                new KeyValuePair<string, object>("StartY", 10),
+                new KeyValuePair<string, object>("StartZ", 0),
+                new KeyValuePair<string, object>("Distance", 5),
+                new KeyValuePair<string, object>("HoleCount", 4),
+                new KeyValuePair<string, object>("AngleDeg", 0),
+                new KeyValuePair<string, object>("RowPitch", 5),
+                new KeyValuePair<string, object>("RowCount", 3));
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(DrillMode.Array, op.DrillMode);
+            Assert.AreEqual(0, op.Metadata.Count, "Metadata очищена");
+        }
+
+        /// <summary>
+        /// Rect (контур 4×3 = 10 отверстий) распознаётся как Rect.
+        /// </summary>
+        [TestMethod]
+        public void MigrateDrill_BorderOnly_IsRect()
+        {
+            var op = LegacyDrillOp(10,
+                new KeyValuePair<string, object>("StartX", 10),
+                new KeyValuePair<string, object>("StartY", 10),
+                new KeyValuePair<string, object>("StartZ", 0),
+                new KeyValuePair<string, object>("Distance", 5),
+                new KeyValuePair<string, object>("HoleCount", 4),
+                new KeyValuePair<string, object>("AngleDeg", 0),
+                new KeyValuePair<string, object>("RowPitch", 5),
+                new KeyValuePair<string, object>("RowCount", 3));
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(DrillMode.Rect, op.DrillMode);
+            Assert.AreEqual(0, op.Metadata.Count, "Metadata очищена");
+        }
+
+        /// <summary>
+        /// Неоднозначные случаи (RowCount==2 или HoleCount==2: обе формулы дают
+        /// одинаковое число отверстий) — выбирается Array; G-код идентичен.
+        /// </summary>
+        [TestMethod]
+        public void MigrateDrill_AmbiguousGrid_DefaultsToArray()
+        {
+            // 2 ряда × 3 отверстия = 6: и Array (2*3), и Rect (2*2+2*3-4) = 6.
+            var op2x3 = LegacyDrillOp(6,
+                new KeyValuePair<string, object>("StartX", 0),
+                new KeyValuePair<string, object>("StartY", 0),
+                new KeyValuePair<string, object>("StartZ", 0),
+                new KeyValuePair<string, object>("Distance", 5),
+                new KeyValuePair<string, object>("HoleCount", 3),
+                new KeyValuePair<string, object>("AngleDeg", 0),
+                new KeyValuePair<string, object>("RowPitch", 5),
+                new KeyValuePair<string, object>("RowCount", 2));
+            LegacyMetadataMigrator.Migrate(op2x3);
+            Assert.AreEqual(DrillMode.Array, op2x3.DrillMode, "2×3 → Array");
+
+            // 3 ряда × 2 отверстия = 6: и Array (3*2), и Rect (2*3+2*2-4) = 6.
+            var op3x2 = LegacyDrillOp(6,
+                new KeyValuePair<string, object>("StartX", 0),
+                new KeyValuePair<string, object>("StartY", 0),
+                new KeyValuePair<string, object>("StartZ", 0),
+                new KeyValuePair<string, object>("Distance", 5),
+                new KeyValuePair<string, object>("HoleCount", 2),
+                new KeyValuePair<string, object>("AngleDeg", 0),
+                new KeyValuePair<string, object>("RowPitch", 5),
+                new KeyValuePair<string, object>("RowCount", 3));
+            LegacyMetadataMigrator.Migrate(op3x2);
+            Assert.AreEqual(DrillMode.Array, op3x2.DrillMode, "3×2 → Array");
+        }
+
+        /// <summary>
+        /// Metadata без распознанных ключей паттерна (вручную созданный файл) —
+        /// DrillMode остаётся Points, Metadata не удаляется (данные не теряются).
+        /// </summary>
+        [TestMethod]
+        public void MigrateDrill_UnknownKeys_KeptAsPoints()
+        {
+            var op = LegacyDrillOp(3,
+                new KeyValuePair<string, object>("CustomKey", 42));
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(DrillMode.Points, op.DrillMode);
+            Assert.AreEqual(1, op.Metadata.Count, "нераспознанные ключи сохраняются");
+            Assert.IsTrue(op.Metadata.ContainsKey("CustomKey"));
+        }
+
+        /// <summary>
+        /// Миграция идемпотентна: повторный вызов не изменяет операцию.
+        /// </summary>
+        [TestMethod]
+        public void MigrateDrill_Idempotent()
+        {
+            var op = LegacyDrillOp(5,
+                new KeyValuePair<string, object>("StartX", 10),
+                new KeyValuePair<string, object>("StartY", 0),
+                new KeyValuePair<string, object>("StartZ", 0),
+                new KeyValuePair<string, object>("Distance", 5),
+                new KeyValuePair<string, object>("HoleCount", 5),
+                new KeyValuePair<string, object>("AngleDeg", 0));
+
+            LegacyMetadataMigrator.Migrate(op);
+            var modeAfterFirst = op.DrillMode;
+            var startXAfterFirst = op.StartX;
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(modeAfterFirst, op.DrillMode);
+            Assert.AreEqual(startXAfterFirst, op.StartX, 1e-9);
+            Assert.AreEqual(0, op.Metadata.Count);
+        }
+
+        // ------------------------------------------------------------------
+        // Профили
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Профиль с Metadata (двойная запись старых диалогов): значения
+        /// попадают в типизированные свойства, Metadata очищается.
+        /// </summary>
+        [TestMethod]
+        public void MigrateProfile_MetadataMovedToTypedProperties()
+        {
+            var op = new ProfileCircleOperation
+            {
+                CenterX = 10,
+                CenterY = 20,
+                Radius = 15
+            };
+            op.Metadata["ToolPathMode"] = (int)ToolPathMode.Outside;
+            op.Metadata["Direction"] = (int)MillingDirection.CounterClockwise;
+            op.Metadata["CenterX"] = 30.0;
+            op.Metadata["CenterY"] = 40.0;
+            op.Metadata["Radius"] = 50.0;
+            op.Metadata["TotalDepth"] = 6.0;
+            op.Metadata["StepDepth"] = 1.5;
+            op.Metadata["ToolDiameter"] = 4.0;
+            op.Metadata["EntryMode"] = (int)EntryMode.Angled;
+            op.Metadata["EntryAngle"] = 7.0;
+            op.Metadata["SafeDistanceBetweenPasses"] = 2.5;
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(ToolPathMode.Outside, op.ToolPathMode);
+            Assert.AreEqual(MillingDirection.CounterClockwise, op.Direction);
+            Assert.AreEqual(30.0, op.CenterX, 1e-9);
+            Assert.AreEqual(40.0, op.CenterY, 1e-9);
+            Assert.AreEqual(50.0, op.Radius, 1e-9);
+            Assert.AreEqual(6.0, op.TotalDepth, 1e-9);
+            Assert.AreEqual(1.5, op.StepDepth, 1e-9);
+            Assert.AreEqual(4.0, op.ToolDiameter, 1e-9);
+            Assert.AreEqual(EntryMode.Angled, op.EntryMode);
+            Assert.AreEqual(7.0, op.EntryAngle, 1e-9);
+            Assert.AreEqual(2.5, op.SafeDistanceBetweenPasses, 1e-9);
+            Assert.AreEqual(0, op.Metadata.Count, "Metadata очищена");
+        }
+
+        /// <summary>
+        /// Профиль с пустым Metadata (реальный случай легаси-файлов) не изменяется.
+        /// </summary>
+        [TestMethod]
+        public void MigrateProfile_EmptyMetadata_NoChange()
+        {
+            var op = new ProfileRectangleOperation
+            {
+                Width = 40,
+                Height = 20,
+                TotalDepth = 3
+            };
+
+            LegacyMetadataMigrator.Migrate(op);
+
+            Assert.AreEqual(40.0, op.Width, 1e-9);
+            Assert.AreEqual(20.0, op.Height, 1e-9);
+            Assert.AreEqual(3.0, op.TotalDepth, 1e-9);
+            Assert.AreEqual(0, op.Metadata.Count);
+        }
+    }
+}

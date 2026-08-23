@@ -6,9 +6,9 @@ namespace GCodeGenerator.Tests.Fixtures
 {
     /// <summary>
     /// Фабрики операций для фикстур.
-    /// Формулы построения отверстий сверления повторяют RebuildHoles() во ViewModels/Drill/*,
-    /// ключи Metadata — те, что VM записывают в OnClosed (в пункте 3 плана они будут заменены
-    /// типизированными свойствами; до тех пор фикстуры обязаны совпадать с поведением UI).
+    /// Формулы построения отверстий сверления повторяют RebuildHoles() во ViewModels/Drill/*;
+    /// параметры паттерна задаются типизированными свойствами + DrillMode (пункт 3.1 плана),
+    /// значения — те же, что раньше фикстуры записывали в Metadata.
     /// </summary>
     public static class OperationFixtures
     {
@@ -39,14 +39,14 @@ namespace GCodeGenerator.Tests.Fixtures
             };
         }
 
-        private static void SetCommonDrillMetadata(DrillPointsOperation op, double totalDepth = DefaultTotalDepth,
+        private static void SetCommonDrillZParams(DrillPointsOperation op, double totalDepth = DefaultTotalDepth,
             double stepDepth = DefaultStepDepth)
         {
-            op.Metadata["TotalDepth"] = totalDepth;
-            op.Metadata["StepDepth"] = stepDepth;
-            op.Metadata["FeedZRapid"] = DefaultFeedZRapid;
-            op.Metadata["FeedZWork"] = DefaultFeedZWork;
-            op.Metadata["RetractHeight"] = DefaultRetractHeight;
+            op.TotalDepth = totalDepth;
+            op.StepDepth = stepDepth;
+            op.FeedZRapid = DefaultFeedZRapid;
+            op.FeedZWork = DefaultFeedZWork;
+            op.RetractHeight = DefaultRetractHeight;
         }
 
         // ---------------------------------------------------------------------
@@ -56,7 +56,7 @@ namespace GCodeGenerator.Tests.Fixtures
         /// <summary>Точки вручную: 3 отверстия.</summary>
         public static DrillPointsOperation DrillPoints()
         {
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Points };
             op.Holes.Add(Hole(10.0, 20.0));
             op.Holes.Add(Hole(30.0, 20.0));
             op.Holes.Add(Hole(20.0, 40.0));
@@ -70,20 +70,20 @@ namespace GCodeGenerator.Tests.Fixtures
             const double distance = 5.0, angleDeg = 0.0;
             const int holeCount = 5;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Line };
             var angleRad = angleDeg * Math.PI / 180.0;
             var dx = distance * Math.Cos(angleRad);
             var dy = distance * Math.Sin(angleRad);
             for (int i = 0; i < holeCount; i++)
                 op.Holes.Add(Hole(startX + dx * i, startY + dy * i, startZ));
 
-            op.Metadata["StartX"] = startX;
-            op.Metadata["StartY"] = startY;
-            op.Metadata["StartZ"] = startZ;
-            op.Metadata["Distance"] = distance;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["AngleDeg"] = angleDeg;
-            SetCommonDrillMetadata(op);
+            op.StartX = startX;
+            op.StartY = startY;
+            op.StartZ = startZ;
+            op.Distance = distance;
+            op.HoleCount = holeCount;
+            op.AngleDeg = angleDeg;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -96,7 +96,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const double rowPitch = 5.0;
             const int rowCount = 3;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Array };
             var angleRad = angleDeg * Math.PI / 180.0;
             var dx = distance * Math.Cos(angleRad);
             var dy = distance * Math.Sin(angleRad);
@@ -108,15 +108,15 @@ namespace GCodeGenerator.Tests.Fixtures
                     op.Holes.Add(Hole(startX + dx * col + px * row, startY + dy * col + py * row, startZ));
             }
 
-            op.Metadata["StartX"] = startX;
-            op.Metadata["StartY"] = startY;
-            op.Metadata["StartZ"] = startZ;
-            op.Metadata["Distance"] = distance;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["AngleDeg"] = angleDeg;
-            op.Metadata["RowPitch"] = rowPitch;
-            op.Metadata["RowCount"] = rowCount;
-            SetCommonDrillMetadata(op);
+            op.StartX = startX;
+            op.StartY = startY;
+            op.StartZ = startZ;
+            op.Distance = distance;
+            op.HoleCount = holeCount;
+            op.AngleDeg = angleDeg;
+            op.RowPitch = rowPitch;
+            op.RowCount = rowCount;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -129,7 +129,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const double rowPitch = 5.0;
             const int rowCount = 3;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Rect };
             var angleRad = angleDeg * Math.PI / 180.0;
             var dx = distance * Math.Cos(angleRad);
             var dy = distance * Math.Sin(angleRad);
@@ -147,15 +147,15 @@ namespace GCodeGenerator.Tests.Fixtures
                 }
             }
 
-            op.Metadata["StartX"] = startX;
-            op.Metadata["StartY"] = startY;
-            op.Metadata["StartZ"] = startZ;
-            op.Metadata["Distance"] = distance;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["AngleDeg"] = angleDeg;
-            op.Metadata["RowPitch"] = rowPitch;
-            op.Metadata["RowCount"] = rowCount;
-            SetCommonDrillMetadata(op);
+            op.StartX = startX;
+            op.StartY = startY;
+            op.StartZ = startZ;
+            op.Distance = distance;
+            op.HoleCount = holeCount;
+            op.AngleDeg = angleDeg;
+            op.RowPitch = rowPitch;
+            op.RowCount = rowCount;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -167,7 +167,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const int holeCount = 6;
             const double startAngleDeg = 0.0;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Circle };
             var startRad = startAngleDeg * Math.PI / 180.0;
             var stepRad = 2 * Math.PI / holeCount;
             for (int i = 0; i < holeCount; i++)
@@ -176,13 +176,13 @@ namespace GCodeGenerator.Tests.Fixtures
                 op.Holes.Add(Hole(centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle), z));
             }
 
-            op.Metadata["CenterX"] = centerX;
-            op.Metadata["CenterY"] = centerY;
-            op.Metadata["Z"] = z;
-            op.Metadata["Radius"] = radius;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["StartAngleDeg"] = startAngleDeg;
-            SetCommonDrillMetadata(op);
+            op.CenterX = centerX;
+            op.CenterY = centerY;
+            op.Z = z;
+            op.Radius = radius;
+            op.HoleCount = holeCount;
+            op.StartAngleDeg = startAngleDeg;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -194,7 +194,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const int holeCount = 5;
             const double startAngleDeg = 0.0, endAngleDeg = 180.0;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Arc };
             var startRad = startAngleDeg * Math.PI / 180.0;
             var endRad = endAngleDeg * Math.PI / 180.0;
             var arcSpan = endRad - startRad;
@@ -209,14 +209,14 @@ namespace GCodeGenerator.Tests.Fixtures
                 op.Holes.Add(Hole(centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle), z));
             }
 
-            op.Metadata["CenterX"] = centerX;
-            op.Metadata["CenterY"] = centerY;
-            op.Metadata["Z"] = z;
-            op.Metadata["Radius"] = radius;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["StartAngleDeg"] = startAngleDeg;
-            op.Metadata["EndAngleDeg"] = endAngleDeg;
-            SetCommonDrillMetadata(op);
+            op.CenterX = centerX;
+            op.CenterY = centerY;
+            op.Z = z;
+            op.Radius = radius;
+            op.HoleCount = holeCount;
+            op.StartAngleDeg = startAngleDeg;
+            op.EndAngleDeg = endAngleDeg;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -229,7 +229,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const int holesPerSide = 3;
             const double rotationAngle = 0.0;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Polygon };
             var rotationRad = rotationAngle * Math.PI / 180.0;
             var angleStep = 2 * Math.PI / numberOfSides;
 
@@ -252,14 +252,14 @@ namespace GCodeGenerator.Tests.Fixtures
                     op.Holes.Add(Hole(startVertex.x + stepX * holeIndex, startVertex.y + stepY * holeIndex, z));
             }
 
-            op.Metadata["CenterX"] = centerX;
-            op.Metadata["CenterY"] = centerY;
-            op.Metadata["Z"] = z;
-            op.Metadata["Radius"] = radius;
-            op.Metadata["NumberOfSides"] = numberOfSides;
-            op.Metadata["HolesPerSide"] = holesPerSide;
-            op.Metadata["RotationAngle"] = rotationAngle;
-            SetCommonDrillMetadata(op);
+            op.CenterX = centerX;
+            op.CenterY = centerY;
+            op.Z = z;
+            op.Radius = radius;
+            op.NumberOfSides = numberOfSides;
+            op.HolesPerSide = holesPerSide;
+            op.RotationAngle = rotationAngle;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -272,7 +272,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const int holeCount = 8;
             const double startAngleDeg = 0.0;
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Ellipse };
             var startRad = startAngleDeg * Math.PI / 180.0;
             var stepRad = 2 * Math.PI / holeCount;
             var rotationRad = rotationAngle * Math.PI / 180.0;
@@ -288,15 +288,15 @@ namespace GCodeGenerator.Tests.Fixtures
                     centerY + xEllipse * sinRot + yEllipse * cosRot, z));
             }
 
-            op.Metadata["CenterX"] = centerX;
-            op.Metadata["CenterY"] = centerY;
-            op.Metadata["Z"] = z;
-            op.Metadata["RadiusX"] = radiusX;
-            op.Metadata["RadiusY"] = radiusY;
-            op.Metadata["RotationAngle"] = rotationAngle;
-            op.Metadata["HoleCount"] = holeCount;
-            op.Metadata["StartAngleDeg"] = startAngleDeg;
-            SetCommonDrillMetadata(op);
+            op.CenterX = centerX;
+            op.CenterY = centerY;
+            op.Z = z;
+            op.RadiusX = radiusX;
+            op.RadiusY = radiusY;
+            op.RotationAngle = rotationAngle;
+            op.HoleCount = holeCount;
+            op.StartAngleDeg = startAngleDeg;
+            SetCommonDrillZParams(op);
             return op;
         }
 
@@ -307,7 +307,7 @@ namespace GCodeGenerator.Tests.Fixtures
             const double rotationAngle = 0.0;
             var package = new PackageDefinition("SOIC-8", 4, 1.27, 5.0);
 
-            var op = new DrillPointsOperation();
+            var op = new DrillPointsOperation { DrillMode = DrillMode.Package };
             var angleRad = rotationAngle * Math.PI / 180.0;
             var cos = Math.Cos(angleRad);
             var sin = Math.Sin(angleRad);
@@ -343,12 +343,12 @@ namespace GCodeGenerator.Tests.Fixtures
                 }
             }
 
-            op.Metadata["CenterX"] = centerX;
-            op.Metadata["CenterY"] = centerY;
-            op.Metadata["Z"] = z;
-            op.Metadata["RotationAngle"] = rotationAngle;
-            op.Metadata["PackageName"] = package.Name;
-            SetCommonDrillMetadata(op);
+            op.CenterX = centerX;
+            op.CenterY = centerY;
+            op.Z = z;
+            op.RotationAngle = rotationAngle;
+            op.PackageName = package.Name;
+            SetCommonDrillZParams(op);
             return op;
         }
 
