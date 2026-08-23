@@ -6,7 +6,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Pocket milling operation for rectangular pocket.
     /// </summary>
-    public class PocketRectangleOperation : OperationBase, IPocketOperation
+    public class PocketRectangleOperation : OperationBase, IPocketOperation, IValidatable
     {
         public PocketRectangleOperation() : base(OperationType.ProfileMilling, "Pocket Rectangle")
         {
@@ -90,6 +90,19 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Pocket rectangle {Width}x{Height}mm, depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the pocket dimensions.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Width), Width);
+            OperationValidation.AddIfNotPositive(issues, nameof(Height), Height);
+            return issues;
         }
     }
 }

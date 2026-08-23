@@ -10,7 +10,7 @@ namespace GCodeGenerator.Models
     /// parameters below (plan item 3.1); <see cref="Holes"/> always holds the
     /// concrete hole list that the generator drills.
     /// </summary>
-    public class DrillPointsOperation : OperationBase
+    public class DrillPointsOperation : OperationBase, IValidatable
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, "Drill points")
         {
@@ -165,6 +165,79 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Drill {Holes.Count} hole(s)";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): the drilled hole list, the
+        /// per-hole Z parameters and the mode-specific pattern parameters.
+        /// Point values that the generators can handle are never flagged.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+
+            // The generator drills exactly this list in every mode.
+            if (Holes == null || Holes.Count == 0)
+            {
+                issues.Add(new ValidationIssue(nameof(Holes), "no holes to drill"));
+            }
+            else
+            {
+                for (int i = 0; i < Holes.Count; i++)
+                {
+                    var hole = Holes[i];
+                    if (hole == null)
+                        continue;
+                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
+                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
+                }
+            }
+
+            // Pattern modes share common Z parameters; Points mode keeps
+            // per-hole Z parameters in Holes only.
+            if (DrillMode != DrillMode.Points)
+            {
+                OperationValidation.AddIfNotPositive(issues, nameof(TotalDepth), TotalDepth);
+                OperationValidation.AddIfNotPositive(issues, nameof(StepDepth), StepDepth);
+            }
+
+            switch (DrillMode)
+            {
+                case DrillMode.Line:
+                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
+                    OperationValidation.AddIfNotPositive(issues, nameof(Distance), Distance);
+                    break;
+                case DrillMode.Array:
+                case DrillMode.Rect:
+                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
+                    OperationValidation.AddIfNotPositive(issues, nameof(Distance), Distance);
+                    OperationValidation.AddIfBelow(issues, nameof(RowCount), RowCount, 1);
+                    OperationValidation.AddIfNotPositive(issues, nameof(RowPitch), RowPitch);
+                    break;
+                case DrillMode.Circle:
+                case DrillMode.Arc:
+                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
+                    OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
+                    break;
+                case DrillMode.Polygon:
+                    OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
+                    OperationValidation.AddIfBelow(issues, nameof(NumberOfSides), NumberOfSides, 3);
+                    OperationValidation.AddIfBelow(issues, nameof(HolesPerSide), HolesPerSide, 1);
+                    break;
+                case DrillMode.Ellipse:
+                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
+                    OperationValidation.AddIfNotPositive(issues, nameof(RadiusX), RadiusX);
+                    OperationValidation.AddIfNotPositive(issues, nameof(RadiusY), RadiusY);
+                    break;
+                case DrillMode.Package:
+                    // PackageName may be empty: the dialog falls back to its default template.
+                    break;
+                case DrillMode.Points:
+                default:
+                    break;
+            }
+
+            return issues;
         }
     }
 }

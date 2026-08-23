@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation for ellipse contour.
     /// </summary>
-    public class ProfileEllipseOperation : OperationBase, IProfileOperation
+    public class ProfileEllipseOperation : OperationBase, IProfileOperation, IValidatable
     {
         public ProfileEllipseOperation() : base(OperationType.ProfileMilling, "Profile Ellipse")
         {
@@ -138,6 +138,19 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Ellipse RX{RadiusX}mm RY{RadiusY}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the ellipse radii.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(RadiusX), RadiusX);
+            OperationValidation.AddIfNotPositive(issues, nameof(RadiusY), RadiusY);
+            return issues;
         }
     }
 }

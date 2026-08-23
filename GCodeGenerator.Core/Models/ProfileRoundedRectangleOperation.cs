@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation for rounded rectangle contour.
     /// </summary>
-    public class ProfileRoundedRectangleOperation : OperationBase, IProfileOperation
+    public class ProfileRoundedRectangleOperation : OperationBase, IProfileOperation, IValidatable
     {
         public ProfileRoundedRectangleOperation() : base(OperationType.ProfileMilling, "Profile Rounded Rectangle")
         {
@@ -163,6 +163,21 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Rounded rectangle {Width}x{Height}mm, depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the rectangle dimensions. Corner radii are not validated: the
+        /// geometry clamps them (negative → 0, oversized → half of the
+        /// smaller side), so such values still generate a valid contour.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Width), Width);
+            OperationValidation.AddIfNotPositive(issues, nameof(Height), Height);
+            return issues;
         }
     }
 }

@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation for circle contour.
     /// </summary>
-    public class ProfileCircleOperation : OperationBase, IProfileOperation
+    public class ProfileCircleOperation : OperationBase, IProfileOperation, IValidatable
     {
         public ProfileCircleOperation() : base(OperationType.ProfileMilling, "Profile Circle")
         {
@@ -128,6 +128,18 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Circle R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the contour radius.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
+            return issues;
         }
     }
 }

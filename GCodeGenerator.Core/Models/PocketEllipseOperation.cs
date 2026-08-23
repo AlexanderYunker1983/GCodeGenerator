@@ -6,7 +6,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Pocket milling operation for elliptical pocket.
     /// </summary>
-    public class PocketEllipseOperation : OperationBase, IPocketOperation
+    public class PocketEllipseOperation : OperationBase, IPocketOperation, IValidatable
     {
         public PocketEllipseOperation() : base(OperationType.ProfileMilling, "Pocket Ellipse")
         {
@@ -89,6 +89,19 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Pocket ellipse RX{RadiusX}mm RY{RadiusY}mm, depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the ellipse radii.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(RadiusX), RadiusX);
+            OperationValidation.AddIfNotPositive(issues, nameof(RadiusY), RadiusY);
+            return issues;
         }
     }
 }

@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation for regular polygon contour.
     /// </summary>
-    public class ProfilePolygonOperation : OperationBase, IProfileOperation
+    public class ProfilePolygonOperation : OperationBase, IProfileOperation, IValidatable
     {
         public ProfilePolygonOperation() : base(OperationType.ProfileMilling, "Profile Polygon")
         {
@@ -138,6 +138,19 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Polygon {NumberOfSides}-sided R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters, the
+        /// contour radius and the side count (a polygon needs at least 3 sides).
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
+            OperationValidation.AddIfBelow(issues, nameof(NumberOfSides), NumberOfSides, 3);
+            return issues;
         }
     }
 }

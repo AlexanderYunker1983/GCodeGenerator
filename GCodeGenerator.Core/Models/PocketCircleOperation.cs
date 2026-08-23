@@ -6,7 +6,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Pocket milling operation for circular pocket.
     /// </summary>
-    public class PocketCircleOperation : OperationBase, IPocketOperation
+    public class PocketCircleOperation : OperationBase, IPocketOperation, IValidatable
     {
         public PocketCircleOperation() : base(OperationType.ProfileMilling, "Pocket Circle")
         {
@@ -85,6 +85,18 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Pocket circle R{Radius}mm, depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the pocket radius.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
+            return issues;
         }
     }
 }

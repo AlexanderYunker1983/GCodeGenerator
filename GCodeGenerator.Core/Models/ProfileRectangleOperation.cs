@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation for rectangle contour.
     /// </summary>
-    public class ProfileRectangleOperation : OperationBase, IProfileOperation
+    public class ProfileRectangleOperation : OperationBase, IProfileOperation, IValidatable
     {
         public ProfileRectangleOperation() : base(OperationType.ProfileMilling, "Profile Rectangle")
         {
@@ -143,6 +143,19 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             return $"Rectangle {Width}x{Height}mm, depth {TotalDepth}mm";
+        }
+
+        /// <summary>
+        /// Domain validation (plan item 3.7): common milling parameters and
+        /// the rectangle dimensions.
+        /// </summary>
+        public IReadOnlyList<ValidationIssue> Validate()
+        {
+            var issues = new List<ValidationIssue>();
+            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddIfNotPositive(issues, nameof(Width), Width);
+            OperationValidation.AddIfNotPositive(issues, nameof(Height), Height);
+            return issues;
         }
     }
 }
