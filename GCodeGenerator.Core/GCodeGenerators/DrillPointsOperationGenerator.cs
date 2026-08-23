@@ -1,18 +1,17 @@
 using System;
 using System.Globalization;
-using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators
 {
     public class DrillPointsOperationGenerator : IOperationGenerator
     {
-        public void Generate(OperationBase operation, Action<string> addLine, string g0, string g1, GCodeSettings settings)
+        public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
         {
             if (!(operation is DrillPointsOperation drill))
                 return;
 
-            var fmt = $"0.{new string('0', drill.Decimals)}";
+            int decimals = drill.Decimals;
 
             int holeIndex = 0;
             foreach (var hole in drill.Holes)
@@ -23,8 +22,8 @@ namespace GCodeGenerator.GCodeGenerators
                     throw new ArgumentOutOfRangeException(nameof(drill),
                         $"StepDepth of hole {holeIndex + 1} must be greater than zero (got {hole.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the drilling loop would run forever.");
 
-                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
-                addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(hole.X, fmt)} Y{GCodeGenerationHelper.FormatNumber(hole.Y, fmt)} F{GCodeGenerationHelper.FormatNumber(drill.FeedXYRapid, fmt)}");
+                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid, decimals: decimals);
+                builder.RapidTo(x: hole.X, y: hole.Y, feed: drill.FeedXYRapid, decimals: decimals);
 
                 var currentZ = hole.Z;
                 var finalZ = hole.Z - hole.TotalDepth;
@@ -35,20 +34,19 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ)
                         nextZ = finalZ;
 
-                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(currentZ, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
-                    addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZWork, fmt)}");
+                    builder.RapidTo(z: currentZ, feed: hole.FeedZRapid, decimals: decimals);
+                    builder.LinearTo(z: nextZ, feed: hole.FeedZWork, decimals: decimals);
 
                     currentZ = nextZ;
 
                     if (currentZ > finalZ)
-                        addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(hole.RetractHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
+                        builder.RapidTo(z: hole.RetractHeight, feed: hole.FeedZRapid, decimals: decimals);
                 }
 
-                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
+                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid, decimals: decimals);
 
                 holeIndex++;
             }
         }
     }
 }
-

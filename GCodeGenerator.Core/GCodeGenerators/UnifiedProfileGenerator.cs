@@ -22,7 +22,17 @@ namespace GCodeGenerator.GCodeGenerators
             _helper = new ProfileGenerationHelper();
         }
 
-        public void Generate(
+        public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
+        {
+            // Пункт 4.4 плана: строковая реализация временно сохраняется через
+            // raw-мост до портирования на ProgramBuilder (коммит Profile).
+            void AddLine(string code) => builder.RawLine(code);
+            var g0 = settings.UsePaddedGCodes ? "G00" : "G0";
+            var g1 = settings.UsePaddedGCodes ? "G01" : "G1";
+            GenerateLegacy(operation, AddLine, g0, g1, settings);
+        }
+
+        private void GenerateLegacy(
             OperationBase operation,
             Action<string> addLine,
             string g0,

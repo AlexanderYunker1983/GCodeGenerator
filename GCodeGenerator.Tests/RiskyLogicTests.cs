@@ -65,18 +65,25 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         private static List<string> RunPocket(OperationBase op, bool comments = true)
-        {
-            var lines = new List<string>();
-            new UnifiedPocketGenerator().Generate(op, lines.Add, "G0", "G1",
-                new GCodeSettings { UseComments = comments });
-            return lines;
-        }
+            => RunGenerator(new UnifiedPocketGenerator(), op, new GCodeSettings { UseComments = comments });
 
         private static List<string> RunProfile(OperationBase op, GCodeSettings settings)
+            => RunGenerator(new UnifiedProfileGenerator(), op, settings);
+
+        /// <summary>Запуск операционного генератора через ProgramBuilder + GCodeFormatter (план 4.4).</summary>
+        private static List<string> RunGenerator(IOperationGenerator generator, OperationBase op, GCodeSettings settings)
         {
-            var lines = new List<string>();
-            new UnifiedProfileGenerator().Generate(op, lines.Add, "G0", "G1", settings);
-            return lines;
+            var program = new GCodeProgram();
+            generator.Generate(op, new ProgramBuilder(program), settings);
+            // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
+            var renderSettings = new GCodeSettings
+            {
+                UseLineNumbers = false,
+                UseComments = settings.UseComments,
+                UsePaddedGCodes = settings.UsePaddedGCodes,
+            };
+            GCodeFormatter.Format(program, renderSettings);
+            return program.Lines.ToList();
         }
 
         private static DxfPolyline Poly(params (double x, double y)[] pts)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
@@ -25,24 +26,29 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         private static List<string> RunProfile(OperationBase op)
-        {
-            var lines = new List<string>();
-            new UnifiedProfileGenerator().Generate(op, lines.Add, "G0", "G1", new GCodeSettings());
-            return lines;
-        }
+            => RunGenerator(new UnifiedProfileGenerator(), op);
 
         private static List<string> RunPocket(OperationBase op)
-        {
-            var lines = new List<string>();
-            new UnifiedPocketGenerator().Generate(op, lines.Add, "G0", "G1", new GCodeSettings());
-            return lines;
-        }
+            => RunGenerator(new UnifiedPocketGenerator(), op);
 
         private static List<string> RunDrill(OperationBase op)
+            => RunGenerator(new DrillPointsOperationGenerator(), op);
+
+        /// <summary>Запуск операционного генератора через ProgramBuilder + GCodeFormatter (план 4.4).</summary>
+        private static List<string> RunGenerator(IOperationGenerator generator, OperationBase op, GCodeSettings settings = null)
         {
-            var lines = new List<string>();
-            new DrillPointsOperationGenerator().Generate(op, lines.Add, "G0", "G1", new GCodeSettings());
-            return lines;
+            settings ??= new GCodeSettings();
+            var program = new GCodeProgram();
+            generator.Generate(op, new ProgramBuilder(program), settings);
+            // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
+            var renderSettings = new GCodeSettings
+            {
+                UseLineNumbers = false,
+                UseComments = settings.UseComments,
+                UsePaddedGCodes = settings.UsePaddedGCodes,
+            };
+            GCodeFormatter.Format(program, renderSettings);
+            return program.Lines.ToList();
         }
 
         // ------------------------------------------------------------------

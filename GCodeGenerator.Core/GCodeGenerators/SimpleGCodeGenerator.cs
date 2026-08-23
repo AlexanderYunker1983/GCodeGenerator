@@ -88,19 +88,11 @@ namespace GCodeGenerator.GCodeGenerators
 
         public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings)
         {
-            // План 4.3: программа собирается структурой (ProgramBuilder) и
-            // рендерится GCodeFormatter. Операционные генераторы пока
-            // строковые (IOperationGenerator с Action<string>) — их вывод
-            // кодируется raw-блоками (мост) и рендерится как есть; порт на
-            // ProgramBuilder — пункт 4.4.
+            // План 4.3/4.4: программа собирается структурой (ProgramBuilder)
+            // и рендерится GCodeFormatter; операционные генераторы пишут
+            // блоки через ProgramBuilder (IOperationGenerator).
             var program = new GCodeProgram();
             var builder = new ProgramBuilder(program);
-
-            void AddLine(string code) => builder.RawLine(code);
-
-            // Преформатированные G-коды для строковых генераторов (мост).
-            var g0 = settings.UsePaddedGCodes ? "G00" : "G0";
-            var g1 = settings.UsePaddedGCodes ? "G01" : "G1";
 
             builder.Header();
 
@@ -149,7 +141,7 @@ namespace GCodeGenerator.GCodeGenerators
                 var operationType = operation.GetType();
                 if (_generators.TryGetValue(operationType, out var generator))
                 {
-                    generator.Generate(operation, AddLine, g0, g1, settings);
+                    generator.Generate(operation, builder, settings);
                 }
             }
 
