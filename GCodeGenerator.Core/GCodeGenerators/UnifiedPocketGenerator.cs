@@ -20,18 +20,27 @@ namespace GCodeGenerator.GCodeGenerators
     public class UnifiedPocketGenerator : IOperationGenerator
     {
         private readonly PocketGenerationHelper _helper;
-        private readonly IPocketPocketingStrategy _strategy;
         private readonly DxfPocketLayerGenerator _dxfLayerGenerator;
 
-        public UnifiedPocketGenerator() : this(new SpiralPocketingStrategy())
-        {
-        }
-
-        public UnifiedPocketGenerator(IPocketPocketingStrategy strategy)
+        public UnifiedPocketGenerator()
         {
             _helper = new PocketGenerationHelper();
-            _strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
-            _dxfLayerGenerator = new DxfPocketLayerGenerator(strategy);
+            _dxfLayerGenerator = new DxfPocketLayerGenerator();
+        }
+
+        /// <summary>
+        /// Выбор стратегии обработки по <c>op.PocketStrategy</c> (пункт 5.1 плана).
+        /// Пока не все стратегии реализованы (5.2–5.5), незарегистрированные
+        /// значения обрабатываются спиралью — единственной рабочей стратегией.
+        /// </summary>
+        private static IPocketPocketingStrategy GetStrategy(PocketStrategy strategy)
+        {
+            switch (strategy)
+            {
+                case PocketStrategy.Spiral:
+                default:
+                    return new SpiralPocketingStrategy();
+            }
         }
 
         public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
@@ -110,7 +119,8 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 return _dxfLayerGenerator.GenerateLayer(
                     dxfOp, toolRadius, taperOffset, step,
-                    currentZ, nextZ, passNumber, cutoff, builder, settings);
+                    currentZ, nextZ, passNumber, cutoff,
+                    GetStrategy(op.PocketStrategy), builder, settings);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -136,8 +146,8 @@ namespace GCodeGenerator.GCodeGenerators
             builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
             builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
 
-            // Генерируем обработку контура стратегией
-            _strategy.MillContour(op, geometry, toolRadius, taperOffset, step, contourPoints, center, builder, settings);
+            // Генерируем обработку контура стратегией (выбор по op.PocketStrategy, пункт 5.1)
+            GetStrategy(op.PocketStrategy).MillContour(op, geometry, toolRadius, taperOffset, step, nextZ, contourPoints, center, builder, settings);
 
             // Возврат в центр и подъем
             builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);

@@ -16,16 +16,10 @@ namespace GCodeGenerator.GCodeGenerators
     /// </summary>
     public sealed class DxfPocketLayerGenerator
     {
-        private readonly IPocketPocketingStrategy _strategy;
-
-        public DxfPocketLayerGenerator(IPocketPocketingStrategy strategy)
-        {
-            _strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
-        }
-
         /// <summary>
         /// Генерирует один слой для DXF кармана с несколькими контурами.
         /// </summary>
+        /// <param name="strategy">Стратегия обработки (выбирается по <c>op.PocketStrategy</c>, пункт 5.1).</param>
         /// <returns>true, если хотя бы один контур был обработан и обработку нужно продолжить; false, если все контуры пропущены</returns>
         public bool GenerateLayer(
             PocketDxfOperation op,
@@ -36,9 +30,13 @@ namespace GCodeGenerator.GCodeGenerators
             double nextZ,
             int passNumber,
             ContourCutoffAnalyzer cutoff,
+            IPocketPocketingStrategy strategy,
             ProgramBuilder builder,
             GCodeSettings settings)
         {
+            if (strategy == null)
+                throw new ArgumentNullException(nameof(strategy));
+
             int decimals = op.Decimals;
 
             if (op.ClosedContours == null || op.ClosedContours.Count == 0)
@@ -111,7 +109,7 @@ namespace GCodeGenerator.GCodeGenerators
                 }
 
                 // Генерируем обработку этого контура стратегией
-                _strategy.MillContour(op, geometry, toolRadius, taperOffset, step, contourPoints, center, builder, settings);
+                strategy.MillContour(op, geometry, toolRadius, taperOffset, step, nextZ, contourPoints, center, builder, settings);
 
                 // Возврат в центр контура и подъем
                 builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);

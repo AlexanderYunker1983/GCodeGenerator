@@ -20,11 +20,13 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double toolRadius,
             double taperOffset,
             double step,
+            double workingZ,
             List<(double x, double y)> contourPoints,
             (double x, double y) center,
             ProgramBuilder builder,
             GCodeSettings settings)
         {
+            // Спираль работает на рабочей Z без отводов — workingZ не используется.
             int decimals = op.Decimals;
 
             if (contourPoints == null || contourPoints.Count == 0)
