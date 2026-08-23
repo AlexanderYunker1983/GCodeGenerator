@@ -10,7 +10,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public class ProfileRectangleOperation : OperationBase, IProfileOperation, IValidatable
     {
-        public ProfileRectangleOperation() : base(OperationType.ProfileMilling, "Profile Rectangle")
+        public ProfileRectangleOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Rectangle")
         {
         }
 

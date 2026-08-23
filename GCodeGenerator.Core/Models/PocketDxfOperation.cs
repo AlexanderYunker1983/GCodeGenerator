@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public class PocketDxfOperation : OperationBase, IPocketOperation, IValidatable
     {
-        public PocketDxfOperation() : base(OperationType.PocketMilling, "Pocket DXF")
+        public PocketDxfOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket DXF")
         {
             Metadata = new Dictionary<string, object>();
         }

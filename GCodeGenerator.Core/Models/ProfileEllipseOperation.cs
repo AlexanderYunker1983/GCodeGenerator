@@ -10,7 +10,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public class ProfileEllipseOperation : OperationBase, IProfileOperation, IValidatable
     {
-        public ProfileEllipseOperation() : base(OperationType.ProfileMilling, "Profile Ellipse")
+        public ProfileEllipseOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Ellipse")
         {
         }
 

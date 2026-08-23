@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Text.Json.Serialization;
 
 namespace GCodeGenerator.Models
 {
@@ -22,13 +23,22 @@ namespace GCodeGenerator.Models
         private string _name;
         private bool _isEnabled = true;
 
-        protected OperationBase(OperationType type, string name)
+        protected OperationBase(OperationType type, OperationCategory category, string name)
         {
             Type = type;
+            Category = category;
             Name = name ?? throw new ArgumentNullException(nameof(name));
         }
 
         public OperationType Type { get; }
+
+        /// <summary>
+        /// Категория операции (Drill/Profile/Pocket), пункт 7.2 плана.
+        /// Сериализуется в .ygc не будет ([JsonIgnore]): восстанавливается
+        /// конструктором конкретного класса.
+        /// </summary>
+        [JsonIgnore]
+        public OperationCategory Category { get; }
 
         /// <summary>
         /// User-friendly name of operation, shown in UI.

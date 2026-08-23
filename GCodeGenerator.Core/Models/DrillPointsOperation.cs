@@ -12,7 +12,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public class DrillPointsOperation : OperationBase, IValidatable
     {
-        public DrillPointsOperation() : base(OperationType.DrillPoints, "Drill points")
+        public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
         {
             Metadata = new Dictionary<string, object>();
         }

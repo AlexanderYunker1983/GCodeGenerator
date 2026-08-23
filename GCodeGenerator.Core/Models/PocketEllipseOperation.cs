@@ -8,7 +8,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public class PocketEllipseOperation : OperationBase, IPocketOperation, IValidatable
     {
-        public PocketEllipseOperation() : base(OperationType.ProfileMilling, "Pocket Ellipse")
+        public PocketEllipseOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Ellipse")
         {
             Metadata = new Dictionary<string, object>();
         }
