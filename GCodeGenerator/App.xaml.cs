@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Windows;
 using Autofac;
+using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -45,6 +46,18 @@ namespace GCodeGenerator
             var builder = new ContainerBuilder();
             builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
             builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
+
+            // Пункт 4.5 плана: явная регистрация генераторов G-кода.
+            // OperationGeneratorRegistry — явный маппинг Type → IOperationGenerator
+            // (name-based рефлексия удалена); SimpleGCodeGenerator резолвит
+            // реестр через конструктор и попадает в MainViewModel.
+            builder.RegisterType<OperationGeneratorRegistry>()
+                .As<IOperationGeneratorRegistry>()
+                .SingleInstance();
+            builder.RegisterType<SimpleGCodeGenerator>()
+                .As<IGCodeGenerator>()
+                .SingleInstance();
+
             builder.RegisterAssemblyTypes(typeof(MainViewModel).Assembly)
                 .AssignableTo<ViewModelBase>()
                 .InstancePerDependency();

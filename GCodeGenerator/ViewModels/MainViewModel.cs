@@ -28,11 +28,13 @@ namespace GCodeGenerator.ViewModels
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
-            _generator = new SimpleGCodeGenerator();
+            // Пункт 4.5 плана: генератор резолвится через IoC (App.xaml.cs),
+            // new SimpleGCodeGenerator() удалён.
+            _generator = generator ?? throw new ArgumentNullException(nameof(generator));
 
             DrillOperations = new DrillOperationsViewModel(localizationManager, dialogService);
             DrillOperations.MainViewModel = this;
