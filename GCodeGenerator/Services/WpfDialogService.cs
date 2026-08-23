@@ -82,9 +82,24 @@ namespace GCodeGenerator.Services
             var window = (Window)Activator.CreateInstance(GetViewType(viewModelType));
             window.DataContext = viewModel;
             window.Owner = Application.Current?.MainWindow;
+
+            var closeable = viewModel as CloseableViewModel;
+            Action closeHandler = null;
+            if (closeable != null)
+            {
+                // Пункт 7.3 плана: VM может запросить закрытие окна (OK/Cancel).
+                closeHandler = () => window.Close();
+                closeable.CloseRequested += closeHandler;
+            }
+
             // Модальный показ: блокирует до закрытия окна.
             window.ShowDialog();
-            (viewModel as CloseableViewModel)?.OnClosed();
+
+            if (closeable != null)
+            {
+                closeable.CloseRequested -= closeHandler;
+                closeable.OnClosed();
+            }
         }
 
         /// <summary>
