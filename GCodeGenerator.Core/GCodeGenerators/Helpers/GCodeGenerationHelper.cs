@@ -44,11 +44,18 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <summary>
         /// Вычисляет шаг обработки на основе процента от диаметра инструмента.
         /// </summary>
-        /// <param name="toolDiameter">Диаметр инструмента</param>
+        /// <param name="toolDiameter">Диаметр инструмента (должен быть &gt; 0)</param>
         /// <param name="stepPercentOfTool">Процент от диаметра инструмента (например, 40 означает 40%)</param>
         /// <returns>Шаг обработки</returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Диаметр инструмента не больше нуля: шаг получился бы нулевым,
+        /// что привело бы к бесконечному циклу спирали (пункт 3.8 плана).
+        /// </exception>
         public static double CalculateStep(double toolDiameter, double stepPercentOfTool)
         {
+            if (toolDiameter <= 0)
+                throw new ArgumentOutOfRangeException(nameof(toolDiameter), toolDiameter,
+                    "Tool diameter must be greater than zero (a zero step would make the spiral loop run forever).");
             double stepPercent = (stepPercentOfTool <= 0) ? 40 : stepPercentOfTool;
             double step = toolDiameter * (stepPercent / 100.0);
             if (step < 1e-6) step = toolDiameter * 0.4;

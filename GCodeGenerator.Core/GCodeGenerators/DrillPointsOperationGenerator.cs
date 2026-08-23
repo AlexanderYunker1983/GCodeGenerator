@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
@@ -13,8 +14,15 @@ namespace GCodeGenerator.GCodeGenerators
 
             var fmt = $"0.{new string('0', drill.Decimals)}";
 
+            int holeIndex = 0;
             foreach (var hole in drill.Holes)
             {
+                // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл сверления
+                // превращается в бесконечный. Бросаем исключение вместо зависания.
+                if (hole.StepDepth <= 0)
+                    throw new ArgumentOutOfRangeException(nameof(drill),
+                        $"StepDepth of hole {holeIndex + 1} must be greater than zero (got {hole.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the drilling loop would run forever.");
+
                 addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
                 addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(hole.X, fmt)} Y{GCodeGenerationHelper.FormatNumber(hole.Y, fmt)} F{GCodeGenerationHelper.FormatNumber(drill.FeedXYRapid, fmt)}");
 
@@ -37,6 +45,8 @@ namespace GCodeGenerator.GCodeGenerators
                 }
 
                 addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
+
+                holeIndex++;
             }
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -29,6 +30,12 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             string g1,
             GCodeSettings settings)
         {
+            // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл по слоям
+            // превращается в бесконечный. Бросаем исключение вместо зависания.
+            if (op.StepDepth <= 0)
+                throw new ArgumentOutOfRangeException(nameof(op),
+                    $"StepDepth must be greater than zero (got {op.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the layer loop would run forever.");
+
             var fmt = $"0.{new string('0', op.Decimals)}";
 
             double currentZ = op.ContourHeight;
