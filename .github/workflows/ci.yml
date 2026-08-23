@@ -32,5 +32,26 @@ jobs:
       - name: Build (Release)
         run: dotnet build GCodeGenerator.sln -c Release --no-restore
 
+      # Фаза 2 плана (пункт 2.3): ядро не должно ссылаться на WPF-стек.
+      # Сборка Core без UseWPF сама по себе не пропустит WPF-зависимости
+      # (они не будут доступны компилятору) — проверка ниже страхует от
+      # случайного добавления UseWPF/UseWindowsForms и WPF-using в исходники.
+      - name: Check Core purity (no WPF)
+        shell: pwsh
+        run: |
+          $proj = [xml](Get-Content "GCodeGenerator.Core/GCodeGenerator.Core.csproj")
+          if ($proj.Project.PropertyGroup | Where-Object { $_.UseWPF -eq 'true' -or $_.UseWindowsForms -eq 'true' }) {
+            Write-Error 'GCodeGenerator.Core: UseWPF/UseWindowsForms found in csproj (phase 2 violation)'
+            exit 1
+          }
+          $bad = Get-ChildItem "GCodeGenerator.Core" -Recurse -Filter *.cs |
+            Select-String -Pattern '^\s*using\s+(System\.Windows|System\.Xaml|PresentationCore|WindowsBase|PresentationFramework)\b'
+          if ($bad) {
+            Write-Host 'WPF usings found in GCodeGenerator.Core:'
+            $bad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+            exit 1
+          }
+          Write-Host 'Core purity OK: no WPF references'
+
       - name: Run tests
         run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
