@@ -2,11 +2,10 @@ using System;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
-using System.Collections.ObjectModel;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
-    public class ProfileRoundedRectangleOperationViewModel : CloseableViewModel, IHasDisplayName
+    public class ProfileRoundedRectangleOperationViewModel : OperationEditorViewModelBase<ProfileRoundedRectangleOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
 
@@ -17,49 +16,37 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = string.IsNullOrEmpty(title) ? "Контур скругленного прямоугольника" : title;
         }
 
-        public ObservableCollection<OperationBase> Operations { get; set; }
-
-        private ProfileRoundedRectangleOperation _operation;
-
-        public ProfileRoundedRectangleOperation Operation
+        protected override void LoadFromOperation(ProfileRoundedRectangleOperation operation)
         {
-            get => _operation;
-            set
-            {
-                if (Equals(value, _operation)) return;
-                _operation = value;
-                if (_operation == null) return;
-
-                // Читаем только типизированные свойства (пункт 3.5 плана):
-                // легаси-Metadata мигрируется в свойства при загрузке (пункт 3.2).
-                ToolPathMode = _operation.ToolPathMode;
-                Direction = _operation.Direction;
-                Width = _operation.Width;
-                Height = _operation.Height;
-                RotationAngle = _operation.RotationAngle;
-                RadiusTopLeft = _operation.RadiusTopLeft;
-                RadiusTopRight = _operation.RadiusTopRight;
-                RadiusBottomLeft = _operation.RadiusBottomLeft;
-                RadiusBottomRight = _operation.RadiusBottomRight;
-                TotalDepth = _operation.TotalDepth;
-                StepDepth = _operation.StepDepth;
-                ToolDiameter = _operation.ToolDiameter;
-                ContourHeight = _operation.ContourHeight;
-                FeedXYRapid = _operation.FeedXYRapid;
-                FeedXYWork = _operation.FeedXYWork;
-                FeedZRapid = _operation.FeedZRapid;
-                FeedZWork = _operation.FeedZWork;
-                SafeZHeight = _operation.SafeZHeight;
-                RetractHeight = _operation.RetractHeight;
-                ReferencePointX = _operation.ReferencePointX;
-                ReferencePointY = _operation.ReferencePointY;
-                ReferencePointType = _operation.ReferencePointType;
-                EntryMode = _operation.EntryMode;
-                EntryAngle = _operation.EntryAngle;
-                SafeDistanceBetweenPasses = _operation.SafeDistanceBetweenPasses;
-                Decimals = _operation.Decimals;
-                MaxSegmentLength = _operation.MaxSegmentLength;
-            }
+            // Читаем только типизированные свойства (пункт 3.5 плана):
+            // легаси-Metadata мигрируется в свойства при загрузке (пункт 3.2).
+            ToolPathMode = operation.ToolPathMode;
+            Direction = operation.Direction;
+            Width = operation.Width;
+            Height = operation.Height;
+            RotationAngle = operation.RotationAngle;
+            RadiusTopLeft = operation.RadiusTopLeft;
+            RadiusTopRight = operation.RadiusTopRight;
+            RadiusBottomLeft = operation.RadiusBottomLeft;
+            RadiusBottomRight = operation.RadiusBottomRight;
+            TotalDepth = operation.TotalDepth;
+            StepDepth = operation.StepDepth;
+            ToolDiameter = operation.ToolDiameter;
+            ContourHeight = operation.ContourHeight;
+            FeedXYRapid = operation.FeedXYRapid;
+            FeedXYWork = operation.FeedXYWork;
+            FeedZRapid = operation.FeedZRapid;
+            FeedZWork = operation.FeedZWork;
+            SafeZHeight = operation.SafeZHeight;
+            RetractHeight = operation.RetractHeight;
+            ReferencePointX = operation.ReferencePointX;
+            ReferencePointY = operation.ReferencePointY;
+            ReferencePointType = operation.ReferencePointType;
+            EntryMode = operation.EntryMode;
+            EntryAngle = operation.EntryAngle;
+            SafeDistanceBetweenPasses = operation.SafeDistanceBetweenPasses;
+            Decimals = operation.Decimals;
+            MaxSegmentLength = operation.MaxSegmentLength;
         }
 
         private string _displayName;
@@ -401,53 +388,39 @@ namespace GCodeGenerator.ViewModels.PocketMill
             }
         }
 
-        public override void OnClosed()
+        protected override void ApplyToOperation()
         {
-            base.OnClosed();
-            if (_operation == null) return;
-
-            if (Width <= 0 || Height <= 0 || ToolDiameter <= 0)
-            {
-                RemoveOperationFromMain();
-                return;
-            }
-
-            _operation.ToolPathMode = ToolPathMode;
-            _operation.Direction = Direction;
-            _operation.Width = Width;
-            _operation.Height = Height;
-            _operation.RotationAngle = RotationAngle;
-            _operation.RadiusTopLeft = RadiusTopLeft;
-            _operation.RadiusTopRight = RadiusTopRight;
-            _operation.RadiusBottomLeft = RadiusBottomLeft;
-            _operation.RadiusBottomRight = RadiusBottomRight;
-            _operation.TotalDepth = TotalDepth;
-            _operation.StepDepth = StepDepth;
-            _operation.ToolDiameter = ToolDiameter;
-            _operation.ContourHeight = ContourHeight;
-            _operation.FeedXYRapid = FeedXYRapid;
-            _operation.FeedXYWork = FeedXYWork;
-            _operation.FeedZRapid = FeedZRapid;
-            _operation.FeedZWork = FeedZWork;
-            _operation.SafeZHeight = SafeZHeight;
-            _operation.RetractHeight = RetractHeight;
-            _operation.ReferencePointX = ReferencePointX;
-            _operation.ReferencePointY = ReferencePointY;
-            _operation.ReferencePointType = ReferencePointType;
-            _operation.EntryMode = EntryMode;
-            _operation.EntryAngle = EntryAngle;
-            _operation.SafeDistanceBetweenPasses = SafeDistanceBetweenPasses;
-            _operation.Decimals = Decimals;
-            _operation.MaxSegmentLength = MaxSegmentLength;
+            Operation.ToolPathMode = ToolPathMode;
+            Operation.Direction = Direction;
+            Operation.Width = Width;
+            Operation.Height = Height;
+            Operation.RotationAngle = RotationAngle;
+            Operation.RadiusTopLeft = RadiusTopLeft;
+            Operation.RadiusTopRight = RadiusTopRight;
+            Operation.RadiusBottomLeft = RadiusBottomLeft;
+            Operation.RadiusBottomRight = RadiusBottomRight;
+            Operation.TotalDepth = TotalDepth;
+            Operation.StepDepth = StepDepth;
+            Operation.ToolDiameter = ToolDiameter;
+            Operation.ContourHeight = ContourHeight;
+            Operation.FeedXYRapid = FeedXYRapid;
+            Operation.FeedXYWork = FeedXYWork;
+            Operation.FeedZRapid = FeedZRapid;
+            Operation.FeedZWork = FeedZWork;
+            Operation.SafeZHeight = SafeZHeight;
+            Operation.RetractHeight = RetractHeight;
+            Operation.ReferencePointX = ReferencePointX;
+            Operation.ReferencePointY = ReferencePointY;
+            Operation.ReferencePointType = ReferencePointType;
+            Operation.EntryMode = EntryMode;
+            Operation.EntryAngle = EntryAngle;
+            Operation.SafeDistanceBetweenPasses = SafeDistanceBetweenPasses;
+            Operation.Decimals = Decimals;
+            Operation.MaxSegmentLength = MaxSegmentLength;
         }
 
-        private void RemoveOperationFromMain()
-        {
-            // Пункт 7.2 плана: единая коллекция операций (MainViewModel.AllOperations) —
-            // прямое удаление; MainViewModel реагирует на CollectionChanged
-            // и на PropertyChanged операции.
-            Operations?.Remove(_operation);
-        }
+        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3).
+        protected override bool IsValid() => Width > 0 && Height > 0 && ToolDiameter > 0;
     }
 }
 
