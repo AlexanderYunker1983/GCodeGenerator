@@ -64,8 +64,9 @@ namespace GCodeGenerator.Tests
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
+            // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory,
-                new ProgramInfo("1.0"), new FakeSettingsStore(), new FakeThemeService());
+                new ProgramInfo("1.0"), new FakeSettingsStore(), new FakeThemeService(), new ProjectFileService());
             return (main, factory, dialogService);
         }
 

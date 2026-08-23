@@ -54,6 +54,9 @@ namespace GCodeGenerator
             // Пункт 7.5 плана: сервис темы через IoC (ранее статика ThemeHelper).
             builder.RegisterType<WpfThemeService>().As<IThemeService>().SingleInstance();
 
+            // Пункт 7.6 плана: служба файлов проекта через IoC (new из VM удалён).
+            builder.RegisterType<ProjectFileService>().As<IProjectFileService>().SingleInstance();
+
             // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
             // Type операции → VM диалога; сверление — по DrillMode).
             builder.RegisterType<OperationEditorFactory>()

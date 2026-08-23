@@ -20,7 +20,7 @@ namespace GCodeGenerator.Services
     ///
     /// Старые .ygc (v1) остаются читаемыми; сохранение — всегда v2.
     /// </summary>
-    public class ProjectFileService
+    public class ProjectFileService : IProjectFileService
     {
         /// <summary>Текущая версия формата файла .ygc (поле "version").</summary>
         public const int CurrentVersion = 2;

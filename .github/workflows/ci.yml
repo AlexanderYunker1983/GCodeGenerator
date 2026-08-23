@@ -53,5 +53,22 @@ jobs:
           }
           Write-Host 'Core purity OK: no WPF references'
 
+      # Фаза 7 плана (DoD): ViewModels не должны ссылаться на WPF UI-стек.
+      # System.Windows.Input (ICommand/IRelayCommand) разрешён — это MVVM-контракт;
+      # запрещены UI-неймспейсы (Controls/Media/Shapes/...) и Application.Current/Dispatcher (п. 7.1).
+      - name: Check ViewModels purity (no WPF UI)
+        shell: pwsh
+        run: |
+          $usingBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
+            Select-String -Pattern '^\s*using\s+(System\.Windows(;|\.(?!Input\b).*)|System\.Xaml|PresentationCore|WindowsBase|PresentationFramework)\b'
+          $refBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
+            Select-String -Pattern 'Application\.Current|Dispatcher'
+          if ($usingBad -or $refBad) {
+            Write-Host 'WPF UI references found in GCodeGenerator/ViewModels:'
+            @($usingBad, $refBad) | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+            exit 1
+          }
+          Write-Host 'ViewModels purity OK: no WPF UI references'
+
       - name: Run tests
         run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build

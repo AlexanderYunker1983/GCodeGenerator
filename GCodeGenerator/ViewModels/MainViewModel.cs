@@ -26,12 +26,12 @@ namespace GCodeGenerator.ViewModels
         private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly IProgramInfo _programInfo;
         private readonly IThemeService _themeService;
-        private readonly ProjectFileService _projectFileService = new ProjectFileService();
+        private readonly IProjectFileService _projectFileService;
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
@@ -45,6 +45,8 @@ namespace GCodeGenerator.ViewModels
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settings = (settingsStore ?? throw new ArgumentNullException(nameof(settingsStore))).Current;
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+            // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
+            _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
