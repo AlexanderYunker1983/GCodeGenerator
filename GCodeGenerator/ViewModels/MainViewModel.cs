@@ -85,6 +85,10 @@ namespace GCodeGenerator.ViewModels
             {
                 AttachOperation(op);
             }
+
+            // Пункт 6.3 плана: 2D-превью получает чистую OperationScene из
+            // отдельного VM (code-behind — только отрисовка и мышь).
+            OperationsPreview = new OperationsPreviewViewModel(this);
         }
 
         private string _displayName;
@@ -105,6 +109,11 @@ namespace GCodeGenerator.ViewModels
         public ProfileMillingOperationsViewModel ProfileMillingOperations { get; }
 
         public Pocket.PocketOperationsViewModel PocketOperations { get; }
+
+        /// <summary>
+        /// Пункт 6.3 плана: VM 2D-превью операций (чистая OperationScene).
+        /// </summary>
+        public OperationsPreviewViewModel OperationsPreview { get; }
         
         public ObservableCollection<OperationBase> AllOperations { get; }
         

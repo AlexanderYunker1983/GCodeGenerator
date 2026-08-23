@@ -177,7 +177,8 @@
         <GridSplitter Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="2"
                       Background="Gray" Margin="0,2,0,2"/>
         <!-- Bottom: 2D preview of operations -->
-        <views:OperationsPreviewView Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding}"/>
+        <!-- Пункт 6.3 плана: DataContext — OperationsPreviewViewModel (чистая OperationScene). -->
+        <views:OperationsPreviewView Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding OperationsPreview}"/>
 
         <!-- Preview button above TabControl -->
         <Button Command="{Binding PreviewGCodeCommand}"

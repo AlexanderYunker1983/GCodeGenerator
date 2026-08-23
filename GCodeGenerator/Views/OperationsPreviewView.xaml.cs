@@ -1,22 +1,27 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.Linq;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Controls;
-using System.Windows.Shapes;
 using System.Windows.Controls.Primitives;
+using System.Windows.Shapes;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
+using GCodeGenerator.Preview;
 using GCodeGenerator.ViewModels;
 
 namespace GCodeGenerator.Views
 {
+    /// <summary>
+    /// 2D preview of operations (plan item 6.3). The code-behind only
+    /// renders the pure <see cref="OperationScene"/> from
+    /// <see cref="OperationsPreviewViewModel"/> and handles the mouse;
+    /// contour point generation lives in Core (<see cref="OperationSceneBuilder"/>).
+    /// </summary>
     public partial class OperationsPreviewView : System.Windows.Controls.UserControl
     {
-        private MainViewModel _mainVm;
+        private OperationsPreviewViewModel _vm;
         private double _zoom = 5.0; // pixels per mm
         private Point _offset;
         private bool _isPanning;
@@ -50,29 +55,37 @@ namespace GCodeGenerator.Views
 
         private void HookVm()
         {
-            _mainVm = DataContext as MainViewModel;
-            if (_mainVm != null)
+            _vm = DataContext as OperationsPreviewViewModel;
+            if (_vm != null)
             {
-                _mainVm.OperationsChanged += Redraw;
-                (_mainVm.AllOperations as INotifyCollectionChanged).CollectionChanged += OnOperationsCollectionChanged;
-                _mainVm.ShowAllRequested += FitAll;
+                _vm.PropertyChanged += OnVmPropertyChanged;
+                _vm.ShowAllRequested += OnShowAllRequested;
             }
         }
 
         private void UnhookVm()
         {
-            if (_mainVm != null)
+            if (_vm != null)
             {
-                _mainVm.OperationsChanged -= Redraw;
-                (_mainVm.AllOperations as INotifyCollectionChanged).CollectionChanged -= OnOperationsCollectionChanged;
-                _mainVm.ShowAllRequested -= FitAll;
+                _vm.PropertyChanged -= OnVmPropertyChanged;
+                _vm.ShowAllRequested -= OnShowAllRequested;
             }
-            _mainVm = null;
+            _vm = null;
         }
 
-        private void OnOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnVmPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            Redraw();
+            // Scene rebuild or selection change → redraw.
+            if (e.PropertyName == nameof(OperationsPreviewViewModel.Scene) ||
+                e.PropertyName == nameof(OperationsPreviewViewModel.SelectedOperation))
+            {
+                Redraw();
+            }
+        }
+
+        private void OnShowAllRequested(object sender, EventArgs e)
+        {
+            FitAll();
         }
 
         private OperationBase GetOperationFromSource(object source)
@@ -87,96 +100,17 @@ namespace GCodeGenerator.Views
             return null;
         }
 
+        /// <summary>Fits the view to the scene bounds.</summary>
         public void FitAll()
         {
-            if (_mainVm == null || PreviewCanvas == null || PreviewCanvas.ActualWidth < 1 || PreviewCanvas.ActualHeight < 1)
+            if (_vm == null || PreviewCanvas == null || PreviewCanvas.ActualWidth < 1 || PreviewCanvas.ActualHeight < 1)
                 return;
 
-            var points = new List<Point>();
-            foreach (var op in _mainVm.AllOperations)
-            {
-                if (op is DrillPointsOperation drillOp)
-                {
-                    points.AddRange(drillOp.Holes.Select(h => new Point(h.X, h.Y)));
-                }
-                else if (op is ProfileRectangleOperation rectOp)
-                {
-                    points.AddRange(GetRectanglePoints(rectOp));
-                }
-                else if (op is ProfileRoundedRectangleOperation rrectOp)
-                {
-                    points.AddRange(GetRoundedRectanglePoints(rrectOp));
-                }
-                else if (op is ProfileCircleOperation circleOp)
-                {
-                    points.AddRange(GetCirclePoints(circleOp));
-                }
-                else if (op is ProfileEllipseOperation ellipseOp)
-                {
-                    points.AddRange(GetEllipsePoints(ellipseOp));
-                }
-                else if (op is ProfilePolygonOperation polyOp)
-                {
-                    points.AddRange(GetPolygonPoints(polyOp));
-                }
-                else if (op is ProfileDxfOperation dxfOp)
-                {
-                    foreach (var poly in dxfOp.Polylines ?? Enumerable.Empty<DxfPolyline>())
-                    {
-                        if (poly?.Points == null) continue;
-                        points.AddRange(poly.Points.Select(p => new Point(p.X, p.Y)));
-                    }
-                }
-                else if (op is PocketRectangleOperation pocketOp)
-                {
-                    var rect = new ProfileRectangleOperation
-                    {
-                        Width = pocketOp.Width,
-                        Height = pocketOp.Height,
-                        RotationAngle = pocketOp.RotationAngle,
-                        ReferencePointX = pocketOp.ReferencePointX,
-                        ReferencePointY = pocketOp.ReferencePointY,
-                        ReferencePointType = pocketOp.ReferencePointType
-                    };
-                    points.AddRange(GetRectanglePoints(rect));
-                }
-                else if (op is PocketCircleOperation pocketCircle)
-                {
-                    points.AddRange(GetCirclePoints(new ProfileCircleOperation
-                    {
-                        CenterX = pocketCircle.CenterX,
-                        CenterY = pocketCircle.CenterY,
-                        Radius = pocketCircle.Radius
-                    }));
-                }
-                else if (op is PocketEllipseOperation pocketEllipse)
-                {
-                    points.AddRange(GetEllipsePoints(new ProfileEllipseOperation
-                    {
-                        CenterX = pocketEllipse.CenterX,
-                        CenterY = pocketEllipse.CenterY,
-                        RadiusX = pocketEllipse.RadiusX,
-                        RadiusY = pocketEllipse.RadiusY,
-                        RotationAngle = pocketEllipse.RotationAngle
-                    }));
-                }
-                else if (op is PocketDxfOperation pocketDxf)
-                {
-                    foreach (var contour in pocketDxf.ClosedContours ?? Enumerable.Empty<DxfPolyline>())
-                    {
-                        if (contour?.Points == null) continue;
-                        points.AddRange(contour.Points.Select(p => new Point(p.X, p.Y)));
-                    }
-                }
-            }
-
-            if (points.Count == 0)
+            var bounds = _vm.Scene.Bounds;
+            if (bounds == null)
                 return;
 
-            var minX = points.Min(p => p.X);
-            var maxX = points.Max(p => p.X);
-            var minY = points.Min(p => p.Y);
-            var maxY = points.Max(p => p.Y);
+            var (minX, minY, maxX, maxY) = bounds.Value;
 
             var width = maxX - minX;
             var height = maxY - minY;
@@ -225,14 +159,16 @@ namespace GCodeGenerator.Views
 
         private void PreviewCanvas_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            if (_vm == null) return;
+
             var op = GetOperationFromSource(e.OriginalSource);
             if (op == null) return;
 
-            _mainVm.SelectedOperation = op;
+            _vm.SelectedOperation = op;
 
-            if (e.ClickCount >= 2 && _mainVm.EditOperationCommand?.CanExecute(null) == true)
+            if (e.ClickCount >= 2 && _vm.EditOperationCommand?.CanExecute(null) == true)
             {
-                _mainVm.EditOperationCommand.Execute(null);
+                _vm.EditOperationCommand.Execute(null);
             }
         }
 
@@ -289,6 +225,10 @@ namespace GCodeGenerator.Views
             ThemeHelper.ThemeChanged -= OnThemeChanged;
         }
 
+        // ------------------------------------------------------------------
+        // Rendering
+        // ------------------------------------------------------------------
+
         private void Redraw()
         {
             if (!Dispatcher.CheckAccess())
@@ -296,101 +236,34 @@ namespace GCodeGenerator.Views
                 Dispatcher.Invoke(Redraw);
                 return;
             }
-            if (!IsLoaded || PreviewCanvas == null) return;
+            if (!IsLoaded || PreviewCanvas == null || _vm == null) return;
             PreviewCanvas.Children.Clear();
 
             DrawGrid();
-            if (_mainVm == null) return;
 
-            var selected = _mainVm.SelectedOperation;
+            var selected = _vm.SelectedOperation;
             var hover = _hoverOp;
 
-            foreach (var op in _mainVm.AllOperations)
+            foreach (var shape in _vm.Scene.Shapes)
             {
-                Brush StrokeFor(OperationBase operation, Brush normal)
-                {
-                    if (ReferenceEquals(operation, selected)) return Brushes.Red;
-                    if (ReferenceEquals(operation, hover)) return Brushes.Orange;
-                    return normal;
-                }
+                var op = shape.Operation;
 
-                if (op is DrillPointsOperation drillOp)
+                Brush stroke;
+                if (ReferenceEquals(op, selected))
+                    stroke = Brushes.Red;
+                else if (ReferenceEquals(op, hover))
+                    stroke = Brushes.Orange;
+                else
+                    stroke = shape.Kind == OperationShapeKind.Point ? Brushes.SteelBlue : Brushes.DarkGreen;
+
+                if (shape.Kind == OperationShapeKind.Point)
                 {
-                    var holeBrush = StrokeFor(op, Brushes.SteelBlue);
-                    foreach (var hole in drillOp.Holes)
-                    {
-                        DrawHole(hole.X, hole.Y, holeBrush, op);
-                    }
+                    var (x, y) = shape.Points[0];
+                    DrawHole(x, y, stroke, op);
                 }
-                else if (op is ProfileRectangleOperation rectOp)
+                else
                 {
-                    DrawPolyline(GetRectanglePoints(rectOp), StrokeFor(op, Brushes.DarkGreen), op, false);
-                }
-                else if (op is ProfileRoundedRectangleOperation rrectOp)
-                {
-                    DrawPolyline(GetRoundedRectanglePoints(rrectOp), StrokeFor(op, Brushes.DarkGreen), op, false);
-                }
-                else if (op is ProfileCircleOperation circleOp)
-                {
-                    DrawPolyline(GetCirclePoints(circleOp), StrokeFor(op, Brushes.DarkGreen), op, false);
-                }
-                else if (op is ProfileEllipseOperation ellipseOp)
-                {
-                    DrawPolyline(GetEllipsePoints(ellipseOp), StrokeFor(op, Brushes.DarkGreen), op, false);
-                }
-                else if (op is ProfilePolygonOperation polyOp)
-                {
-                    DrawPolyline(GetPolygonPoints(polyOp), StrokeFor(op, Brushes.DarkGreen), op, false);
-                }
-                else if (op is ProfileDxfOperation dxfOp)
-                {
-                    foreach (var poly in dxfOp.Polylines ?? Enumerable.Empty<DxfPolyline>())
-                    {
-                        if (poly?.Points == null || poly.Points.Count < 2) continue;
-                        var pts = poly.Points.Select(p => new Point(p.X, p.Y)).ToList();
-                        DrawPolyline(pts, StrokeFor(op, Brushes.DarkGreen), op, false);
-                    }
-                }
-                else if (op is PocketRectangleOperation pocketRect)
-                {
-                    DrawPolyline(GetRectanglePoints(new ProfileRectangleOperation
-                    {
-                        Width = pocketRect.Width,
-                        Height = pocketRect.Height,
-                        RotationAngle = pocketRect.RotationAngle,
-                        ReferencePointX = pocketRect.ReferencePointX,
-                        ReferencePointY = pocketRect.ReferencePointY,
-                        ReferencePointType = pocketRect.ReferencePointType
-                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
-                }
-                else if (op is PocketCircleOperation pocketCircle)
-                {
-                    DrawPolyline(GetCirclePoints(new ProfileCircleOperation
-                    {
-                        CenterX = pocketCircle.CenterX,
-                        CenterY = pocketCircle.CenterY,
-                        Radius = pocketCircle.Radius
-                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
-                }
-                else if (op is PocketDxfOperation pocketDxf)
-                {
-                    foreach (var contour in pocketDxf.ClosedContours ?? Enumerable.Empty<DxfPolyline>())
-                    {
-                        if (contour?.Points == null || contour.Points.Count < 3) continue;
-                        var pts = contour.Points.Select(p => new Point(p.X, p.Y)).ToList();
-                        DrawPolyline(pts, StrokeFor(op, Brushes.DarkGreen), op, true);
-                    }
-                }
-                else if (op is PocketEllipseOperation pocketEllipse)
-                {
-                    DrawPolyline(GetEllipsePoints(new ProfileEllipseOperation
-                    {
-                        CenterX = pocketEllipse.CenterX,
-                        CenterY = pocketEllipse.CenterY,
-                        RadiusX = pocketEllipse.RadiusX,
-                        RadiusY = pocketEllipse.RadiusY,
-                        RotationAngle = pocketEllipse.RotationAngle
-                    }), StrokeFor(op, Brushes.DarkGreen), op, true);
+                    DrawPolyline(shape.Points, stroke, op, shape.IsFilled);
                 }
             }
         }
@@ -491,16 +364,18 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(ellipse);
         }
 
-        private void DrawPolyline(IList<Point> worldPoints, Brush stroke, OperationBase op, bool fill = false)
+        private void DrawPolyline(IReadOnlyList<(double X, double Y)> worldPoints, Brush stroke, OperationBase op, bool fill)
         {
             if (worldPoints == null || worldPoints.Count == 0)
                 return;
 
-            var points = worldPoints.Select(WorldToScreen).ToList();
+            var screenPoints = new List<Point>(worldPoints.Count);
+            foreach (var (x, y) in worldPoints)
+                screenPoints.Add(WorldToScreen(new Point(x, y)));
 
             var baseOpacity = op != null && !op.IsEnabled ? 0.3 : 1.0;
 
-            if (fill && points.Count >= 3)
+            if (fill && screenPoints.Count >= 3)
             {
                 var polygon = new Polygon
                 {
@@ -508,7 +383,7 @@ namespace GCodeGenerator.Views
                     Fill = stroke.Clone(),
                     Opacity = 0.25 * baseOpacity,
                     StrokeThickness = 1,
-                    Points = new PointCollection(points),
+                    Points = new PointCollection(screenPoints),
                     Tag = op
                 };
                 ApplyTooltip(polygon, op);
@@ -520,7 +395,7 @@ namespace GCodeGenerator.Views
                 Stroke = stroke,
                 StrokeThickness = 1,
                 Opacity = baseOpacity,
-                Points = new PointCollection(points),
+                Points = new PointCollection(screenPoints),
                 Tag = op
             };
             ApplyTooltip(poly, op);
@@ -545,220 +420,5 @@ namespace GCodeGenerator.Views
         {
             return new Point((screen.X - _offset.X) / _zoom, (_offset.Y - screen.Y) / _zoom);
         }
-
-        private List<Point> GetRectanglePoints(ProfileRectangleOperation op)
-        {
-            GetCenter(op.ReferencePointType, op.ReferencePointX, op.ReferencePointY, op.Width, op.Height, out var cx, out var cy);
-            var halfW = op.Width / 2.0;
-            var halfH = op.Height / 2.0;
-            var rad = op.RotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(rad);
-            var sin = Math.Sin(rad);
-
-            var corners = new[]
-            {
-                new Point(-halfW, -halfH),
-                new Point(halfW, -halfH),
-                new Point(halfW, halfH),
-                new Point(-halfW, halfH),
-                new Point(-halfW, -halfH)
-            };
-
-            return corners.Select(p => new Point(
-                cx + p.X * cos - p.Y * sin,
-                cy + p.X * sin + p.Y * cos)).ToList();
-        }
-
-        private List<Point> GetRoundedRectanglePoints(ProfileRoundedRectangleOperation op)
-        {
-            GetCenter(op.ReferencePointType, op.ReferencePointX, op.ReferencePointY, op.Width, op.Height, out var cx, out var cy);
-            var halfW = op.Width / 2.0;
-            var halfH = op.Height / 2.0;
-            var rad = op.RotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(rad);
-            var sin = Math.Sin(rad);
-
-            double Clamp(double r) => Math.Min(Math.Max(0, r), Math.Min(halfW, halfH));
-            var radii = new[]
-            {
-                Clamp(op.RadiusTopLeft),
-                Clamp(op.RadiusTopRight),
-                Clamp(op.RadiusBottomRight),
-                Clamp(op.RadiusBottomLeft)
-            };
-
-            (double X, double Y) Corner(int idx)
-            {
-                switch (idx)
-                {
-                    case 0: return (-halfW, -halfH);
-                    case 1: return (halfW, -halfH);
-                    case 2: return (halfW, halfH);
-                    default: return (-halfW, halfH);
-                }
-            }
-
-            (double X, double Y) ArcCenter(int idx, double r)
-            {
-                switch (idx)
-                {
-                    case 0: return (-halfW + r, -halfH + r);
-                    case 1: return (halfW - r, -halfH + r);
-                    case 2: return (halfW - r, halfH - r);
-                    default: return (-halfW + r, halfH - r);
-                }
-            }
-
-            var maxSeg = Math.Max(0.001, op.MaxSegmentLength);
-
-            var corners = new[] { 0, 1, 2, 3 }.Select(Corner).ToArray();
-            var trims = new (double sx, double sy, double ex, double ey)[4];
-            for (int i = 0; i < 4; i++)
-            {
-                var next = (i + 1) % 4;
-                var start = corners[i];
-                var end = corners[next];
-                var rStart = radii[i];
-                var rEnd = radii[next];
-                var dx = end.X - start.X;
-                var dy = end.Y - start.Y;
-                var len = Math.Sqrt(dx * dx + dy * dy);
-                if (len < 1e-6) len = 1e-6;
-                var ux = dx / len;
-                var uy = dy / len;
-                var trimStart = (start.X + ux * rStart, start.Y + uy * rStart);
-                var trimEnd = (end.X - ux * rEnd, end.Y - uy * rEnd);
-                trims[i] = (trimStart.Item1, trimStart.Item2, trimEnd.Item1, trimEnd.Item2);
-            }
-
-            var pts = new List<Point>();
-            // start with first trimmed point
-            pts.Add(RotateTranslate(trims[0].sx, trims[0].sy, cx, cy, cos, sin));
-
-            for (int i = 0; i < 4; i++)
-            {
-                var next = (i + 1) % 4;
-                var trimEnd = trims[i];
-                var trimStartNext = trims[next];
-                var arcRadius = radii[next];
-
-                pts.Add(RotateTranslate(trimEnd.ex, trimEnd.ey, cx, cy, cos, sin));
-
-                if (arcRadius > 0)
-                {
-                    var center = ArcCenter(next, arcRadius);
-                    var startDir = (trimEnd.ex - center.X, trimEnd.ey - center.Y);
-                    var endDir = (trimStartNext.sx - center.X, trimStartNext.sy - center.Y);
-                    var angleStart = Math.Atan2(startDir.Item2, startDir.Item1);
-                    var angleEnd = Math.Atan2(endDir.Item2, endDir.Item1);
-                    var sweep = angleEnd - angleStart;
-                    while (sweep > Math.PI) sweep -= 2 * Math.PI;
-                    while (sweep < -Math.PI) sweep += 2 * Math.PI;
-
-                    var arcLen = Math.Abs(sweep) * arcRadius;
-                    var steps = Math.Max(1, (int)Math.Ceiling(arcLen / maxSeg));
-                    var stepSweep = sweep / steps;
-                    for (int s = 1; s <= steps; s++)
-                    {
-                        var ang = angleStart + stepSweep * s;
-                        var ax = center.X + arcRadius * Math.Cos(ang);
-                        var ay = center.Y + arcRadius * Math.Sin(ang);
-                        pts.Add(RotateTranslate(ax, ay, cx, cy, cos, sin));
-                    }
-                }
-            }
-
-            if (pts.Count > 0)
-                pts.Add(pts[0]);
-            return pts;
-        }
-
-        private List<Point> GetCirclePoints(ProfileCircleOperation op)
-        {
-            var maxSeg = Math.Max(0.001, op.MaxSegmentLength);
-            var circumference = 2 * Math.PI * op.Radius;
-            var steps = Math.Max(12, (int)Math.Ceiling(circumference / maxSeg));
-            var pts = new List<Point>(steps + 1);
-            for (int i = 0; i <= steps; i++)
-            {
-                var ang = 2 * Math.PI * i / steps;
-                pts.Add(new Point(op.CenterX + op.Radius * Math.Cos(ang), op.CenterY + op.Radius * Math.Sin(ang)));
-            }
-            return pts;
-        }
-
-        private List<Point> GetEllipsePoints(ProfileEllipseOperation op)
-        {
-            var h = Math.Pow(op.RadiusX - op.RadiusY, 2) / Math.Pow(op.RadiusX + op.RadiusY, 2);
-            var perimeter = Math.PI * (op.RadiusX + op.RadiusY) * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
-            var maxSeg = Math.Max(0.001, op.MaxSegmentLength);
-            var steps = Math.Max(16, (int)Math.Ceiling(perimeter / maxSeg));
-            var rad = op.RotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(rad);
-            var sin = Math.Sin(rad);
-            var pts = new List<Point>(steps + 1);
-            for (int i = 0; i <= steps; i++)
-            {
-                var ang = 2 * Math.PI * i / steps;
-                var x = op.RadiusX * Math.Cos(ang);
-                var y = op.RadiusY * Math.Sin(ang);
-                var xr = x * cos - y * sin + op.CenterX;
-                var yr = x * sin + y * cos + op.CenterY;
-                pts.Add(new Point(xr, yr));
-            }
-            return pts;
-        }
-
-        private List<Point> GetPolygonPoints(ProfilePolygonOperation op)
-        {
-            var pts = new List<Point>();
-            var rad = op.RotationAngle * Math.PI / 180.0;
-            for (int i = 0; i <= op.NumberOfSides; i++)
-            {
-                var ang = rad + 2 * Math.PI * i / op.NumberOfSides;
-                pts.Add(new Point(op.CenterX + op.Radius * Math.Cos(ang), op.CenterY + op.Radius * Math.Sin(ang)));
-            }
-            return pts;
-        }
-
-        private void GetCenter(ReferencePointType type, double refX, double refY, double width, double height, out double cx, out double cy)
-        {
-            switch (type)
-            {
-                case ReferencePointType.Center:
-                    cx = refX;
-                    cy = refY;
-                    break;
-                case ReferencePointType.TopLeft:
-                    cx = refX + width / 2.0;
-                    cy = refY - height / 2.0;
-                    break;
-                case ReferencePointType.TopRight:
-                    cx = refX - width / 2.0;
-                    cy = refY - height / 2.0;
-                    break;
-                case ReferencePointType.BottomLeft:
-                    cx = refX + width / 2.0;
-                    cy = refY + height / 2.0;
-                    break;
-                case ReferencePointType.BottomRight:
-                    cx = refX - width / 2.0;
-                    cy = refY + height / 2.0;
-                    break;
-                default:
-                    cx = refX;
-                    cy = refY;
-                    break;
-            }
-        }
-
-        private Point RotateTranslate(double x, double y, double cx, double cy, double cos, double sin)
-        {
-            var xr = x * cos - y * sin + cx;
-            var yr = x * sin + y * cos + cy;
-            return new Point(xr, yr);
-        }
     }
 }
-
-
