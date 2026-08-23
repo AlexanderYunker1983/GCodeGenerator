@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -31,7 +30,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             double currentZ = op.ContourHeight;
             double finalZ = op.ContourHeight - op.TotalDepth;
@@ -44,20 +42,20 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 passNumber++;
 
                 if (settings.UseComments)
-                    addLine($"(Pass {passNumber}, depth {nextZ.ToString(fmt, culture)})");
+                    addLine($"(Pass {passNumber}, depth {GCodeGenerationHelper.FormatNumber(nextZ, fmt)})");
 
                 generateLayer(currentZ, nextZ, passNumber);
 
                 if (nextZ > finalZ)
                 {
                     var retractZAfterPass = nextZ + op.RetractHeight;
-                    addLine($"{g0} Z{retractZAfterPass.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(retractZAfterPass, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
                 }
 
                 currentZ = nextZ;
             }
 
-            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
         }
 
         /// <summary>
@@ -86,19 +84,18 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
-            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-            addLine($"{g0} X{startPoint.x.ToString(fmt, culture)} Y{startPoint.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+            addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(startPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(startPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
 
             if (op.EntryMode == EntryMode.Vertical)
             {
-                addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(currentZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+                addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZWork, fmt)}");
             }
             else
             {
-                GenerateRampEntry(op, startPoint, currentZ, nextZ, getPointOnContour, getPerimeter, addLine, g0, g1, fmt, culture);
+                GenerateRampEntry(op, startPoint, currentZ, nextZ, getPointOnContour, getPerimeter, addLine, g0, g1, fmt);
             }
         }
 
@@ -115,13 +112,12 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             Action<string> addLine,
             string g0,
             string g1,
-            string fmt,
-            CultureInfo culture)
+            string fmt)
         {
             var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
             var retractZ = currentZ + op.RetractHeight;
 
-            addLine($"{g0} Z{retractZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(retractZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
 
             var rampDepth = retractZ - nextZ;
             var rampDistance = rampDepth / Math.Tan(entryAngleRad);
@@ -149,12 +145,12 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 var point = getPointOnContour(distance);
                 var z = retractZ - t * rampDepth;
 
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} Z{z.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} Z{GCodeGenerationHelper.FormatNumber(z, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
 
-            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-            addLine($"{g0} X{startPoint.x.ToString(fmt, culture)} Y{startPoint.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-            addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+            addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(startPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(startPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
         }
 
         /// <summary>
@@ -179,7 +175,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             int decimals)
         {
             var fmt = $"0.{new string('0', decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             var pointsList = direction == MillingDirection.Clockwise
                 ? points.Reverse().ToList()
@@ -187,7 +182,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             foreach (var point in pointsList)
             {
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{feedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(feedXYWork, fmt)}");
             }
         }
 
@@ -215,7 +210,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             int decimals)
         {
             var fmt = $"0.{new string('0', decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             // Эта реализация будет расширена позже для поддержки дуг
             // Пока используем простую генерацию точек

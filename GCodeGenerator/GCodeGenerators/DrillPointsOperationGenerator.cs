@@ -1,5 +1,5 @@
 using System;
-using System.Globalization;
+using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -12,12 +12,11 @@ namespace GCodeGenerator.GCodeGenerators
                 return;
 
             var fmt = $"0.{new string('0', drill.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             foreach (var hole in drill.Holes)
             {
-                addLine($"{g0} Z{drill.SafeZBetweenHoles.ToString(fmt, culture)} F{hole.FeedZRapid.ToString(fmt, culture)}");
-                addLine($"{g0} X{hole.X.ToString(fmt, culture)} Y{hole.Y.ToString(fmt, culture)} F{drill.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
+                addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(hole.X, fmt)} Y{GCodeGenerationHelper.FormatNumber(hole.Y, fmt)} F{GCodeGenerationHelper.FormatNumber(drill.FeedXYRapid, fmt)}");
 
                 var currentZ = hole.Z;
                 var finalZ = hole.Z - hole.TotalDepth;
@@ -28,16 +27,16 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ)
                         nextZ = finalZ;
 
-                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{hole.FeedZRapid.ToString(fmt, culture)}");
-                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{hole.FeedZWork.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(currentZ, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
+                    addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZWork, fmt)}");
 
                     currentZ = nextZ;
 
                     if (currentZ > finalZ)
-                        addLine($"{g0} Z{hole.RetractHeight.ToString(fmt, culture)} F{hole.FeedZRapid.ToString(fmt, culture)}");
+                        addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(hole.RetractHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
                 }
 
-                addLine($"{g0} Z{drill.SafeZBetweenHoles.ToString(fmt, culture)} F{hole.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(drill.SafeZBetweenHoles, fmt)} F{GCodeGenerationHelper.FormatNumber(hole.FeedZRapid, fmt)}");
             }
         }
     }

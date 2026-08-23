@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
@@ -54,7 +53,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             double toolRadius = op.ToolDiameter / 2.0;
             double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
@@ -112,7 +110,6 @@ namespace GCodeGenerator.GCodeGenerators
             Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)> contourSimilarityData = null)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             double depthFromTop = op.ContourHeight - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
@@ -121,7 +118,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Проверка размера контуров выполняется внутри GenerateDxfLayerWithSpiral для каждого контура отдельно
             if (op is PocketDxfOperation dxfOp)
             {
-                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, passNumber, addLine, g0, g1, fmt, culture, settings, previousContourAreas, contourSimilarityData);
+                return GenerateDxfLayerWithSpiral(dxfOp, geometry, toolRadius, taperOffset, step, currentZ, nextZ, passNumber, addLine, g0, g1, fmt, settings, previousContourAreas, contourSimilarityData);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -142,17 +139,17 @@ namespace GCodeGenerator.GCodeGenerators
                 return false;
 
             // Перемещаемся к центру кармана
-            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-            addLine($"{g0} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
-            addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-            addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+            addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(currentZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+            addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZWork, fmt)}");
 
             // Генерируем спиральную стратегию
-            GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, culture, settings);
+            GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, settings);
 
             // Возврат в центр и подъем
-            addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-            addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+            addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+            addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
             
             return true; // Обработка успешно завершена, продолжаем
         }
@@ -174,7 +171,6 @@ namespace GCodeGenerator.GCodeGenerators
             string g0,
             string g1,
             string fmt,
-            CultureInfo culture,
             GCodeSettings settings,
             Dictionary<int, double> previousContourAreas,
             Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)> contourSimilarityData)
@@ -373,29 +369,29 @@ namespace GCodeGenerator.GCodeGenerators
                 // Поднимаем инструмент перед переходом к следующему контуру (кроме первого)
                 if (!isFirstContour)
                 {
-                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
                 }
 
                 // Перемещаемся к центру контура
-                addLine($"{g0} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
                 
                 // Опускаемся на рабочую высоту (только для первого контура, для остальных уже на нужной высоте)
                 if (isFirstContour)
                 {
-                    addLine($"{g0} Z{currentZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
-                    addLine($"{g1} Z{nextZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(currentZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+                    addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZWork, fmt)}");
                 }
                 else
                 {
-                    addLine($"{g0} Z{nextZ.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(nextZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
                 }
 
                 // Генерируем спиральную стратегию для этого контура
-                GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, culture, settings);
+                GenerateSpiralStrategy(op, geometry, toolRadius, taperOffset, step, contourPoints, center, addLine, g0, g1, fmt, settings);
 
                 // Возврат в центр контура и подъем
-                addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
-                addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
 
                 // Сохраняем площадь текущего слоя для следующей итерации
                 previousContourAreas[contourIndex] = currentArea;
@@ -424,7 +420,6 @@ namespace GCodeGenerator.GCodeGenerators
             string g0,
             string g1,
             string fmt,
-            CultureInfo culture,
             GCodeSettings settings)
         {
             if (contourPoints == null || contourPoints.Count == 0)
@@ -463,7 +458,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             // Начинаем с центра
             (double x, double y) currentPos = center;
-            addLine($"{g1} X{currentPos.x.ToString(fmt, culture)} Y{currentPos.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(currentPos.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(currentPos.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
 
             bool wasInside = true;
             (double x, double y)? exitPoint = null;
@@ -487,7 +482,7 @@ namespace GCodeGenerator.GCodeGenerators
                 if (isInside && wasInside)
                 {
                     // Обе точки внутри - просто добавляем точку
-                    addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(nextX, fmt)} Y{GCodeGenerationHelper.FormatNumber(nextY, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                     currentPos = nextPos;
                     prevTheta = θ;
                     θ += stepAngle; // Переходим к следующей точке
@@ -504,7 +499,7 @@ namespace GCodeGenerator.GCodeGenerators
                         exitPoint = exitResult.Value.point;
                         double exitTheta = exitResult.Value.theta;
                         
-                        addLine($"{g1} X{exitPoint.Value.x.ToString(fmt, culture)} Y{exitPoint.Value.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(exitPoint.Value.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(exitPoint.Value.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                         currentPos = exitPoint.Value;
 
                         // Ищем точку повторного входа с сохранением угла
@@ -520,7 +515,7 @@ namespace GCodeGenerator.GCodeGenerators
                             // Найдена точка входа - обходим контур от точки выхода к точке входа
                             FollowContourToReentry(
                                 op, exitPoint.Value, reentryPoint, contourPoints,
-                                addLine, g1, fmt, culture);
+                                addLine, g1, fmt);
                             currentPos = reentryPoint;
                             wasInside = true;
                             exitPoint = null;
@@ -537,9 +532,9 @@ namespace GCodeGenerator.GCodeGenerators
                             // Точки входа нет - точка выхода последняя
                             // Обходим контур полностью и возвращаемся в центр
                             FollowContourFull(
-                                op, exitPoint.Value, contourPoints, addLine, g1, fmt, culture);
+                                op, exitPoint.Value, contourPoints, addLine, g1, fmt);
                             // Возвращаемся в центр без подъема инструмента
-                            addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                            addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                             finished = true;
                         }
                     }
@@ -559,7 +554,7 @@ namespace GCodeGenerator.GCodeGenerators
                 else if (isInside && !wasInside)
                 {
                     // Вернулись внутрь - это точка входа (не должно происходить, так как обрабатывается выше)
-                    addLine($"{g1} X{nextX.ToString(fmt, culture)} Y{nextY.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(nextX, fmt)} Y{GCodeGenerationHelper.FormatNumber(nextY, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                     currentPos = nextPos;
                     wasInside = true;
                     exitPoint = null;
@@ -574,9 +569,9 @@ namespace GCodeGenerator.GCodeGenerators
                 // Находим ближайшую точку контура к текущей позиции
                 int closestIndex = FindClosestContourPoint(currentPos, contourPoints);
                 FollowContourFromPoint(
-                    op, closestIndex, contourPoints, addLine, g1, fmt, culture);
+                    op, closestIndex, contourPoints, addLine, g1, fmt);
                 // Возвращаемся в центр без подъема инструмента
-                addLine($"{g1} X{center.x.ToString(fmt, culture)} Y{center.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(center.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(center.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
         }
 
@@ -745,8 +740,7 @@ namespace GCodeGenerator.GCodeGenerators
             List<(double x, double y)> contourPoints,
             Action<string> addLine,
             string g1,
-            string fmt,
-            CultureInfo culture)
+            string fmt)
         {
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
@@ -770,12 +764,12 @@ namespace GCodeGenerator.GCodeGenerators
             int step = clockwise ? -1 : 1;
 
             // Начинаем с точки выхода на контуре
-            addLine($"{g1} X{exitOnContour.x.ToString(fmt, culture)} Y{exitOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(exitOnContour.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(exitOnContour.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
 
             // Если точки на одном сегменте, просто идем от одной к другой по сегменту
             if (exitSegIndex == reentrySegIndex)
             {
-                addLine($"{g1} X{reentryOnContour.x.ToString(fmt, culture)} Y{reentryOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(reentryOnContour.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(reentryOnContour.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                 return;
             }
 
@@ -783,7 +777,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Сначала доходим до конца сегмента с точкой выхода (до следующей вершины)
             int nextVertexIndex = (exitSegIndex + 1) % contourPoints.Count;
             var nextVertex = contourPoints[nextVertexIndex];
-            addLine($"{g1} X{nextVertex.x.ToString(fmt, culture)} Y{nextVertex.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+            addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(nextVertex.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(nextVertex.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
 
             // Теперь идем по вершинам контура до сегмента с точкой входа
             int currentIndex = nextVertexIndex;
@@ -795,14 +789,14 @@ namespace GCodeGenerator.GCodeGenerators
                 // Если достигли начала сегмента с точкой входа, идем к точке входа
                 if (currentIndex == reentrySegIndex)
                 {
-                    addLine($"{g1} X{reentryOnContour.x.ToString(fmt, culture)} Y{reentryOnContour.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(reentryOnContour.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(reentryOnContour.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                     break;
                 }
 
                 // Переходим к следующей вершине контура
                 currentIndex = (currentIndex + step + contourPoints.Count) % contourPoints.Count;
                 var point = contourPoints[currentIndex];
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
 
                 visited++;
             }
@@ -896,8 +890,7 @@ namespace GCodeGenerator.GCodeGenerators
             List<(double x, double y)> contourPoints,
             Action<string> addLine,
             string g1,
-            string fmt,
-            CultureInfo culture)
+            string fmt)
         {
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
@@ -906,7 +899,7 @@ namespace GCodeGenerator.GCodeGenerators
             if (startIndex < 0)
                 return;
 
-            FollowContourFromPoint(op, startIndex, contourPoints, addLine, g1, fmt, culture);
+            FollowContourFromPoint(op, startIndex, contourPoints, addLine, g1, fmt);
         }
 
         /// <summary>
@@ -918,8 +911,7 @@ namespace GCodeGenerator.GCodeGenerators
             List<(double x, double y)> contourPoints,
             Action<string> addLine,
             string g1,
-            string fmt,
-            CultureInfo culture)
+            string fmt)
         {
             if (contourPoints == null || contourPoints.Count == 0 || startIndex < 0)
                 return;
@@ -932,7 +924,7 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 int idx = (startIndex + i * step + contourPoints.Count) % contourPoints.Count;
                 var point = contourPoints[idx];
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
         }
 
@@ -1024,8 +1016,7 @@ namespace GCodeGenerator.GCodeGenerators
             List<(double x, double y)> contourPoints,
             Action<string> addLine,
             string g1,
-            string fmt,
-            CultureInfo culture)
+            string fmt)
         {
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
@@ -1033,7 +1024,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Просто обходим контур по порядку
             foreach (var point in contourPoints)
             {
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
 
             // Замыкаем контур, если он не замкнут
@@ -1047,7 +1038,7 @@ namespace GCodeGenerator.GCodeGenerators
                 double dist = Math.Sqrt(dx * dx + dy * dy);
                 if (dist > tolerance)
                 {
-                    addLine($"{g1} X{firstPoint.x.ToString(fmt, culture)} Y{firstPoint.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(firstPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(firstPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                 }
             }
         }

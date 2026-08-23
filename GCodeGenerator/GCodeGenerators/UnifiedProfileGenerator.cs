@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
@@ -77,7 +76,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             // Получаем начальную точку контура
             var startPoint = geometry.GetStartPoint(toolOffset);
@@ -133,7 +131,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             // Для DXF операций обрабатываем каждую полилинию отдельно
             if (op is ProfileDxfOperation dxfOp)
@@ -194,7 +191,7 @@ namespace GCodeGenerator.GCodeGenerators
             for (int i = startIndex; i < cleanedPoints.Count; i++)
             {
                 var point = cleanedPoints[i];
-                addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
             
             // Если мы начали не с начала, обрабатываем точки от начала до startIndex
@@ -203,7 +200,7 @@ namespace GCodeGenerator.GCodeGenerators
                 for (int i = 0; i < startIndex; i++)
                 {
                     var point = cleanedPoints[i];
-                    addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                 }
             }
             
@@ -216,7 +213,7 @@ namespace GCodeGenerator.GCodeGenerators
                 if (Math.Abs(firstPoint.x - lastPoint.x) > tolerance || 
                     Math.Abs(firstPoint.y - lastPoint.y) > tolerance)
                 {
-                    addLine($"{g1} X{firstPoint.x.ToString(fmt, culture)} Y{firstPoint.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(firstPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(firstPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                 }
             }
         }
@@ -237,7 +234,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
             double tolerance = 1e-6;
 
             if (op.Polylines == null || op.Polylines.Count == 0)
@@ -377,14 +373,14 @@ namespace GCodeGenerator.GCodeGenerators
                 if (!isFirstContour && allContourPoints.Count > 0)
                 {
                     // Поднимаем инструмент на безопасную высоту перед переходом к следующему контуру
-                    addLine($"{g0} Z{op.SafeZHeight.ToString(fmt, culture)} F{op.FeedZRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
                     
                     // Перемещаемся к начальной точке следующего контура на безопасной высоте
                     var firstPoint = allContourPoints[0];
-                    addLine($"{g0} X{firstPoint.x.ToString(fmt, culture)} Y{firstPoint.y.ToString(fmt, culture)} F{op.FeedXYRapid.ToString(fmt, culture)}");
+                    addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(firstPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(firstPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
                     
                     // Опускаемся на рабочую высоту
-                    addLine($"{g1} Z{workingZ.ToString(fmt, culture)} F{op.FeedZWork.ToString(fmt, culture)}");
+                    addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(workingZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZWork, fmt)}");
                 }
 
                 // Генерируем G-code для контура
@@ -395,7 +391,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = allContourPoints.Count - 1; i >= 0; i--)
                     {
                         var point = allContourPoints[i];
-                        addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                     }
                 }
                 else
@@ -404,7 +400,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = 0; i < allContourPoints.Count; i++)
                     {
                         var point = allContourPoints[i];
-                        addLine($"{g1} X{point.x.ToString(fmt, culture)} Y{point.y.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                        addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
                     }
                 }
 
@@ -520,7 +516,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             var g2 = settings.UsePaddedGCodes ? "G02" : "G2";
             var g3 = settings.UsePaddedGCodes ? "G03" : "G3";
@@ -531,7 +526,7 @@ namespace GCodeGenerator.GCodeGenerators
                 var i = arc.Center.x - arc.StartPoint.x;
                 var j = arc.Center.y - arc.StartPoint.y;
 
-                addLine($"{arcCommand} X{arc.EndPoint.x.ToString(fmt, culture)} Y{arc.EndPoint.y.ToString(fmt, culture)} I{i.ToString(fmt, culture)} J{j.ToString(fmt, culture)} F{op.FeedXYWork.ToString(fmt, culture)}");
+                addLine($"{arcCommand} X{GCodeGenerationHelper.FormatNumber(arc.EndPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(arc.EndPoint.y, fmt)} I{GCodeGenerationHelper.FormatNumber(i, fmt)} J{GCodeGenerationHelper.FormatNumber(j, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
             }
         }
     }

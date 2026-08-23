@@ -1,5 +1,4 @@
 using System;
-using System.Globalization;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
@@ -135,7 +134,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             GCodeSettings settings)
         {
             var fmt = $"0.{new string('0', op.Decimals)}";
-            var culture = CultureInfo.InvariantCulture;
 
             double currentZ = op.ContourHeight;
             double finalZ = op.ContourHeight - op.TotalDepth;
@@ -148,7 +146,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 pass++;
 
                 if (settings.UseComments)
-                    addLine($"(Pass {pass}, depth {nextZ.ToString(fmt, culture)})");
+                    addLine($"(Pass {pass}, depth {GCodeGenerationHelper.FormatNumber(nextZ, fmt)})");
 
                 // Если generateLayer возвращает false, прекращаем обработку
                 if (!generateLayer(currentZ, nextZ, pass))

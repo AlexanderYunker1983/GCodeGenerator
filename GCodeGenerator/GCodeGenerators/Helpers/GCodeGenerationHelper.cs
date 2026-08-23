@@ -11,15 +11,24 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
     public static class GCodeGenerationHelper
     {
         /// <summary>
-        /// Форматирует число с заданным количеством знаков после запятой.
+        /// Форматирует число по шаблону вида "0.000" (InvariantCulture).
+        /// Пункт 1.5: математическая библиотека .NET 10 в местах, где .NET Framework
+        /// давал 0.0, может давать -0.0 или крошечный остаток (±1e-15, например
+        /// cos(3π/2)) — оба форматируются как "-0.000". Скругляем до числа знаков
+        /// из fmt и нормализуем -0.0 → 0.0, восстанавливая зафиксированный вывод
+        /// (golden-файлы). Для всех остальных значений результат идентичен
+        /// прежнему инлайн-форматированию value.ToString(fmt, InvariantCulture).
         /// </summary>
         /// <param name="value">Значение для форматирования</param>
-        /// <param name="decimals">Количество знаков после запятой</param>
+        /// <param name="fmt">Шаблон формата, например "0.000"</param>
         /// <returns>Отформатированная строка</returns>
-        public static string FormatNumber(double value, int decimals)
+        public static string FormatNumber(double value, string fmt)
         {
-            var fmt = $"0.{new string('0', decimals)}";
-            return value.ToString(fmt, CultureInfo.InvariantCulture);
+            int decimals = fmt.Length - 2; // "0." + N нулей
+            double rounded = Math.Round(value, decimals);
+            if (rounded == 0)
+                rounded = 0; // нормализация -0.0
+            return rounded.ToString(fmt, CultureInfo.InvariantCulture);
         }
 
         /// <summary>
