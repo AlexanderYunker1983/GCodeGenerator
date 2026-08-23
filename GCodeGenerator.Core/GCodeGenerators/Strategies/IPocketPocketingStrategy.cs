@@ -8,11 +8,12 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// <summary>
     /// Стратегия фрезерования кармана (пункт 4.6 плана).
     /// Обрабатывает один слой контура кармана: инструмент находится в центре
-    /// на рабочей Z, стратегия выводит траекторию обработки и возвращает
-    /// инструмент в центр без подъёма.
+    /// на рабочей Z, стратегия выводит траекторию обработки; возврат в центр
+    /// и подъём на SafeZ выполняет генератор после возврата из стратегии.
     ///
-    /// Сейчас существует только <see cref="SpiralPocketingStrategy"/>;
-    /// остальные стратегии (Concentric, Radial, ZigZag, Lines) — фаза 5 (D1).
+    /// Реализации (фаза 5, D1): <see cref="SpiralPocketingStrategy"/>,
+    /// <see cref="ConcentricPocketingStrategy"/>, <see cref="RadialPocketingStrategy"/>,
+    /// <see cref="ZigZagPocketingStrategy"/>, <see cref="LinesPocketingStrategy"/>.
     /// </summary>
     public interface IPocketPocketingStrategy
     {
