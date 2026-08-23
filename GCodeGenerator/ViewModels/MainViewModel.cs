@@ -280,9 +280,12 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private GCodeProgram _generatedProgram;
+
         private void GenerateGCode()
         {
             var program = _generator.Generate(new System.Collections.Generic.List<OperationBase>(AllOperations), _settings);
+            _generatedProgram = program;
             var sb = new StringBuilder();
             foreach (var line in program.Lines)
                 sb.AppendLine(line);
@@ -321,7 +324,7 @@ namespace GCodeGenerator.ViewModels
                 return;
 
             var vm = _dialogService.CreateViewModel<PreviewViewModel>();
-            vm.GCodeText = GCodePreview;
+            vm.Program = _generatedProgram;
             _dialogService.ShowDialog(vm);
         }
 
@@ -458,6 +461,7 @@ namespace GCodeGenerator.ViewModels
             AllOperations.Clear();
             SelectedOperation = null;
             GCodePreview = string.Empty;
+            _generatedProgram = null;
 
             ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
@@ -543,6 +547,7 @@ namespace GCodeGenerator.ViewModels
             AllOperations.Clear();
             SelectedOperation = null;
             GCodePreview = string.Empty;
+            _generatedProgram = null;
 
             foreach (var operation in operations)
             {

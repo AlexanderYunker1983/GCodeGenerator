@@ -29,15 +29,15 @@ namespace GCodeGenerator.Views
             {
                 vm.PropertyChanged += (s, args) =>
                 {
-                    if (args.PropertyName == nameof(PreviewViewModel.TrajectoryModel))
+                    if (args.PropertyName == nameof(PreviewViewModel.Scene))
                     {
-                        UpdateTrajectoryModel(vm.TrajectoryModel);
+                        UpdateTrajectoryModel(SceneRenderer.Render(vm.Scene));
                     }
                 };
                 
-                if (vm.TrajectoryModel != null)
+                if (vm.Scene != null)
                 {
-                    UpdateTrajectoryModel(vm.TrajectoryModel);
+                    UpdateTrajectoryModel(SceneRenderer.Render(vm.Scene));
                 }
             }
         }
