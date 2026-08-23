@@ -33,57 +33,22 @@ namespace GCodeGenerator.ViewModels.Drill
                 _operation = value;
                 if (_operation == null) return;
 
-                // Initialize from metadata if available, otherwise from holes
-                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("StartX"))
-                {
-                    StartX = Convert.ToDouble(_operation.Metadata["StartX"]);
-                    StartY = Convert.ToDouble(_operation.Metadata["StartY"]);
-                    StartZ = Convert.ToDouble(_operation.Metadata["StartZ"]);
-                    Distance = Convert.ToDouble(_operation.Metadata["Distance"]);
-                    HoleCount = Convert.ToInt32(_operation.Metadata["HoleCount"]);
-                    AngleDeg = Convert.ToDouble(_operation.Metadata["AngleDeg"]);
-                    RowPitch = Convert.ToDouble(_operation.Metadata["RowPitch"]);
-                    RowCount = Convert.ToInt32(_operation.Metadata["RowCount"]);
-                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
-                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
-                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
-                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
-                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
-                }
-                else if (_operation.Holes.Any())
-                {
-                    var first = _operation.Holes.First();
-                    StartX = first.X;
-                    StartY = first.Y;
-                    StartZ = first.Z;
-                    TotalDepth = first.TotalDepth;
-                    StepDepth = first.StepDepth;
-                    FeedZRapid = first.FeedZRapid;
-                    FeedZWork = first.FeedZWork;
-                    RetractHeight = first.RetractHeight;
-                    // Default values for missing parameters
-                    Distance = 10;
-                    HoleCount = 3;
-                    RowPitch = 10;
-                    RowCount = 2;
-                    AngleDeg = 0;
-                }
-                else
-                {
-                    StartX = 0;
-                    StartY = 0;
-                    StartZ = 0;
-                    Distance = 10;
-                    HoleCount = 3;
-                    RowPitch = 10;
-                    RowCount = 2;
-                    AngleDeg = 0;
-                    TotalDepth = 2;
-                    StepDepth = 1;
-                    FeedZRapid = 500;
-                    FeedZWork = 200;
-                    RetractHeight = 0.3;
-                }
+                // Читаем типизированные свойства (пункт 3.3 плана): для новой
+                // операции это дефолты модели, для загруженной — значения,
+                // мигрированные из Metadata (пункт 3.2).
+                StartX = _operation.StartX;
+                StartY = _operation.StartY;
+                StartZ = _operation.StartZ;
+                Distance = _operation.Distance;
+                HoleCount = _operation.HoleCount;
+                AngleDeg = _operation.AngleDeg;
+                RowPitch = _operation.RowPitch;
+                RowCount = _operation.RowCount;
+                TotalDepth = _operation.TotalDepth;
+                StepDepth = _operation.StepDepth;
+                FeedZRapid = _operation.FeedZRapid;
+                FeedZWork = _operation.FeedZWork;
+                RetractHeight = _operation.RetractHeight;
 
                 FeedXYRapid = _operation.FeedXYRapid;
                 FeedXYWork = _operation.FeedXYWork;
@@ -342,6 +307,24 @@ namespace GCodeGenerator.ViewModels.Drill
             _operation.FeedXYWork = FeedXYWork;
             _operation.SafeZBetweenHoles = SafeZBetweenHoles;
             _operation.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            // Ранее Rect-диалог не сохранял параметры паттерна (только Holes) —
+            // теперь паттерн переживает сохранение, как и остальные режимы.
+            _operation.DrillMode = DrillMode.Rect;
+            _operation.StartX = StartX;
+            _operation.StartY = StartY;
+            _operation.StartZ = StartZ;
+            _operation.Distance = Distance;
+            _operation.HoleCount = HoleCount;
+            _operation.AngleDeg = AngleDeg;
+            _operation.RowPitch = RowPitch;
+            _operation.RowCount = RowCount;
+            _operation.TotalDepth = TotalDepth;
+            _operation.StepDepth = StepDepth;
+            _operation.FeedZRapid = FeedZRapid;
+            _operation.FeedZWork = FeedZWork;
+            _operation.RetractHeight = RetractHeight;
 
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)

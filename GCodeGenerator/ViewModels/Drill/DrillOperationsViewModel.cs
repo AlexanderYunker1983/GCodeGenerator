@@ -92,7 +92,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillLine()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Line);
             var name = _localizationManager?.GetString("AddDrillLine");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -109,7 +109,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillArray()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Array);
             var name = _localizationManager?.GetString("AddDrillArray");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -126,7 +126,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillRect()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Rect);
             var name = _localizationManager?.GetString("AddDrillRect");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -143,7 +143,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillCircle()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Circle);
             var name = _localizationManager?.GetString("AddDrillCircle");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -160,7 +160,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillArc()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Arc);
             var name = _localizationManager?.GetString("AddDrillArc");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -177,7 +177,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillPolygon()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Polygon);
             var name = _localizationManager?.GetString("AddDrillPolygon");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -194,7 +194,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillEllipse()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Ellipse);
             var name = _localizationManager?.GetString("AddDrillEllipse");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
@@ -211,7 +211,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void AddDrillPackage()
         {
-            var op = new DrillPointsOperation();
+            var op = DrillPointsOperation.CreateNew(DrillMode.Package);
             var name = _localizationManager?.GetString("AddDrillPackage");
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;

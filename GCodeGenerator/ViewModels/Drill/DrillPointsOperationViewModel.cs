@@ -157,7 +157,8 @@ namespace GCodeGenerator.ViewModels.Drill
                 return;
             }
 
-            // Save holes to operation
+            // Save holes to operation (пункт 3.3: режим фиксируется в DrillMode).
+            _operation.DrillMode = DrillMode.Points;
             _operation.Holes.Clear();
             foreach (var hole in Holes)
                 _operation.Holes.Add(hole);

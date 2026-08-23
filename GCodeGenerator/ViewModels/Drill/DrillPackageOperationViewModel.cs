@@ -66,53 +66,25 @@ namespace GCodeGenerator.ViewModels.Drill
                 _operation = value;
                 if (_operation == null) return;
 
-                // Initialize from metadata if available, otherwise from holes
-                if (_operation.Metadata != null && _operation.Metadata.ContainsKey("CenterX"))
+                // Читаем типизированные свойства (пункт 3.3 плана): для новой
+                // операции это дефолты модели, для загруженной — значения,
+                // мигрированные из Metadata (пункт 3.2).
+                CenterX = _operation.CenterX;
+                CenterY = _operation.CenterY;
+                Z = _operation.Z;
+                RotationAngle = _operation.RotationAngle;
+                TotalDepth = _operation.TotalDepth;
+                StepDepth = _operation.StepDepth;
+                FeedZRapid = _operation.FeedZRapid;
+                FeedZWork = _operation.FeedZWork;
+                RetractHeight = _operation.RetractHeight;
+
+                // Restore package selection; пустое имя — дефолт диалога (DIP8).
+                if (!string.IsNullOrEmpty(_operation.PackageName))
                 {
-                    CenterX = Convert.ToDouble(_operation.Metadata["CenterX"]);
-                    CenterY = Convert.ToDouble(_operation.Metadata["CenterY"]);
-                    Z = Convert.ToDouble(_operation.Metadata["Z"]);
-                    RotationAngle = Convert.ToDouble(_operation.Metadata["RotationAngle"]);
-                    TotalDepth = Convert.ToDouble(_operation.Metadata["TotalDepth"]);
-                    StepDepth = Convert.ToDouble(_operation.Metadata["StepDepth"]);
-                    FeedZRapid = Convert.ToDouble(_operation.Metadata["FeedZRapid"]);
-                    FeedZWork = Convert.ToDouble(_operation.Metadata["FeedZWork"]);
-                    RetractHeight = Convert.ToDouble(_operation.Metadata["RetractHeight"]);
-                    
-                    // Restore package selection
-                    if (_operation.Metadata.ContainsKey("PackageName"))
-                    {
-                        var packageName = _operation.Metadata["PackageName"] as string;
-                        if (!string.IsNullOrEmpty(packageName))
-                        {
-                            SelectedPackage = Packages.FirstOrDefault(p => p.Name == packageName);
-                        }
-                    }
-                }
-                else if (_operation.Holes.Any())
-                {
-                    var first = _operation.Holes.First();
-                    CenterX = first.X;
-                    CenterY = first.Y;
-                    Z = first.Z;
-                    TotalDepth = first.TotalDepth;
-                    StepDepth = first.StepDepth;
-                    FeedZRapid = first.FeedZRapid;
-                    FeedZWork = first.FeedZWork;
-                    RetractHeight = first.RetractHeight;
-                    RotationAngle = 0;
-                }
-                else
-                {
-                    CenterX = 0;
-                    CenterY = 0;
-                    Z = 0;
-                    RotationAngle = 0;
-                    TotalDepth = 2;
-                    StepDepth = 1;
-                    FeedZRapid = 500;
-                    FeedZWork = 200;
-                    RetractHeight = 0.3;
+                    var package = Packages.FirstOrDefault(p => p.Name == _operation.PackageName);
+                    if (package != null)
+                        SelectedPackage = package;
                 }
 
                 FeedXYRapid = _operation.FeedXYRapid;
@@ -427,23 +399,18 @@ namespace GCodeGenerator.ViewModels.Drill
             _operation.SafeZBetweenHoles = SafeZBetweenHoles;
             _operation.Decimals = Decimals;
 
-            // Save operation-specific parameters to metadata.
-            if (_operation.Metadata == null)
-                _operation.Metadata = new System.Collections.Generic.Dictionary<string, object>();
-            
-            _operation.Metadata["CenterX"] = CenterX;
-            _operation.Metadata["CenterY"] = CenterY;
-            _operation.Metadata["Z"] = Z;
-            _operation.Metadata["RotationAngle"] = RotationAngle;
-            _operation.Metadata["TotalDepth"] = TotalDepth;
-            _operation.Metadata["StepDepth"] = StepDepth;
-            _operation.Metadata["FeedZRapid"] = FeedZRapid;
-            _operation.Metadata["FeedZWork"] = FeedZWork;
-            _operation.Metadata["RetractHeight"] = RetractHeight;
-            if (SelectedPackage != null)
-            {
-                _operation.Metadata["PackageName"] = SelectedPackage.Name;
-            }
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            _operation.DrillMode = DrillMode.Package;
+            _operation.CenterX = CenterX;
+            _operation.CenterY = CenterY;
+            _operation.Z = Z;
+            _operation.RotationAngle = RotationAngle;
+            _operation.TotalDepth = TotalDepth;
+            _operation.StepDepth = StepDepth;
+            _operation.FeedZRapid = FeedZRapid;
+            _operation.FeedZWork = FeedZWork;
+            _operation.RetractHeight = RetractHeight;
+            _operation.PackageName = SelectedPackage?.Name ?? string.Empty;
 
             _operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
