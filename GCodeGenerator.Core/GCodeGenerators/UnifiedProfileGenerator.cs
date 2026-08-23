@@ -24,21 +24,6 @@ namespace GCodeGenerator.GCodeGenerators
 
         public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
         {
-            // Пункт 4.4 плана: строковая реализация временно сохраняется через
-            // raw-мост до портирования на ProgramBuilder (коммит Profile).
-            void AddLine(string code) => builder.RawLine(code);
-            var g0 = settings.UsePaddedGCodes ? "G00" : "G0";
-            var g1 = settings.UsePaddedGCodes ? "G01" : "G1";
-            GenerateLegacy(operation, AddLine, g0, g1, settings);
-        }
-
-        private void GenerateLegacy(
-            OperationBase operation,
-            Action<string> addLine,
-            string g0,
-            string g1,
-            GCodeSettings settings)
-        {
             // Проверяем, что операция является профилем
             if (!(operation is IProfileOperation profileOp))
                 return;
@@ -61,13 +46,9 @@ namespace GCodeGenerator.GCodeGenerators
                     toolOffset,
                     currentZ,
                     nextZ,
-                    addLine,
-                    g0,
-                    g1,
+                    builder,
                     settings),
-                addLine,
-                g0,
-                g1,
+                builder,
                 settings);
         }
 
@@ -80,13 +61,9 @@ namespace GCodeGenerator.GCodeGenerators
             double toolOffset,
             double currentZ,
             double nextZ,
-            Action<string> addLine,
-            string g0,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
         {
-            var fmt = $"0.{new string('0', op.Decimals)}";
-
             // Получаем начальную точку контура
             var startPoint = geometry.GetStartPoint(toolOffset);
 
@@ -98,9 +75,7 @@ namespace GCodeGenerator.GCodeGenerators
                 nextZ,
                 distance => geometry.GetPointOnContour(distance, toolOffset),
                 () => geometry.GetPerimeter(toolOffset),
-                addLine,
-                g0,
-                g1,
+                builder,
                 settings);
 
             // После входа мы находимся на начальной точке контура
@@ -111,18 +86,18 @@ namespace GCodeGenerator.GCodeGenerators
                 var arcSegments = geometry.GetArcSegments(toolOffset).ToList();
                 if (arcSegments.Count > 0)
                 {
-                    GenerateContourWithArcs(op, geometry, toolOffset, arcSegments, addLine, g1, settings);
+                    GenerateContourWithArcs(op, geometry, toolOffset, arcSegments, builder, settings);
                 }
                 else
                 {
                     // Fallback на точки, если дуги не доступны
-                    GenerateContourFromPoints(op, geometry, toolOffset, startPoint, nextZ, addLine, g0, g1, settings);
+                    GenerateContourFromPoints(op, geometry, toolOffset, startPoint, nextZ, builder, settings);
                 }
             }
             else
             {
                 // Генерируем из точек
-                GenerateContourFromPoints(op, geometry, toolOffset, startPoint, nextZ, addLine, g0, g1, settings);
+                GenerateContourFromPoints(op, geometry, toolOffset, startPoint, nextZ, builder, settings);
             }
         }
 
@@ -135,17 +110,15 @@ namespace GCodeGenerator.GCodeGenerators
             double toolOffset,
             (double x, double y) currentPosition,
             double workingZ,
-            Action<string> addLine,
-            string g0,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
         {
-            var fmt = $"0.{new string('0', op.Decimals)}";
+            int decimals = op.Decimals;
 
             // Для DXF операций обрабатываем каждую полилинию отдельно
             if (op is ProfileDxfOperation dxfOp)
             {
-                GenerateDxfContourFromPoints(dxfOp, geometry, toolOffset, currentPosition, workingZ, addLine, g0, g1, settings);
+                GenerateDxfContourFromPoints(dxfOp, geometry, toolOffset, currentPosition, workingZ, builder, settings);
                 return;
             }
 
@@ -201,7 +174,7 @@ namespace GCodeGenerator.GCodeGenerators
             for (int i = startIndex; i < cleanedPoints.Count; i++)
             {
                 var point = cleanedPoints[i];
-                addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
             }
             
             // Если мы начали не с начала, обрабатываем точки от начала до startIndex
@@ -210,7 +183,7 @@ namespace GCodeGenerator.GCodeGenerators
                 for (int i = 0; i < startIndex; i++)
                 {
                     var point = cleanedPoints[i];
-                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
                 }
             }
             
@@ -223,7 +196,7 @@ namespace GCodeGenerator.GCodeGenerators
                 if (Math.Abs(firstPoint.x - lastPoint.x) > tolerance || 
                     Math.Abs(firstPoint.y - lastPoint.y) > tolerance)
                 {
-                    addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(firstPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(firstPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                    builder.LinearTo(x: firstPoint.x, y: firstPoint.y, feed: op.FeedXYWork, decimals: decimals);
                 }
             }
         }
@@ -238,12 +211,10 @@ namespace GCodeGenerator.GCodeGenerators
             double toolOffset,
             (double x, double y) currentPosition,
             double workingZ,
-            Action<string> addLine,
-            string g0,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
         {
-            var fmt = $"0.{new string('0', op.Decimals)}";
+            int decimals = op.Decimals;
             double tolerance = 1e-6;
 
             if (op.Polylines == null || op.Polylines.Count == 0)
@@ -383,14 +354,14 @@ namespace GCodeGenerator.GCodeGenerators
                 if (!isFirstContour && allContourPoints.Count > 0)
                 {
                     // Поднимаем инструмент на безопасную высоту перед переходом к следующему контуру
-                    addLine($"{g0} Z{GCodeGenerationHelper.FormatNumber(op.SafeZHeight, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZRapid, fmt)}");
+                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
                     
                     // Перемещаемся к начальной точке следующего контура на безопасной высоте
                     var firstPoint = allContourPoints[0];
-                    addLine($"{g0} X{GCodeGenerationHelper.FormatNumber(firstPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(firstPoint.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYRapid, fmt)}");
+                    builder.RapidTo(x: firstPoint.x, y: firstPoint.y, feed: op.FeedXYRapid, decimals: decimals);
                     
                     // Опускаемся на рабочую высоту
-                    addLine($"{g1} Z{GCodeGenerationHelper.FormatNumber(workingZ, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedZWork, fmt)}");
+                    builder.LinearTo(z: workingZ, feed: op.FeedZWork, decimals: decimals);
                 }
 
                 // Генерируем G-code для контура
@@ -401,7 +372,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = allContourPoints.Count - 1; i >= 0; i--)
                     {
                         var point = allContourPoints[i];
-                        addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
                     }
                 }
                 else
@@ -410,7 +381,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = 0; i < allContourPoints.Count; i++)
                     {
                         var point = allContourPoints[i];
-                        addLine($"{g1} X{GCodeGenerationHelper.FormatNumber(point.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(point.y, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
                     }
                 }
 
@@ -521,22 +492,20 @@ namespace GCodeGenerator.GCodeGenerators
             IProfileGeometry geometry,
             double toolOffset,
             System.Collections.Generic.List<IArcSegment> arcSegments,
-            Action<string> addLine,
-            string g1,
+            ProgramBuilder builder,
             GCodeSettings settings)
         {
-            var fmt = $"0.{new string('0', op.Decimals)}";
-
-            var g2 = settings.UsePaddedGCodes ? "G02" : "G2";
-            var g3 = settings.UsePaddedGCodes ? "G03" : "G3";
+            int decimals = op.Decimals;
 
             foreach (var arc in arcSegments)
             {
-                var arcCommand = arc.IsClockwise ? g2 : g3;
                 var i = arc.Center.x - arc.StartPoint.x;
                 var j = arc.Center.y - arc.StartPoint.y;
 
-                addLine($"{arcCommand} X{GCodeGenerationHelper.FormatNumber(arc.EndPoint.x, fmt)} Y{GCodeGenerationHelper.FormatNumber(arc.EndPoint.y, fmt)} I{GCodeGenerationHelper.FormatNumber(i, fmt)} J{GCodeGenerationHelper.FormatNumber(j, fmt)} F{GCodeGenerationHelper.FormatNumber(op.FeedXYWork, fmt)}");
+                if (arc.IsClockwise)
+                    builder.ArcCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork, decimals);
+                else
+                    builder.ArcCCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork, decimals);
             }
         }
     }
