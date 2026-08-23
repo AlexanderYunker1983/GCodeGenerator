@@ -4,6 +4,19 @@ using System.Runtime.CompilerServices;
 
 namespace GCodeGenerator.Models
 {
+    /// <summary>
+    /// Base class for all operations.
+    ///
+    /// INotifyPropertyChanged is implemented here directly (status quo,
+    /// plan item 3.9): the operation list UI binds to the model itself
+    /// (MainView.xaml binds <c>IsEnabled</c>/<c>Name</c> on the operation)
+    /// and MainViewModel listens to the operation's PropertyChanged to
+    /// refresh the preview when the enabled flag is toggled. Extracting a
+    /// separate IEnabledOperation interface would not remove this dependency
+    /// — concrete operation instances are what the UI consumes — and would
+    /// only split the contract. If a non-UI consumer ever needs operations
+    /// without INPC, the interface can be extracted at that point.
+    /// </summary>
     public abstract class OperationBase : INotifyPropertyChanged
     {
         private string _name;
