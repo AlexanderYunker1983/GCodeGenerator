@@ -88,23 +88,21 @@
                     <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
-                <!-- Черновая / чистовая обработка с припуском (пункт 4.7 плана: временно заблокировано, разблокировка — фаза 5) -->
+                <!-- Черновая / чистовая обработка с припуском (фаза 5, D1) -->
                 <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                     <CheckBox Margin="0,0,16,0"
                               IsChecked="{Binding IsRoughingEnabled}"
-                              IsEnabled="False"
                               Content="{loc:Loc PocketRoughing}"/>
                     <CheckBox IsChecked="{Binding IsFinishingEnabled}"
-                              IsEnabled="False"
                               Content="{loc:Loc PocketFinishing}"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                     <TextBlock Text="{loc:Loc PocketFinishAllowance}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Width="80" IsEnabled="False" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged}"/>
+                    <TextBox Width="80" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
-                <GroupBox Header="{loc:Loc PocketFinishingModeHeader}" Margin="0,8,0,0" IsEnabled="False">
+                <GroupBox Header="{loc:Loc PocketFinishingModeHeader}" Margin="0,8,0,0">
                     <GroupBox.Style>
                         <Style TargetType="GroupBox">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -190,16 +188,15 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc PocketStrategy}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <!-- Пункт 4.7 плана: стратегии ≠ Spiral временно заблокированы (разблокировка — фаза 5, D1) -->
                 <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
                          SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
                          SelectedValuePath="Tag"
                          Margin="0,0,0,8">
                     <ComboBoxItem Content="{loc:Loc PocketStrategySpiral}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyConcentric}" Tag="{x:Static models:PocketStrategy.Concentric}" IsEnabled="False"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyRadial}" Tag="{x:Static models:PocketStrategy.Radial}" IsEnabled="False"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyZigZag}" Tag="{x:Static models:PocketStrategy.ZigZag}" IsEnabled="False"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyLines}" Tag="{x:Static models:PocketStrategy.Lines}" IsEnabled="False"/>
+                    <ComboBoxItem Content="{loc:Loc PocketStrategyConcentric}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
+                    <ComboBoxItem Content="{loc:Loc PocketStrategyRadial}" Tag="{x:Static models:PocketStrategy.Radial}"/>
+                    <ComboBoxItem Content="{loc:Loc PocketStrategyZigZag}" Tag="{x:Static models:PocketStrategy.ZigZag}"/>
+                    <ComboBoxItem Content="{loc:Loc PocketStrategyLines}" Tag="{x:Static models:PocketStrategy.Lines}"/>
                 </ComboBox>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc StepPercentOfTool}" VerticalAlignment="Center" Margin="0,0,4,0"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>

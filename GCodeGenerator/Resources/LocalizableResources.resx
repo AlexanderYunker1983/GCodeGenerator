@@ -186,21 +186,20 @@
   <data name="PocketStrategySpiral" xml:space="preserve">
     <value>Спираль</value>
   </data>
-  <!-- Пункт 4.7 плана: пометка «(в разработке)» до реализации (фаза 5, D1) -->
   <data name="PocketStrategyConcentric" xml:space="preserve">
-    <value>Концентрические линии (в разработке)</value>
+    <value>Концентрические линии</value>
   </data>
   <data name="PocketStrategyLines" xml:space="preserve">
-    <value>Линии (в разработке)</value>
+    <value>Линии</value>
   </data>
   <data name="PocketStrategyZigZag" xml:space="preserve">
-    <value>Зигзаг (в разработке)</value>
+    <value>Зигзаг</value>
   </data>
   <data name="LineAngleDegToX" xml:space="preserve">
     <value>Угол линии (° к оси X):</value>
   </data>
   <data name="PocketStrategyRadial" xml:space="preserve">
-    <value>Радиальные линии (в разработке)</value>
+    <value>Радиальные линии</value>
   </data>
   <data name="NoteSpiralFromCenter" xml:space="preserve">
     <value>Обработка выполняется по спирали с центром в середине кармана.</value>
@@ -689,10 +688,10 @@
     <value>Вкл</value>
   </data>
   <data name="PocketRoughing" xml:space="preserve">
-    <value>Черновая обработка (с припуском) (в разработке)</value>
+    <value>Черновая обработка (с припуском)</value>
   </data>
   <data name="PocketFinishing" xml:space="preserve">
-    <value>Чистовая обработка (с припуском) (в разработке)</value>
+    <value>Чистовая обработка (с припуском)</value>
   </data>
   <data name="PocketFinishAllowance" xml:space="preserve">
     <value>Припуск на обработку, мм:</value>
