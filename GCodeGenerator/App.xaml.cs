@@ -47,6 +47,12 @@ namespace GCodeGenerator
             builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
             builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
 
+            // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
+            // Type операции → VM диалога; сверление — по DrillMode).
+            builder.RegisterType<OperationEditorFactory>()
+                .As<IOperationEditorFactory>()
+                .SingleInstance();
+
             // Пункт 4.5 плана: явная регистрация генераторов G-кода.
             // OperationGeneratorRegistry — явный маппинг Type → IOperationGenerator
             // (name-based рефлексия удалена); SimpleGCodeGenerator резолвит

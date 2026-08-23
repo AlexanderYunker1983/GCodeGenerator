@@ -12,19 +12,20 @@ namespace GCodeGenerator.ViewModels.Pocket
     /// <summary>
     /// View-модель вкладки «Карман» (пункт 7.2 плана): добавляет операции
     /// карманов в единую коллекцию MainViewModel.AllOperations и открывает
-    /// диалоги операций. Собственной коллекции нет — <see cref="Operations"/>
-    /// — фильтрованное представление единой коллекции по категории.
+    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции нет —
+    /// <see cref="Operations"/> — фильтрованное представление единой коллекции
+    /// по категории.
     /// </summary>
     public class PocketOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly ObservableCollection<OperationBase> _allOperations;
 
-        public PocketOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService, ObservableCollection<OperationBase> allOperations)
+        public PocketOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
 
             Operations = new FilteredOperationsView(_allOperations, OperationCategory.Pocket);
@@ -61,11 +62,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<PocketRectangleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddPocketCircle()
@@ -77,11 +74,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<PocketCircleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddPocketEllipse()
@@ -93,11 +86,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<PocketEllipseOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddPocketDxf()
@@ -109,11 +98,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<PocketDxfOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
     }
 }

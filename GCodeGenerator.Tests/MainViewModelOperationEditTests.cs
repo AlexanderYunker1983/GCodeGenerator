@@ -5,14 +5,17 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
+using GCodeGenerator.ViewModels.Pocket;
+using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Тесты редактирования операций в MainViewModel (пункты 3.4 и 7.2 плана):
-    /// диалог редактирования сверления выбирается по DrillMode операции, а не
-    /// по её имени; пункт 7.2: диалог получает единую коллекцию AllOperations.
+    /// Тесты редактирования операций (пункты 3.4, 7.2, 7.3 плана): диалог
+    /// выбирается фабрикой IOperationEditorFactory по типу операции (сверление —
+    /// по DrillMode, а не по имени); диалог получает единую коллекцию
+    /// AllOperations.
     /// </summary>
     [TestClass]
     public class MainViewModelOperationEditTests
@@ -56,23 +59,45 @@ namespace GCodeGenerator.Tests
             }
         }
 
-        private static MainViewModel CreateMain(IDialogService dialogService)
-            => new MainViewModel(null, dialogService, new SimpleGCodeGenerator());
+        private static (MainViewModel main, OperationEditorFactory factory, RecordingDialogService dialogService) CreateMain()
+        {
+            var dialogService = new RecordingDialogService();
+            var factory = new OperationEditorFactory(dialogService);
+            var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory);
+            return (main, factory, dialogService);
+        }
 
         [TestMethod]
-        public void GetDialogViewModelType_AllModes_MappedCorrectly()
+        public void GetViewModelType_AllDrillModes_MappedCorrectly()
         {
-            var main = CreateMain(new RecordingDialogService());
+            var (_, factory, _) = CreateMain();
 
-            Assert.AreEqual(typeof(DrillPointsOperationViewModel), main.GetDialogViewModelType(DrillMode.Points));
-            Assert.AreEqual(typeof(DrillLineOperationViewModel), main.GetDialogViewModelType(DrillMode.Line));
-            Assert.AreEqual(typeof(DrillArrayOperationViewModel), main.GetDialogViewModelType(DrillMode.Array));
-            Assert.AreEqual(typeof(DrillRectOperationViewModel), main.GetDialogViewModelType(DrillMode.Rect));
-            Assert.AreEqual(typeof(DrillCircleOperationViewModel), main.GetDialogViewModelType(DrillMode.Circle));
-            Assert.AreEqual(typeof(DrillArcOperationViewModel), main.GetDialogViewModelType(DrillMode.Arc));
-            Assert.AreEqual(typeof(DrillPolygonOperationViewModel), main.GetDialogViewModelType(DrillMode.Polygon));
-            Assert.AreEqual(typeof(DrillEllipseOperationViewModel), main.GetDialogViewModelType(DrillMode.Ellipse));
-            Assert.AreEqual(typeof(DrillPackageOperationViewModel), main.GetDialogViewModelType(DrillMode.Package));
+            Assert.AreEqual(typeof(DrillPointsOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Points }));
+            Assert.AreEqual(typeof(DrillLineOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Line }));
+            Assert.AreEqual(typeof(DrillArrayOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Array }));
+            Assert.AreEqual(typeof(DrillRectOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Rect }));
+            Assert.AreEqual(typeof(DrillCircleOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Circle }));
+            Assert.AreEqual(typeof(DrillArcOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Arc }));
+            Assert.AreEqual(typeof(DrillPolygonOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Polygon }));
+            Assert.AreEqual(typeof(DrillEllipseOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Ellipse }));
+            Assert.AreEqual(typeof(DrillPackageOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Package }));
+        }
+
+        [TestMethod]
+        public void GetViewModelType_NonDrill_MappedCorrectly()
+        {
+            var (_, factory, _) = CreateMain();
+
+            Assert.AreEqual(typeof(PocketCircleOperationViewModel), factory.GetViewModelType(new PocketCircleOperation()));
+            Assert.AreEqual(typeof(PocketRectangleOperationViewModel), factory.GetViewModelType(new PocketRectangleOperation()));
+            Assert.AreEqual(typeof(PocketEllipseOperationViewModel), factory.GetViewModelType(new PocketEllipseOperation()));
+            Assert.AreEqual(typeof(PocketDxfOperationViewModel), factory.GetViewModelType(new PocketDxfOperation()));
+            Assert.AreEqual(typeof(ProfileCircleOperationViewModel), factory.GetViewModelType(new ProfileCircleOperation()));
+            Assert.AreEqual(typeof(ProfileRectangleOperationViewModel), factory.GetViewModelType(new ProfileRectangleOperation()));
+            Assert.AreEqual(typeof(ProfileRoundedRectangleOperationViewModel), factory.GetViewModelType(new ProfileRoundedRectangleOperation()));
+            Assert.AreEqual(typeof(ProfileEllipseOperationViewModel), factory.GetViewModelType(new ProfileEllipseOperation()));
+            Assert.AreEqual(typeof(ProfilePolygonOperationViewModel), factory.GetViewModelType(new ProfilePolygonOperation()));
+            Assert.AreEqual(typeof(ProfileDxfOperationViewModel), factory.GetViewModelType(new ProfileDxfOperation()));
         }
 
         /// <summary>
@@ -82,8 +107,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void EditSelectedOperation_RenamedOperation_OpensDialogByMode()
         {
-            var dialogService = new RecordingDialogService();
-            var main = CreateMain(dialogService);
+            var (main, _, dialogService) = CreateMain();
 
             var op = new DrillPointsOperation
             {
@@ -122,8 +146,7 @@ namespace GCodeGenerator.Tests
 
             foreach (var (mode, expectedType) in cases)
             {
-                var dialogService = new RecordingDialogService();
-                var main = CreateMain(dialogService);
+                var (main, _, dialogService) = CreateMain();
                 var op = new DrillPointsOperation { DrillMode = mode, Name = "Имя" };
                 main.AllOperations.Add(op);
                 main.SelectedOperation = op;

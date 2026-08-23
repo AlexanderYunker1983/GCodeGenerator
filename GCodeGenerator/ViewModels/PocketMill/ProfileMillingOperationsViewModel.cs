@@ -12,19 +12,20 @@ namespace GCodeGenerator.ViewModels.PocketMill
     /// <summary>
     /// View-модель вкладки «Профиль» (пункт 7.2 плана): добавляет операции
     /// профиля в единую коллекцию MainViewModel.AllOperations и открывает
-    /// диалоги операций. Собственной коллекции нет — <see cref="Operations"/>
-    /// — фильтрованное представление единой коллекции по категории.
+    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции нет —
+    /// <see cref="Operations"/> — фильтрованное представление единой коллекции
+    /// по категории.
     /// </summary>
     public class ProfileMillingOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly ObservableCollection<OperationBase> _allOperations;
 
-        public ProfileMillingOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService, ObservableCollection<OperationBase> allOperations)
+        public ProfileMillingOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
 
             Operations = new FilteredOperationsView(_allOperations, OperationCategory.Profile);
@@ -65,11 +66,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfileRectangleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddProfileRoundedRectangle()
@@ -81,11 +78,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfileRoundedRectangleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddProfileCircle()
@@ -97,11 +90,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfileCircleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddProfileEllipse()
@@ -113,11 +102,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfileEllipseOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddProfilePolygon()
@@ -129,11 +114,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfilePolygonOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddProfileDxf()
@@ -145,11 +126,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<ProfileDxfOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
     }
 }

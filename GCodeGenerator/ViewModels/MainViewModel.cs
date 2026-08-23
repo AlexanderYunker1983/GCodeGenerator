@@ -23,18 +23,21 @@ namespace GCodeGenerator.ViewModels
         private readonly GCodeSettings _settings = Models.GCodeSettingsStore.Current;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
+        private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly ProjectFileService _projectFileService = new ProjectFileService();
 
         public event Action OperationsChanged;
         public event Action ShowAllRequested;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
             // Пункт 4.5 плана: генератор резолвится через IoC (App.xaml.cs),
             // new SimpleGCodeGenerator() удалён.
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
+            // Пункт 7.3 плана: фабрика диалогов редактора операций.
+            _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
@@ -42,11 +45,12 @@ namespace GCodeGenerator.ViewModels
             AllOperations = new ObservableCollection<OperationBase>();
             AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
 
-            DrillOperations = new DrillOperationsViewModel(localizationManager, dialogService, AllOperations);
+            // Пункт 7.3 плана: категорийные VM открывают диалоги через фабрику.
+            DrillOperations = new DrillOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
             DrillOperations.OperationAdded += OnCategoryOperationAdded;
-            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager, dialogService, AllOperations);
+            ProfileMillingOperations = new ProfileMillingOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
             ProfileMillingOperations.OperationAdded += OnCategoryOperationAdded;
-            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, dialogService, AllOperations);
+            PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
             PocketOperations.OperationAdded += OnCategoryOperationAdded;
             
             GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => AllOperations.Count > 0);
@@ -334,100 +338,9 @@ namespace GCodeGenerator.ViewModels
             var op = SelectedOperation;
             if (op == null) return;
 
-            // Пункт 7.2 плана: диспетчеризация по типу операции (категорийные
-            // VM больше не хранят логику редактирования); пункт 3.4: сверление —
-            // по DrillMode, а не по имени.
-            switch (op)
-            {
-                case DrillPointsOperation drill:
-                    var drillType = GetDialogViewModelType(drill.DrillMode);
-                    var drillVm = (IDrillDialogViewModel)_dialogService.CreateViewModel(drillType);
-                    drillVm.Operations = AllOperations;
-                    drillVm.Operation = drill;
-                    _dialogService.ShowDialog(drillType, drillVm);
-                    break;
-                case PocketCircleOperation pocketCircle:
-                    var pocketCircleVm = _dialogService.CreateViewModel<PocketCircleOperationViewModel>();
-                    pocketCircleVm.Operations = AllOperations;
-                    pocketCircleVm.Operation = pocketCircle;
-                    _dialogService.ShowDialog(pocketCircleVm);
-                    break;
-                case PocketRectangleOperation pocketRectangle:
-                    var pocketRectangleVm = _dialogService.CreateViewModel<PocketRectangleOperationViewModel>();
-                    pocketRectangleVm.Operations = AllOperations;
-                    pocketRectangleVm.Operation = pocketRectangle;
-                    _dialogService.ShowDialog(pocketRectangleVm);
-                    break;
-                case PocketEllipseOperation pocketEllipse:
-                    var pocketEllipseVm = _dialogService.CreateViewModel<PocketEllipseOperationViewModel>();
-                    pocketEllipseVm.Operations = AllOperations;
-                    pocketEllipseVm.Operation = pocketEllipse;
-                    _dialogService.ShowDialog(pocketEllipseVm);
-                    break;
-                case PocketDxfOperation pocketDxf:
-                    var pocketDxfVm = _dialogService.CreateViewModel<PocketDxfOperationViewModel>();
-                    pocketDxfVm.Operations = AllOperations;
-                    pocketDxfVm.Operation = pocketDxf;
-                    _dialogService.ShowDialog(pocketDxfVm);
-                    break;
-                case ProfileCircleOperation profileCircle:
-                    var profileCircleVm = _dialogService.CreateViewModel<ProfileCircleOperationViewModel>();
-                    profileCircleVm.Operations = AllOperations;
-                    profileCircleVm.Operation = profileCircle;
-                    _dialogService.ShowDialog(profileCircleVm);
-                    break;
-                case ProfileRectangleOperation profileRectangle:
-                    var profileRectangleVm = _dialogService.CreateViewModel<ProfileRectangleOperationViewModel>();
-                    profileRectangleVm.Operations = AllOperations;
-                    profileRectangleVm.Operation = profileRectangle;
-                    _dialogService.ShowDialog(profileRectangleVm);
-                    break;
-                case ProfileRoundedRectangleOperation profileRoundedRectangle:
-                    var profileRoundedRectangleVm = _dialogService.CreateViewModel<ProfileRoundedRectangleOperationViewModel>();
-                    profileRoundedRectangleVm.Operations = AllOperations;
-                    profileRoundedRectangleVm.Operation = profileRoundedRectangle;
-                    _dialogService.ShowDialog(profileRoundedRectangleVm);
-                    break;
-                case ProfileEllipseOperation profileEllipse:
-                    var profileEllipseVm = _dialogService.CreateViewModel<ProfileEllipseOperationViewModel>();
-                    profileEllipseVm.Operations = AllOperations;
-                    profileEllipseVm.Operation = profileEllipse;
-                    _dialogService.ShowDialog(profileEllipseVm);
-                    break;
-                case ProfilePolygonOperation profilePolygon:
-                    var profilePolygonVm = _dialogService.CreateViewModel<ProfilePolygonOperationViewModel>();
-                    profilePolygonVm.Operations = AllOperations;
-                    profilePolygonVm.Operation = profilePolygon;
-                    _dialogService.ShowDialog(profilePolygonVm);
-                    break;
-                case ProfileDxfOperation profileDxf:
-                    var profileDxfVm = _dialogService.CreateViewModel<ProfileDxfOperationViewModel>();
-                    profileDxfVm.Operations = AllOperations;
-                    profileDxfVm.Operation = profileDxf;
-                    _dialogService.ShowDialog(profileDxfVm);
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// Тип диалоговой view-модели для режима сверления (пункт 3.4 плана):
-        /// диспетчеризация по <see cref="DrillMode"/>, а не по имени операции.
-        /// Пункт 7.2: перенесён из DrillOperationsViewModel.
-        /// </summary>
-        internal Type GetDialogViewModelType(DrillMode mode)
-        {
-            switch (mode)
-            {
-                case DrillMode.Line: return typeof(DrillLineOperationViewModel);
-                case DrillMode.Array: return typeof(DrillArrayOperationViewModel);
-                case DrillMode.Rect: return typeof(DrillRectOperationViewModel);
-                case DrillMode.Circle: return typeof(DrillCircleOperationViewModel);
-                case DrillMode.Arc: return typeof(DrillArcOperationViewModel);
-                case DrillMode.Polygon: return typeof(DrillPolygonOperationViewModel);
-                case DrillMode.Ellipse: return typeof(DrillEllipseOperationViewModel);
-                case DrillMode.Package: return typeof(DrillPackageOperationViewModel);
-                default: return typeof(DrillPointsOperationViewModel);
-            }
+            // Пункт 7.3 плана: диспетчеризация диалогов (реестр тип операции →
+            // VM диалога, сверление по DrillMode) — в IOperationEditorFactory.
+            _operationEditorFactory.ShowEditor(op, AllOperations);
         }
 
         private void UpdateOperationCommandsCanExecute()

@@ -12,19 +12,20 @@ namespace GCodeGenerator.ViewModels.Drill
     /// <summary>
     /// View-модель вкладки «Сверление» (пункт 7.2 плана): добавляет операции
     /// сверления в единую коллекцию MainViewModel.AllOperations и открывает
-    /// диалоги операций. Собственной коллекции нет — <see cref="Operations"/>
-    /// — фильтрованное представление единой коллекции по категории.
+    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции нет —
+    /// <see cref="Operations"/> — фильтрованное представление единой коллекции
+    /// по категории.
     /// </summary>
     public class DrillOperationsViewModel : ViewModelBase
     {
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly ObservableCollection<OperationBase> _allOperations;
 
-        public DrillOperationsViewModel(ILocalizationManager localizationManager, IDialogService dialogService, ObservableCollection<OperationBase> allOperations)
+        public DrillOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
 
             Operations = new FilteredOperationsView(_allOperations, OperationCategory.Drill);
@@ -71,11 +72,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillPointsOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillLine()
@@ -87,11 +84,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillLineOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillArray()
@@ -103,11 +96,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillArrayOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillRect()
@@ -119,11 +108,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillRectOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillCircle()
@@ -135,11 +120,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillCircleOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillArc()
@@ -151,11 +132,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillArcOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillPolygon()
@@ -167,11 +144,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillPolygonOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillEllipse()
@@ -183,11 +156,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillEllipseOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
 
         private void AddDrillPackage()
@@ -199,11 +168,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
             _allOperations.Add(op);
             OperationAdded?.Invoke(op);
-
-            var vm = _dialogService.CreateViewModel<DrillPackageOperationViewModel>();
-            vm.Operations = _allOperations;
-            vm.Operation = op;
-            _dialogService.ShowDialog(vm);
+            _operationEditorFactory.ShowEditor(op, _allOperations);
         }
     }
 }
