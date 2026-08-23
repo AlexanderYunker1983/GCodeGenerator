@@ -11,7 +11,7 @@
 | 1 | Миграция платформы на .NET 10 (D5) | ✅ готово (1.1–1.6, 2026-08-22/23) |
 | 2 | Структурное разделение (Core) | ✅ готово (2.1–2.3, 2026-08-23) |
 | 3 | Очистка доменной модели | ✅ готово (3.1–3.9, 2026-08-23) |
-| 4 | Структурный G-код и генераторы | ☐ не начата |
+| 4 | Структурный G-код и генераторы | ✅ готово (4.1–4.7, 2026-08-23) |
 | 5 | Доработка карманов: стратегии + roughing/finishing (D1) | ☐ не начата |
 | 6 | Предпросмотр без ре-парсинга | ☐ не начата |
 | 7 | MVVM-гигиена | ☐ не начата |
@@ -141,18 +141,25 @@
 
 **Цель:** убрать string round-trip, хрупкую рефлексию и god-class.
 
-- [ ] **4.1** Структурированная модель программы в Core: `GCodeProgram { List<GCodeBlock> }`, `GCodeBlock { LineNumber, Words, Comment }`, `GCodeWord { Letter, Number, Text }` + `ProgramBuilder` (`RapidTo`, `LinearTo`, `ArcCW/CCW`, `Dwell`, `SpindleOn/Off`, `CoolantOn/Off`, `Comment`, `SetWcs`, `SetStart/EndPosition`).
-- [ ] **4.2** `GCodeFormatter` в Core: `GCodeProgram → List<string>` с учётом `UseLineNumbers/LineNumberStart/Step`, `UsePaddedGCodes`, `UseComments` (перенос локальных функций `FormatG/FormatM/AddLine` из `SimpleGCodeGenerator`).
-- [ ] **4.3** Дифференциальный тест: для всех фикстур старое (строки) == новое (структура → форматтер) построчно. Переключение только при 100% равенстве.
-- [ ] **4.4** Порт генераторов на `ProgramBuilder` по одному за коммит (Drill → Profile → Pocket), после каждого — golden-тесты.
-- [ ] **4.5** Явная регистрация: `IOperationGeneratorRegistry` (явные маппинги `Type → IOperationGenerator`, резолв через IoC); name-based рефлексия в `SimpleGCodeGenerator.LoadGenerators` удалена.
-- [ ] **4.6** Декомпозиция `UnifiedPocketGenerator`:
-  - [ ] `DxfPocketLayerGenerator` — слой DXF-кармана;
-  - [ ] `ContourCutoffAnalyzer` — эвристики отсечки (площади, «песочные часы», обход, векторы) как чистый класс, ≥ 15 юнит-тестов;
-  - [ ] `IPocketPocketingStrategy` + `SpiralPocketingStrategy` (инфраструктура для новых стратегий — реализация в фазе 5).
-- [ ] **4.7** Опции стратегий ≠ Spiral и roughing/finishing в UI **временно заблокировать** (пометка «в разработке»); разблокировка — после фазы 5 (D1). Мёртвый `PocketGenerationHelper.ProcessRoughingFinishing` — доработать и подключить в фазе 5.
+- [x] **4.1** Структурированная модель программы в Core: `GCodeProgram { List<GCodeBlock> }`, `GCodeBlock { LineNumber, Words, Comment }`, `GCodeWord { Letter, Number, Text }` + `ProgramBuilder` (`RapidTo`, `LinearTo`, `ArcCW/CCW`, `Dwell`, `SpindleOn/Off`, `CoolantOn/Off`, `Comment`, `SetWcs`, `SetStart/EndPosition`). — 2026-08-23, commit 61a9cb1.
+  *Примечания: (а) отклонение от формулировки: у `GCodeWord` 4 поля — `Letter, Number, Text, Decimals` (`Decimals` добавлен: нужен для побайтового форматирования — ≥ 0 → `FormatNumber` с «0.000…», −1 → `InvariantCulture.ToString()`, как в преамбуле legacy); (б) строка блока — либо слова, либо комментарий (текущие генераторы не смешивают); (в) 18 юнит-тестов, поведение не изменено.*
+- [x] **4.2** `GCodeFormatter` в Core: `GCodeProgram → List<string>` с учётом `UseLineNumbers/LineNumberStart/Step`, `UsePaddedGCodes`, `UseComments` (перенос локальных функций `FormatG/FormatM/AddLine` из `SimpleGCodeGenerator`). — 2026-08-23, commit b41d702.
+  *Примечания: (а) 15 юнит-тестов; (б) семантика нумерации legacy зафиксирована: комментарийные блоки при `UseComments=false` не выводятся и не потребляют номер строки; (в) raw-слова (G92, M30) рендерятся как есть — legacy их не падал.*
+- [x] **4.3** Дифференциальный тест: для всех фикстур старое (строки) == новое (структура → форматтер) построчно. Переключение только при 100% равенстве. — 2026-08-23, commit 47961f8.
+  *Примечания: (а) интерпретация «старое»: эталон — golden-файлы (legacy-вывод, зафиксирован в 0.4) + `reference_project.nc` (0.7) — дублирующий legacy-пайплайн в дереве не хранится; (б) `DifferentialTests`: все 31 фикстура + эталонный проект, построчно, 100% равенство + `Blocks.Count == Lines.Count` (вывод реально прошёл через структуру); (в) переключение `SimpleGCodeGenerator` на builder+formatter выполнено; строковые генераторы (Profile/Pocket) временно через raw-мост `builder.RawLine` — удалён в 4.4.*
+- [x] **4.4** Порт генераторов на `ProgramBuilder` по одному за коммит (Drill → Profile → Pocket), после каждого — golden-тесты. — 2026-08-23, commits 804b365 (Drill), 394705f (Profile), 0c221bd (Pocket).
+  *Примечания: (а) `IOperationGenerator` — структурированная сигнатура `Generate(OperationBase, ProgramBuilder, GCodeSettings)`; (б) header-строка — RAW (`builder.Header()`): legacy выводит её даже при `UseComments=false`, поэтому это не фильтр-комментарий; (в) G92 и M30 — raw-слова (legacy их никогда не падал — случайная несостыковка зафиксирована golden-ом); G54–G59, G0/G1/G4, M3/M4/M5/M8/M9 — с паддингом по настройкам; (г) `SpindleOn(string command, int? rpm = null)` — `int?` вместо 0-сентинела: legacy выводит `M3 S0` при включённой скорости и rpm=0; (д) мёртвый `PocketGenerationHelper.ProcessRoughingFinishing` портирован на ProgramBuilder механически (подключение — фаза 5, п. 5.6); (е) после каждого коммита: сборка + все тесты + golden побайтово идентичен.*
+- [x] **4.5** Явная регистрация: `IOperationGeneratorRegistry` (явные маппинги `Type → IOperationGenerator`, резолв через IoC); name-based рефлексия в `SimpleGCodeGenerator.LoadGenerators` удалена. — 2026-08-23, commit 0d2ff36.
+  *Примечания: (а) `OperationGeneratorRegistry` — явный маппинг всех 11 типов операций (1 сверление + 6 профилей → `UnifiedProfileGenerator` + 4 кармана → `UnifiedPocketGenerator`); (б) `SimpleGCodeGenerator` и `MainViewModel` резолвятся через Autofac (`App.xaml.cs`), `new SimpleGCodeGenerator()` из VM удалён; (в) 7 тестов, включая покрытие всех конкретных `OperationBase` в Core — новый тип операции без маппинга падает тестом, а не молча пропускается при генерации.*
+- [x] **4.6** Декомпозиция `UnifiedPocketGenerator`:
+  - [x] `DxfPocketLayerGenerator` — слой DXF-кармана; — 2026-08-23, commit 4bc695b;
+  - [x] `ContourCutoffAnalyzer` — эвристики отсечки (площади, «песочные часы», обход, векторы) как чистый класс, ≥ 15 юнит-тестов; — 20 тестов;
+  - [x] `IPocketPocketingStrategy` + `SpiralPocketingStrategy` (инфраструктура для новых стратегий — реализация в фазе 5). — 2026-08-23, commit 4bc695b.
+  *Примечания: (а) `UnifiedPocketGenerator` 1266 → 149 строк (DoD < 400); (б) `ContourCutoffAnalyzer` — чистый класс (вход: площади слоёв + булевы результаты геометрических проверок, состояние на контур), 20 поведенческих тестов — формула «песочных часов», критерии 1–4, независимость контуров; (в) поведение не изменено: RiskyLogicTests (характеризация отсечки/спирали/уклона) + golden зелёные; (г) удалён мёртвый код генератора: `CloneOperation<T>`/`IsOperationTooSmall<T>` (не вызывались; аналоги живут в `*PocketGeometry`) и `CalculateAngleFromCenter`/`GenerateEquidistantContour`.*
+- [x] **4.7** Опции стратегий ≠ Spiral и roughing/finishing в UI **временно заблокировать** (пометка «в разработке»); разблокировка — после фазы 5 (D1). Мёртвый `PocketGenerationHelper.ProcessRoughingFinishing` — доработать и подключить в фазе 5. — 2026-08-23, commit 4e161d6.
+  *Примечания: (а) 4 карманных диалога: стратегии ≠ Spiral — `IsEnabled="False"` по пунктам ComboBox (ранее был заблокирован весь ComboBox — пункты не были видны пользователю) + пометка «(в разработке)» в локализации; (б) roughing/finishing — `IsEnabled="False"` (чекбоксы, припуск, режим чистовой) + пометка в локализации; (в) UIA-смоук зелёный (окно + 3 вкладки, настройки 4 вкладки, тема 255→37→255, диалог операции, чистый выход); (г) golden без изменений: генератор эти опции игнорирует (реализована только Spiral), заблокированные значения в старых `.ygc` открываются и сохраняются как есть.*
 
-**DoD фазы 4:** ☐ `IOperationGenerator` работает через `ProgramBuilder`; ☐ форматтер покрывает 100% golden; ☐ рефлексивная регистрация удалена; ☐ `UnifiedPocketGenerator` < 400 строк; ☐ golden без изменений.
+**DoD фазы 4:** ✅ `IOperationGenerator` работает через `ProgramBuilder` (4.4 — все три генератора структурированы, raw-мост удалён); ✅ форматтер покрывает 100% golden (4.3/4.4 — 31 фикстура + эталонный проект, построчно, после каждого коммита); ✅ рефлексивная регистрация удалена (4.5 — явный реестр + IoC); ✅ `UnifiedPocketGenerator` < 400 строк (149, 4.6); ✅ golden без изменений (побайтово идентичен после каждого коммита фазы).
 
 ---
 
@@ -258,7 +265,7 @@
 | 1 | Миграция на .NET 10: SDK-style, System.Text.Json, CommunityToolkit.Mvvm, MahApps 2.x, TFM (D3, D5) | 8–12 дн. (готово: 1.1–1.6, 2026-08-22/23) | 0 |
 | 2 | Выделение Core | 3–5 дн. (готово: 2.1–2.3, 2026-08-23) | 1 |
 | 3 | Модель: убить `Metadata`, name-dispatch, валидация | 5–8 дн. (готово: 3.1–3.9, 2026-08-23) | 2 |
-| 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. | 3 |
+| 4 | Структурный G-код, форматтер, реестр, декомпозиция генератора | 8–12 дн. (готово: 4.1–4.7, 2026-08-23) | 3 |
 | 5 | Стратегии карманов + roughing/finishing (D1) | 8–12 дн. | 4 |
 | 6 | Превью 2D/3D без ре-парсинга, WPF вне VM | 5–7 дн. | 4 |
 | 7 | MVVM: единая коллекция, базовый класс диалогов, OK/Cancel, статик | 6–10 дн. | 3–4 |
