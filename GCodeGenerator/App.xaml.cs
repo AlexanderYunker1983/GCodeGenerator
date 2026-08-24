@@ -85,7 +85,7 @@ namespace GCodeGenerator
             MainWindow = mainWindow;
             mainWindow.Show();
 
-            scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.UseDarkTheme);
+            scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
         }
     }
 }

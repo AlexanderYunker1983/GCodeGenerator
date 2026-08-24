@@ -29,12 +29,17 @@ namespace GCodeGenerator.GCodeGenerators
             var program = new GCodeProgram();
             var builder = new ProgramBuilder(program);
 
+            // Пункт 8.1 плана: настройки — через тематические группы.
+            var spindle = settings.Spindle;
+            var coolant = settings.Coolant;
+            var workCoordinate = settings.WorkCoordinate;
+
             builder.Header();
 
             // Установка рабочей системы координат (G54-G59) в самом начале программы
-            if (settings.SetWorkCoordinateSystem && !string.IsNullOrEmpty(settings.WorkCoordinateSystem))
+            if (workCoordinate.SetWorkCoordinateSystem && !string.IsNullOrEmpty(workCoordinate.WorkCoordinateSystem))
             {
-                var wcs = settings.WorkCoordinateSystem.Trim().ToUpperInvariant();
+                var wcs = workCoordinate.WorkCoordinateSystem.Trim().ToUpperInvariant();
                 // Проверяем, что это валидная команда G54-G59
                 if (wcs is "G54" or "G55" or "G56" or "G57" or "G58" or "G59")
                 {
@@ -43,26 +48,26 @@ namespace GCodeGenerator.GCodeGenerators
             }
 
             // Установка стартовых координат (G92) сразу после комментариев
-            if (settings.AddStartPosition)
+            if (workCoordinate.AddStartPosition)
             {
-                builder.SetStartPosition(settings.StartX, settings.StartY, settings.StartZ);
+                builder.SetStartPosition(workCoordinate.StartX, workCoordinate.StartY, workCoordinate.StartZ);
             }
 
-            if (settings.SpindleControlEnabled)
+            if (spindle.SpindleControlEnabled)
             {
-                if (settings.SpindleStartEnabled)
+                if (spindle.SpindleStartEnabled)
                 {
-                    var cmd = (settings.SpindleStartCommand ?? "M3").Trim().ToUpperInvariant();
+                    var cmd = (spindle.SpindleStartCommand ?? "M3").Trim().ToUpperInvariant();
                     if (cmd != "M3" && cmd != "M4")
                         cmd = "M3";
-                    builder.SpindleOn(cmd, settings.SpindleSpeedEnabled ? (int?)settings.SpindleSpeedRpm : null);
+                    builder.SpindleOn(cmd, spindle.SpindleSpeedEnabled ? (int?)spindle.SpindleSpeedRpm : null);
                 }
 
-                if (settings.CoolantControlEnabled && settings.CoolantStartEnabled)
+                if (coolant.CoolantControlEnabled && coolant.CoolantStartEnabled)
                     builder.CoolantOn();
 
-                if (settings.SpindleDelayEnabled && settings.SpindleDelaySeconds > 0)
-                    builder.Dwell(settings.SpindleDelaySeconds * 1000.0);
+                if (spindle.SpindleDelayEnabled && spindle.SpindleDelaySeconds > 0)
+                    builder.Dwell(spindle.SpindleDelaySeconds * 1000.0);
             }
 
             foreach (var operation in operations)
@@ -80,15 +85,15 @@ namespace GCodeGenerator.GCodeGenerators
                 }
             }
 
-            if (settings.CoolantControlEnabled && settings.CoolantStopEnabled)
+            if (coolant.CoolantControlEnabled && coolant.CoolantStopEnabled)
                 builder.CoolantOff();
 
-            if (settings.AddEndPosition)
+            if (workCoordinate.AddEndPosition)
             {
-                builder.SetEndPosition(settings.EndX, settings.EndY, settings.EndZ);
+                builder.SetEndPosition(workCoordinate.EndX, workCoordinate.EndY, workCoordinate.EndZ);
             }
 
-            if (settings.SpindleControlEnabled && settings.SpindleStopEnabled)
+            if (spindle.SpindleControlEnabled && spindle.SpindleStopEnabled)
                 builder.SpindleOff();
 
             builder.EndProgram();

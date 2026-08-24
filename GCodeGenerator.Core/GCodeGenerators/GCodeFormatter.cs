@@ -22,22 +22,24 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         public static List<string> Format(GCodeProgram program, GCodeSettings settings)
         {
+            // Пункт 8.1 плана: форматирование читает только группу Format.
+            var format = settings.Format;
             var lines = new List<string>(program.Blocks.Count);
-            int lineNumber = settings.UseLineNumbers ? settings.LineNumberStart : 0;
+            int lineNumber = format.UseLineNumbers ? format.LineNumberStart : 0;
 
             foreach (var block in program.Blocks)
             {
                 // Legacy behavior: with comments disabled, comment lines are
                 // not emitted at all and do not consume a line number.
-                if (block.Words.Count == 0 && !settings.UseComments)
+                if (block.Words.Count == 0 && !format.UseComments)
                     continue;
 
-                var text = RenderBlock(block, settings);
-                if (settings.UseLineNumbers)
+                var text = RenderBlock(block, format);
+                if (format.UseLineNumbers)
                 {
                     block.LineNumber = lineNumber;
                     lines.Add($"N{lineNumber} {text}");
-                    lineNumber += settings.LineNumberStep;
+                    lineNumber += format.LineNumberStep;
                 }
                 else
                 {
@@ -51,7 +53,7 @@ namespace GCodeGenerator.GCodeGenerators
             return lines;
         }
 
-        private static string RenderBlock(GCodeBlock block, GCodeSettings settings)
+        private static string RenderBlock(GCodeBlock block, GCodeFormatSettings format)
         {
             if (block.Words.Count == 0)
                 return $"({block.Comment})";
@@ -61,7 +63,7 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 if (sb.Length > 0)
                     sb.Append(' ');
-                sb.Append(RenderWord(word, settings));
+                sb.Append(RenderWord(word, format));
             }
 
             // Inline comments are not produced by the generators today;
@@ -71,7 +73,7 @@ namespace GCodeGenerator.GCodeGenerators
             return sb.ToString();
         }
 
-        private static string RenderWord(GCodeWord word, GCodeSettings settings)
+        private static string RenderWord(GCodeWord word, GCodeFormatSettings format)
         {
             // Raw words (G92, M30) are rendered verbatim — legacy behavior
             // never padded them.
@@ -80,7 +82,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             if (word.Letter == 'G' || word.Letter == 'M')
             {
-                if (!settings.UsePaddedGCodes)
+                if (!format.UsePaddedGCodes)
                     return $"{word.Letter}{(int)word.Number}";
                 return $"{word.Letter}{(int)word.Number:00}";
             }

@@ -80,7 +80,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             // После входа мы находимся на начальной точке контура
             // Генерируем путь по контуру
-            if (settings.AllowArcs && geometry.SupportsArcs)
+            if (settings.Format.AllowArcs && geometry.SupportsArcs)
             {
                 // Используем дуги, если поддерживаются
                 var arcSegments = geometry.GetArcSegments(toolOffset).ToList();

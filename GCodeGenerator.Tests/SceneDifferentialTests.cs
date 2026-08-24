@@ -353,8 +353,8 @@ namespace GCodeGenerator.Tests
 
             var program = new GCodeProgram();
             new UnifiedPocketGenerator().Generate(op, new ProgramBuilder(program),
-                new GCodeSettings { UseComments = true });
-            GCodeFormatter.Format(program, new GCodeSettings { UseLineNumbers = false, UseComments = true });
+                new GCodeSettings { Format = new GCodeFormatSettings { UseComments = true } });
+            GCodeFormatter.Format(program, new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false, UseComments = true } });
             return program;
         }
     }

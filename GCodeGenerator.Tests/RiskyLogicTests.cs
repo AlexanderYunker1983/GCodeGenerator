@@ -65,7 +65,7 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         private static List<string> RunPocket(OperationBase op, bool comments = true)
-            => RunGenerator(new UnifiedPocketGenerator(), op, new GCodeSettings { UseComments = comments });
+            => RunGenerator(new UnifiedPocketGenerator(), op, new GCodeSettings { Format = new GCodeFormatSettings { UseComments = comments } });
 
         private static List<string> RunProfile(OperationBase op, GCodeSettings settings)
             => RunGenerator(new UnifiedProfileGenerator(), op, settings);
@@ -78,9 +78,12 @@ namespace GCodeGenerator.Tests
             // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
             var renderSettings = new GCodeSettings
             {
-                UseLineNumbers = false,
-                UseComments = settings.UseComments,
-                UsePaddedGCodes = settings.UsePaddedGCodes,
+                Format = new GCodeFormatSettings
+                {
+                    UseLineNumbers = false,
+                    UseComments = settings.Format.UseComments,
+                    UsePaddedGCodes = settings.Format.UsePaddedGCodes,
+                },
             };
             GCodeFormatter.Format(program, renderSettings);
             return program.Lines.ToList();
@@ -536,7 +539,7 @@ namespace GCodeGenerator.Tests
                 CenterX = 0, CenterY = 0, Radius = 10,
                 ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 0.5
             };
-            var lines = RunProfile(op, new GCodeSettings { AllowArcs = false, UseComments = false });
+            var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = false, UseComments = false } });
             Assert.AreEqual(254, CountG1XY(lines), "2 прохода × 127 точек");
             Assert.AreEqual(0, CountArcs(lines, "G2"), "Дуг G2 быть не должно");
             Assert.AreEqual(0, CountArcs(lines, "G3"), "Дуг G3 быть не должно");
@@ -555,7 +558,7 @@ namespace GCodeGenerator.Tests
                 CenterX = 0, CenterY = 0, Radius = 10,
                 ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 2
             };
-            var lines = RunProfile(op, new GCodeSettings { AllowArcs = false, UseComments = false });
+            var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = false, UseComments = false } });
             Assert.AreEqual(66, CountG1XY(lines), "2 прохода × 33 точки");
             Assert.AreEqual(0, CountArcs(lines, "G2"));
             Assert.AreEqual(0, CountArcs(lines, "G3"));
@@ -577,7 +580,7 @@ namespace GCodeGenerator.Tests
                 CenterX = 0, CenterY = 0, Radius = 10,
                 ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 0.5
             };
-            var lines = RunProfile(op, new GCodeSettings { AllowArcs = true, UseComments = false });
+            var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = true, UseComments = false } });
 
             Assert.AreEqual(4, CountArcs(lines, "G2"), "4 дуги G2 (2 полукруга × 2 прохода)");
             Assert.AreEqual(0, CountArcs(lines, "G3"));

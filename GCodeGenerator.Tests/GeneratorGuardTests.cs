@@ -43,9 +43,12 @@ namespace GCodeGenerator.Tests
             // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
             var renderSettings = new GCodeSettings
             {
-                UseLineNumbers = false,
-                UseComments = settings.UseComments,
-                UsePaddedGCodes = settings.UsePaddedGCodes,
+                Format = new GCodeFormatSettings
+                {
+                    UseLineNumbers = false,
+                    UseComments = settings.Format.UseComments,
+                    UsePaddedGCodes = settings.Format.UsePaddedGCodes,
+                },
             };
             GCodeFormatter.Format(program, renderSettings);
             return program.Lines.ToList();

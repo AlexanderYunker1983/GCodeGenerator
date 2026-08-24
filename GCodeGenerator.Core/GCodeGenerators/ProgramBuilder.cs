@@ -29,7 +29,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Adds a comment line "(text)". Visibility is controlled by
-        /// <c>GCodeSettings.UseComments</c> at format time.
+        /// <c>GCodeFormatSettings.UseComments</c> at format time.
         /// </summary>
         public void Comment(string text)
         {

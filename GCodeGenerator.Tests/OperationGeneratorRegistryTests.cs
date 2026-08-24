@@ -125,7 +125,7 @@ namespace GCodeGenerator.Tests
 
             var program = generator.Generate(
                 new System.Collections.Generic.List<OperationBase> { operation },
-                new GCodeSettings { UseLineNumbers = false });
+                new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false } });
 
             Assert.IsTrue(program.Lines.Count > 0);
             Assert.AreEqual("M30", program.Lines[program.Lines.Count - 1]);

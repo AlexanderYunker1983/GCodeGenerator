@@ -34,7 +34,7 @@ namespace GCodeGenerator.Tests
         public void GWords_Padding()
         {
             var plain = new GCodeSettings();
-            var padded = new GCodeSettings { UsePaddedGCodes = true };
+            var padded = new GCodeSettings { Format = new GCodeFormatSettings { UsePaddedGCodes = true } };
 
             Assert.AreEqual("G0", Render(new GCodeBlock(new[] { GCodeWord.G(0) }), plain));
             Assert.AreEqual("G00", Render(new GCodeBlock(new[] { GCodeWord.G(0) }), padded));
@@ -48,7 +48,7 @@ namespace GCodeGenerator.Tests
         public void MWords_Padding()
         {
             var plain = new GCodeSettings();
-            var padded = new GCodeSettings { UsePaddedGCodes = true };
+            var padded = new GCodeSettings { Format = new GCodeFormatSettings { UsePaddedGCodes = true } };
 
             Assert.AreEqual("M3", Render(new GCodeBlock(new[] { GCodeWord.M(3) }), plain));
             Assert.AreEqual("M03", Render(new GCodeBlock(new[] { GCodeWord.M(3) }), padded));
@@ -59,7 +59,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void RawWords_NeverPadded()
         {
-            var padded = new GCodeSettings { UsePaddedGCodes = true };
+            var padded = new GCodeSettings { Format = new GCodeFormatSettings { UsePaddedGCodes = true } };
             Assert.AreEqual("G92", Render(new GCodeBlock(new[] { GCodeWord.Raw("G92") }), padded));
             Assert.AreEqual("M30", Render(new GCodeBlock(new[] { GCodeWord.Raw("M30") }), padded));
         }
@@ -124,7 +124,7 @@ namespace GCodeGenerator.Tests
 
         private static string Render(GCodeBlock block, GCodeSettings settings)
         {
-            settings.UseLineNumbers = false; // тесты рендеринга слов без номеров строк
+            settings.Format.UseLineNumbers = false; // тесты рендеринга слов без номеров строк
             var program = Program(block);
             return GCodeFormatter.Format(program, settings)[0];
         }
@@ -149,7 +149,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void LineNumbers_Disabled()
         {
-            var s = new GCodeSettings { UseLineNumbers = false };
+            var s = new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false } };
             var program = Program(Comment("hdr"), Move(GCodeWord.G(54)));
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(new[] { "(hdr)", "G54" }, lines);
@@ -159,7 +159,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void LineNumbers_CustomStartStep()
         {
-            var s = new GCodeSettings { LineNumberStart = 5, LineNumberStep = 5 };
+            var s = new GCodeSettings { Format = new GCodeFormatSettings { LineNumberStart = 5, LineNumberStep = 5 } };
             var program = Program(Move(GCodeWord.G(54)), Move(GCodeWord.Raw("M30")));
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(new[] { "N5 G54", "N10 M30" }, lines);
@@ -170,7 +170,7 @@ namespace GCodeGenerator.Tests
         {
             // Legacy behavior: comment lines are not emitted and do not
             // consume line numbers.
-            var s = new GCodeSettings { UseComments = false };
+            var s = new GCodeSettings { Format = new GCodeFormatSettings { UseComments = false } };
             var program = Program(Comment("hdr"), Move(GCodeWord.G(54)), Comment("mid"), Move(GCodeWord.Raw("M30")));
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(new[] { "N10 G54", "N20 M30" }, lines);

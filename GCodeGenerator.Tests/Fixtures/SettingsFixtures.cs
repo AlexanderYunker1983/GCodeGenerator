@@ -18,7 +18,7 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings NoLineNumbers()
         {
             var s = Default();
-            s.UseLineNumbers = false;
+            s.Format.UseLineNumbers = false;
             return s;
         }
 
@@ -26,7 +26,7 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings PaddedGCodes()
         {
             var s = Default();
-            s.UsePaddedGCodes = true;
+            s.Format.UsePaddedGCodes = true;
             return s;
         }
 
@@ -34,7 +34,7 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings ArcsOff()
         {
             var s = Default();
-            s.AllowArcs = false;
+            s.Format.AllowArcs = false;
             return s;
         }
 
@@ -42,8 +42,8 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings SpindleCoolantOff()
         {
             var s = Default();
-            s.SpindleControlEnabled = false;
-            s.CoolantControlEnabled = false;
+            s.Spindle.SpindleControlEnabled = false;
+            s.Coolant.CoolantControlEnabled = false;
             return s;
         }
 
@@ -51,8 +51,8 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings WcsG55()
         {
             var s = Default();
-            s.SetWorkCoordinateSystem = true;
-            s.WorkCoordinateSystem = "G55";
+            s.WorkCoordinate.SetWorkCoordinateSystem = true;
+            s.WorkCoordinate.WorkCoordinateSystem = "G55";
             return s;
         }
 
@@ -60,14 +60,14 @@ namespace GCodeGenerator.Tests.Fixtures
         public static GCodeSettings G92StartEnd()
         {
             var s = Default();
-            s.AddStartPosition = true;
-            s.StartX = 0.0;
-            s.StartY = 0.0;
-            s.StartZ = 5.0;
-            s.AddEndPosition = true;
-            s.EndX = 100.0;
-            s.EndY = 0.0;
-            s.EndZ = 5.0;
+            s.WorkCoordinate.AddStartPosition = true;
+            s.WorkCoordinate.StartX = 0.0;
+            s.WorkCoordinate.StartY = 0.0;
+            s.WorkCoordinate.StartZ = 5.0;
+            s.WorkCoordinate.AddEndPosition = true;
+            s.WorkCoordinate.EndX = 100.0;
+            s.WorkCoordinate.EndY = 0.0;
+            s.WorkCoordinate.EndZ = 5.0;
             return s;
         }
     }
