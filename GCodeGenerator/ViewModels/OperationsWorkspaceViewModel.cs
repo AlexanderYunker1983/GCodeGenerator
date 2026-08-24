@@ -6,6 +6,7 @@ using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.Pocket;
 using GCodeGenerator.ViewModels.PocketMill;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
@@ -20,6 +21,7 @@ namespace GCodeGenerator.ViewModels
     public sealed class OperationsWorkspaceViewModel : ViewModelBase
     {
         private readonly IOperationEditorFactory _operationEditorFactory;
+        private readonly HashSet<OperationBase> _attachedOperations = new HashSet<OperationBase>();
         private OperationBase _selectedOperation;
 
         public OperationsWorkspaceViewModel(
@@ -103,23 +105,38 @@ namespace GCodeGenerator.ViewModels
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            if (e?.Action == NotifyCollectionChangedAction.Reset)
+            {
+                foreach (var operation in new List<OperationBase>(_attachedOperations))
+                    DetachOperation(operation);
+
+                if (SelectedOperation != null && !AllOperations.Contains(SelectedOperation))
+                    SelectedOperation = null;
+
+                foreach (var operation in AllOperations)
+                    AttachOperation(operation);
+            }
             // Move reports the same item in both OldItems and NewItems. Its
             // subscription and selection must remain intact.
-            if (e?.Action != NotifyCollectionChangedAction.Move && e?.OldItems != null)
+            else if (e?.Action != NotifyCollectionChangedAction.Move)
             {
-                foreach (OperationBase operation in e.OldItems)
+                if (e?.OldItems != null)
                 {
-                    DetachOperation(operation);
-                    if (ReferenceEquals(SelectedOperation, operation) &&
-                        !AllOperations.Contains(operation))
-                        SelectedOperation = null;
+                    foreach (OperationBase operation in e.OldItems)
+                    {
+                        if (!AllOperations.Contains(operation))
+                            DetachOperation(operation);
+                        if (ReferenceEquals(SelectedOperation, operation) &&
+                            !AllOperations.Contains(operation))
+                            SelectedOperation = null;
+                    }
                 }
-            }
 
-            if (e?.Action != NotifyCollectionChangedAction.Move && e?.NewItems != null)
-            {
-                foreach (OperationBase operation in e.NewItems)
-                    AttachOperation(operation);
+                if (e?.NewItems != null)
+                {
+                    foreach (OperationBase operation in e.NewItems)
+                        AttachOperation(operation);
+                }
             }
 
             UpdateOperationCommandsCanExecute();
@@ -130,14 +147,15 @@ namespace GCodeGenerator.ViewModels
         private void AttachOperation(OperationBase operation)
         {
             if (operation == null) return;
-            operation.PropertyChanged -= OnOperationPropertyChanged;
-            operation.PropertyChanged += OnOperationPropertyChanged;
+            if (_attachedOperations.Add(operation))
+                operation.PropertyChanged += OnOperationPropertyChanged;
         }
 
         private void DetachOperation(OperationBase operation)
         {
             if (operation == null) return;
-            operation.PropertyChanged -= OnOperationPropertyChanged;
+            if (_attachedOperations.Remove(operation))
+                operation.PropertyChanged -= OnOperationPropertyChanged;
         }
 
         private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)

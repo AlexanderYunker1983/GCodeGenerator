@@ -61,5 +61,29 @@ namespace GCodeGenerator.Tests
             Assert.AreSame(first, workspace.AllOperations[0]);
             Assert.IsFalse(workspace.RemoveOperationCommand.CanExecute(null));
         }
+
+        [TestMethod]
+        public void Clear_DetachesRemovedOperationsAndClearsSelection()
+        {
+            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService();
+            var workspace = new OperationsWorkspaceViewModel(
+                null,
+                new OperationEditorFactory(dialogs),
+                new StubThemeService());
+            var operation = new ProfileCircleOperation();
+            workspace.AllOperations.Add(operation);
+            workspace.SelectedOperation = operation;
+            var contentChanges = 0;
+            workspace.ContentChanged += (_, _) => contentChanges++;
+
+            workspace.AllOperations.Clear();
+
+            Assert.IsNull(workspace.SelectedOperation);
+            Assert.AreEqual(1, contentChanges);
+
+            operation.Name = "Changed after removal";
+            Assert.AreEqual(1, contentChanges,
+                "Removed operations must no longer notify the workspace");
+        }
     }
 }
