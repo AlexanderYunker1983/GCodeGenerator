@@ -99,7 +99,7 @@ namespace GCodeGenerator.Tests
             var ygcPath = Path.Combine(ReferenceOutputDirectory, "reference_project.ygc");
             Assert.IsTrue(File.Exists(ygcPath), "Нет эталонного проекта reference_project.ygc");
 
-            var operations = Service.Load(ygcPath);
+            var operations = Service.Load(ygcPath).Operations;
             var program = Generator.Generate(operations, new GCodeSettings());
 
             if (program.Blocks.Count != program.Lines.Count || program.Blocks.Count == 0)

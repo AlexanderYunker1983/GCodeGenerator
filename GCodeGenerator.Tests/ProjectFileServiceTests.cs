@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using GCodeGenerator.Tests.Fixtures;
@@ -106,8 +107,8 @@ namespace GCodeGenerator.Tests
             var filePath = Path.Combine(Path.GetTempPath(), "gcg_roundtrip_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(filePath, original);
-                var loaded = Service.Load(filePath);
+                Service.Save(filePath, original, null);
+                var loaded = Service.Load(filePath).Operations;
 
                 Assert.AreEqual(original.Count, loaded.Count, "Число операций");
 
@@ -135,14 +136,14 @@ namespace GCodeGenerator.Tests
         {
             var original = BuildAllOperations();
 
-            var json = Service.Serialize(original);
-            var inMemory = Service.Deserialize(json);
+            var json = Service.Serialize(original, null);
+            var inMemory = Service.Deserialize(json).Operations;
 
             var filePath = Path.Combine(Path.GetTempPath(), "gcg_roundtrip_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(filePath, original);
-                var fromFile = Service.Load(filePath);
+                Service.Save(filePath, original, null);
+                var fromFile = Service.Load(filePath).Operations;
 
                 Assert.AreEqual(inMemory.Count, fromFile.Count, "Число операций");
                 for (int i = 0; i < inMemory.Count; i++)
@@ -166,7 +167,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void FileFormat_V2Structure()
         {
-            var json = Service.Serialize(BuildAllOperations());
+            var json = Service.Serialize(BuildAllOperations(), null);
 
             Assert.IsTrue(json.StartsWith("{\"version\":2,\"operations\":[", StringComparison.Ordinal),
                 "Файл должен начинаться с {\"version\":2,\"operations\":[");
@@ -198,7 +199,7 @@ namespace GCodeGenerator.Tests
                 "{\"type\":\"ProfileCircle\"}" +                        // нет data → пропуск
                 "]}";
 
-            var loaded = Service.Deserialize(json);
+            var loaded = Service.Deserialize(json).Operations;
             Assert.AreEqual(1, loaded.Count, "Должна пройти только валидная запись");
             Assert.AreEqual(typeof(ProfileCircleOperation), loaded[0].GetType());
         }
@@ -230,11 +231,11 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_NoOperationsSection_ReturnsNull()
         {
-            Assert.IsNull(Service.Deserialize("{}"), "пустой объект");
-            Assert.IsNull(Service.Deserialize("{\"version\":2}"), "v2 без operations");
-            Assert.IsNull(Service.Deserialize("{\"version\":2,\"operations\":null}"), "v2 operations=null");
-            Assert.IsNull(Service.Deserialize("{\"Operations\":null}"), "легаси Operations=null");
-            Assert.IsNull(Service.Deserialize("{\"Foo\":\"bar\"}"), "чужой файл без секции операций");
+            Assert.IsNull(Service.Deserialize("{}").Operations, "пустой объект");
+            Assert.IsNull(Service.Deserialize("{\"version\":2}").Operations, "v2 без operations");
+            Assert.IsNull(Service.Deserialize("{\"version\":2,\"operations\":null}").Operations, "v2 operations=null");
+            Assert.IsNull(Service.Deserialize("{\"Operations\":null}").Operations, "легаси Operations=null");
+            Assert.IsNull(Service.Deserialize("{\"Foo\":\"bar\"}").Operations, "чужой файл без секции операций");
         }
 
         /// <summary>
@@ -243,11 +244,11 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_EmptyOperations_ReturnsEmptyList()
         {
-            var v2 = Service.Deserialize("{\"version\":2,\"operations\":[]}");
+            var v2 = Service.Deserialize("{\"version\":2,\"operations\":[]}").Operations;
             Assert.IsNotNull(v2, "v2 пустой массив");
             Assert.AreEqual(0, v2.Count);
 
-            var legacy = Service.Deserialize("{\"Operations\":[]}");
+            var legacy = Service.Deserialize("{\"Operations\":[]}").Operations;
             Assert.IsNotNull(legacy, "легаси пустой массив");
             Assert.AreEqual(0, legacy.Count);
         }
@@ -283,7 +284,7 @@ namespace GCodeGenerator.Tests
             var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
             Assert.IsTrue(File.Exists(path), "Нет эталонного легаси-файла Reference/legacy_project_v1.ygc");
 
-            var loaded = Service.Load(path);
+            var loaded = Service.Load(path).Operations;
             Assert.IsNotNull(loaded, "Легаси-файл должен содержать секцию операций");
             Assert.AreEqual(19, loaded.Count, "Число операций в легаси-файле");
 
@@ -310,7 +311,7 @@ namespace GCodeGenerator.Tests
         public void Legacy_FieldsMatchInMemoryReference()
         {
             var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(path);
+            var loaded = Service.Load(path).Operations;
             var expected = ReferenceOperations.Build();
 
             Assert.AreEqual(expected.Count, loaded.Count, "Число операций");
@@ -334,7 +335,7 @@ namespace GCodeGenerator.Tests
                 "\"Data\":\"{\\\"CenterX\\\":20,\\\"CenterY\\\":20,\\\"Radius\\\":10}\"}" +
                 "]}";
 
-            var loaded = Service.Deserialize(json);
+            var loaded = Service.Deserialize(json).Operations;
             Assert.AreEqual(1, loaded.Count, "Операция с версией сборки должна загрузиться");
             Assert.AreEqual(typeof(ProfileCircleOperation), loaded[0].GetType());
 
@@ -352,20 +353,20 @@ namespace GCodeGenerator.Tests
         public void Save_MigratesLegacyToV2()
         {
             var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(legacyPath);
+            var loaded = Service.Load(legacyPath).Operations;
             Assert.IsNotNull(loaded);
             Assert.AreEqual(19, loaded.Count);
 
             var v2Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(v2Path, loaded);
+                Service.Save(v2Path, loaded, null);
                 var json = File.ReadAllText(v2Path, Encoding.UTF8);
                 Assert.IsTrue(json.StartsWith("{\"version\":2,\"operations\":[", StringComparison.Ordinal),
                     "Сохранённый файл должен быть в формате v2");
                 Assert.IsFalse(json.Contains("\"Operations\""), "Не должно остаться легаси-секции Operations");
 
-                var reloaded = Service.Load(v2Path);
+                var reloaded = Service.Load(v2Path).Operations;
                 Assert.AreEqual(19, reloaded.Count, "Число операций после миграции");
                 for (int i = 0; i < loaded.Count; i++)
                     CompareOperation($"операция[{i}]", loaded[i], reloaded[i]);
@@ -375,6 +376,175 @@ namespace GCodeGenerator.Tests
                 if (File.Exists(v2Path))
                     File.Delete(v2Path);
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Секции spindle/coolant (пункт 8.2 плана, D4)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Сохранение с настройками: в файл пишутся секции "spindle" и "coolant"
+        /// с фактическими значениями (PascalCase, как payload операций).
+        /// </summary>
+        [TestMethod]
+        public void Save_WithSettings_WritesSpindleAndCoolantSections()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleSpeedRpm = 8000;
+            settings.Spindle.SpindleStartCommand = "M4";
+            settings.Spindle.SpindleDelaySeconds = 3.5;
+            settings.Coolant.CoolantStartEnabled = false;
+
+            var json = Service.Serialize(new List<OperationBase> { OperationFixtures.ProfileCircle() }, settings);
+
+            Assert.IsTrue(json.Contains("\"spindle\":{\"SpindleControlEnabled\":true,"),
+                "Секция spindle с payload'ом PascalCase");
+            Assert.IsTrue(json.Contains("\"SpindleSpeedRpm\":8000"), "Значение шпинделя из настроек");
+            Assert.IsTrue(json.Contains("\"SpindleStartCommand\":\"M4\""), "Команда шпинделя из настроек");
+            Assert.IsTrue(json.Contains("\"SpindleDelaySeconds\":3.5"), "Задержка шпинделя (double)");
+            Assert.IsTrue(json.Contains("\"coolant\":{\"CoolantControlEnabled\":true,"),
+                "Секция coolant с payload'ом PascalCase");
+            Assert.IsTrue(json.Contains("\"CoolantStartEnabled\":false"), "Значение СОЖ из настроек");
+        }
+
+        /// <summary>
+        /// Сохранение без настроек (settings = null) — секции не пишутся
+        /// (совместимость с вызывающими, у которых нет настроек сессии).
+        /// </summary>
+        [TestMethod]
+        public void Save_NullSettings_NoSectionsWritten()
+        {
+            var json = Service.Serialize(new List<OperationBase> { OperationFixtures.ProfileCircle() }, null);
+
+            Assert.IsFalse(json.Contains("\"spindle\""), "Секции spindle быть не должно");
+            Assert.IsFalse(json.Contains("\"coolant\""), "Секции coolant быть не должно");
+        }
+
+        /// <summary>
+        /// Round-trip секций: сохранить проект с кастомными spindle/coolant →
+        /// открыть → значения совпадают (переоткрытие идемпотентно).
+        /// </summary>
+        [TestMethod]
+        public void RoundTrip_SpindleCoolantSections_PreservesValues()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = false;
+            settings.Spindle.SpindleSpeedEnabled = false;
+            settings.Spindle.SpindleSpeedRpm = 4500;
+            settings.Spindle.SpindleStartEnabled = false;
+            settings.Spindle.SpindleStartCommand = "M4";
+            settings.Spindle.SpindleStopEnabled = false;
+            settings.Spindle.SpindleDelayEnabled = true;
+            settings.Spindle.SpindleDelaySeconds = 1.25;
+            settings.Coolant.CoolantControlEnabled = false;
+            settings.Coolant.CoolantStartEnabled = false;
+            settings.Coolant.CoolantStopEnabled = true;
+
+            var ops = new List<OperationBase> { OperationFixtures.ProfileCircle() };
+            var filePath = Path.Combine(Path.GetTempPath(), "gcg_sections_" + Guid.NewGuid().ToString("N") + ".ygc");
+            try
+            {
+                Service.Save(filePath, ops, settings);
+                var loaded = Service.Load(filePath);
+
+                Assert.IsNotNull(loaded.Spindle, "Секция spindle должна прочитаться");
+                Assert.IsNotNull(loaded.Coolant, "Секция coolant должна прочитаться");
+                Assert.AreEqual(settings.Spindle.SpindleControlEnabled, loaded.Spindle.SpindleControlEnabled);
+                Assert.AreEqual(settings.Spindle.SpindleSpeedEnabled, loaded.Spindle.SpindleSpeedEnabled);
+                Assert.AreEqual(settings.Spindle.SpindleSpeedRpm, loaded.Spindle.SpindleSpeedRpm);
+                Assert.AreEqual(settings.Spindle.SpindleStartEnabled, loaded.Spindle.SpindleStartEnabled);
+                Assert.AreEqual(settings.Spindle.SpindleStartCommand, loaded.Spindle.SpindleStartCommand);
+                Assert.AreEqual(settings.Spindle.SpindleStopEnabled, loaded.Spindle.SpindleStopEnabled);
+                Assert.AreEqual(settings.Spindle.SpindleDelayEnabled, loaded.Spindle.SpindleDelayEnabled);
+                Assert.AreEqual(settings.Spindle.SpindleDelaySeconds, loaded.Spindle.SpindleDelaySeconds, 1e-9);
+                Assert.AreEqual(settings.Coolant.CoolantControlEnabled, loaded.Coolant.CoolantControlEnabled);
+                Assert.AreEqual(settings.Coolant.CoolantStartEnabled, loaded.Coolant.CoolantStartEnabled);
+                Assert.AreEqual(settings.Coolant.CoolantStopEnabled, loaded.Coolant.CoolantStopEnabled);
+
+                // Переоткрытие (идемпотентность): сохранить прочитанные секции → те же значения.
+                var reloaded = Service.Load(filePath);
+                Assert.AreEqual(loaded.Spindle.SpindleSpeedRpm, reloaded.Spindle.SpindleSpeedRpm);
+                Assert.AreEqual(loaded.Coolant.CoolantStartEnabled, reloaded.Coolant.CoolantStartEnabled);
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            }
+        }
+
+        /// <summary>
+        /// Старый файл без секций (легаси v1): операции читаются, секции — null
+        /// (в UI — сохраняются глобальные настройки, п. 8.2).
+        /// </summary>
+        [TestMethod]
+        public void Load_OldFileWithoutSections_SectionsAreNull()
+        {
+            var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
+            var loaded = Service.Load(path);
+
+            Assert.IsNotNull(loaded.Operations, "Операции из старого файла читаются");
+            Assert.AreEqual(19, loaded.Operations.Count);
+            Assert.IsNull(loaded.Spindle, "Секции spindle в старом файле нет");
+            Assert.IsNull(loaded.Coolant, "Секции coolant в старом файле нет");
+        }
+
+        /// <summary>
+        /// v2-файл старой схемы (без секций, как до п. 8.2) тоже открывается:
+        /// операции читаются, секции — null.
+        /// </summary>
+        [TestMethod]
+        public void Load_V2FileWithoutSections_SectionsAreNull()
+        {
+            var json = "{\"version\":2,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{\"CenterX\":1}}]}";
+            var loaded = Service.Deserialize(json);
+
+            Assert.AreEqual(1, loaded.Operations.Count);
+            Assert.IsNull(loaded.Spindle);
+            Assert.IsNull(loaded.Coolant);
+        }
+
+        /// <summary>
+        /// Секция не-объект (42) — исключение (как для данных операций):
+        /// обработчик ошибки — в MainViewModel.OpenProject.
+        /// </summary>
+        [TestMethod]
+        public void Deserialize_NonObjectSpindleSection_Throws()
+        {
+            var json = "{\"version\":2,\"operations\":[],\"spindle\":42}";
+            try
+            {
+                Service.Deserialize(json);
+                Assert.Fail("Ожидалось исключение при не-объектной секции spindle");
+            }
+            catch (JsonException)
+            {
+                // Ожидаемо
+            }
+
+            var json2 = "{\"version\":2,\"operations\":[],\"coolant\":\"x\"}";
+            try
+            {
+                Service.Deserialize(json2);
+                Assert.Fail("Ожидалось исключение при не-объектной секции coolant");
+            }
+            catch (JsonException)
+            {
+                // Ожидаемо
+            }
+        }
+
+        /// <summary>
+        /// Секция с null-значением трактуется как отсутствующая (null → глобальные).
+        /// </summary>
+        [TestMethod]
+        public void Deserialize_NullSpindleSection_ReturnsNull()
+        {
+            var json = "{\"version\":2,\"operations\":[],\"spindle\":null,\"coolant\":null}";
+            var loaded = Service.Deserialize(json);
+
+            Assert.IsNull(loaded.Spindle);
+            Assert.IsNull(loaded.Coolant);
         }
 
         // ------------------------------------------------------------------

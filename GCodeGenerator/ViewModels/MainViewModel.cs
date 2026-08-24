@@ -21,6 +21,7 @@ namespace GCodeGenerator.ViewModels
     {
         private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings;
+        private readonly ISettingsStore _settingsStore;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IOperationEditorFactory _operationEditorFactory;
@@ -40,7 +41,8 @@ namespace GCodeGenerator.ViewModels
             // Пункт 7.5 плана: версия, настройки и тема — через IoC (ранее статика
             // PlatformVariables/GCodeSettingsStore/ThemeHelper).
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
-            _settings = (settingsStore ?? throw new ArgumentNullException(nameof(settingsStore))).Current;
+            _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
+            _settings = _settingsStore.Current;
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
@@ -400,6 +402,10 @@ namespace GCodeGenerator.ViewModels
             GCodePreview = string.Empty;
             _generatedProgram = null;
 
+            // Пункт 8.2 (решение исполнителя): новый проект стартует с глобальных
+            // настроек шпинделя/СОЖ, не наследуя их от ранее открытого проекта.
+            _settingsStore.RestoreGlobalSpindleAndCoolant();
+
             ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
@@ -422,7 +428,8 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                _projectFileService.Save(fileName, AllOperations);
+                // Пункт 8.2 (D4): секции spindle/coolant пишутся в файл.
+                _projectFileService.Save(fileName, AllOperations, _settings);
             }
             catch (Exception ex)
             {
@@ -445,14 +452,15 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                var operations = _projectFileService.Load(fileName);
-                if (operations == null)
+                var data = _projectFileService.Load(fileName);
+                if (data?.Operations == null)
                 {
                     ShowInvalidProjectMessage(title);
                     return;
                 }
 
-                LoadOperationsFromProject(operations);
+                ApplyProjectSettings(data);
+                LoadOperationsFromProject(data.Operations);
             }
             catch (Exception ex)
             {
@@ -473,6 +481,19 @@ namespace GCodeGenerator.ViewModels
             var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
 
             return _dialogService.ShowConfirm(message, title);
+        }
+
+        /// <summary>
+        /// Пункт 8.2 (D4): секции spindle/coolant проекта подставляются в сессию
+        /// (ISettingsStore.Current); секции нет (старый .ygc) → глобальные настройки.
+        /// </summary>
+        private void ApplyProjectSettings(ProjectFileData data)
+        {
+            _settingsStore.RestoreGlobalSpindleAndCoolant();
+            if (data.Spindle != null)
+                _settings.Spindle = data.Spindle;
+            if (data.Coolant != null)
+                _settings.Coolant = data.Coolant;
         }
 
         private void LoadOperationsFromProject(List<OperationBase> operations)

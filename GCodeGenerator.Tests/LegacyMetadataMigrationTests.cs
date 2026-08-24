@@ -53,7 +53,7 @@ namespace GCodeGenerator.Tests
         public void LegacyV1_DrillOps_MigratedToTypedProperties()
         {
             var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(path);
+            var loaded = Service.Load(path).Operations;
             Assert.IsNotNull(loaded, "Легаси-файл должен открыться");
             Assert.AreEqual(19, loaded.Count);
 
@@ -130,13 +130,13 @@ namespace GCodeGenerator.Tests
         public void LegacyV1_OpenSave_MetadataEmpty_ValuesPreserved()
         {
             var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(legacyPath);
+            var loaded = Service.Load(legacyPath).Operations;
             Assert.IsNotNull(loaded);
 
             var v2Path = Path.Combine(Path.GetTempPath(), "gcg_meta_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(v2Path, loaded);
+                Service.Save(v2Path, loaded, null);
 
                 // В сохранённом JSON Metadata всех операций — пустой объект.
                 var json = File.ReadAllText(v2Path, Encoding.UTF8);
@@ -157,7 +157,7 @@ namespace GCodeGenerator.Tests
                 }
 
                 // Значения переживают цикл open → save → open.
-                var reloaded = Service.Load(v2Path);
+                var reloaded = Service.Load(v2Path).Operations;
                 Assert.AreEqual(19, reloaded.Count);
                 var expected = ReferenceOperations.Build();
                 for (int i = 0; i < 19; i++)
@@ -329,7 +329,7 @@ namespace GCodeGenerator.Tests
                 + "\"CenterX\":30,\"CenterY\":40,\"Radius\":50,\"TotalDepth\":6,"
                 + "\"Metadata\":{\"Radius\":999,\"ToolPathMode\":1}}}]}";
 
-            var loaded = Service.Deserialize(json);
+            var loaded = Service.Deserialize(json).Operations;
             Assert.AreEqual(1, loaded.Count);
             var op = (ProfileCircleOperation)loaded[0];
 
@@ -345,11 +345,11 @@ namespace GCodeGenerator.Tests
 #pragma warning restore CS0618
 
             // При сохранении Metadata не пишется.
-            var saved = Service.Serialize(loaded);
+            var saved = Service.Serialize(loaded, null);
             Assert.IsFalse(saved.Contains("\"Metadata\""), "в сохранённом JSON нет поля Metadata");
 
             // Повторная загрузка — те же значения.
-            var reloaded = (ProfileCircleOperation)Service.Deserialize(saved)[0];
+            var reloaded = (ProfileCircleOperation)Service.Deserialize(saved).Operations[0];
             Assert.AreEqual(50.0, reloaded.Radius, 1e-9);
         }
 
@@ -551,7 +551,7 @@ namespace GCodeGenerator.Tests
                 + "\"FinishAllowance\":0.2,\"FinishingMode\":0,"
                 + "\"Metadata\":{\"Radius\":999,\"ToolDiameter\":6,\"Decimals\":1}}}]}";
 
-            var loaded = Service.Deserialize(json);
+            var loaded = Service.Deserialize(json).Operations;
             Assert.AreEqual(1, loaded.Count);
             var op = (PocketCircleOperation)loaded[0];
 
@@ -565,11 +565,11 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(PocketStrategy.Concentric, op.PocketStrategy);
 
             // При сохранении Metadata — пустой объект (ключи мигрированы).
-            var saved = Service.Serialize(loaded);
+            var saved = Service.Serialize(loaded, null);
             Assert.IsTrue(saved.Contains("\"Metadata\":{}"), "Metadata в сохранённом JSON — пустой объект");
 
             // Повторная загрузка — те же значения.
-            var reloaded = (PocketCircleOperation)Service.Deserialize(saved)[0];
+            var reloaded = (PocketCircleOperation)Service.Deserialize(saved).Operations[0];
             Assert.AreEqual(999.0, reloaded.Radius, 1e-9);
             Assert.AreEqual(6.0, reloaded.ToolDiameter, 1e-9);
             Assert.AreEqual(1, reloaded.Decimals);
@@ -610,7 +610,7 @@ namespace GCodeGenerator.Tests
         public void LegacyV1_PocketOps_TypedProperties_EmptyMetadata()
         {
             var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(path);
+            var loaded = Service.Load(path).Operations;
             Assert.IsNotNull(loaded, "Легаси-файл должен открыться");
 
             var rect = (PocketRectangleOperation)loaded[15];

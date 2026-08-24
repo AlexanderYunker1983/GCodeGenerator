@@ -101,11 +101,11 @@ namespace GCodeGenerator.Tests
                 new PocketCircleOperation()
             };
 
-            var json = Service.Serialize(ops);
+            var json = Service.Serialize(ops, null);
             Assert.IsFalse(json.Contains("\"Category\"", StringComparison.Ordinal),
                 "Category не должна сериализоваться в .ygc");
 
-            var loaded = Service.Deserialize(json);
+            var loaded = Service.Deserialize(json).Operations;
             Assert.AreEqual(3, loaded.Count);
             Assert.AreEqual(OperationCategory.Drill, loaded[0].Category);
             Assert.AreEqual(OperationCategory.Profile, loaded[1].Category);

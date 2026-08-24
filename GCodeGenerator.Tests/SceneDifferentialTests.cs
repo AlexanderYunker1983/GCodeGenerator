@@ -91,7 +91,7 @@ namespace GCodeGenerator.Tests
             var ygcPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference", "reference_project.ygc");
             Assert.IsTrue(File.Exists(ygcPath), "Нет эталонного проекта reference_project.ygc");
 
-            var operations = Service.Load(ygcPath);
+            var operations = Service.Load(ygcPath).Operations;
             var program = Generator.Generate(operations, new GCodeSettings());
 
             var failures = Compare("reference_project", program).ToList();

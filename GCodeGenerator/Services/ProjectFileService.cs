@@ -8,12 +8,14 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Служба сохранения/загрузки файлов проекта .ygc (пункты 0.6 и 1.2 плана).
+    /// Служба сохранения/загрузки файлов проекта .ygc (пункты 0.6, 1.2 и 8.2 плана).
     /// Сериализация операций в JSON, разрешение типов по белому списку, пропуск некорректных записей.
     ///
     /// Формат v2 (System.Text.Json), в него всегда сохраняется:
-    /// <code>{"version":2,"operations":[{"type":"&lt;короткое имя&gt;","data":{...}}]}</code>
-    /// — конверт camelCase; данные операции (payload) — PascalCase, как в модели (как в v1).
+    /// <code>{"version":2,"operations":[{"type":"&lt;короткое имя&gt;","data":{...}}],"spindle":{...},"coolant":{...}}</code>
+    /// — конверт camelCase; данные операции и секции spindle/coolant (payload) — PascalCase, как в модели.
+    /// Секции spindle/coolant (пункт 8.2, D4) — необязательные: старые файлы без них читаются,
+    /// версия формата не меняется (v2), старые читатели игнорируют неизвестные поля.
     ///
     /// Легаси-формат v1 (JavaScriptSerializer) — только чтение, мигрируется при сохранении:
     /// <code>{"Operations":[{"Type":"&lt;AssemblyQualifiedName&gt;","Data":"&lt;JSON операции&gt;"}]}</code>
@@ -31,10 +33,12 @@ namespace GCodeGenerator.Services
         };
 
         /// <summary>
-        /// Сериализует операции в JSON проекта .ygc v2 (in-memory).
+        /// Сериализует проект в JSON .ygc v2 (in-memory), включая секции
+        /// spindle/coolant из <paramref name="settings"/> (пункт 8.2, D4).
         /// </summary>
         /// <param name="operations">Операции в том порядке, в котором они должны сохраниться.</param>
-        public string Serialize(IReadOnlyList<OperationBase> operations)
+        /// <param name="settings">Настройки для секций spindle/coolant (null — секции не пишутся).</param>
+        public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream))
@@ -57,34 +61,47 @@ namespace GCodeGenerator.Services
                     }
                 }
                 writer.WriteEndArray();
+
+                // Пункт 8.2 (D4): секции шпинделя/СОЖ (обязательны при сохранении проекта).
+                if (settings != null)
+                {
+                    writer.WritePropertyName("spindle");
+                    JsonSerializer.Serialize(writer, settings.Spindle, PayloadOptions);
+                    writer.WritePropertyName("coolant");
+                    JsonSerializer.Serialize(writer, settings.Coolant, PayloadOptions);
+                }
+
                 writer.WriteEndObject();
                 writer.Flush();
             }
             return Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        /// <summary>Сохраняет операции в файл в формате v2 (UTF-8 с BOM, как раньше).</summary>
-        public void Save(string filePath, IReadOnlyList<OperationBase> operations)
+        /// <summary>Сохраняет проект в файл в формате v2 (UTF-8 с BOM, как раньше).</summary>
+        public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
         {
-            File.WriteAllText(filePath, Serialize(operations), new UTF8Encoding(true));
+            File.WriteAllText(filePath, Serialize(operations, settings), new UTF8Encoding(true));
         }
 
         /// <summary>
         /// Читает проект из файла (v2 или легаси v1).
-        /// Возвращает <c>null</c>, если в файле нет секции операций (пустой/чужой файл).
+        /// <see cref="ProjectFileData.Operations">Operations</see> равно <c>null</c>, если в файле
+        /// нет секции операций (пустой/чужой файл).
         /// Бросает исключение при некорректном JSON — обработчик ошибки остаётся у вызывающего.
         /// </summary>
-        public List<OperationBase> Load(string filePath)
+        public ProjectFileData Load(string filePath)
         {
             var json = File.ReadAllText(filePath, Encoding.UTF8);
             return Deserialize(json);
         }
 
         /// <summary>
-        /// Десериализует JSON проекта .ygc (v2 или легаси v1) в список операций.
-        /// Возвращает <c>null</c>, если нет секции операций. Бросает исключение при некорректном JSON.
+        /// Десериализует JSON проекта .ygc (v2 или легаси v1).
+        /// Секции spindle/coolant (пункт 8.2) присутствуют только в v2-файлах новой схемы;
+        /// в старых файлах они отсутствуют → null (глобальные настройки сохраняются).
+        /// Бросает исключение при некорректном JSON.
         /// </summary>
-        public List<OperationBase> Deserialize(string json)
+        public ProjectFileData Deserialize(string json)
         {
             using var doc = JsonDocument.Parse(json); // бросает JsonException при некорректном JSON
             var root = doc.RootElement;
@@ -94,14 +111,47 @@ namespace GCodeGenerator.Services
             // v2 определяется наличием поля "version"; иначе — легаси v1.
             if (root.TryGetProperty("version", out _))
             {
-                if (!root.TryGetProperty("operations", out var operationsElement))
-                    return null;
-                return ReadOperationsArray(operationsElement, isV2: true);
+                var operations = root.TryGetProperty("operations", out var operationsElement)
+                    ? ReadOperationsArray(operationsElement, isV2: true)
+                    : null;
+                return new ProjectFileData
+                {
+                    Operations = operations,
+                    Spindle = ReadSpindleSection(root),
+                    Coolant = ReadCoolantSection(root)
+                };
             }
 
+            // Легаси v1: секций spindle/coolant нет по определению.
             if (!root.TryGetProperty("Operations", out var legacyOperationsElement))
+                return new ProjectFileData();
+            return new ProjectFileData
+            {
+                Operations = ReadOperationsArray(legacyOperationsElement, isV2: false)
+            };
+        }
+
+        /// <summary>
+        /// Читает секцию "spindle" (пункт 8.2): нет секции или null → null;
+        /// не-объект → исключение (как для данных операций).
+        /// </summary>
+        private static SpindleSettings ReadSpindleSection(JsonElement root)
+        {
+            if (!root.TryGetProperty("spindle", out var section) || section.ValueKind == JsonValueKind.Null)
                 return null;
-            return ReadOperationsArray(legacyOperationsElement, isV2: false);
+            if (section.ValueKind != JsonValueKind.Object)
+                throw new JsonException("Секция spindle должна быть JSON-объектом.");
+            return JsonSerializer.Deserialize<SpindleSettings>(section.GetRawText(), PayloadOptions);
+        }
+
+        /// <summary>Читает секцию "coolant" (пункт 8.2): см. <see cref="ReadSpindleSection"/>.</summary>
+        private static CoolantSettings ReadCoolantSection(JsonElement root)
+        {
+            if (!root.TryGetProperty("coolant", out var section) || section.ValueKind == JsonValueKind.Null)
+                return null;
+            if (section.ValueKind != JsonValueKind.Object)
+                throw new JsonException("Секция coolant должна быть JSON-объектом.");
+            return JsonSerializer.Deserialize<CoolantSettings>(section.GetRawText(), PayloadOptions);
         }
 
         private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement, bool isV2)

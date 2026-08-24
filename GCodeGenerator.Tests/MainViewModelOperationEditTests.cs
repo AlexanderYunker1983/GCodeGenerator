@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.Pocket;
@@ -37,7 +40,11 @@ namespace GCodeGenerator.Tests
             public void ShowInfo(string message, string title = "") { }
             public void ShowError(string message, string title = "") { }
             public bool ShowConfirm(string message, string title = "") => true;
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => null;
+
+            /// <summary>Пункт 8.2: путь, который «выбирает» диалог открытия (null — отмена).</summary>
+            public string OpenDialogResult { get; set; }
+
+            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => OpenDialogResult;
             public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
 
             public TViewModel CreateViewModel<TViewModel>() where TViewModel : class
@@ -59,22 +66,35 @@ namespace GCodeGenerator.Tests
             }
         }
 
-        private static (MainViewModel main, OperationEditorFactory factory, RecordingDialogService dialogService) CreateMain()
+        private static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain()
         {
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
+            var settingsStore = new FakeSettingsStore();
             var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory,
-                new ProgramInfo("1.0"), new FakeSettingsStore(), new FakeThemeService(), new ProjectFileService());
-            return (main, factory, dialogService);
+                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService());
+            return (main, factory, dialogService, settingsStore);
         }
 
-        /// <summary>Фикс ISettingsStore (пункт 7.5 плана): настройки по умолчанию, без персистентности.</summary>
+        /// <summary>
+        /// Фикс ISettingsStore (пункт 7.5 плана): настройки по умолчанию, без персистентности.
+        /// Пункт 8.2: «глобальные» значения шпинделя/СОЖ — значения по умолчанию.
+        /// </summary>
         private sealed class FakeSettingsStore : ISettingsStore
         {
             public GCodeSettings Current { get; } = new GCodeSettings();
+            public int RestoreCalls { get; private set; }
+
             public void Save() { }
+
+            public void RestoreGlobalSpindleAndCoolant()
+            {
+                RestoreCalls++;
+                Current.Spindle = new SpindleSettings();
+                Current.Coolant = new CoolantSettings();
+            }
         }
 
         /// <summary>Фикс IThemeService (пункт 7.5 плана): без WPF.</summary>
@@ -87,7 +107,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void GetViewModelType_AllDrillModes_MappedCorrectly()
         {
-            var (_, factory, _) = CreateMain();
+            var (_, factory, _, _) = CreateMain();
 
             Assert.AreEqual(typeof(DrillPointsOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Points }));
             Assert.AreEqual(typeof(DrillLineOperationViewModel), factory.GetViewModelType(new DrillPointsOperation { DrillMode = DrillMode.Line }));
@@ -103,7 +123,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void GetViewModelType_NonDrill_MappedCorrectly()
         {
-            var (_, factory, _) = CreateMain();
+            var (_, factory, _, _) = CreateMain();
 
             Assert.AreEqual(typeof(PocketCircleOperationViewModel), factory.GetViewModelType(new PocketCircleOperation()));
             Assert.AreEqual(typeof(PocketRectangleOperationViewModel), factory.GetViewModelType(new PocketRectangleOperation()));
@@ -124,7 +144,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void EditSelectedOperation_RenamedOperation_OpensDialogByMode()
         {
-            var (main, _, dialogService) = CreateMain();
+            var (main, _, dialogService, _) = CreateMain();
 
             var op = new DrillPointsOperation
             {
@@ -163,7 +183,7 @@ namespace GCodeGenerator.Tests
 
             foreach (var (mode, expectedType) in cases)
             {
-                var (main, _, dialogService) = CreateMain();
+                var (main, _, dialogService, _) = CreateMain();
                 var op = new DrillPointsOperation { DrillMode = mode, Name = "Имя" };
                 main.AllOperations.Add(op);
                 main.SelectedOperation = op;
@@ -172,6 +192,90 @@ namespace GCodeGenerator.Tests
 
                 Assert.AreEqual(expectedType, dialogService.CreatedType, $"mode={mode}");
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Пункт 8.2 плана (D4): секции spindle/coolant в сессии
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Открытие проекта с секциями spindle/coolant: значения из файла
+        /// подставляются в сессию (ISettingsStore.Current).
+        /// </summary>
+        [TestMethod]
+        public void OpenProject_FileWithSections_SessionSpindleCoolantReplaced()
+        {
+            var (main, _, dialogService, store) = CreateMain();
+
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleSpeedRpm = 8000;
+            settings.Spindle.SpindleStartCommand = "M4";
+            settings.Coolant.CoolantStartEnabled = false;
+
+            var filePath = Path.Combine(Path.GetTempPath(), "gcg_open_" + Guid.NewGuid().ToString("N") + ".ygc");
+            try
+            {
+                new ProjectFileService().Save(filePath,
+                    new List<OperationBase> { OperationFixtures.DrillPoints() }, settings);
+                dialogService.OpenDialogResult = filePath;
+
+                main.OpenProjectCommand.Execute(null);
+
+                Assert.AreEqual(1, main.AllOperations.Count, "Операция из файла загружена");
+                Assert.AreEqual(8000, store.Current.Spindle.SpindleSpeedRpm, "Шпиндель из секции файла в сессии");
+                Assert.AreEqual("M4", store.Current.Spindle.SpindleStartCommand);
+                Assert.IsFalse(store.Current.Coolant.CoolantStartEnabled, "СОЖ из секции файла в сессии");
+            }
+            finally
+            {
+                if (File.Exists(filePath))
+                    File.Delete(filePath);
+            }
+        }
+
+        /// <summary>
+        /// Открытие СТАРОГО проекта (без секций): сессия восстанавливается к
+        /// глобальным настройкам (не наследует значения ранее открытого проекта).
+        /// </summary>
+        [TestMethod]
+        public void OpenProject_OldFileWithoutSections_SessionRestoredToGlobal()
+        {
+            var (main, _, dialogService, store) = CreateMain();
+
+            // Сессия «изменена ранее открытым проектом».
+            store.Current.Spindle.SpindleSpeedRpm = 9999;
+            store.Current.Coolant.CoolantStartEnabled = false;
+
+            var legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference", "legacy_project_v1.ygc");
+            Assert.IsTrue(File.Exists(legacyPath), "Нет эталонного легаси-файла");
+            dialogService.OpenDialogResult = legacyPath;
+
+            main.OpenProjectCommand.Execute(null);
+
+            Assert.AreEqual(19, main.AllOperations.Count, "Операции из старого файла загружены");
+            Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Старый файл → глобальный шпиндель (дефолт)");
+            Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Старый файл → глобальный СОЖ (дефолт)");
+        }
+
+        /// <summary>
+        /// Новый проект: сессия шпинделя/СОЖ сбрасывается к глобальным значениям
+        /// (решение исполнителя: не наследовать настройки от предыдущего проекта).
+        /// </summary>
+        [TestMethod]
+        public void NewProgram_SessionSpindleCoolantRestoredToGlobal()
+        {
+            var (main, _, _, store) = CreateMain();
+
+            main.AllOperations.Add(OperationFixtures.DrillPoints());
+            store.Current.Spindle.SpindleSpeedRpm = 9999;
+            store.Current.Coolant.CoolantStartEnabled = false;
+
+            main.NewProgramCommand.Execute(null);
+
+            Assert.AreEqual(0, main.AllOperations.Count, "Операции очищены");
+            Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Новый проект → глобальный шпиндель");
+            Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Новый проект → глобальный СОЖ");
+            Assert.IsTrue(store.RestoreCalls >= 1, "RestoreGlobalSpindleAndCoolant вызван");
         }
     }
 }

@@ -86,7 +86,7 @@ namespace GCodeGenerator.Tests
                 "Нет эталонного проекта Reference/reference_project.ygc " +
                 "(запустите Write_Reference_Set с GCG_WRITE_REFERENCE=1 и закоммитьте файлы)");
 
-            var ops = Service.Load(ygcPath);
+            var ops = Service.Load(ygcPath).Operations;
             Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             Assert.AreEqual(19, ops.Count, "Число операций в эталонном проекте");
 
@@ -112,7 +112,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Reference_Project_GCode_Matches_Reference_File()
         {
-            var ops = Service.Load(Path.Combine(ReferenceOutputDirectory, "reference_project.ygc"));
+            var ops = Service.Load(Path.Combine(ReferenceOutputDirectory, "reference_project.ygc")).Operations;
             Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             var program = Generator.Generate(ops, SettingsFixtures.Default());
 
@@ -155,7 +155,8 @@ namespace GCodeGenerator.Tests
 
             Directory.CreateDirectory(ReferenceSourceDirectory);
             var ops = BuildReferenceOperations();
-            Service.Save(Path.Combine(ReferenceSourceDirectory, "reference_project.ygc"), ops);
+            // Пункт 8.2 (D4): эталонный .ygc — в новой схеме с секциями spindle/coolant.
+            Service.Save(Path.Combine(ReferenceSourceDirectory, "reference_project.ygc"), ops, SettingsFixtures.Default());
 
             var program = Generator.Generate(ops, SettingsFixtures.Default());
             File.WriteAllLines(Path.Combine(ReferenceSourceDirectory, "reference_project.nc"), program.Lines);

@@ -13,5 +13,13 @@ namespace GCodeGenerator.Services
 
         /// <summary>Персистентность настроек (Properties.Settings).</summary>
         void Save();
+
+        /// <summary>
+        /// Пункт 8.2 плана (D4): восстанавливает шпиндель/СОЖ в
+        /// <see cref="Current"/> из персистентных глобальных значений
+        /// (Properties.Settings). Вызывается при открытии проекта без секций
+        /// spindle/coolant (старые .ygc) и при создании нового проекта.
+        /// </summary>
+        void RestoreGlobalSpindleAndCoolant();
     }
 }
