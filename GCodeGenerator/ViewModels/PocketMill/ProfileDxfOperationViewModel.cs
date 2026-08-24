@@ -29,8 +29,9 @@ namespace GCodeGenerator.ViewModels.PocketMill
             _dialogService = dialogService;
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
 
-            var title = _localizationManager?.GetString("ProfileDxfName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - контур" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("ProfileDxfName") ?? "ProfileDxfName";
 
             // Пункт 7.3: операция по умолчанию для автономного создания
             // (в потоках добавления/редактирования фабрику задаёт Operation).
@@ -50,7 +51,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (operation.Polylines != null && operation.Polylines.Count > 0)
             {
                 var lineCount = operation.Polylines.Sum(p => p?.Points?.Count > 1 ? p.Points.Count - 1 : 0);
-                var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
+                var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "DxfImportInfo";
                 ImportInfo = string.Format(infoTemplate, lineCount);
             }
             else
@@ -182,7 +183,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         private void ImportDxfFile()
         {
-            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF";
+            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
             var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
             if (fileName == null)
                 return;
@@ -192,7 +193,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 var polylines = ParseDxfLines(fileName);
                 if (polylines.Count == 0)
                 {
-                    var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "В файле не найдено линий для импорта.";
+                    var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "DxfImportNoLines";
                     _dialogService?.ShowInfo(msg, title);
                     return;
                 }
@@ -201,12 +202,12 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 Operation.DxfFilePath = fileName;
                 FilePath = fileName;
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
-                var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "Импортировано линий: {0}";
+                var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "DxfImportInfo";
                 ImportInfo = string.Format(infoTemplate, lineCount);
             }
             catch (Exception ex)
             {
-                var msg = _localizationManager?.GetString("DxfImportFailed") ?? "Ошибка импорта DXF:";
+                var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
                 _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
         }

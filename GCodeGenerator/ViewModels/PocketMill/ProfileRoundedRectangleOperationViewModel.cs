@@ -12,8 +12,9 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ProfileRoundedRectangleOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("ProfileRoundedRectangleName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Контур скругленного прямоугольника" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("ProfileRoundedRectangleName") ?? "ProfileRoundedRectangleName";
         }
 
         protected override void LoadFromOperation(ProfileRoundedRectangleOperation operation)

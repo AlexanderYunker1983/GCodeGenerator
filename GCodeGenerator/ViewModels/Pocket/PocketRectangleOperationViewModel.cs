@@ -12,8 +12,9 @@ namespace GCodeGenerator.ViewModels.Pocket
         public PocketRectangleOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("PocketRectangleName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Карман прямоугольный" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("PocketRectangleName") ?? "PocketRectangleName";
         }
 
         protected override void LoadFromOperation(PocketRectangleOperation operation)

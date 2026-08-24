@@ -24,8 +24,9 @@ namespace GCodeGenerator.ViewModels
             _settingsStore = settingsStore;
             _themeService = themeService;
 
-            var title = localizationManager?.GetString("GCodeSettingsTitle");
-            DisplayName = string.IsNullOrEmpty(title) ? "Настройки G-кода" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = localizationManager?.GetString("GCodeSettingsTitle") ?? "GCodeSettingsTitle";
 
             // Initialize from shared settings
             // Пункт 8.1: тематические группы настроек.

@@ -20,8 +20,9 @@ namespace GCodeGenerator.ViewModels
         public PreviewViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("PreviewGCode");
-            DisplayName = string.IsNullOrEmpty(title) ? "Предварительный просмотр G-кода" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("PreviewGCode") ?? "PreviewGCode";
             Scene = TrajectoryScene.Empty;
         }
 

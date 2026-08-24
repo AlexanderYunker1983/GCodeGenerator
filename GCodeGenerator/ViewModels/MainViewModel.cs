@@ -75,8 +75,9 @@ namespace GCodeGenerator.ViewModels
             SaveProjectCommand = new RelayCommand(SaveProject, CanSaveProject);
             OpenProjectCommand = new RelayCommand(OpenProject);
 
-            var title = _localizationManager?.GetString("MainTitle");
-            var baseTitle = string.IsNullOrEmpty(title) ? "Генератор G-кода" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            var baseTitle = _localizationManager?.GetString("MainTitle") ?? "MainTitle";
             var version = _programInfo.Version;
             _displayName = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
 
@@ -269,9 +270,9 @@ namespace GCodeGenerator.ViewModels
                 }
                 catch (System.Exception ex)
                 {
-                    _dialogService.ShowError(
-                        $"Ошибка при сохранении файла:\n{ex.Message}",
-                        "Ошибка");
+                    var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
+                var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
+                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
                 }
             }
         }
@@ -389,9 +390,8 @@ namespace GCodeGenerator.ViewModels
             if (!hasOperations && !hasGCode)
                 return;
 
-            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ??
-                          "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
-            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
+            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ?? "ConfirmNewProjectMessage";
+            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "ConfirmNewProjectTitle";
 
             if (!_dialogService.ShowConfirm(message, title))
                 return;
@@ -419,8 +419,8 @@ namespace GCodeGenerator.ViewModels
         {
             if (!CanSaveProject()) return;
 
-            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
-            var title = _localizationManager?.GetString("SaveProjectTitle") ?? "Сохранить проект";
+            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "ProjectFileFilter";
+            var title = _localizationManager?.GetString("SaveProjectTitle") ?? "SaveProjectTitle";
 
             var fileName = _dialogService.ShowSaveDialog(title, filter, "ygc", "project.ygc");
             if (fileName == null)
@@ -433,7 +433,7 @@ namespace GCodeGenerator.ViewModels
             }
             catch (Exception ex)
             {
-                var message = _localizationManager?.GetString("ErrorSavingProject") ?? "Ошибка при сохранении проекта:";
+                var message = _localizationManager?.GetString("ErrorSavingProject") ?? "ErrorSavingProject";
                 _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }
         }
@@ -443,8 +443,8 @@ namespace GCodeGenerator.ViewModels
             if (!ConfirmResetIfNeeded())
                 return;
 
-            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "Project files (*.ygc)|*.ygc|All files (*.*)|*.*";
-            var title = _localizationManager?.GetString("OpenProjectTitle") ?? "Открыть проект";
+            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "ProjectFileFilter";
+            var title = _localizationManager?.GetString("OpenProjectTitle") ?? "OpenProjectTitle";
 
             var fileName = _dialogService.ShowOpenDialog(title, filter, "ygc");
             if (fileName == null)
@@ -464,7 +464,7 @@ namespace GCodeGenerator.ViewModels
             }
             catch (Exception ex)
             {
-                var message = _localizationManager?.GetString("ErrorOpeningProject") ?? "Ошибка при загрузке проекта:";
+                var message = _localizationManager?.GetString("ErrorOpeningProject") ?? "ErrorOpeningProject";
                 _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }
         }
@@ -476,9 +476,8 @@ namespace GCodeGenerator.ViewModels
             if (!hasOperations && !hasGCode)
                 return true;
 
-            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ??
-                          "Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.";
-            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "Подтверждение";
+            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ?? "ConfirmNewProjectMessage";
+            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "ConfirmNewProjectTitle";
 
             return _dialogService.ShowConfirm(message, title);
         }
@@ -520,7 +519,7 @@ namespace GCodeGenerator.ViewModels
 
         private void ShowInvalidProjectMessage(string title)
         {
-            var message = _localizationManager?.GetString("InvalidProjectFile") ?? "Невозможно прочитать файл проекта.";
+            var message = _localizationManager?.GetString("InvalidProjectFile") ?? "InvalidProjectFile";
             _dialogService.ShowError(message, title);
         }
     }

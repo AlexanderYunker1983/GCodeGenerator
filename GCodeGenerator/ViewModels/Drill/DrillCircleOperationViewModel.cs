@@ -13,8 +13,9 @@ namespace GCodeGenerator.ViewModels.Drill
         public DrillCircleOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("AddDrillCircle");
-            DisplayName = string.IsNullOrEmpty(title) ? "Сверление по окружности" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("AddDrillCircle") ?? "AddDrillCircle";
 
             PreviewHoles = new ObservableCollection<DrillHole>();
         }

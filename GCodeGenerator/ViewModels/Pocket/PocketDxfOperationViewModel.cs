@@ -27,8 +27,9 @@ namespace GCodeGenerator.ViewModels.Pocket
             _localizationManager = localizationManager;
             _dialogService = dialogService;
             ImportDxfCommand = new RelayCommand(ImportDxfFile);
-            var title = _localizationManager?.GetString("PocketDxfName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Импорт DXF - карманы" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("PocketDxfName") ?? "PocketDxfName";
 
             // Пункт 7.3: операция по умолчанию для автономного создания
             // (в потоках добавления/редактирования фабрику задаёт Operation).
@@ -342,7 +343,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (operation.ClosedContours != null && operation.ClosedContours.Count > 0)
             {
                 var contourCount = operation.ClosedContours.Count;
-                var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "Импортировано замкнутых контуров: {0}";
+                var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
                 ImportInfo = string.Format(infoTemplate, contourCount);
             }
             else
@@ -374,7 +375,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
         private void ImportDxfFile()
         {
-            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "Импорт DXF";
+            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
             var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
             if (fileName == null)
                 return;
@@ -384,7 +385,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 var closedContours = ParseDxfClosedContours(fileName);
                 if (closedContours.Count == 0)
                 {
-                    var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "В файле не найдено замкнутых контуров для импорта.";
+                    var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "DxfImportNoClosedContours";
                     _dialogService?.ShowInfo(msg, title);
                     return;
                 }
@@ -393,12 +394,12 @@ namespace GCodeGenerator.ViewModels.Pocket
                 Operation.DxfFilePath = fileName;
                 FilePath = fileName;
                 var contourCount = closedContours.Count;
-                var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "Импортировано замкнутых контуров: {0}";
+                var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
                 ImportInfo = string.Format(infoTemplate, contourCount);
             }
             catch (Exception ex)
             {
-                var msg = _localizationManager?.GetString("DxfImportFailed") ?? "Ошибка импорта DXF:";
+                var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
                 _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
         }

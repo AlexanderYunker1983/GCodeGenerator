@@ -117,401 +117,401 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="MainTitle" xml:space="preserve">
-    <value>Генератор G-кода</value>
+    <data name="MainTitle" xml:space="preserve">
+    <value>G-code Generator</value>
   </data>
   <data name="DrillPointsName" xml:space="preserve">
-    <value>Сверление по заданным точкам с координатами</value>
+    <value>Drilling at specified points</value>
   </data>
   <data name="AddDrillPoints" xml:space="preserve">
-    <value>Добавить операцию сверления по точкам</value>
+    <value>Add drilling at points operation</value>
   </data>
   <data name="AddDrillLine" xml:space="preserve">
-    <value>Сверление по линии</value>
+    <value>Drilling along a line</value>
   </data>
   <data name="AddDrillArray" xml:space="preserve">
-    <value>Сверление по массиву</value>
+    <value>Drilling in an array</value>
   </data>
   <data name="AddDrillRect" xml:space="preserve">
-    <value>Сверление по контуру прямоугольника</value>
+    <value>Drilling along a rectangle outline</value>
   </data>
   <data name="AddDrillCircle" xml:space="preserve">
-    <value>Сверление по окружности</value>
+    <value>Drilling along a circle</value>
   </data>
   <data name="AddDrillArc" xml:space="preserve">
-    <value>Сверление по дуге</value>
+    <value>Drilling along an arc</value>
   </data>
   <data name="AddDrillPolygon" xml:space="preserve">
-    <value>Сверление по правильному многоугольнику</value>
+    <value>Drilling along a regular polygon</value>
   </data>
   <data name="AddDrillEllipse" xml:space="preserve">
-    <value>Сверление по эллипсу</value>
+    <value>Drilling along an ellipse</value>
   </data>
   <data name="EllipseParametersHeader" xml:space="preserve">
-    <value>Параметры эллипса</value>
+    <value>Ellipse parameters</value>
   </data>
   <data name="RadiusX" xml:space="preserve">
-    <value>Полуось X:</value>
+    <value>Semi-axis X:</value>
   </data>
   <data name="RadiusY" xml:space="preserve">
-    <value>Полуось Y:</value>
+    <value>Semi-axis Y:</value>
   </data>
   <data name="EllipseRotationAngle" xml:space="preserve">
-    <value>Угол поворота эллипса (° к оси X):</value>
+    <value>Ellipse rotation angle (° from X axis):</value>
   </data>
   <data name="GenerateGCode" xml:space="preserve">
-    <value>Сгенерировать G-код</value>
+    <value>Generate G-code</value>
   </data>
   <data name="Settings" xml:space="preserve">
-    <value>Настройки...</value>
+    <value>Settings...</value>
   </data>
   <data name="OperationsHeader" xml:space="preserve">
-    <value>Операции</value>
+    <value>Operations</value>
   </data>
   <data name="PocketRectangleName" xml:space="preserve">
-    <value>Карман прямоугольный</value>
+    <value>Rectangle pocket</value>
   </data>
   <data name="PocketCircleName" xml:space="preserve">
-    <value>Карман круглый</value>
+    <value>Round pocket</value>
   </data>
   <data name="StepPercentOfTool" xml:space="preserve">
-    <value>Шаг (% от диаметра):</value>
+    <value>Stepover (% of diameter):</value>
   </data>
   <data name="CuttingStrategy" xml:space="preserve">
-    <value>Стратегия</value>
+    <value>Strategy</value>
   </data>
   <data name="PocketStrategy" xml:space="preserve">
-    <value>Стратегия фрезерования:</value>
+    <value>Milling strategy:</value>
   </data>
   <data name="PocketStrategySpiral" xml:space="preserve">
-    <value>Спираль</value>
+    <value>Spiral</value>
   </data>
   <data name="PocketStrategyConcentric" xml:space="preserve">
-    <value>Концентрические линии</value>
+    <value>Concentric lines</value>
   </data>
   <data name="PocketStrategyLines" xml:space="preserve">
-    <value>Линии</value>
+    <value>Lines</value>
   </data>
   <data name="PocketStrategyZigZag" xml:space="preserve">
-    <value>Зигзаг</value>
+    <value>Zigzag</value>
   </data>
   <data name="LineAngleDegToX" xml:space="preserve">
-    <value>Угол линии (° к оси X):</value>
+    <value>Line angle (° from X axis):</value>
   </data>
   <data name="PocketStrategyRadial" xml:space="preserve">
-    <value>Радиальные линии</value>
+    <value>Radial lines</value>
   </data>
   <data name="NoteSpiralFromCenter" xml:space="preserve">
-    <value>Обработка выполняется по спирали с центром в середине кармана.</value>
+    <value>Machining is performed as a spiral centered in the middle of the pocket.</value>
   </data>
   <data name="GCodePreviewHeader" xml:space="preserve">
-    <value>Просмотр G-кода</value>
+    <value>G-code preview</value>
   </data>
   <data name="DrillingTab" xml:space="preserve">
-    <value>Сверление</value>
+    <value>Drilling</value>
   </data>
   <data name="MillingTab" xml:space="preserve">
-    <value>Фрезерование</value>
+    <value>Milling</value>
   </data>
   <data name="ProfileTab" xml:space="preserve">
-    <value>Контур</value>
+    <value>Profile</value>
   </data>
   <data name="PocketTab" xml:space="preserve">
-    <value>Карман</value>
+    <value>Pocket</value>
   </data>
   <data name="ShapesTab" xml:space="preserve">
-    <value>Формы</value>
+    <value>Shapes</value>
   </data>
   <data name="MiscTab" xml:space="preserve">
-    <value>Разное</value>
+    <value>Misc</value>
   </data>
   <data name="MoveUp" xml:space="preserve">
-    <value>Вверх</value>
+    <value>Up</value>
   </data>
   <data name="MoveDown" xml:space="preserve">
-    <value>Вниз</value>
+    <value>Down</value>
   </data>
   <data name="DeleteOperation" xml:space="preserve">
-    <value>Удалить</value>
+    <value>Delete</value>
   </data>
   <data name="Ok" xml:space="preserve">
     <value>OK</value>
   </data>
   <data name="Cancel" xml:space="preserve">
-    <value>Отмена</value>
+    <value>Cancel</value>
   </data>
   <data name="GCodeSettingsTitle" xml:space="preserve">
-    <value>Настройки</value>
+    <value>Settings</value>
   </data>
   <data name="UseLineNumbers" xml:space="preserve">
-    <value>Использовать номера строк (N...)</value>
+    <value>Use line numbers (N...)</value>
   </data>
   <data name="LineNumberStart" xml:space="preserve">
-    <value>Начальный номер строки:</value>
+    <value>Starting line number:</value>
   </data>
   <data name="LineNumberStep" xml:space="preserve">
-    <value>Шаг номера строки:</value>
+    <value>Line number step:</value>
   </data>
   <data name="GenerateComments" xml:space="preserve">
-    <value>Генерировать комментарии</value>
+    <value>Generate comments</value>
   </data>
   <data name="AllowArcs" xml:space="preserve">
-    <value>Разрешить дуги (G2/G3)</value>
+    <value>Allow arcs (G2/G3)</value>
   </data>
   <data name="UsePaddedGCodes" xml:space="preserve">
-    <value>Формат команд G01/G00 вместо G1/G0</value>
+    <value>G01/G00 command format instead of G1/G0</value>
   </data>
   <data name="DarkTheme" xml:space="preserve">
-    <value>Ночной режим (тёмная тема)</value>
+    <value>Night mode (dark theme)</value>
   </data>
   <data name="ToggleOn" xml:space="preserve">
-    <value>Вкл</value>
+    <value>On</value>
   </data>
   <data name="ToggleOff" xml:space="preserve">
-    <value>Выкл</value>
+    <value>Off</value>
   </data>
   <data name="AddDrillPackage" xml:space="preserve">
-    <value>Сверление под стандартный корпус</value>
+    <value>Drilling for a standard package</value>
   </data>
   <data name="PackageParametersHeader" xml:space="preserve">
-    <value>Параметры корпуса</value>
+    <value>Package parameters</value>
   </data>
   <data name="PackageType" xml:space="preserve">
-    <value>Тип корпуса:</value>
+    <value>Package type:</value>
   </data>
   <data name="RotationAngle" xml:space="preserve">
-    <value>Угол поворота (°):</value>
+    <value>Rotation angle (°):</value>
   </data>
   <data name="TotalDepth" xml:space="preserve">
-    <value>Глубина сверления:</value>
+    <value>Drilling depth:</value>
   </data>
   <data name="StepDepth" xml:space="preserve">
-    <value>Глубина за проход:</value>
+    <value>Depth per pass:</value>
   </data>
   <data name="FeedsAndZParametersHeader" xml:space="preserve">
-    <value>Подачи и Z-параметры</value>
+    <value>Feeds and Z parameters</value>
   </data>
   <data name="Depth" xml:space="preserve">
-    <value>Глубина</value>
+    <value>Depth</value>
   </data>
   <data name="Step" xml:space="preserve">
-    <value>Шаг</value>
+    <value>Step</value>
   </data>
   <data name="SafeZBetweenHoles" xml:space="preserve">
-    <value>Безопасная Z между отверстиями:</value>
+    <value>Safe Z between holes:</value>
   </data>
   <data name="RetractHeight" xml:space="preserve">
-    <value>Отвод Z:</value>
+    <value>Retract Z:</value>
   </data>
   <data name="Decimals" xml:space="preserve">
-    <value>Знаков после запятой:</value>
+    <value>Decimal places:</value>
   </data>
   <data name="SaveGCode" xml:space="preserve">
-    <value>Сохранить G-код</value>
+    <value>Save G-code</value>
   </data>
   <data name="SaveProjectTitle" xml:space="preserve">
-    <value>Сохранить проект</value>
+    <value>Save project</value>
   </data>
   <data name="OpenProjectTitle" xml:space="preserve">
-    <value>Открыть проект</value>
+    <value>Open project</value>
   </data>
   <data name="ProjectFileFilter" xml:space="preserve">
-    <value>Проекты GCodeGenerator (*.ygc)|*.ygc|Все файлы (*.*)|*.*</value>
+    <value>GCodeGenerator projects (*.ygc)|*.ygc|All files (*.*)|*.*</value>
   </data>
   <data name="ErrorSavingProject" xml:space="preserve">
-    <value>Ошибка при сохранении проекта:</value>
+    <value>Error saving project:</value>
   </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
-    <value>Ошибка при загрузке проекта:</value>
+    <value>Error loading project:</value>
   </data>
   <data name="InvalidProjectFile" xml:space="preserve">
-    <value>Невозможно прочитать файл проекта.</value>
+    <value>Cannot read the project file.</value>
   </data>
   <data name="ErrorSavingGCodeFile" xml:space="preserve">
-    <value>Ошибка при сохранении файла:</value>
+    <value>Error saving the file:</value>
   </data>
   <data name="Error" xml:space="preserve">
-    <value>Ошибка</value>
+    <value>Error</value>
   </data>
   <data name="CodeGenerationSettingsTab" xml:space="preserve">
-    <value>Генерация кода</value>
+    <value>Code generation</value>
   </data>
   <data name="SpindleSettingsTab" xml:space="preserve">
-    <value>Шпиндель</value>
+    <value>Spindle</value>
   </data>
   <data name="InterfaceSettingsTab" xml:space="preserve">
-    <value>Интерфейс</value>
+    <value>Interface</value>
   </data>
   <data name="SpindleControlEnabled" xml:space="preserve">
-    <value>Добавлять код управления шпинделем</value>
+    <value>Add spindle control code</value>
   </data>
   <data name="SpindleSpeedEnabled" xml:space="preserve">
-    <value>Устанавливать скорость шпинделя</value>
+    <value>Set spindle speed</value>
   </data>
   <data name="SpindleSpeedRpm" xml:space="preserve">
-    <value>Скорость шпинделя, об/мин</value>
+    <value>Spindle speed, RPM</value>
   </data>
   <data name="SpindleStartEnabled" xml:space="preserve">
-    <value>Включать шпиндель перед операциями</value>
+    <value>Start spindle before operations</value>
   </data>
   <data name="SpindleStartCommand" xml:space="preserve">
-    <value>Команда включения (M3/M4)</value>
+    <value>Start command (M3/M4)</value>
   </data>
   <data name="SpindleStopEnabled" xml:space="preserve">
-    <value>Выключать шпиндель после операций (M5)</value>
+    <value>Stop spindle after operations (M5)</value>
   </data>
   <data name="SpindleDelayEnabled" xml:space="preserve">
-    <value>Добавлять задержку после включения (G4)</value>
+    <value>Add delay after start (G4)</value>
   </data>
   <data name="SpindleDelaySeconds" xml:space="preserve">
-    <value>Задержка после включения, сек</value>
+    <value>Delay after start, sec</value>
   </data>
   <data name="CoolantSettingsTab" xml:space="preserve">
-    <value>СОЖ</value>
+    <value>Coolant</value>
   </data>
   <data name="CoolantControlEnabled" xml:space="preserve">
-    <value>Добавлять код управления СОЖ</value>
+    <value>Add coolant control code</value>
   </data>
   <data name="CoolantStartEnabled" xml:space="preserve">
-    <value>Включать СОЖ в начале программы (M8)</value>
+    <value>Turn coolant on at program start (M8)</value>
   </data>
   <data name="CoolantStopEnabled" xml:space="preserve">
-    <value>Выключать СОЖ в конце программы (M9)</value>
+    <value>Turn coolant off at program end (M9)</value>
   </data>
   <data name="ProfileDxfName" xml:space="preserve">
-    <value>Импорт DXF - контур</value>
+    <value>DXF import - profile</value>
   </data>
   <data name="DxfImportHeader" xml:space="preserve">
-    <value>Импорт DXF</value>
+    <value>DXF import</value>
   </data>
   <data name="DxfFileLabel" xml:space="preserve">
-    <value>Файл DXF</value>
+    <value>DXF file</value>
   </data>
   <data name="DxfImportButton" xml:space="preserve">
-    <value>Импортировать</value>
+    <value>Import</value>
   </data>
   <data name="DxfImportDialogTitle" xml:space="preserve">
-    <value>Выберите файл DXF</value>
+    <value>Select a DXF file</value>
   </data>
   <data name="DxfImportNoLines" xml:space="preserve">
-    <value>В файле не найдено линий для импорта.</value>
+    <value>No lines found in the file to import.</value>
   </data>
   <data name="DxfImportInfo" xml:space="preserve">
-    <value>Импортировано линий: {0}</value>
+    <value>Lines imported: {0}</value>
   </data>
   <data name="DxfImportFailed" xml:space="preserve">
-    <value>Ошибка импорта DXF:</value>
+    <value>DXF import error:</value>
   </data>
   <data name="DecimalsLabel" xml:space="preserve">
-    <value>Знаков после запятой</value>
+    <value>Decimal places</value>
   </data>
   <data name="ConfirmNewProjectMessage" xml:space="preserve">
-    <value>Вы уверены, что хотите создать новый проект? Все несохраненные данные будут потеряны.</value>
+    <value>Are you sure you want to create a new project? All unsaved data will be lost.</value>
   </data>
   <data name="ConfirmNewProjectTitle" xml:space="preserve">
-    <value>Подтверждение</value>
+    <value>Confirmation</value>
   </data>
   <data name="PreviewGCode" xml:space="preserve">
-    <value>Просмотр траектории инструмента в 3D</value>
+    <value>3D tool path preview</value>
   </data>
   <data name="ProfileRectangleName" xml:space="preserve">
-    <value>Контур прямоугольника</value>
+    <value>Rectangle profile</value>
   </data>
   <data name="ProfileRoundedRectangleName" xml:space="preserve">
-    <value>Контур скругленного прямоугольника</value>
+    <value>Rounded rectangle profile</value>
   </data>
   <data name="ProfileCircleName" xml:space="preserve">
-    <value>Контур окружности</value>
+    <value>Circle profile</value>
   </data>
   <data name="ProfileEllipseName" xml:space="preserve">
-    <value>Контур эллипса</value>
+    <value>Ellipse profile</value>
   </data>
   <data name="ProfilePolygonName" xml:space="preserve">
-    <value>Контур многоугольника</value>
+    <value>Polygon profile</value>
   </data>
   <data name="PocketEllipseName" xml:space="preserve">
-    <value>Карман эллиптический</value>
+    <value>Ellipse pocket</value>
   </data>
   <data name="PolygonParametersHeader" xml:space="preserve">
-    <value>Параметры многоугольника</value>
+    <value>Polygon parameters</value>
   </data>
   <data name="PolygonParametersDrillHeader" xml:space="preserve">
-    <value>Параметры многоугольника</value>
+    <value>Polygon parameters</value>
   </data>
   <data name="NumberOfSides" xml:space="preserve">
-    <value>Количество сторон:</value>
+    <value>Number of sides:</value>
   </data>
   <data name="HolesPerSide" xml:space="preserve">
-    <value>Отверстий на сторону:</value>
+    <value>Holes per side:</value>
   </data>
   <data name="PolygonRotationAngle" xml:space="preserve">
-    <value>Угол поворота многоугольника (°):</value>
+    <value>Polygon rotation angle (°):</value>
   </data>
   <data name="ToolPathModeHeader" xml:space="preserve">
-    <value>Движение инструмента</value>
+    <value>Tool movement</value>
   </data>
   <data name="ToolPathModeOnLine" xml:space="preserve">
-    <value>По линии контура</value>
+    <value>On the contour line</value>
   </data>
   <data name="ToolPathModeOutside" xml:space="preserve">
-    <value>Снаружи контура</value>
+    <value>Outside the contour</value>
   </data>
   <data name="ToolPathModeInside" xml:space="preserve">
-    <value>Внутри контура</value>
+    <value>Inside the contour</value>
   </data>
   <data name="DirectionHeader" xml:space="preserve">
-    <value>Направление обхода</value>
+    <value>Traversal direction</value>
   </data>
   <data name="DirectionClockwise" xml:space="preserve">
-    <value>По часовой стрелке</value>
+    <value>Clockwise</value>
   </data>
   <data name="DirectionCounterClockwise" xml:space="preserve">
-    <value>Против часовой стрелки</value>
+    <value>Counter-clockwise</value>
   </data>
   <data name="RectangleDimensionsHeader" xml:space="preserve">
-    <value>Размеры прямоугольника</value>
+    <value>Rectangle dimensions</value>
   </data>
   <data name="RoundedRectangleRadiiHeader" xml:space="preserve">
-    <value>Радиусы скругления</value>
+    <value>Rounding radii</value>
   </data>
   <data name="RadiusTopLeft" xml:space="preserve">
-    <value>Радиус левый верхний:</value>
+    <value>Top-left radius:</value>
   </data>
   <data name="RadiusTopRight" xml:space="preserve">
-    <value>Радиус правый верхний:</value>
+    <value>Top-right radius:</value>
   </data>
   <data name="RadiusBottomLeft" xml:space="preserve">
-    <value>Радиус левый нижний:</value>
+    <value>Bottom-left radius:</value>
   </data>
   <data name="RadiusBottomRight" xml:space="preserve">
-    <value>Радиус правый нижний:</value>
+    <value>Bottom-right radius:</value>
   </data>
   <data name="Width" xml:space="preserve">
-    <value>Ширина:</value>
+    <value>Width:</value>
   </data>
   <data name="Height" xml:space="preserve">
-    <value>Высота:</value>
+    <value>Height:</value>
   </data>
   <data name="RotationAngleDeg" xml:space="preserve">
-    <value>Угол поворота (град):</value>
+    <value>Rotation angle (deg):</value>
   </data>
   <data name="CuttingParametersHeader" xml:space="preserve">
-    <value>Параметры резания</value>
+    <value>Cutting parameters</value>
   </data>
   <data name="TotalDepthLabel" xml:space="preserve">
-    <value>Общая глубина:</value>
+    <value>Total depth:</value>
   </data>
   <data name="StepDepthLabel" xml:space="preserve">
-    <value>Глубина за проход:</value>
+    <value>Depth per pass:</value>
   </data>
   <data name="ToolDiameter" xml:space="preserve">
-    <value>Диаметр фрезы:</value>
+    <value>Tool diameter:</value>
   </data>
   <data name="PositioningHeader" xml:space="preserve">
-    <value>Позиционирование</value>
+    <value>Positioning</value>
   </data>
   <data name="ContourHeightZ" xml:space="preserve">
-    <value>Высота контура (Z):</value>
+    <value>Contour height (Z):</value>
   </data>
   <data name="CoordinateX" xml:space="preserve">
     <value>X:</value>
@@ -520,25 +520,25 @@
     <value>Y:</value>
   </data>
   <data name="ReferencePoint" xml:space="preserve">
-    <value>Точка отсчета:</value>
+    <value>Reference point:</value>
   </data>
   <data name="ReferencePointCenter" xml:space="preserve">
-    <value>Центр</value>
+    <value>Center</value>
   </data>
   <data name="ReferencePointTopLeft" xml:space="preserve">
-    <value>Левый верхний</value>
+    <value>Top-left</value>
   </data>
   <data name="ReferencePointTopRight" xml:space="preserve">
-    <value>Правый верхний</value>
+    <value>Top-right</value>
   </data>
   <data name="ReferencePointBottomLeft" xml:space="preserve">
-    <value>Левый нижний</value>
+    <value>Bottom-left</value>
   </data>
   <data name="ReferencePointBottomRight" xml:space="preserve">
-    <value>Правый нижний</value>
+    <value>Bottom-right</value>
   </data>
   <data name="FeedParametersHeader" xml:space="preserve">
-    <value>Параметры подачи</value>
+    <value>Feed parameters</value>
   </data>
   <data name="FeedXYRapid" xml:space="preserve">
     <value>G0 (XY):</value>
@@ -553,67 +553,67 @@
     <value>G1 (Z):</value>
   </data>
   <data name="ZHeightsHeader" xml:space="preserve">
-    <value>Высоты перемещения</value>
+    <value>Movement heights</value>
   </data>
   <data name="SafeZHeight" xml:space="preserve">
-    <value>Высота перемещения:</value>
+    <value>Movement height:</value>
   </data>
   <data name="RetractZHeight" xml:space="preserve">
-    <value>Высота отвода:</value>
+    <value>Retract height:</value>
   </data>
   <data name="ToolEntryHeader" xml:space="preserve">
-    <value>Подвод инструмента</value>
+    <value>Tool entry</value>
   </data>
   <data name="EntryModeVertical" xml:space="preserve">
-    <value>Вводить фрезу вертикально</value>
+    <value>Enter the tool vertically</value>
   </data>
   <data name="EntryModeAngled" xml:space="preserve">
-    <value>Подводить под углом</value>
+    <value>Enter at an angle</value>
   </data>
   <data name="EntryAngleDeg" xml:space="preserve">
-    <value>Угол подвода (град):</value>
+    <value>Entry angle (deg):</value>
   </data>
   <data name="SafeDistanceBetweenPasses" xml:space="preserve">
-    <value>Безопасное расстояние между проходами:</value>
+    <value>Safe distance between passes:</value>
   </data>
   <data name="CircleParametersHeader" xml:space="preserve">
-    <value>Параметры окружности</value>
+    <value>Circle parameters</value>
   </data>
   <data name="CenterX" xml:space="preserve">
-    <value>Центр X:</value>
+    <value>Center X:</value>
   </data>
   <data name="CenterY" xml:space="preserve">
-    <value>Центр Y:</value>
+    <value>Center Y:</value>
   </data>
   <data name="Radius" xml:space="preserve">
-    <value>Радиус:</value>
+    <value>Radius:</value>
   </data>
   <data name="MaxSegmentLength" xml:space="preserve">
-    <value>Макс. длина сегмента (мм):</value>
+    <value>Max. segment length (mm):</value>
   </data>
   <data name="GeneralParametersHeader" xml:space="preserve">
-    <value>Общие параметры</value>
+    <value>General parameters</value>
   </data>
   <data name="HolesHeader" xml:space="preserve">
-    <value>Отверстия</value>
+    <value>Holes</value>
   </data>
   <data name="Add" xml:space="preserve">
-    <value>Добавить</value>
+    <value>Add</value>
   </data>
   <data name="Remove" xml:space="preserve">
-    <value>Удалить</value>
+    <value>Remove</value>
   </data>
   <data name="Up" xml:space="preserve">
-    <value>Вверх</value>
+    <value>Up</value>
   </data>
   <data name="Down" xml:space="preserve">
-    <value>Вниз</value>
+    <value>Down</value>
   </data>
   <data name="SafeZBetweenHolesLabel" xml:space="preserve">
-    <value>Безопасная высота Z между отверстиями:</value>
+    <value>Safe Z height between holes:</value>
   </data>
   <data name="LineParametersHeader" xml:space="preserve">
-    <value>Параметры линии</value>
+    <value>Line parameters</value>
   </data>
   <data name="StartX" xml:space="preserve">
     <value>X₀:</value>
@@ -625,16 +625,16 @@
     <value>Z₀:</value>
   </data>
   <data name="DistanceBetweenHoles" xml:space="preserve">
-    <value>Расстояние между отверстиями:</value>
+    <value>Distance between holes:</value>
   </data>
   <data name="HoleCount" xml:space="preserve">
-    <value>Кол-во отверстий:</value>
+    <value>Hole count:</value>
   </data>
   <data name="AngleDegToX" xml:space="preserve">
-    <value>Угол (° к оси X):</value>
+    <value>Angle (° from X axis):</value>
   </data>
   <data name="DrillingDepth" xml:space="preserve">
-    <value>Глубина сверления:</value>
+    <value>Drilling depth:</value>
   </data>
   <data name="FeedZRapidLabel" xml:space="preserve">
     <value>G0 Z:</value>
@@ -643,25 +643,25 @@
     <value>G1 Z:</value>
   </data>
   <data name="PreviewHolesHeader" xml:space="preserve">
-    <value>Отверстия (предпросмотр)</value>
+    <value>Holes (preview)</value>
   </data>
   <data name="ArrayParametersHeader" xml:space="preserve">
-    <value>Параметры массива</value>
+    <value>Array parameters</value>
   </data>
   <data name="HolesInRow" xml:space="preserve">
-    <value>Отверстий в ряду:</value>
+    <value>Holes in a row:</value>
   </data>
   <data name="RowPitch" xml:space="preserve">
-    <value>Шаг между рядами:</value>
+    <value>Row pitch:</value>
   </data>
   <data name="RowCount" xml:space="preserve">
-    <value>Кол-во рядов:</value>
+    <value>Row count:</value>
   </data>
   <data name="RectangleParametersHeader" xml:space="preserve">
-    <value>Параметры прямоугольника</value>
+    <value>Rectangle parameters</value>
   </data>
   <data name="CircleParametersDrillHeader" xml:space="preserve">
-    <value>Параметры окружности</value>
+    <value>Circle parameters</value>
   </data>
   <data name="CenterXLabel" xml:space="preserve">
     <value>Xc:</value>
@@ -670,58 +670,58 @@
     <value>Yc:</value>
   </data>
   <data name="PointsOnCircle" xml:space="preserve">
-    <value>Точек на окружности:</value>
+    <value>Points on the circle:</value>
   </data>
   <data name="StartAngleDegToX" xml:space="preserve">
-    <value>Начальный угол (° к оси X):</value>
+    <value>Start angle (° from X axis):</value>
   </data>
   <data name="EndAngleDegToX" xml:space="preserve">
-    <value>Конечный угол (° к оси X):</value>
+    <value>End angle (° from X axis):</value>
   </data>
   <data name="ArcParametersDrillHeader" xml:space="preserve">
-    <value>Параметры дуги</value>
+    <value>Arc parameters</value>
   </data>
   <data name="ShowAll" xml:space="preserve">
-    <value>Показать всё</value>
+    <value>Show all</value>
   </data>
   <data name="PocketDxfName" xml:space="preserve">
-    <value>Импорт DXF - карманы</value>
+    <value>DXF import - pockets</value>
   </data>
   <data name="DxfImportContoursInfo" xml:space="preserve">
-    <value>Импортировано замкнутых контуров: {0}</value>
+    <value>Closed contours imported: {0}</value>
   </data>
   <data name="DxfImportNoClosedContours" xml:space="preserve">
-    <value>В файле не найдено замкнутых контуров для импорта.</value>
+    <value>No closed contours found in the file to import.</value>
   </data>
   <data name="WallTaperAngleDeg" xml:space="preserve">
-    <value>Уклон стенки (°)</value>
+    <value>Wall taper (°)</value>
   </data>
   <data name="OperationEnabled" xml:space="preserve">
-    <value>Вкл</value>
+    <value>On</value>
   </data>
   <data name="PocketRoughing" xml:space="preserve">
-    <value>Черновая обработка (с припуском)</value>
+    <value>Roughing (with allowance)</value>
   </data>
   <data name="PocketFinishing" xml:space="preserve">
-    <value>Чистовая обработка (с припуском)</value>
+    <value>Finishing (with allowance)</value>
   </data>
   <data name="PocketFinishAllowance" xml:space="preserve">
-    <value>Припуск на обработку, мм:</value>
+    <value>Machining allowance, mm:</value>
   </data>
   <data name="PocketFinishingModeHeader" xml:space="preserve">
-    <value>Режим чистовой обработки</value>
+    <value>Finishing mode</value>
   </data>
   <data name="PocketFinishingWalls" xml:space="preserve">
-    <value>Только стенки</value>
+    <value>Walls only</value>
   </data>
   <data name="PocketFinishingBottom" xml:space="preserve">
-    <value>Только дно</value>
+    <value>Bottom only</value>
   </data>
   <data name="PocketFinishingAll" xml:space="preserve">
-    <value>Стенки и дно</value>
+    <value>Walls and bottom</value>
   </data>
   <data name="AddStartPosition" xml:space="preserve">
-    <value>В начале программы выполнить установку нулей (G92)</value>
+    <value>Set work offsets at program start (G92)</value>
   </data>
   <data name="StartPositionX" xml:space="preserve">
     <value>X₀:</value>
@@ -733,48 +733,48 @@
     <value>Z₀:</value>
   </data>
   <data name="AddEndPosition" xml:space="preserve">
-    <value>В конце программы перейти в точку</value>
+    <value>Move to a point at program end</value>
   </data>
   <data name="EndPositionX" xml:space="preserve">
-    <value>Xкон:</value>
+    <value>Xend:</value>
   </data>
   <data name="EndPositionY" xml:space="preserve">
-    <value>Yкон:</value>
+    <value>Yend:</value>
   </data>
   <data name="EndPositionZ" xml:space="preserve">
-    <value>Zкон:</value>
+    <value>Zend:</value>
   </data>
   <data name="SetWorkCoordinateSystem" xml:space="preserve">
-    <value>Устанавливать рабочую систему координат в начале программы</value>
+    <value>Set the work coordinate system at program start</value>
   </data>
   <data name="WorkCoordinateSystem" xml:space="preserve">
-    <value>Система координат:</value>
+    <value>Coordinate system:</value>
   </data>
   <data name="IslandMillingHeader" xml:space="preserve">
-    <value>Фрезерование острова</value>
+    <value>Island milling</value>
   </data>
   <data name="IslandMillingEnabled" xml:space="preserve">
-    <value>Включить фрезерование острова</value>
+    <value>Enable island milling</value>
   </data>
   <data name="OuterBoundaryTypeLabel" xml:space="preserve">
-    <value>Тип внешней границы:</value>
+    <value>Outer boundary type:</value>
   </data>
   <data name="OuterBoundaryTypeRectangle" xml:space="preserve">
-    <value>Прямоугольник</value>
+    <value>Rectangle</value>
   </data>
   <data name="OuterBoundaryTypeEllipse" xml:space="preserve">
-    <value>Эллипс</value>
+    <value>Ellipse</value>
   </data>
   <data name="OuterBoundaryCenterX" xml:space="preserve">
-    <value>Центр X:</value>
+    <value>Center X:</value>
   </data>
   <data name="OuterBoundaryCenterY" xml:space="preserve">
-    <value>Центр Y:</value>
+    <value>Center Y:</value>
   </data>
   <data name="OuterBoundaryWidth" xml:space="preserve">
-    <value>Ширина/Диаметр X:</value>
+    <value>Width/Diameter X:</value>
   </data>
   <data name="OuterBoundaryHeight" xml:space="preserve">
-    <value>Высота/Диаметр Y:</value>
+    <value>Height/Diameter Y:</value>
   </data>
 </root>

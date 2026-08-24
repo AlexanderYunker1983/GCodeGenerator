@@ -12,8 +12,9 @@ namespace GCodeGenerator.ViewModels.Pocket
         public PocketEllipseOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("PocketEllipseName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Карман эллиптический" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("PocketEllipseName") ?? "PocketEllipseName";
         }
 
         protected override void LoadFromOperation(PocketEllipseOperation operation)

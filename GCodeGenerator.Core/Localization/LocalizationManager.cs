@@ -48,7 +48,22 @@ namespace GCodeGenerator.Localization
                 var str = GetString(resourceManager, key, Culture, parameters);
                 if (!string.IsNullOrEmpty(str)) return str;
             }
+
+            // Пункт 8.3 плана: отсутствующий ключ → лог + сам ключ в виде
+            // «?key?» (захардкоженные фолбэки в VM удалены).
+            LogMissingKey(key);
             return $"?{key}?";
+        }
+
+        /// <summary>
+        /// Пункт 8.3 плана: логирование отсутствующего ключа локализации.
+        /// Минимальная реализация — System.Diagnostics.Debug (Core — чистый BCL,
+        /// лог-фреймворк не введён); в приложении виден в Output-окне VS/DebugView.
+        /// </summary>
+        protected virtual void LogMissingKey(string key)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"[Localization] Missing localization key: {key} (culture: {Culture?.Name ?? "CurrentUICulture"})");
         }
 
         private static string GetString(ResourceManager manager, string stringName, CultureInfo cultureInfo, params object[] parameters)

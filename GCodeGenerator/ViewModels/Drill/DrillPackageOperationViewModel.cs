@@ -14,8 +14,9 @@ namespace GCodeGenerator.ViewModels.Drill
         public DrillPackageOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("AddDrillPackage");
-            DisplayName = string.IsNullOrEmpty(title) ? "Сверление под стандартный корпус" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("AddDrillPackage") ?? "AddDrillPackage";
 
             PreviewHoles = new ObservableCollection<DrillHole>();
             Packages = new ObservableCollection<PackageDefinition>();

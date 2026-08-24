@@ -12,7 +12,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ProfilePolygonOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            DisplayName = _localizationManager?.GetString("ProfilePolygonName") ?? "";
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("ProfilePolygonName") ?? "ProfilePolygonName";
         }
 
         protected override void LoadFromOperation(ProfilePolygonOperation operation)

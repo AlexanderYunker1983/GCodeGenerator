@@ -12,7 +12,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
         public ProfileEllipseOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            DisplayName = _localizationManager?.GetString("ProfileEllipseName") ?? "";
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("ProfileEllipseName") ?? "ProfileEllipseName";
         }
 
         protected override void LoadFromOperation(ProfileEllipseOperation operation)

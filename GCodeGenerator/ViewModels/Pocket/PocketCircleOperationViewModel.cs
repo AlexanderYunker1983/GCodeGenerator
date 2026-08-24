@@ -12,8 +12,9 @@ namespace GCodeGenerator.ViewModels.Pocket
         public PocketCircleOperationViewModel(ILocalizationManager localizationManager)
         {
             _localizationManager = localizationManager;
-            var title = _localizationManager?.GetString("PocketCircleName");
-            DisplayName = string.IsNullOrEmpty(title) ? "Карман круглый" : title;
+            // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
+            // вернёт «?Key?» (лог — в LocalizationManager).
+            DisplayName = _localizationManager?.GetString("PocketCircleName") ?? "PocketCircleName";
         }
 
         protected override void LoadFromOperation(PocketCircleOperation operation)

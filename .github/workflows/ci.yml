@@ -70,5 +70,31 @@ jobs:
           }
           Write-Host 'ViewModels purity OK: no WPF UI references'
 
+      # Фаза 8 плана (пункт 8.3, DoD): в VM нет захардкоженных строк —
+      # кириллица в строковых литералах запрещена (текст — только через resx-ключи;
+      # отсутствующий ключ LocalizationManager вернёт «?key?» и запишет в лог).
+      # Целострочные комментарии (// и ///) не проверяются — русский текст в
+      # комментариях легитимен; строковые литералы (включая $"...") проверяются.
+      - name: Check ViewModels localization (no Cyrillic string literals)
+        shell: pwsh
+        run: |
+          $violations = @()
+          Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs | ForEach-Object {
+            $lines = @(Get-Content -Encoding UTF8 $_.FullName)  # @() — файл в одну строку тоже массив
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+              $line = $lines[$i]
+              if ($line -match '^\s*//') { continue }  # комментарий — не строковый литерал
+              if ($line -match '"[^"]*[\u0400-\u04FF][^"]*"') {
+                $violations += "$($_.Name):$($i + 1)"
+              }
+            }
+          }
+          if ($violations) {
+            Write-Host 'Cyrillic string literals found in GCodeGenerator/ViewModels:'
+            $violations | ForEach-Object { Write-Host "  $_" }
+            exit 1
+          }
+          Write-Host 'ViewModels localization OK: no Cyrillic string literals'
+
       - name: Run tests
         run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
