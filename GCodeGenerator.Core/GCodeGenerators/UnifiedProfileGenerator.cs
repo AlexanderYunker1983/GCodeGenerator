@@ -34,8 +34,9 @@ namespace GCodeGenerator.GCodeGenerators
                 return;
 
             // Вычисляем смещение инструмента
-            var toolRadius = profileOp.ToolDiameter / 2.0;
-            var toolOffset = GCodeGenerationHelper.CalculateToolOffset(profileOp.ToolPathMode, toolRadius);
+            var toolOffset = GCodeGenerationHelper.CalculateToolOffset(
+                profileOp.ToolPathMode,
+                profileOp.ToolDiameter);
 
             // Генерируем цикл по слоям
             _helper.GenerateLayerLoop(
