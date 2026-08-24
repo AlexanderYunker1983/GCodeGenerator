@@ -101,8 +101,12 @@ namespace GCodeGenerator.Tests
                 dialogService,
                 settingsStore,
                 projectFileService ?? new ProjectFileService());
+            var operationsWorkspace = new OperationsWorkspaceViewModel(
+                null,
+                factory,
+                new FakeThemeService());
             var main = new MainViewModel(null, dialogService, gCodeWorkflowFactory, projectWorkflowFactory,
-                factory, new ProgramInfo("1.0"), settingsStore, new FakeThemeService());
+                operationsWorkspace, new ProgramInfo("1.0"), settingsStore);
             return (main, factory, dialogService, settingsStore);
         }
 
