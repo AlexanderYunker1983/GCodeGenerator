@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Media3D;
@@ -8,6 +9,7 @@ namespace GCodeGenerator.Views
 {
     public partial class PreviewView : Window
     {
+        private PreviewViewModel _viewModel;
         private Point3D _modelCenter = new Point3D(0, 0, 0);
         private Point3D _rotationPivot = new Point3D(0, 0, 0); // Точка поворота при правой кнопке мыши
         private bool _isRotating;
@@ -21,24 +23,46 @@ namespace GCodeGenerator.Views
         {
             InitializeComponent();
             DataContextChanged += PreviewView_DataContextChanged;
+            Closed += PreviewView_Closed;
         }
 
         private void PreviewView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            if (e.NewValue is PreviewViewModel vm)
+            UnhookViewModel();
+
+            _viewModel = e.NewValue as PreviewViewModel;
+            if (_viewModel != null)
             {
-                vm.PropertyChanged += (s, args) =>
+                _viewModel.PropertyChanged += OnViewModelPropertyChanged;
+
+                if (_viewModel.Scene != null)
                 {
-                    if (args.PropertyName == nameof(PreviewViewModel.Scene))
-                    {
-                        UpdateTrajectoryModel(SceneRenderer.Render(vm.Scene));
-                    }
-                };
-                
-                if (vm.Scene != null)
-                {
-                    UpdateTrajectoryModel(SceneRenderer.Render(vm.Scene));
+                    UpdateTrajectoryModel(SceneRenderer.Render(_viewModel.Scene));
                 }
+            }
+        }
+
+        private void PreviewView_Closed(object sender, EventArgs e)
+        {
+            UnhookViewModel();
+        }
+
+        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(PreviewViewModel.Scene) &&
+                sender is PreviewViewModel viewModel &&
+                ReferenceEquals(viewModel, _viewModel))
+            {
+                UpdateTrajectoryModel(SceneRenderer.Render(viewModel.Scene));
+            }
+        }
+
+        private void UnhookViewModel()
+        {
+            if (_viewModel != null)
+            {
+                _viewModel.PropertyChanged -= OnViewModelPropertyChanged;
+                _viewModel = null;
             }
         }
 
