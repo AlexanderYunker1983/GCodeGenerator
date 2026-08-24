@@ -21,48 +21,24 @@ namespace GCodeGenerator.Services
             // Ищем замкнутые области, образованные пересекающимися линиями
             var intersectionContours = FindClosedAreasFromIntersections(allPolylines);
             
-            // Фильтруем только замкнутые контуры
             var closedContours = new List<DxfPolyline>();
-            foreach (var polyline in allPolylines)
-            {
-                if (IsClosedContour(polyline))
-                {
-                    closedContours.Add(polyline);
-                }
-            }
-            
-            // Добавляем соединенные контуры
-            foreach (var contour in connectedContours)
-            {
-                if (IsClosedContour(contour))
-                {
-                    closedContours.Add(contour);
-                }
-            }
-            
-            // Добавляем контуры из пересечений
-            foreach (var contour in intersectionContours)
-            {
-                if (IsClosedContour(contour))
-                {
-                    // Проверяем, нет ли уже такого контура
-                    bool isDuplicate = false;
-                    foreach (var existing in closedContours)
-                    {
-                        if (AreContoursSimilar(contour, existing))
-                        {
-                            isDuplicate = true;
-                            break;
-                        }
-                    }
-                    if (!isDuplicate)
-                    {
-                        closedContours.Add(contour);
-                    }
-                }
-            }
+            AddUniqueClosedContours(closedContours, allPolylines);
+            AddUniqueClosedContours(closedContours, connectedContours);
+            AddUniqueClosedContours(closedContours, intersectionContours);
 
             return closedContours;
+        }
+
+        private void AddUniqueClosedContours(
+            List<DxfPolyline> destination,
+            IEnumerable<DxfPolyline> candidates)
+        {
+            foreach (var contour in candidates)
+            {
+                if (IsClosedContour(contour)
+                    && !destination.Any(existing => AreContoursSimilar(contour, existing)))
+                    destination.Add(contour);
+            }
         }
 
         private List<DxfPolyline> ConnectSegmentsIntoContours(List<DxfPolyline> segments)

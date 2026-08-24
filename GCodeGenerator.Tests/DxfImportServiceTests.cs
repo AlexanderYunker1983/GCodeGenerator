@@ -25,5 +25,16 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(contour.Points[0].X, contour.Points[4].X, 1e-9);
             Assert.AreEqual(contour.Points[0].Y, contour.Points[4].Y, 1e-9);
         }
+
+        [TestMethod]
+        public void PocketImport_Circle_ReturnsSingleContour()
+        {
+            var contours = DxfFixtureLoader.LoadPocketClosedContours("circle_sample.dxf");
+
+            Assert.AreEqual(1, contours.Count,
+                "Одна сущность CIRCLE не должна дублироваться как connected contour");
+            Assert.AreEqual(33, contours[0].Points.Count,
+                "Окружность аппроксимируется 32 сегментами и замыкающей точкой");
+        }
     }
 }
