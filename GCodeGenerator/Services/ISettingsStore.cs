@@ -1,3 +1,4 @@
+using System;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -8,6 +9,11 @@ namespace GCodeGenerator.Services
     /// </summary>
     public interface ISettingsStore
     {
+        /// <summary>
+        /// Настройки, влияющие на генерацию, были применены к <see cref="Current"/>.
+        /// </summary>
+        event EventHandler SettingsChanged;
+
         /// <summary>Текущие настройки (единый экземпляр на приложение).</summary>
         GCodeSettings Current { get; }
 

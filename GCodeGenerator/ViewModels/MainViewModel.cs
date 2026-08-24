@@ -12,6 +12,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Threading;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
@@ -44,6 +45,7 @@ namespace GCodeGenerator.ViewModels
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _settings = _settingsStore.Current;
+            _settingsStore.SettingsChanged += OnSettingsChanged;
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
@@ -198,6 +200,7 @@ namespace GCodeGenerator.ViewModels
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
+            InvalidateGeneratedProgram();
             ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
 
             if (e?.NewItems != null)
@@ -239,10 +242,12 @@ namespace GCodeGenerator.ViewModels
         {
             // Пункт 7.2 плана: любое изменение операции (сохранение из диалога,
             // переключение «Включено», импорт DXF) перерисовывает 2D-превью.
+            InvalidateGeneratedProgram();
             NotifyOperationsChanged();
         }
 
         private GCodeProgram _generatedProgram;
+        private long _documentRevision;
 
         /// <summary>Пункт 8.4: идёт ли генерация G-кода (UI-индикатор).</summary>
         public bool IsGenerating
@@ -286,13 +291,28 @@ namespace GCodeGenerator.ViewModels
             ProgressPercent = 0;
             _generatedProgram = null;
             GCodePreview = string.Empty;
+            long generationRevision = Volatile.Read(ref _documentRevision);
             bool generationCompleted = false;
             try
             {
                 var operations = new System.Collections.Generic.List<OperationBase>(AllOperations);
                 var settings = _settings;
+                var progress = new Progress<int>(p =>
+                {
+                    if (generationRevision == Volatile.Read(ref _documentRevision))
+                        ProgressPercent = p;
+                });
                 var program = await Task.Run(() =>
-                    _generator.Generate(operations, settings, new Progress<int>(p => ProgressPercent = p)));
+                    _generator.Generate(operations, settings, progress));
+
+                // Если пользователь изменил операции или настройки, пока Core работал
+                // в фоне, результат построен уже не для текущего проекта и отбрасывается.
+                if (generationRevision != Volatile.Read(ref _documentRevision))
+                {
+                    ProgressPercent = 0;
+                    return;
+                }
+
                 _generatedProgram = program;
                 var sb = new StringBuilder();
                 foreach (var line in program.Lines)
@@ -368,6 +388,18 @@ namespace GCodeGenerator.ViewModels
             // Пункт 7.2 плана: любое изменение операций перерисовывает 2D-превью
             // (push в preview VM, DoD фазы 7 — без циклической ссылки).
             OperationsPreview?.RebuildScene();
+        }
+
+        private void OnSettingsChanged(object sender, EventArgs e)
+        {
+            InvalidateGeneratedProgram();
+        }
+
+        private void InvalidateGeneratedProgram()
+        {
+            Interlocked.Increment(ref _documentRevision);
+            _generatedProgram = null;
+            GCodePreview = string.Empty;
         }
 
         private void OnCategoryOperationAdded(OperationBase operation)
@@ -464,8 +496,6 @@ namespace GCodeGenerator.ViewModels
             // Пункт 7.2 плана: единая коллекция — один Clear()
             AllOperations.Clear();
             SelectedOperation = null;
-            GCodePreview = string.Empty;
-            _generatedProgram = null;
 
             // Пункт 8.2 (решение исполнителя): новый проект стартует с глобальных
             // настроек шпинделя/СОЖ, не наследуя их от ранее открытого проекта.
@@ -565,8 +595,6 @@ namespace GCodeGenerator.ViewModels
             // Clear current data (пункт 7.2: единая коллекция)
             AllOperations.Clear();
             SelectedOperation = null;
-            GCodePreview = string.Empty;
-            _generatedProgram = null;
 
             // Пункт 7.2: switch AddOperationToCollections не нужен — все операции
             // идут в единую коллекцию (категория хранится на самой операции).

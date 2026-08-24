@@ -1,3 +1,4 @@
+using System;
 using GCodeGenerator.Models;
 using GCodeGenerator.Properties;
 
@@ -12,6 +13,8 @@ namespace GCodeGenerator.Services
     /// </summary>
     public sealed class AppSettingsStore : ISettingsStore
     {
+        public event EventHandler SettingsChanged;
+
         public GCodeSettings Current { get; }
 
         public AppSettingsStore()
@@ -37,6 +40,7 @@ namespace GCodeGenerator.Services
             if (string.IsNullOrEmpty(Current.WorkCoordinate.WorkCoordinateSystem))
                 persisted["WorkCoordinateSystem"] = "G54";
             persisted.Save();
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -51,6 +55,7 @@ namespace GCodeGenerator.Services
                 if (path.StartsWith("Spindle.") || path.StartsWith("Coolant."))
                     SettingsMapping.SetValue(Current, path, persisted[setting]);
             }
+            SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

@@ -96,16 +96,19 @@ namespace GCodeGenerator.Tests
         /// <summary>Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.</summary>
         internal sealed class FakeSettingsStore : ISettingsStore
         {
+            public event EventHandler SettingsChanged;
+
             public GCodeSettings Current { get; } = new GCodeSettings();
             public int RestoreCalls { get; private set; }
 
-            public void Save() { }
+            public void Save() => SettingsChanged?.Invoke(this, EventArgs.Empty);
 
             public void RestoreGlobalSpindleAndCoolant()
             {
                 RestoreCalls++;
                 Current.Spindle = new SpindleSettings();
                 Current.Coolant = new CoolantSettings();
+                SettingsChanged?.Invoke(this, EventArgs.Empty);
             }
         }
 
