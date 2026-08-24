@@ -81,6 +81,9 @@ namespace GCodeGenerator
             builder.RegisterType<SimpleGCodeGenerator>()
                 .As<IGCodeGenerator>()
                 .SingleInstance();
+            builder.RegisterType<GCodeWorkflowFactory>()
+                .As<IGCodeWorkflowFactory>()
+                .SingleInstance();
 
             builder.RegisterAssemblyTypes(typeof(MainViewModel).Assembly)
                 .AssignableTo<ViewModelBase>()

@@ -8,12 +8,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
-using System.Threading;
-using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 
@@ -21,8 +17,8 @@ namespace GCodeGenerator.ViewModels
 {
     public class MainViewModel : ViewModelBase, IHasDisplayName
     {
-        private readonly IGCodeGenerator _generator;
         private readonly GCodeSettings _settings;
+        private readonly GCodeWorkflowViewModel _gCodeWorkflow;
         private readonly ISettingsStore _settingsStore;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
@@ -30,15 +26,11 @@ namespace GCodeGenerator.ViewModels
         private readonly IProgramInfo _programInfo;
         private readonly IThemeService _themeService;
         private readonly IProjectFileService _projectFileService;
-        private readonly IGCodeFileService _gCodeFileService;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService, IGCodeFileService gCodeFileService)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeWorkflowFactory gCodeWorkflowFactory, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
-            // Пункт 4.5 плана: генератор резолвится через IoC (App.xaml.cs),
-            // new SimpleGCodeGenerator() удалён.
-            _generator = generator ?? throw new ArgumentNullException(nameof(generator));
             // Пункт 7.3 плана: фабрика диалогов редактора операций.
             _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             // Пункт 7.5 плана: версия, настройки и тема — через IoC (ранее статика
@@ -50,13 +42,16 @@ namespace GCodeGenerator.ViewModels
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
-            _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
             // (FilteredOperationsView).
             AllOperations = new ObservableCollection<OperationBase>();
             AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
+
+            _gCodeWorkflow = (gCodeWorkflowFactory ?? throw new ArgumentNullException(nameof(gCodeWorkflowFactory)))
+                .Create(AllOperations, _settings);
+            _gCodeWorkflow.PropertyChanged += OnGCodeWorkflowPropertyChanged;
 
             // Пункт 7.3 плана: категорийные VM открывают диалоги через фабрику.
             DrillOperations = new DrillOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
@@ -66,11 +61,11 @@ namespace GCodeGenerator.ViewModels
             PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
             PocketOperations.OperationAdded += OnCategoryOperationAdded;
             
-            // Пункт 8.4 плана: генерация — async (Task.Run в GenerateGCodeAsync),
-            // UI не блокируется; AsyncRelayCommand сам запрещает повторный запуск.
-            GenerateGCodeCommand = new AsyncRelayCommand(GenerateGCodeAsync, () => AllOperations.Count > 0);
-            SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
-            PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
+            // Генерация, прогресс, preview и сохранение G-code принадлежат
+            // отдельному workflow; MainViewModel только публикует его команды.
+            GenerateGCodeCommand = _gCodeWorkflow.GenerateGCodeCommand;
+            SaveGCodeCommand = _gCodeWorkflow.SaveGCodeCommand;
+            PreviewGCodeCommand = _gCodeWorkflow.PreviewGCodeCommand;
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             ShowAllPreviewCommand = new RelayCommand(ShowAllPreview);
             
@@ -160,20 +155,15 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private string _gCodePreview;
-
         public string GCodePreview
         {
-            get => _gCodePreview;
-            set
-            {
-                if (Equals(value, _gCodePreview)) return;
-                _gCodePreview = value;
-                OnPropertyChanged();
-                ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
-                ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
-            }
+            get => _gCodeWorkflow.GCodePreview;
+            set => _gCodeWorkflow.GCodePreview = value;
         }
+
+        public bool IsGenerating => _gCodeWorkflow.IsGenerating;
+
+        public int ProgressPercent => _gCodeWorkflow.ProgressPercent;
 
         public ICommand GenerateGCodeCommand { get; }
 
@@ -199,11 +189,20 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand OpenProjectCommand { get; }
 
+        private void OnGCodeWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(GCodeWorkflowViewModel.GCodePreview) ||
+                e.PropertyName == nameof(GCodeWorkflowViewModel.IsGenerating) ||
+                e.PropertyName == nameof(GCodeWorkflowViewModel.ProgressPercent))
+            {
+                OnPropertyChanged(e.PropertyName);
+            }
+        }
+
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             InvalidateGeneratedProgram();
-            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
 
             if (e?.NewItems != null)
             {
@@ -248,132 +247,6 @@ namespace GCodeGenerator.ViewModels
             NotifyOperationsChanged();
         }
 
-        private GCodeProgram _generatedProgram;
-        private long _documentRevision;
-
-        /// <summary>Пункт 8.4: идёт ли генерация G-кода (UI-индикатор).</summary>
-        public bool IsGenerating
-        {
-            get => _isGenerating;
-            private set
-            {
-                if (value == _isGenerating) return;
-                _isGenerating = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private bool _isGenerating;
-
-        /// <summary>Пункт 8.4: прогресс генерации, 0–100 (для ProgressBar).</summary>
-        public int ProgressPercent
-        {
-            get => _progressPercent;
-            private set
-            {
-                if (value == _progressPercent) return;
-                _progressPercent = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private int _progressPercent;
-
-        /// <summary>
-        /// Пункт 8.4 плана: генерация G-кода — async с прогрессом.
-        /// Core остаётся синхронным: тяжёлая работа — в Task.Run, прогресс —
-        /// IProgress&lt;int&gt; (marshalling на UI-поток встроен в Progress).
-        /// </summary>
-        private async Task GenerateGCodeAsync()
-        {
-            if (IsGenerating)
-                return;
-
-            IsGenerating = true;
-            ProgressPercent = 0;
-            _generatedProgram = null;
-            GCodePreview = string.Empty;
-            long generationRevision = Volatile.Read(ref _documentRevision);
-            bool generationCompleted = false;
-            try
-            {
-                var operations = new System.Collections.Generic.List<OperationBase>(AllOperations);
-                var settings = _settings;
-                var progress = new Progress<int>(p =>
-                {
-                    if (generationRevision == Volatile.Read(ref _documentRevision))
-                        ProgressPercent = p;
-                });
-                var program = await Task.Run(() =>
-                    _generator.Generate(operations, settings, progress));
-
-                // Если пользователь изменил операции или настройки, пока Core работал
-                // в фоне, результат построен уже не для текущего проекта и отбрасывается.
-                if (generationRevision != Volatile.Read(ref _documentRevision))
-                {
-                    ProgressPercent = 0;
-                    return;
-                }
-
-                _generatedProgram = program;
-                var sb = new StringBuilder();
-                foreach (var line in program.Lines)
-                    sb.AppendLine(line);
-                GCodePreview = sb.ToString();
-                generationCompleted = true;
-            }
-            catch (Exception ex)
-            {
-                _generatedProgram = null;
-                GCodePreview = string.Empty;
-                ProgressPercent = 0;
-                var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
-                var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
-            }
-            finally
-            {
-                IsGenerating = false;
-                if (generationCompleted)
-                    ProgressPercent = 100;
-            }
-        }
-
-        private void SaveGCode()
-        {
-            if (string.IsNullOrEmpty(GCodePreview))
-                return;
-
-            var fileName = _dialogService.ShowSaveDialog(
-                "",
-                "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
-                "nc",
-                "program.nc");
-            if (fileName != null)
-            {
-                try
-                {
-                    _gCodeFileService.Save(fileName, GCodePreview);
-                }
-                catch (Exception ex)
-                {
-                    var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
-                    var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                    _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
-                }
-            }
-        }
-
-        private void PreviewGCode()
-        {
-            if (string.IsNullOrEmpty(GCodePreview))
-                return;
-
-            var vm = _dialogService.CreateViewModel<PreviewViewModel>();
-            vm.Program = _generatedProgram;
-            _dialogService.ShowDialog(vm);
-        }
-
         private void OpenSettings()
         {
             var vm = _dialogService.CreateViewModel<SettingsViewModel>();
@@ -399,9 +272,7 @@ namespace GCodeGenerator.ViewModels
 
         private void InvalidateGeneratedProgram()
         {
-            Interlocked.Increment(ref _documentRevision);
-            _generatedProgram = null;
-            GCodePreview = string.Empty;
+            _gCodeWorkflow.InvalidateGeneratedProgram();
         }
 
         private void OnCategoryOperationAdded(OperationBase operation)

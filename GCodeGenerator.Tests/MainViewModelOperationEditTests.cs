@@ -90,9 +90,13 @@ namespace GCodeGenerator.Tests
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var settingsStore = new FakeSettingsStore();
-            var main = new MainViewModel(null, dialogService, generator ?? new SimpleGCodeGenerator(), factory,
-                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService(),
+            var gCodeWorkflowFactory = new GCodeWorkflowFactory(
+                generator ?? new SimpleGCodeGenerator(),
+                null,
+                dialogService,
                 gCodeFileService ?? new GCodeFileService());
+            var main = new MainViewModel(null, dialogService, gCodeWorkflowFactory, factory,
+                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService());
             return (main, factory, dialogService, settingsStore);
         }
 
