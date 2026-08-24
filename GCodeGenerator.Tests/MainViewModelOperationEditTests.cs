@@ -37,9 +37,15 @@ namespace GCodeGenerator.Tests
             public Type CreatedType { get; private set; }
             public Type ShownType { get; private set; }
             public object ShownVm { get; private set; }
+            public string LastErrorMessage { get; private set; }
+            public string LastErrorTitle { get; private set; }
 
             public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "") { }
+            public void ShowError(string message, string title = "")
+            {
+                LastErrorMessage = message;
+                LastErrorTitle = title;
+            }
             public bool ShowConfirm(string message, string title = "") => true;
 
             /// <summary>Пункт 8.2: путь, который «выбирает» диалог открытия (null — отмена).</summary>

@@ -20,13 +20,13 @@ namespace GCodeGenerator.Models
         public const double ContourClosedTolerance = 1e-3;
 
         /// <summary>
-        /// Adds an issue if <paramref name="value"/> is not greater than zero.
+        /// Adds an issue if <paramref name="value"/> is non-finite or not greater than zero.
         /// </summary>
         public static void AddIfNotPositive(IList<ValidationIssue> issues, string property, double value)
         {
-            if (value <= 0)
+            if (!double.IsFinite(value) || value <= 0)
                 issues.Add(new ValidationIssue(property,
-                    $"must be greater than zero, but is {value.ToString(CultureInfo.InvariantCulture)}"));
+                    $"must be finite and greater than zero, but is {value.ToString(CultureInfo.InvariantCulture)}"));
         }
 
         /// <summary>

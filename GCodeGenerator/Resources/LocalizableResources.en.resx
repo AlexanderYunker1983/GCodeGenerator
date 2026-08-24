@@ -330,6 +330,9 @@
   <data name="ErrorSavingGCodeFile" xml:space="preserve">
     <value>Error saving the file:</value>
   </data>
+  <data name="ErrorGeneratingGCode" xml:space="preserve">
+    <value>Error generating G-code:</value>
+  </data>
   <data name="Error" xml:space="preserve">
     <value>Error</value>
   </data>

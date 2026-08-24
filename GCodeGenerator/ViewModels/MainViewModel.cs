@@ -284,6 +284,9 @@ namespace GCodeGenerator.ViewModels
 
             IsGenerating = true;
             ProgressPercent = 0;
+            _generatedProgram = null;
+            GCodePreview = string.Empty;
+            bool generationCompleted = false;
             try
             {
                 var operations = new System.Collections.Generic.List<OperationBase>(AllOperations);
@@ -295,11 +298,22 @@ namespace GCodeGenerator.ViewModels
                 foreach (var line in program.Lines)
                     sb.AppendLine(line);
                 GCodePreview = sb.ToString();
+                generationCompleted = true;
+            }
+            catch (Exception ex)
+            {
+                _generatedProgram = null;
+                GCodePreview = string.Empty;
+                ProgressPercent = 0;
+                var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
+                var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
+                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
             }
             finally
             {
                 IsGenerating = false;
-                ProgressPercent = 100;
+                if (generationCompleted)
+                    ProgressPercent = 100;
             }
         }
 

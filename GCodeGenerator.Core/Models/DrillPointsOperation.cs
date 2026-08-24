@@ -187,7 +187,10 @@ namespace GCodeGenerator.Models
                 {
                     var hole = Holes[i];
                     if (hole == null)
+                    {
+                        issues.Add(new ValidationIssue($"Holes[{i}]", "hole is null"));
                         continue;
+                    }
                     OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
                     OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
                 }

@@ -330,6 +330,9 @@
   <data name="ErrorSavingGCodeFile" xml:space="preserve">
     <value>Ошибка при сохранении файла:</value>
   </data>
+  <data name="ErrorGeneratingGCode" xml:space="preserve">
+    <value>Ошибка при генерации G-кода:</value>
+  </data>
   <data name="Error" xml:space="preserve">
     <value>Ошибка</value>
   </data>

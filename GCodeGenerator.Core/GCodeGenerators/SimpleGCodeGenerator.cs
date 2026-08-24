@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -23,6 +24,15 @@ namespace GCodeGenerator.GCodeGenerators
 
         public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
         {
+            if (operations == null)
+                throw new ArgumentNullException(nameof(operations));
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
+
+            // Все проверки выполняются до создания блоков программы: при любой
+            // ошибке вызывающая сторона не получит частичный, внешне корректный G-code.
+            var resolvedGenerators = ValidateAndResolveGenerators(operations);
+
             // План 4.3/4.4: программа собирается структурой (ProgramBuilder)
             // и рендерится GCodeFormatter; операционные генераторы пишут
             // блоки через ProgramBuilder (IOperationGenerator).
@@ -82,11 +92,7 @@ namespace GCodeGenerator.GCodeGenerators
 
                 builder.Comment($"{operation.Name}: {operation.GetDescription()}");
 
-                var operationType = operation.GetType();
-                if (_registry.TryGetGenerator(operationType, out var generator))
-                {
-                    generator.Generate(operation, builder, settings);
-                }
+                resolvedGenerators[index].Generate(operation, builder, settings);
 
                 if (total > 0)
                     progress?.Report((index + 1) * 100 / total);
@@ -107,6 +113,74 @@ namespace GCodeGenerator.GCodeGenerators
 
             GCodeFormatter.Format(program, settings);
             return program;
+        }
+
+        private IOperationGenerator[] ValidateAndResolveGenerators(IList<OperationBase> operations)
+        {
+            var failures = new List<OperationValidationFailure>();
+            var generators = new IOperationGenerator[operations.Count];
+
+            for (int index = 0; index < operations.Count; index++)
+            {
+                var operation = operations[index];
+                if (operation == null)
+                {
+                    failures.Add(new OperationValidationFailure(
+                        index,
+                        null,
+                        null,
+                        new[] { new ValidationIssue("Operation", "operation is null") }));
+                    continue;
+                }
+
+                if (!operation.IsEnabled)
+                    continue;
+
+                var issues = new List<ValidationIssue>();
+                if (!_registry.TryGetGenerator(operation.GetType(), out var generator) || generator == null)
+                {
+                    issues.Add(new ValidationIssue(
+                        "OperationType",
+                        "no G-code generator is registered for this operation type"));
+                }
+                else
+                {
+                    generators[index] = generator;
+                }
+
+                if (operation is IValidatable validatable)
+                {
+                    var validationIssues = validatable.Validate();
+                    if (validationIssues == null)
+                    {
+                        issues.Add(new ValidationIssue("Validation", "validator returned null"));
+                    }
+                    else
+                    {
+                        issues.AddRange(validationIssues.Where(issue => issue != null));
+                    }
+                }
+                else
+                {
+                    issues.Add(new ValidationIssue(
+                        "Validation",
+                        "operation type does not implement domain validation"));
+                }
+
+                if (issues.Count > 0)
+                {
+                    failures.Add(new OperationValidationFailure(
+                        index,
+                        operation.Name,
+                        operation.GetType().Name,
+                        issues));
+                }
+            }
+
+            if (failures.Count > 0)
+                throw new GCodeGenerationValidationException(failures);
+
+            return generators;
         }
     }
 }
