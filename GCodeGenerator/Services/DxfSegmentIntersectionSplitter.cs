@@ -12,6 +12,7 @@ namespace GCodeGenerator.Services
     internal sealed class DxfSegmentIntersectionSplitter
     {
         private readonly double _tolerance;
+        private readonly DxfSegmentIntersectionDetector _intersectionDetector;
 
         internal DxfSegmentIntersectionSplitter(double tolerance)
         {
@@ -19,6 +20,7 @@ namespace GCodeGenerator.Services
                 throw new ArgumentOutOfRangeException(nameof(tolerance));
 
             _tolerance = tolerance;
+            _intersectionDetector = new DxfSegmentIntersectionDetector(tolerance);
         }
 
         internal List<DxfPolyline> Split(List<DxfPolyline> segments)
@@ -43,7 +45,7 @@ namespace GCodeGenerator.Services
                         continue;
                     
                     // Находим пересечения между сегментами
-                    var pts = FindSegmentIntersections(seg1, seg2);
+                    var pts = _intersectionDetector.FindIntersections(seg1, seg2);
                     foreach (var pt in pts)
                     {
                         // Вычисляем расстояние от начала сегмента 1 до точки пересечения
@@ -53,7 +55,7 @@ namespace GCodeGenerator.Services
                             var p1 = seg1.Points[k];
                             var p2 = seg1.Points[k + 1];
                             var segDist = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
-                            var distToInter = DistanceToSegment(pt.X, pt.Y, p1.X, p1.Y, p2.X, p2.Y);
+                            var distToInter = _intersectionDetector.DistanceToSegment(pt.X, pt.Y, p1.X, p1.Y, p2.X, p2.Y);
                             if (distToInter < _tolerance)
                             {
                                 dist1 += Math.Sqrt(Math.Pow(pt.X - p1.X, 2) + Math.Pow(pt.Y - p1.Y, 2));
@@ -69,7 +71,7 @@ namespace GCodeGenerator.Services
                             var p1 = seg2.Points[k];
                             var p2 = seg2.Points[k + 1];
                             var segDist = Math.Sqrt(Math.Pow(p2.X - p1.X, 2) + Math.Pow(p2.Y - p1.Y, 2));
-                            var distToInter = DistanceToSegment(pt.X, pt.Y, p1.X, p1.Y, p2.X, p2.Y);
+                            var distToInter = _intersectionDetector.DistanceToSegment(pt.X, pt.Y, p1.X, p1.Y, p2.X, p2.Y);
                             if (distToInter < _tolerance)
                             {
                                 dist2 += Math.Sqrt(Math.Pow(pt.X - p1.X, 2) + Math.Pow(pt.Y - p1.Y, 2));
@@ -119,7 +121,7 @@ namespace GCodeGenerator.Services
                         {
                             var p1 = points[j];
                             var p2 = points[j + 1];
-                            var dist = DistanceToSegment(inter.point.X, inter.point.Y, p1.X, p1.Y, p2.X, p2.Y);
+                            var dist = _intersectionDetector.DistanceToSegment(inter.point.X, inter.point.Y, p1.X, p1.Y, p2.X, p2.Y);
                             if (dist < minDist && dist < _tolerance * 10) // Увеличиваем допуск для поиска
                             {
                                 // Проверяем, что точка действительно на отрезке между p1 и p2
@@ -175,81 +177,6 @@ namespace GCodeGenerator.Services
             }
             
             return splitSegments;
-        }
-
-        private List<DxfPoint> FindSegmentIntersections(DxfPolyline seg1, DxfPolyline seg2)
-        {
-            var intersections = new List<DxfPoint>();
-            
-            if (seg1.Points == null || seg1.Points.Count < 2 || seg2.Points == null || seg2.Points.Count < 2)
-                return intersections;
-            
-            // Проверяем пересечения между всеми парами отрезков
-            for (int i = 0; i < seg1.Points.Count - 1; i++)
-            {
-                var p1 = seg1.Points[i];
-                var p2 = seg1.Points[i + 1];
-                
-                for (int j = 0; j < seg2.Points.Count - 1; j++)
-                {
-                    var p3 = seg2.Points[j];
-                    var p4 = seg2.Points[j + 1];
-                    
-                    var intersection = FindLineSegmentIntersection(p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, p4.X, p4.Y);
-                    if (intersection != null)
-                    {
-                        if (!intersections.Any(p => PointsMatch(p, intersection)))
-                            intersections.Add(intersection);
-                    }
-                }
-            }
-            
-            return intersections;
-        }
-
-        private DxfPoint FindLineSegmentIntersection(double x1, double y1, double x2, double y2,
-            double x3, double y3, double x4, double y4)
-        {
-            double dx1 = x2 - x1;
-            double dy1 = y2 - y1;
-            double dx2 = x4 - x3;
-            double dy2 = y4 - y3;
-            
-            double denom = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(denom) < 1e-9)
-                return null; // Параллельные линии
-            
-            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
-            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
-            
-            // Используем небольшой допуск для границ отрезков
-            const double tolerance = 1e-6;
-            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
-            {
-                // Ограничиваем параметры диапазоном [0, 1]
-                t1 = Math.Max(0, Math.Min(1, t1));
-                return new DxfPoint
-                {
-                    X = x1 + t1 * dx1,
-                    Y = y1 + t1 * dy1
-                };
-            }
-            
-            return null;
-        }
-
-        private double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2)
-        {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
-                return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
-            
-            double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-            t = Math.Max(0, Math.Min(1, t));
-            double projX = x1 + t * dx;
-            double projY = y1 + t * dy;
-            return Math.Sqrt(Math.Pow(px - projX, 2) + Math.Pow(py - projY, 2));
         }
 
         private bool PointsMatch(DxfPoint p1, DxfPoint p2)
