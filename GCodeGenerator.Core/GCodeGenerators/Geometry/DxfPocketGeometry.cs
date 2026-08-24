@@ -137,6 +137,18 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 return true;
 
             double effectiveToolRadius = toolRadius + taperOffset;
+
+            // Любая область, в которую физически помещается круглая фреза,
+            // должна иметь ширину не меньше диаметра фрезы в каждом направлении.
+            // Проверяем минимальную ширину выпуклой оболочки ДО построения оффсета:
+            // legacy-алгоритм OffsetContour после перехода через вырождение может
+            // вернуть bowtie или маленький инвертированный многоугольник с ненулевой
+            // shoelace-площадью, и последующие эвристики ошибочно считают его валидным.
+            if (effectiveToolRadius > 0
+                && GetMinimumConvexHullWidth(_primaryContour) + 1e-6 < 2.0 * effectiveToolRadius)
+            {
+                return true;
+            }
             
             // Смещаем контур внутрь на effectiveToolRadius
             var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
@@ -232,6 +244,92 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
             // Контур валиден - не вырожден и не инвертирован
             return false;
+        }
+
+        /// <summary>
+        /// Возвращает минимальную ширину выпуклой оболочки контура.
+        /// Это безопасная необходимая проверка вместимости круглого инструмента:
+        /// если даже выпуклая оболочка уже диаметра фрезы, исходный контур тем более
+        /// не может содержать требуемую окружность.
+        /// </summary>
+        private static double GetMinimumConvexHullWidth(DxfPolyline contour)
+        {
+            var points = contour.Points
+                .Where(point => point != null && double.IsFinite(point.X) && double.IsFinite(point.Y))
+                .Select(point => (x: point.X, y: point.Y))
+                .Distinct()
+                .OrderBy(point => point.x)
+                .ThenBy(point => point.y)
+                .ToList();
+
+            if (points.Count < 3)
+                return 0;
+
+            var lower = new List<(double x, double y)>();
+            foreach (var point in points)
+            {
+                while (lower.Count >= 2
+                    && Cross(lower[lower.Count - 2], lower[lower.Count - 1], point) <= 1e-9)
+                {
+                    lower.RemoveAt(lower.Count - 1);
+                }
+                lower.Add(point);
+            }
+
+            var upper = new List<(double x, double y)>();
+            for (int index = points.Count - 1; index >= 0; index--)
+            {
+                var point = points[index];
+                while (upper.Count >= 2
+                    && Cross(upper[upper.Count - 2], upper[upper.Count - 1], point) <= 1e-9)
+                {
+                    upper.RemoveAt(upper.Count - 1);
+                }
+                upper.Add(point);
+            }
+
+            lower.RemoveAt(lower.Count - 1);
+            upper.RemoveAt(upper.Count - 1);
+            var hull = lower.Concat(upper).ToList();
+            if (hull.Count < 3)
+                return 0;
+
+            double minimumWidth = double.PositiveInfinity;
+            int antipodalIndex = 1;
+            for (int edgeIndex = 0; edgeIndex < hull.Count; edgeIndex++)
+            {
+                var edgeStart = hull[edgeIndex];
+                var edgeEnd = hull[(edgeIndex + 1) % hull.Count];
+                double edgeDx = edgeEnd.x - edgeStart.x;
+                double edgeDy = edgeEnd.y - edgeStart.y;
+                double edgeLength = Math.Sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
+                if (edgeLength <= 1e-9)
+                    continue;
+
+                while (true)
+                {
+                    int nextIndex = (antipodalIndex + 1) % hull.Count;
+                    double currentArea = Math.Abs(Cross(edgeStart, edgeEnd, hull[antipodalIndex]));
+                    double nextArea = Math.Abs(Cross(edgeStart, edgeEnd, hull[nextIndex]));
+                    if (nextArea <= currentArea + 1e-9)
+                        break;
+                    antipodalIndex = nextIndex;
+                }
+
+                double width = Math.Abs(Cross(edgeStart, edgeEnd, hull[antipodalIndex])) / edgeLength;
+                minimumWidth = Math.Min(minimumWidth, width);
+            }
+
+            return double.IsFinite(minimumWidth) ? minimumWidth : 0;
+        }
+
+        private static double Cross(
+            (double x, double y) origin,
+            (double x, double y) first,
+            (double x, double y) second)
+        {
+            return (first.x - origin.x) * (second.y - origin.y)
+                - (first.y - origin.y) * (second.x - origin.x);
         }
 
         /// <summary>

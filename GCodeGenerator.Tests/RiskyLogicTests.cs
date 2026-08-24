@@ -25,12 +25,10 @@ namespace GCodeGenerator.Tests
     /// Примечания:
     /// - Тесты вызывают генераторы напрямую (UnifiedPocketGenerator / UnifiedProfileGenerator
     ///   с List&lt;string&gt;-коллектором) — это уровень, на котором живёт тестируемая логика.
-    /// - Известные баги фиксируются как текущее поведение с пометкой «баг, исправить в фазе 4/5»:
-    ///   (1) T9/T4: «фантомная фрезеровка» контура меньше фрезы (bowtie-артефакт оффсета
-    ///   с положительной площадью проходит все критерии отсечки);
-    ///   (2) Geo_Square: квадратный оффсет за вырождением деградирует в маленький
-    ///   однонаправленный квадрат — все три критерия (площадь/обход/векторы) его не видят;
-    ///   (3) Helpers_CalculateStep: guard `step &lt; 1e-6` — no-op (переприсваивает то же значение).
+    /// - Ранее зафиксированные T9/T4 и Geo_Square защищают исправление «фантомной
+    ///   фрезеровки»: контур меньше фрезы отсекается до построения вырожденного оффсета.
+    /// - Helpers_CalculateStep фиксирует оставшийся guard `step &lt; 1e-6` — no-op
+    ///   (переприсваивает то же значение).
     /// - У профилей НЕТ параметра taper (в плане пункт упоминает «taper на профилях и карманах»,
     ///   но в моделях профилей/`IProfileOperation` WallTaperAngleDeg отсутствует — только у карманов).
     ///   Поэтому taper покрывается только для карманов.
@@ -263,12 +261,10 @@ namespace GCodeGenerator.Tests
         /// <summary>
         /// T4: два контура — большой 40×20 и крошечный 2×2 (в (60,0)), фреза 3, глубина 4.
         /// Большой контур фрезеруется на полную глубину (4 слоя).
-        /// ⚠️ БАГ (фиксировано, исправить в фазе 4/5): крошечный контур МЕНЬШЕ фрезы
-        /// тоже фрезеруется — 264 G1 XY-перемещения в его области (фантомная фрезеровка,
-        /// см. T9_Dxf_TinyContour_PhantomMilling_KnownBug).
+        /// Крошечный контур меньше фрезы пропускается, большой обрабатывается на полную глубину.
         /// </summary>
         [TestMethod]
-        public void Dxf_MultiContour_SmallContourIsAlsoMilled_KnownBug()
+        public void Dxf_MultiContour_SmallContourIsSkipped()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 4, StepDepth = 1, WallTaperAngleDeg = 0 };
             op.ClosedContours.Add(Poly((0, 0), (40, 0), (40, 20), (0, 20), (0, 0)));
@@ -277,30 +273,28 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(4, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
-            Assert.AreEqual(6264, CountG1XY(lines));
+            Assert.AreEqual(6000, CountG1XY(lines));
 
             // T4b: разбивка перемещений по областям контуров.
             Assert.AreEqual(6000, CountG1XYInRegion(lines, -2, 42, -2, 22), "Перемещения в области большого контура");
-            Assert.AreEqual(264, CountG1XYInRegion(lines, 58, 64, -2, 4),
-                "⚠️ Фиксированный баг: перемещения в области крошечного контура (меньше фрезы)");
+            Assert.AreEqual(0, CountG1XYInRegion(lines, 58, 64, -2, 4),
+                "Контур меньше диаметра фрезы не должен порождать траекторию");
         }
 
         /// <summary>
         /// T9: только крошечный квадрат 2×2, фреза 3, глубина 4.
-        /// ⚠️ ИЗВЕСТНЫЙ БАГ (фиксировано как текущее поведение, исправить в фазе 4/5):
-        /// контур МЕНЬШЕ фрезы фрезеруется на полную глубину. Причина: оффсет 2×2 квадрата
-        /// на 1.5 — фантомный bowtie с положительной shoelace-площадью ≈ 1.0, который
-        /// проходит все критерии отсечки (площадь/обход/векторы/IsContourTooSmall).
+        /// Контур меньше фрезы отсекается до построения оффсета: bowtie-артефакт
+        /// не должен порождать ни одного рабочего XY-перемещения.
         /// </summary>
         [TestMethod]
-        public void Dxf_TinyContour_PhantomMilling_KnownBug()
+        public void Dxf_TinyContour_IsSkippedBeforePhantomMilling()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 4, StepDepth = 1, WallTaperAngleDeg = 0 };
             op.ClosedContours.Add(Poly((60, 0), (62, 0), (62, 2), (60, 2), (60, 0)));
             var lines = RunPocket(op);
-            Assert.AreEqual(4, CountPasses(lines), "Все 4 слоя «фрезеруются»");
-            Assert.IsFalse(HasStopComment(lines), "Отсечка не срабатывает — баг");
-            Assert.AreEqual(264, CountG1XY(lines), "Фантомные перемещения внутри крошечного контура");
+            Assert.AreEqual(1, CountPasses(lines), "Обработка останавливается на первом слое");
+            Assert.IsTrue(HasStopComment(lines), "Ожидалось сообщение об отсечке контура");
+            Assert.AreEqual(0, CountG1XY(lines), "Фантомных перемещений быть не должно");
         }
 
         /// <summary>
@@ -461,31 +455,50 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(geo.HasVectorDirectionChanged(0, 0.5));
 
             // o = 1.5: смена направления обхода
-            Assert.IsFalse(geo.IsContourTooSmall(0, 1.5));
+            Assert.IsTrue(geo.IsContourTooSmall(0, 1.5), "Фреза D3 не помещается по высоте треугольника");
             Assert.IsTrue(geo.HasWindingDirectionChanged(0, 1.5), "На o=1.5 направление обхода должно поменяться");
             Assert.IsFalse(geo.HasVectorDirectionChanged(0, 1.5));
         }
 
         /// <summary>
-        /// G3–G5: квадрат 10×10. На o=1, o=4.9 и даже o=5.1 (ВЫШЕ вписанного радиуса 5!)
-        /// все три критерия — False.
-        /// ⚠️ ЛАТЕНТНЫЙ ПРОБЕЛ (зафиксировано, исправить в фазе 4/5): оффсет квадрата
-        /// за вырождением деградирует в маленький квадрат с ТЕМ ЖЕ направлением обхода
-        /// (shoelace-площадь остаётся положительной) — критерии площади/обхода/векторов
-        /// его не обнаруживают.
+        /// G3–G5: квадрат 10×10. На o=1 и o=4.9 контур допустим. На o=5.1
+        /// диаметр 10.2 уже больше минимальной ширины квадрата, поэтому контур
+        /// отсекается до построения вырожденного оффсета.
         /// </summary>
         [TestMethod]
-        public void DxfGeometry_Square_AllCriteriaBlindEvenBeyondInradius()
+        public void DxfGeometry_Square_RejectsOffsetBeyondInradius()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3 };
             var geo = new DxfPocketGeometry(op, Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0)));
 
-            foreach (var o in new[] { 1.0, 4.9, 5.1 })
+            foreach (var o in new[] { 1.0, 4.9 })
             {
                 Assert.IsFalse(geo.IsContourTooSmall(0, o), $"IsContourTooSmall(o={o})");
                 Assert.IsFalse(geo.HasWindingDirectionChanged(0, o), $"HasWindingDirectionChanged(o={o})");
                 Assert.IsFalse(geo.HasVectorDirectionChanged(0, o), $"HasVectorDirectionChanged(o={o})");
             }
+
+            Assert.IsTrue(geo.IsContourTooSmall(0, 5.1), "Оффсет больше вписанного радиуса должен отсекаться");
+        }
+
+        /// <summary>
+        /// Повернутый узкий прямоугольник имеет большой осевой bounding box,
+        /// но его истинная минимальная ширина 2 мм. Фреза D3 не помещается.
+        /// </summary>
+        [TestMethod]
+        public void DxfGeometry_RotatedNarrowContour_UsesMinimumWidthInsteadOfBoundingBox()
+        {
+            double diagonal = Math.Sqrt(0.5);
+            var op = new PocketDxfOperation { ToolDiameter = 3 };
+            var geo = new DxfPocketGeometry(op, Poly(
+                (9 * diagonal, 11 * diagonal),
+                (11 * diagonal, 9 * diagonal),
+                (-9 * diagonal, -11 * diagonal),
+                (-11 * diagonal, -9 * diagonal),
+                (9 * diagonal, 11 * diagonal)));
+
+            Assert.IsTrue(geo.IsContourTooSmall(1.5, 0),
+                "Минимальная ширина 2 мм меньше диаметра фрезы 3 мм");
         }
 
         // ------------------------------------------------------------------
