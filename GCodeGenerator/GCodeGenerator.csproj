@@ -3,8 +3,9 @@
   <!--
     SDK-style (пункт 1.1 плана); TFM net10.0-windows (пункт 1.5 плана, D5).
     - UseWPF: App.xaml → ApplicationDefinition, остальные .xaml → Page (как в старом csproj).
-    - GenerateAssemblyInfo=false: свойства сборки объявлены вручную в Properties/AssemblyInfo.cs
-      (включая InternalsVisibleTo для тестового проекта).
+    - Version: из git-тега при сборке (Directory.Build.targets + build/Get-GitVersion.ps1);
+      SDK генерирует AssemblyVersion/FileVersion/InformationalVersion, прочие атрибуты
+      (ThemeInfo, InternalsVisibleTo и т.п.) — вручную в Properties/AssemblyInfo.cs.
     - LangVersion=latest: как до миграции (в старом csproj LangVersion не задан —
       использовался дефолт компилятора).
     - App.config убран (пункт 1.5): содержал только <startup> и binding redirects —
@@ -22,10 +23,16 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>GCodeGenerator</RootNamespace>
     <AssemblyName>GCodeGenerator</AssemblyName>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
     <WarningLevel>4</WarningLevel>
     <Deterministic>true</Deterministic>
+    <!-- GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:
+         SDK для net10.0-windows генерирует [assembly: SupportedOSPlatform("Windows7.0")],
+         а в Tests (ручной AssemblyInfo.cs, GenerateAssemblyInfo=false) такого атрибута нет —
+         рассогласование вызвало 223 предупреждения CA1416 в Tests на вызовах типов App
+         (та же причина, что и в Core, см. его csproj). -->
+    <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
+    <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
     <ApplicationIcon>cnc_machine.ico</ApplicationIcon>
     <!-- Классическая раскладка bin\Release (без подпапки TFM): CI и документация
          ссылаются на bin\Release\GCodeGenerator.exe -->

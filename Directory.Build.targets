@@ -1,0 +1,55 @@
+<Project>
+  <!--
+    Версионирование из git-тегов для всех проектов решения.
+
+    Version = тег на HEAD (при нескольких — с максимальным приоритетом по
+    SemVer: 1.2.3 > 1.2.3-rc5 > 1.2.3-beta3 > 1.2.3-alpha2 > 1.2.3-alpha),
+    иначе ближайший тег в истории, иначе 0.1.0-alpha.
+    Скрипт: build/Get-GitVersion.ps1 (ASCII-only, PS 5.1).
+
+    Результат:
+      Version              = 1.2.3-rc5        (тег как есть)
+      InformationalVersion = 1.2.3-rc5        (Product version в свойствах файла)
+      AssemblyVersion      = 1.2.3.0          (числовая, 4 части — требование .NET)
+      FileVersion         = 1.2.3.0
+    Заголовок окна читает InformationalVersion (App.xaml.cs -> IProgramInfo).
+
+    Переопределение: /p:Version=... (явная версия) или /p:SkipGitVersion=true
+    (пропустить git, версия — дефолт SDK).
+  -->
+  <PropertyGroup>
+    <!-- InformationalVersion = тег без приписки +<sha> (SourceLink остаётся
+         работать для PDB, но версия в свойствах/заголовке — чистая). -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <GitVersionScript Condition="Exists('$(MSBuildThisFileDirectory)build\Get-GitVersion.ps1')">$(MSBuildThisFileDirectory)build\Get-GitVersion.ps1</GitVersionScript>
+  </PropertyGroup>
+
+  <!-- До GetAssemblyVersion (SDK): задаём Version, из неё SDK сам считает
+       AssemblyVersion/FileVersion/InformationalVersion. _GitVersionExplicit —
+       маркер из Directory.Build.props (явный /p:Version=... в props-фазе). -->
+  <Target Name="ComputeVersionFromGitTag"
+          BeforeTargets="GetAssemblyVersion"
+          Condition="'$(_GitVersionExplicit)' != 'true' and '$(SkipGitVersion)' != 'true' and '$(GitVersionScript)' != ''">
+    <!-- Версия — в файл: Exec этой версии MSBuild не умеет ловить stdout в
+         свойство (нет параметра ConsoleOut). -->
+    <PropertyGroup>
+      <_GitVersionFile>$(IntermediateOutputPath)_gitversion.txt</_GitVersionFile>
+    </PropertyGroup>
+    <MakeDir Directories="$(IntermediateOutputPath)" />
+    <Delete Files="$(_GitVersionFile)" />
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(GitVersionScript)&quot; &quot;$(_GitVersionFile)&quot;"
+          ConsoleToMSBuild="true"
+          IgnoreExitCode="true" />
+    <PropertyGroup Condition="Exists('$(_GitVersionFile)')">
+      <_GitVersionRaw>$([System.IO.File]::ReadAllText('$(_GitVersionFile)'))</_GitVersionRaw>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(_GitVersionRaw.Trim())' != ''">
+      <Version>$(_GitVersionRaw.Trim())</Version>
+    </PropertyGroup>
+    <!-- Скрипт недоступен/упал — явный dev-дефолт вместо дефолта SDK (1.0.0):
+         на момент таргета $(Version) уже содержит дефолт SDK. -->
+    <PropertyGroup Condition="'$(_GitVersionRaw)' == ''">
+      <Version>0.1.0-alpha</Version>
+    </PropertyGroup>
+  </Target>
+</Project>

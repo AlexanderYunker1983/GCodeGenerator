@@ -7,11 +7,9 @@ using System.Windows;
 // General Information about an assembly is controlled through the following
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("GCodeGenerator")]
+// AssemblyTitle/AssemblyCompany/AssemblyProduct/AssemblyConfiguration генерирует
+// SDK (из AssemblyName/Configuration) — дублировать их здесь нельзя (CS0579).
 [assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("GCodeGenerator")]
 [assembly: AssemblyCopyright("Copyright ©  2025")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -44,11 +42,6 @@ using System.Windows;
 )]
 
 
-// Version information for an assembly consists of the following four values:
-//
-//      Major Version
-//      Minor Version
-//      Build Number
-//      Revision
-//
-// Version is set via AssemblyVersionInfo.Generated.cs (generated from .in file)
+// Версия (AssemblyVersion/FileVersion/InformationalVersion) генерируется SDK
+// из git-тега при сборке (Directory.Build.targets + build/Get-GitVersion.ps1);
+// в этом файле — только не-версионные атрибуты (ThemeInfo, InternalsVisibleTo).

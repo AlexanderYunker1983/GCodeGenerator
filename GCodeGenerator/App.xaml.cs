@@ -41,10 +41,13 @@ namespace GCodeGenerator
             builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
 
             // Пункт 7.5 плана: версия программы через IoC (ранее статика PlatformVariables).
-            var version = Assembly.GetExecutingAssembly().GetName().Version;
-            var versionString = version.Build == 0
-                ? $"{version.Major}.{version.Minor}"
-                : $"{version.Major}.{version.Minor}.{version.Build}-Developer Version";
+            // Версионирование из git-тега: InformationalVersion = тег (например
+            // «1.2.3-rc5»), проставляется при сборке (Directory.Build.targets +
+            // build/Get-GitVersion.ps1). Числовая AssemblyVersion (1.2.3.0) для
+            // заголовка не подходит — суффикс -alpha/-beta/-rc в ней теряется.
+            var versionString = Assembly.GetExecutingAssembly()
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+                ?? "0.1.0-alpha";
             builder.RegisterInstance(new ProgramInfo(versionString)).As<IProgramInfo>().SingleInstance();
 
             // Пункт 7.5 плана: хранилище настроек через IoC (статический фасад

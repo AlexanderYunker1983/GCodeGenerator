@@ -263,4 +263,6 @@ __pycache__/
 **/*.Generated.cs
 _build_GCODEGENERATOR_VS17/
 _build_GCODEGENERATOR_NMake_VS17/
-build/
+# build/ — строка игнора убрана: каталог со скриптами сборки
+# (build/Get-GitVersion.ps1) теперь отслеживается git. Ранее игнорировался
+# как output-каталог убранных CMake/YBUILD-обвязок (CMakeLists.txt удалён в 1c4a73c).

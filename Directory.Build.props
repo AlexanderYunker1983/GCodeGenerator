@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Запоминаем, задавал ли пользователь Version ЯВЛЬНО (командная строка
+    /p:Version=...): в props-фазе $(Version) ещё пуст — дефолт SDK (1.0.0)
+    проставляется позже, в targets-фазе (Microsoft.NET.Sdk.BeforeCommon.targets),
+    а Directory.Build.targets импортируется ещё позже (Microsoft.Common.targets).
+    Потребитель: Directory.Build.targets (версионирование из git-тегов).
+  -->
+  <PropertyGroup>
+    <_GitVersionExplicit Condition="'$(Version)' != ''">true</_GitVersionExplicit>
+  </PropertyGroup>
+</Project>

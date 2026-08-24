@@ -98,6 +98,17 @@ dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-bui
 
 Альтернатива: откройте `GCodeGenerator.sln` в Visual Studio 2026 и соберите решение (конфигурация Release).
 
+### Версионирование
+
+Версия продукта проставляется при сборке **из git-тегов** (`build/Get-GitVersion.ps1` + `Directory.Build.targets`):
+
+- Формат тега: `X.Y.Z` или `X.Y.Z-suffix` (например, `1.2.3`, `1.2.3-alpha`, `1.2.3-rc5`).
+- Если на текущем коммите несколько тегов — выбирается тег с максимальным приоритетом (SemVer): `1.2.3` > `1.2.3-rc5` > `1.2.3-beta3` > `1.2.3-alpha2` > `1.2.3-alpha` (в пределах класса — по номеру: `rc10` > `rc5`).
+- Если текущий коммит без тега — используется ближайший тег в истории.
+- Если тегов нет вовсе — версия `0.1.0-alpha`. Теги вне формата (например, `v1.2.3`) игнорируются с предупреждением.
+
+Версия попадает в свойства сборки (`Version`/`AssemblyVersion`/`FileVersion`/`InformationalVersion`) и в заголовок программы. Переопределение: `dotnet build /p:Version=1.2.3-rc5` (явная версия) или `/p:SkipGitVersion=true` (пропустить git).
+
 ## Использование
 
 1. **Запустите приложение** GCodeGenerator.exe
@@ -142,6 +153,7 @@ GCodeGenerator/
 │   ├── Localization/        # Модуль локализации
 │   └── Infrastructure/      # Вспомогательные классы
 ├── GCodeGenerator.Tests/    # Тесты (MSTest)
+├── build/                   # Скрипты сборки (версионирование из git-тегов)
 ├── docs/                    # Документация (smoke-чек-лист)
 ├── GCodeGenerator.sln       # Решение Visual Studio
 ├── Plan.md                  # План рефакторинга

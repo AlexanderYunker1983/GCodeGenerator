@@ -35,6 +35,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Версионирование из git-тега: скрипт для VersioningTests (интеграция). -->
+    <None Include="..\build\Get-GitVersion.ps1" Link="build\Get-GitVersion.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Assets\*.dxf">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
