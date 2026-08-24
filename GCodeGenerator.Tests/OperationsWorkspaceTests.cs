@@ -48,10 +48,15 @@ namespace GCodeGenerator.Tests
             workspace.MoveOperationUpCommand.Execute(null);
             Assert.AreSame(second, workspace.AllOperations[0]);
             Assert.AreEqual(4, contentChanges);
+            Assert.AreSame(second, workspace.SelectedOperation,
+                "Moving an item must preserve the current selection");
 
-            workspace.SelectedOperation = second;
+            second.Name = "Renamed after move";
+            Assert.AreEqual(5, contentChanges,
+                "Moving an item must preserve its PropertyChanged subscription");
+
             workspace.RemoveOperationCommand.Execute(null);
-            Assert.AreEqual(5, contentChanges);
+            Assert.AreEqual(6, contentChanges);
             Assert.IsNull(workspace.SelectedOperation);
             Assert.AreSame(first, workspace.AllOperations[0]);
             Assert.IsFalse(workspace.RemoveOperationCommand.CanExecute(null));

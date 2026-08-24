@@ -103,20 +103,23 @@ namespace GCodeGenerator.ViewModels
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e?.NewItems != null)
-            {
-                foreach (OperationBase operation in e.NewItems)
-                    AttachOperation(operation);
-            }
-
-            if (e?.OldItems != null)
+            // Move reports the same item in both OldItems and NewItems. Its
+            // subscription and selection must remain intact.
+            if (e?.Action != NotifyCollectionChangedAction.Move && e?.OldItems != null)
             {
                 foreach (OperationBase operation in e.OldItems)
                 {
                     DetachOperation(operation);
-                    if (ReferenceEquals(SelectedOperation, operation))
+                    if (ReferenceEquals(SelectedOperation, operation) &&
+                        !AllOperations.Contains(operation))
                         SelectedOperation = null;
                 }
+            }
+
+            if (e?.Action != NotifyCollectionChangedAction.Move && e?.NewItems != null)
+            {
+                foreach (OperationBase operation in e.NewItems)
+                    AttachOperation(operation);
             }
 
             UpdateOperationCommandsCanExecute();
