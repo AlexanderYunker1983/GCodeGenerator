@@ -56,7 +56,7 @@ namespace GCodeGenerator.GCodeGenerators
         private static string RenderBlock(GCodeBlock block, GCodeFormatSettings format)
         {
             if (block.Words.Count == 0)
-                return $"({block.Comment})";
+                return $"({SanitizeComment(block.Comment)})";
 
             var sb = new StringBuilder();
             foreach (var word in block.Words)
@@ -69,8 +69,42 @@ namespace GCodeGenerator.GCodeGenerators
             // Inline comments are not produced by the generators today;
             // the support is kept for future phases.
             if (block.Comment != null)
-                sb.Append(' ').Append('(').Append(block.Comment).Append(')');
+                sb.Append(' ').Append('(').Append(SanitizeComment(block.Comment)).Append(')');
             return sb.ToString();
+        }
+
+        /// <summary>
+        /// Keeps arbitrary user text inside one parenthesized G-code comment.
+        /// Newlines/control characters could otherwise create executable lines,
+        /// while parentheses could close the comment early.
+        /// </summary>
+        private static string SanitizeComment(string comment)
+        {
+            if (string.IsNullOrEmpty(comment))
+                return string.Empty;
+
+            var sanitized = new StringBuilder(comment.Length);
+            foreach (char character in comment)
+            {
+                if (character == '(')
+                {
+                    sanitized.Append('[');
+                }
+                else if (character == ')')
+                {
+                    sanitized.Append(']');
+                }
+                else if (char.IsControl(character) || character == '\u2028' || character == '\u2029')
+                {
+                    sanitized.Append(' ');
+                }
+                else
+                {
+                    sanitized.Append(character);
+                }
+            }
+
+            return sanitized.ToString();
         }
 
         private static string RenderWord(GCodeWord word, GCodeFormatSettings format)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
@@ -120,6 +121,44 @@ namespace GCodeGenerator.Tests
         {
             var s = new GCodeSettings();
             Assert.AreEqual("(Pass 1, depth -1.000)", Render(Comment("Pass 1, depth -1.000"), s));
+        }
+
+        [TestMethod]
+        public void CommentLine_NestedParenthesesAndLineBreaks_AreSanitized()
+        {
+            var s = new GCodeSettings();
+            var rendered = Render(Comment("safe)\r\nG0 X999 Y999\n(unsafe\t\0"), s);
+
+            Assert.AreEqual("(safe]  G0 X999 Y999 [unsafe  )", rendered);
+            Assert.IsFalse(rendered.Contains("\r"));
+            Assert.IsFalse(rendered.Contains("\n"));
+        }
+
+        [TestMethod]
+        public void InlineComment_IsSanitizedAtFormattingBoundary()
+        {
+            var s = new GCodeSettings();
+            var block = new GCodeBlock(new[] { GCodeWord.G(1) }, "close)\nM30\n(open");
+
+            Assert.AreEqual("G1 (close] M30 [open)", Render(block, s));
+        }
+
+        [TestMethod]
+        public void OperationName_CannotInjectExecutableGCodeLine()
+        {
+            var operation = new DrillPointsOperation
+            {
+                Name = "SAFE)\nG0 X999 Y999\n(",
+                Holes = { new DrillHole { X = 1, Y = 2, TotalDepth = 1, StepDepth = 1 } },
+            };
+
+            var program = new SimpleGCodeGenerator().Generate(
+                new List<OperationBase> { operation },
+                new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false } });
+
+            Assert.IsTrue(program.Lines.All(line => !line.Contains("\r") && !line.Contains("\n")));
+            Assert.IsFalse(program.Lines.Any(line => line.StartsWith("G0 X999 Y999", StringComparison.Ordinal)));
+            Assert.IsTrue(program.Lines.Any(line => line.StartsWith("(SAFE] G0 X999 Y999 [:", StringComparison.Ordinal)));
         }
 
         private static string Render(GCodeBlock block, GCodeSettings settings)
