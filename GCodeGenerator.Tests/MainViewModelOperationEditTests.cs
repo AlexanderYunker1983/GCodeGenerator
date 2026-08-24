@@ -83,7 +83,8 @@ namespace GCodeGenerator.Tests
         /// </summary>
         internal static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain(
             IGCodeGenerator generator = null,
-            IGCodeFileService gCodeFileService = null)
+            IGCodeFileService gCodeFileService = null,
+            IProjectFileService projectFileService = null)
         {
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
@@ -95,8 +96,13 @@ namespace GCodeGenerator.Tests
                 null,
                 dialogService,
                 gCodeFileService ?? new GCodeFileService());
-            var main = new MainViewModel(null, dialogService, gCodeWorkflowFactory, factory,
-                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService());
+            var projectWorkflowFactory = new ProjectWorkflowFactory(
+                null,
+                dialogService,
+                settingsStore,
+                projectFileService ?? new ProjectFileService());
+            var main = new MainViewModel(null, dialogService, gCodeWorkflowFactory, projectWorkflowFactory,
+                factory, new ProgramInfo("1.0"), settingsStore, new FakeThemeService());
             return (main, factory, dialogService, settingsStore);
         }
 

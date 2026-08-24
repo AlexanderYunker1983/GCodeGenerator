@@ -4,7 +4,6 @@ using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using GCodeGenerator.ViewModels.Pocket;
 using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
@@ -17,17 +16,16 @@ namespace GCodeGenerator.ViewModels
 {
     public class MainViewModel : ViewModelBase, IHasDisplayName
     {
-        private readonly GCodeSettings _settings;
         private readonly GCodeWorkflowViewModel _gCodeWorkflow;
+        private readonly ProjectWorkflowViewModel _projectWorkflow;
         private readonly ISettingsStore _settingsStore;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly IProgramInfo _programInfo;
         private readonly IThemeService _themeService;
-        private readonly IProjectFileService _projectFileService;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeWorkflowFactory gCodeWorkflowFactory, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeWorkflowFactory gCodeWorkflowFactory, IProjectWorkflowFactory projectWorkflowFactory, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
@@ -37,11 +35,8 @@ namespace GCodeGenerator.ViewModels
             // PlatformVariables/GCodeSettingsStore/ThemeHelper).
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
-            _settings = _settingsStore.Current;
             _settingsStore.SettingsChanged += OnSettingsChanged;
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
-            // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
-            _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
@@ -50,8 +45,11 @@ namespace GCodeGenerator.ViewModels
             AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
 
             _gCodeWorkflow = (gCodeWorkflowFactory ?? throw new ArgumentNullException(nameof(gCodeWorkflowFactory)))
-                .Create(AllOperations, _settings);
+                .Create(AllOperations, _settingsStore.Current);
             _gCodeWorkflow.PropertyChanged += OnGCodeWorkflowPropertyChanged;
+            _projectWorkflow = (projectWorkflowFactory ?? throw new ArgumentNullException(nameof(projectWorkflowFactory)))
+                .Create(AllOperations, _gCodeWorkflow);
+            _projectWorkflow.ProjectResetting += OnProjectResetting;
 
             // Пункт 7.3 плана: категорийные VM открывают диалоги через фабрику.
             DrillOperations = new DrillOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
@@ -73,9 +71,9 @@ namespace GCodeGenerator.ViewModels
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
-            NewProgramCommand = new RelayCommand(CreateNewProgram);
-            SaveProjectCommand = new RelayCommand(SaveProject, CanSaveProject);
-            OpenProjectCommand = new RelayCommand(OpenProject);
+            NewProgramCommand = _projectWorkflow.NewProgramCommand;
+            SaveProjectCommand = _projectWorkflow.SaveProjectCommand;
+            OpenProjectCommand = _projectWorkflow.OpenProjectCommand;
 
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
@@ -199,6 +197,11 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        private void OnProjectResetting(object sender, EventArgs e)
+        {
+            SelectedOperation = null;
+        }
+
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
@@ -222,6 +225,7 @@ namespace GCodeGenerator.ViewModels
 
             // Пункт 7.2 плана: категорийных коллекций больше нет — список,
             // команды и 2D-превью обновляются от единой коллекции.
+            _projectWorkflow.NotifyOperationsChanged();
             UpdateOperationCommandsCanExecute();
             NotifyOperationsChanged();
         }
@@ -350,147 +354,6 @@ namespace GCodeGenerator.ViewModels
             ((RelayCommand)MoveOperationDownCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)RemoveOperationCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)EditOperationCommand)?.NotifyCanExecuteChanged();
-            ((RelayCommand)SaveProjectCommand)?.NotifyCanExecuteChanged();
-        }
-
-        private void CreateNewProgram()
-        {
-            var hasOperations = AllOperations.Count > 0;
-            var hasGCode = !string.IsNullOrWhiteSpace(GCodePreview);
-            if (!hasOperations && !hasGCode)
-                return;
-
-            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ?? "ConfirmNewProjectMessage";
-            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "ConfirmNewProjectTitle";
-
-            if (!_dialogService.ShowConfirm(message, title))
-                return;
-
-            // Пункт 7.2 плана: единая коллекция — один Clear()
-            AllOperations.Clear();
-            SelectedOperation = null;
-
-            // Новый проект стартует со всеми глобальными настройками генерации,
-            // не наследуя их от ранее открытого проекта. Тема UI не меняется.
-            _settingsStore.RestoreGlobalGenerationSettings();
-
-            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
-            ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
-            ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
-            UpdateOperationCommandsCanExecute();
-            NotifyOperationsChanged();
-        }
-
-        private bool CanSaveProject() => AllOperations.Count > 0;
-
-        private void SaveProject()
-        {
-            if (!CanSaveProject()) return;
-
-            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "ProjectFileFilter";
-            var title = _localizationManager?.GetString("SaveProjectTitle") ?? "SaveProjectTitle";
-
-            var fileName = _dialogService.ShowSaveDialog(title, filter, "ygc", "project.ygc");
-            if (fileName == null)
-                return;
-
-            try
-            {
-                // Все настройки, влияющие на генерацию, пишутся в файл.
-                _projectFileService.Save(fileName, AllOperations, _settings);
-            }
-            catch (Exception ex)
-            {
-                var message = _localizationManager?.GetString("ErrorSavingProject") ?? "ErrorSavingProject";
-                _dialogService.ShowError($"{message}\n{ex.Message}", title);
-            }
-        }
-
-        private void OpenProject()
-        {
-            if (!ConfirmResetIfNeeded())
-                return;
-
-            var filter = _localizationManager?.GetString("ProjectFileFilter") ?? "ProjectFileFilter";
-            var title = _localizationManager?.GetString("OpenProjectTitle") ?? "OpenProjectTitle";
-
-            var fileName = _dialogService.ShowOpenDialog(title, filter, "ygc");
-            if (fileName == null)
-                return;
-
-            try
-            {
-                var data = _projectFileService.Load(fileName);
-                if (data?.Operations == null)
-                {
-                    ShowInvalidProjectMessage(title);
-                    return;
-                }
-
-                ApplyProjectSettings(data);
-                LoadOperationsFromProject(data.Operations);
-            }
-            catch (Exception ex)
-            {
-                var message = _localizationManager?.GetString("ErrorOpeningProject") ?? "ErrorOpeningProject";
-                _dialogService.ShowError($"{message}\n{ex.Message}", title);
-            }
-        }
-
-        private bool ConfirmResetIfNeeded()
-        {
-            var hasOperations = AllOperations.Count > 0;
-            var hasGCode = !string.IsNullOrWhiteSpace(GCodePreview);
-            if (!hasOperations && !hasGCode)
-                return true;
-
-            var message = _localizationManager?.GetString("ConfirmNewProjectMessage") ?? "ConfirmNewProjectMessage";
-            var title = _localizationManager?.GetString("ConfirmNewProjectTitle") ?? "ConfirmNewProjectTitle";
-
-            return _dialogService.ShowConfirm(message, title);
-        }
-
-        /// <summary>
-        /// Настройки генерации проекта подставляются в сессию; отсутствующие
-        /// секции старых .ygc получают глобальные значения. Тема UI не меняется.
-        /// </summary>
-        private void ApplyProjectSettings(ProjectFileData data)
-        {
-            _settingsStore.RestoreGlobalGenerationSettings();
-            if (data.Format != null)
-                _settings.Format = data.Format;
-            if (data.Spindle != null)
-                _settings.Spindle = data.Spindle;
-            if (data.Coolant != null)
-                _settings.Coolant = data.Coolant;
-            if (data.WorkCoordinate != null)
-                _settings.WorkCoordinate = data.WorkCoordinate;
-        }
-
-        private void LoadOperationsFromProject(List<OperationBase> operations)
-        {
-            // Clear current data (пункт 7.2: единая коллекция)
-            AllOperations.Clear();
-            SelectedOperation = null;
-
-            // Пункт 7.2: switch AddOperationToCollections не нужен — все операции
-            // идут в единую коллекцию (категория хранится на самой операции).
-            foreach (var operation in operations)
-            {
-                AllOperations.Add(operation);
-            }
-
-            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
-            ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
-            ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
-            UpdateOperationCommandsCanExecute();
-            NotifyOperationsChanged();
-        }
-
-        private void ShowInvalidProjectMessage(string title)
-        {
-            var message = _localizationManager?.GetString("InvalidProjectFile") ?? "InvalidProjectFile";
-            _dialogService.ShowError(message, title);
         }
     }
 }
