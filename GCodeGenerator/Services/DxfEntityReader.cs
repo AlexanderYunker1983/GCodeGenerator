@@ -178,7 +178,10 @@ namespace GCodeGenerator.Services
                                 {
                                     i++;
                                     if (i < lines.Length)
+                                    {
                                         y = Parse(lines[i].Trim());
+                                        i++;
+                                    }
                                 }
                                 polylinePoints.Add(new DxfPoint { X = x, Y = y });
                                 break;
