@@ -34,7 +34,7 @@ jobs:
         run: dotnet restore GCodeGenerator.sln
 
       - name: Build (Release)
-        run: dotnet build GCodeGenerator.sln -c Release --no-restore
+        run: dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror
 
       # Фаза 2 плана (пункт 2.3): ядро не должно ссылаться на WPF-стек.
       # Сборка Core без UseWPF сама по себе не пропустит WPF-зависимости
@@ -73,6 +73,20 @@ jobs:
             exit 1
           }
           Write-Host 'ViewModels purity OK: no WPF UI references'
+
+      # Архитектурная граница: ViewModel координируют сервисы, но не читают и
+      # не пишут файлы и не сериализуют данные самостоятельно.
+      - name: Check ViewModels infrastructure boundaries
+        shell: pwsh
+        run: |
+          $bad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
+            Select-String -Pattern '^\s*using\s+System\.IO\b|\bSystem\.IO\b|\b(File|Directory|FileInfo|DirectoryInfo|StreamReader|StreamWriter)\s*\.|\bJsonSerializer\b'
+          if ($bad) {
+            Write-Host 'Direct file I/O or serialization found in GCodeGenerator/ViewModels:'
+            $bad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+            exit 1
+          }
+          Write-Host 'ViewModels infrastructure boundaries OK'
 
       # Фаза 8 плана (пункт 8.3, DoD): в VM нет захардкоженных строк —
       # кириллица в строковых литералах запрещена (текст — только через resx-ключи;
