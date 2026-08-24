@@ -66,13 +66,27 @@ GCodeGenerator — это приложение для Windows, которое п
 - **Операционная система:**
   - **Windows 11 24H2 (build 26100) или новее** — рекомендуемая платформа и минимальная поддерживаемая Windows 11 (23H2 поддерживается только в редакции Enterprise, до 10.11.2026);
   - **Windows 10 22H2 (build 19045) или новее** — минимальная поддерживаемая Windows 10. Примечание: Windows 10 достиг конца поддержки 14.10.2025 и не входит в [официальный список ОС, поддерживаемых .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md) (официально поддерживаемые Windows 10: 21H2 Enterprise LTSC (build 19044) и новее).
-- **.NET 10 Desktop Runtime** (10.0.x) — необходим для запуска приложения; устанавливается с [dotnet.microsoft.com](https://dotnet.microsoft.com/download/dotnet/10.0). Релизный установщик может включать рантайм (self-contained) — уточняется к релизу.
+- **.NET 10 Desktop Runtime** для запуска приложения **не требуется**: инсталлятор и портативная версия self-contained (рантайм входит в состав) — приложение работает на чистой Windows.
 - Для сборки из исходников: **.NET 10 SDK** (10.0.x) — Visual Studio 2026 или командная строка.
 
 ## Установка
 
 ### Готовые сборки
 Скачайте последнюю версию установщика из раздела [Releases](https://github.com/AlexanderYunker1983/GCodeGenerator/releases) и запустите установщик.
+
+Релиз публикуется автоматически: push тега версии (например, `1.2.3` или `1.2.3-rc5`) запускает workflow [Release](.github/workflows/release.yml) — сборка, тесты, инсталлятор (Inno Setup) и GitHub Release с установщиком `GCodeGenerator-Setup-<версия>.exe` и портативной версией (zip). Оба артефакта self-contained (включают .NET 10 Desktop Runtime). Теги с суффиксом (`-alpha`/`-beta`/`-rc`) помечаются как pre-release.
+
+### Сборка инсталлятора локально
+
+Требования: **.NET 10 SDK**, **git**, **Inno Setup 6** ([скачать](https://jrsoftware.org/isdl.php)).
+
+```powershell
+build\Make-Installer.ps1
+```
+
+Скрипт берёт версию из git-тега (тот же механизм, что и версия сборки), выполняет `dotnet publish` (self-contained, win-x64 — рантайм входит в инсталлятор) и компилирует `install\GCodeGenerator.iss` (ISCC). Результат: `artifacts\installer\GCodeGenerator-Setup-<версия>.exe`.
+
+Параметры: `-FrameworkDependent` (publish без рантайма — инсталлятор меньше, но пользователю нужен .NET 10 Desktop Runtime), `-IsccPath <путь к ISCC.exe>`, `-Configuration`, `-Runtime`.
 
 ### Сборка из исходников
 
@@ -153,7 +167,8 @@ GCodeGenerator/
 │   ├── Localization/        # Модуль локализации
 │   └── Infrastructure/      # Вспомогательные классы
 ├── GCodeGenerator.Tests/    # Тесты (MSTest)
-├── build/                   # Скрипты сборки (версионирование из git-тегов)
+├── build/                   # Скрипты сборки (версионирование из git-тегов, инсталлятор)
+├── install/                 # Инсталлятор (Inno Setup)
 ├── docs/                    # Документация (smoke-чек-лист)
 ├── GCodeGenerator.sln       # Решение Visual Studio
 ├── Plan.md                  # План рефакторинга
