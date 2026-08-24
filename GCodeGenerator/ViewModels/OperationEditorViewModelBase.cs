@@ -5,6 +5,13 @@ using GCodeGenerator.Models;
 
 namespace GCodeGenerator.ViewModels
 {
+    /// <summary>Result of a modal operation-editing session.</summary>
+    public interface IOperationEditorSession
+    {
+        bool IsAccepted { get; }
+        bool IsRemovalRequested { get; }
+    }
+
     /// <summary>
     /// Базовый класс view-моделей диалогов редактора операций (пункт 7.3 плана):
     /// явная семантика OK/Cancel.
@@ -22,7 +29,7 @@ namespace GCodeGenerator.ViewModels
     /// (<see cref="LoadFromOperation"/>). Диалоговые VM мигрируют на этот базовый
     /// класс в пункте 7.4 плана (по одному диалогу на коммит).
     /// </summary>
-    public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel
+    public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel, IOperationEditorSession
         where TOperation : OperationBase
     {
         private TOperation _operation;
@@ -41,6 +48,8 @@ namespace GCodeGenerator.ViewModels
             {
                 if (Equals(value, _operation)) return;
                 _operation = value;
+                IsAccepted = false;
+                IsRemovalRequested = false;
                 if (_operation != null)
                     LoadFromOperation(_operation);
             }
@@ -67,6 +76,12 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Cancel: закрытие без изменений (пункт 7.3 плана).</summary>
         public ICommand CancelCommand { get; }
 
+        /// <summary>True only when validation and ApplyToOperation completed successfully.</summary>
+        public bool IsAccepted { get; private set; }
+
+        /// <summary>True when OK requested legacy removal of an invalid operation.</summary>
+        public bool IsRemovalRequested { get; private set; }
+
         protected OperationEditorViewModelBase()
         {
             OkCommand = new RelayCommand(OnOk);
@@ -84,9 +99,13 @@ namespace GCodeGenerator.ViewModels
                 // уведомление явное (иначе сцена обновится только при следующем
                 // изменении коллекции операций).
                 _operation.NotifyContentChanged();
+                IsAccepted = true;
             }
             else
+            {
+                IsRemovalRequested = true;
                 RemoveOperation();
+            }
             RequestClose();
         }
 

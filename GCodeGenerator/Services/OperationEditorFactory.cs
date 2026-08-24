@@ -67,57 +67,66 @@ namespace GCodeGenerator.Services
             if (operation == null) return;
             var vmType = GetViewModelType(operation);
             if (vmType == null) return;
+            var workingCopy = OperationEditTransaction.CreateWorkingCopy(operation);
             var vm = _dialogService.CreateViewModel(vmType);
             switch (vm)
             {
                 case IDrillDialogViewModel drillVm:
                     drillVm.Operations = allOperations;
-                    drillVm.Operation = (DrillPointsOperation)operation;
+                    drillVm.Operation = (DrillPointsOperation)workingCopy;
                     break;
                 case PocketCircleOperationViewModel pocketCircleVm:
                     pocketCircleVm.Operations = allOperations;
-                    pocketCircleVm.Operation = (PocketCircleOperation)operation;
+                    pocketCircleVm.Operation = (PocketCircleOperation)workingCopy;
                     break;
                 case PocketRectangleOperationViewModel pocketRectangleVm:
                     pocketRectangleVm.Operations = allOperations;
-                    pocketRectangleVm.Operation = (PocketRectangleOperation)operation;
+                    pocketRectangleVm.Operation = (PocketRectangleOperation)workingCopy;
                     break;
                 case PocketEllipseOperationViewModel pocketEllipseVm:
                     pocketEllipseVm.Operations = allOperations;
-                    pocketEllipseVm.Operation = (PocketEllipseOperation)operation;
+                    pocketEllipseVm.Operation = (PocketEllipseOperation)workingCopy;
                     break;
                 case PocketDxfOperationViewModel pocketDxfVm:
                     pocketDxfVm.Operations = allOperations;
-                    pocketDxfVm.Operation = (PocketDxfOperation)operation;
+                    pocketDxfVm.Operation = (PocketDxfOperation)workingCopy;
                     break;
                 case ProfileCircleOperationViewModel profileCircleVm:
                     profileCircleVm.Operations = allOperations;
-                    profileCircleVm.Operation = (ProfileCircleOperation)operation;
+                    profileCircleVm.Operation = (ProfileCircleOperation)workingCopy;
                     break;
                 case ProfileRectangleOperationViewModel profileRectangleVm:
                     profileRectangleVm.Operations = allOperations;
-                    profileRectangleVm.Operation = (ProfileRectangleOperation)operation;
+                    profileRectangleVm.Operation = (ProfileRectangleOperation)workingCopy;
                     break;
                 case ProfileRoundedRectangleOperationViewModel profileRoundedRectangleVm:
                     profileRoundedRectangleVm.Operations = allOperations;
-                    profileRoundedRectangleVm.Operation = (ProfileRoundedRectangleOperation)operation;
+                    profileRoundedRectangleVm.Operation = (ProfileRoundedRectangleOperation)workingCopy;
                     break;
                 case ProfileEllipseOperationViewModel profileEllipseVm:
                     profileEllipseVm.Operations = allOperations;
-                    profileEllipseVm.Operation = (ProfileEllipseOperation)operation;
+                    profileEllipseVm.Operation = (ProfileEllipseOperation)workingCopy;
                     break;
                 case ProfilePolygonOperationViewModel profilePolygonVm:
                     profilePolygonVm.Operations = allOperations;
-                    profilePolygonVm.Operation = (ProfilePolygonOperation)operation;
+                    profilePolygonVm.Operation = (ProfilePolygonOperation)workingCopy;
                     break;
                 case ProfileDxfOperationViewModel profileDxfVm:
                     profileDxfVm.Operations = allOperations;
-                    profileDxfVm.Operation = (ProfileDxfOperation)operation;
+                    profileDxfVm.Operation = (ProfileDxfOperation)workingCopy;
                     break;
                 default:
                     throw new InvalidOperationException($"Неизвестный тип диалоговой VM: {vmType}");
             }
             _dialogService.ShowDialog(vmType, vm);
+
+            if (vm is IOperationEditorSession session)
+            {
+                if (session.IsAccepted)
+                    OperationEditTransaction.Commit(workingCopy, operation);
+                else if (session.IsRemovalRequested)
+                    allOperations?.Remove(operation);
+            }
         }
 
         /// <summary>

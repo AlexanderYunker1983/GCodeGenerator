@@ -39,6 +39,8 @@ namespace GCodeGenerator.Tests
             public object ShownVm { get; private set; }
             public string LastErrorMessage { get; private set; }
             public string LastErrorTitle { get; private set; }
+            public Func<Type, object> ViewModelFactory { get; set; }
+            public Action<object> DialogAction { get; set; }
 
             public void ShowInfo(string message, string title = "") { }
             public void ShowError(string message, string title = "")
@@ -60,7 +62,7 @@ namespace GCodeGenerator.Tests
             public object CreateViewModel(Type viewModelType)
             {
                 CreatedType = viewModelType;
-                return new StubDrillDialogVm();
+                return ViewModelFactory?.Invoke(viewModelType) ?? new StubDrillDialogVm();
             }
 
             public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class
@@ -70,6 +72,7 @@ namespace GCodeGenerator.Tests
             {
                 ShownType = viewModelType;
                 ShownVm = viewModel;
+                DialogAction?.Invoke(viewModel);
             }
         }
 
@@ -174,8 +177,9 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.CreatedType,
                 "Диалог выбирается по DrillMode, а не по имени");
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.ShownType);
-            Assert.AreSame(op, ((IDrillDialogViewModel)dialogService.ShownVm).Operation,
-                "В диалог передана та же операция");
+            Assert.AreNotSame(op, ((IDrillDialogViewModel)dialogService.ShownVm).Operation,
+                "Диалог должен получать изолированную рабочую копию");
+            Assert.AreEqual(op.DrillMode, ((IDrillDialogViewModel)dialogService.ShownVm).Operation.DrillMode);
             Assert.AreSame(main.AllOperations, ((IDrillDialogViewModel)dialogService.ShownVm).Operations,
                 "Диалог получает единую коллекцию операций (пункт 7.2)");
         }
