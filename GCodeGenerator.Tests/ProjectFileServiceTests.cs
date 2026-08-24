@@ -186,22 +186,81 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Некорректные записи пропускаются (поведение прежнего LoadOperationsFromProject):
-        /// пустой type, неизвестный type, отсутствие data.
+        /// Некорректная или неизвестная операция отклоняет весь файл: частичная
+        /// загрузка с последующим сохранением потеряла бы непрочитанные данные.
         /// </summary>
         [TestMethod]
-        public void Deserialize_SkipsInvalidEntries()
+        public void Deserialize_InvalidOrUnknownOperation_ThrowsWithoutPartialLoad()
         {
-            var json = "{\"version\":2,\"operations\":[" +
-                "{\"type\":\"ProfileCircle\",\"data\":{}}," +          // валидная (минимальный payload → дефолты)
-                "{\"type\":\"\",\"data\":{}}," +                        // пустой type → пропуск
-                "{\"type\":\"UnknownType\",\"data\":{}}," +             // неизвестный type → пропуск
-                "{\"type\":\"ProfileCircle\"}" +                        // нет data → пропуск
-                "]}";
+            var invalidEntries = new[]
+            {
+                "42",
+                "{\"type\":\"\",\"data\":{}}",
+                "{\"type\":\"UnknownType\",\"data\":{}}",
+                "{\"type\":\"ProfileCircle\"}",
+            };
 
-            var loaded = Service.Deserialize(json).Operations;
-            Assert.AreEqual(1, loaded.Count, "Должна пройти только валидная запись");
-            Assert.AreEqual(typeof(ProfileCircleOperation), loaded[0].GetType());
+            foreach (var invalidEntry in invalidEntries)
+            {
+                var json = "{\"version\":2,\"operations\":["
+                    + "{\"type\":\"ProfileCircle\",\"data\":{}},"
+                    + invalidEntry
+                    + "]}";
+
+                Exception exception = null;
+                try
+                {
+                    Service.Deserialize(json);
+                }
+                catch (Exception ex)
+                {
+                    exception = ex;
+                }
+
+                Assert.IsNotNull(exception, invalidEntry);
+            }
+        }
+
+        [TestMethod]
+        public void Deserialize_UnsupportedVersion_Throws()
+        {
+            var newer = "{\"version\":3,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
+            var olderTagged = "{\"version\":1,\"operations\":[]}";
+
+            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(newer));
+            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(olderTagged));
+        }
+
+        [TestMethod]
+        public void Deserialize_UnknownRootSection_Throws()
+        {
+            const string json = "{\"version\":2,\"operations\":[],\"futureData\":{\"keep\":true}}";
+
+            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(json));
+        }
+
+        [TestMethod]
+        public void Save_OverExistingProject_UsesAtomicReplacementWithoutTemporaryFiles()
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "gcg_atomic_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "project.ygc");
+            try
+            {
+                File.WriteAllText(path, "old content");
+
+                Service.Save(path, new List<OperationBase> { OperationFixtures.ProfileCircle() }, null);
+
+                Assert.IsTrue(File.ReadAllText(path).Contains("\"type\":\"ProfileCircle\""));
+                CollectionAssert.AreEqual(
+                    new[] { "project.ygc" },
+                    Directory.GetFiles(directory).Select(Path.GetFileName).ToArray(),
+                    "Временный файл не должен оставаться после успешной замены");
+            }
+            finally
+            {
+                Directory.Delete(directory, true);
+            }
         }
 
         /// <summary>

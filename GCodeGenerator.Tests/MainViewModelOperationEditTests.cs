@@ -272,6 +272,32 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Старый файл → глобальный СОЖ (дефолт)");
         }
 
+        [TestMethod]
+        public void OpenProject_UnsupportedVersion_PreservesCurrentProject()
+        {
+            var (main, _, dialogService, _) = CreateMain();
+            var existingOperation = OperationFixtures.DrillPoints();
+            main.AllOperations.Add(existingOperation);
+
+            var path = Path.Combine(Path.GetTempPath(), "gcg_future_" + Guid.NewGuid().ToString("N") + ".ygc");
+            try
+            {
+                File.WriteAllText(path, "{\"version\":3,\"operations\":[]}");
+                dialogService.OpenDialogResult = path;
+
+                main.OpenProjectCommand.Execute(null);
+
+                Assert.AreEqual(1, main.AllOperations.Count);
+                Assert.AreSame(existingOperation, main.AllOperations[0],
+                    "Неподдерживаемый файл не должен частично заменять текущий проект");
+                Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage));
+            }
+            finally
+            {
+                File.Delete(path);
+            }
+        }
+
         /// <summary>
         /// Новый проект: сессия шпинделя/СОЖ сбрасывается к глобальным значениям
         /// (решение исполнителя: не наследовать настройки от предыдущего проекта).
