@@ -79,14 +79,21 @@ jobs:
       - name: Check ViewModels infrastructure boundaries
         shell: pwsh
         run: |
-          $bad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
+          $ioBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
             Select-String -Pattern '^\s*using\s+System\.IO\b|\bSystem\.IO\b|\b(File|Directory|FileInfo|DirectoryInfo|StreamReader|StreamWriter)\s*\.|\bJsonSerializer\b'
-          if ($bad) {
+          if ($ioBad) {
             Write-Host 'Direct file I/O or serialization found in GCodeGenerator/ViewModels:'
-            $bad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+            $ioBad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
             exit 1
           }
-          Write-Host 'ViewModels infrastructure boundaries OK'
+          $serviceBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
+            Select-String -Pattern '\bnew\s+\w+Service\s*\('
+          if ($serviceBad) {
+            Write-Host 'Concrete services constructed in GCodeGenerator/ViewModels:'
+            $serviceBad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
+            exit 1
+          }
+          Write-Host 'ViewModels infrastructure boundaries OK: I/O and concrete service construction are absent'
 
       # Фаза 8 плана (пункт 8.3, DoD): в VM нет захардкоженных строк —
       # кириллица в строковых литералах запрещена (текст — только через resx-ключи;

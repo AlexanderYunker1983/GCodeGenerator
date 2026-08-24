@@ -128,7 +128,7 @@ namespace GCodeGenerator.Tests
                 WriteBigDxf(path, lineCount);
 
                 var dialogService = new StubDialogService { OpenDialogResult = path };
-                var vm = new ProfileDxfOperationViewModel(null, dialogService);
+                var vm = new ProfileDxfOperationViewModel(null, dialogService, new DxfImportService());
 
                 var stopwatch = Stopwatch.StartNew();
                 var task = ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);

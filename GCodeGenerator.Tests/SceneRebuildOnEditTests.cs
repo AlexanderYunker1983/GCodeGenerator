@@ -101,7 +101,7 @@ namespace GCodeGenerator.Tests
             {
                 OpenDialogResult = DxfFixtureLoader.GetAssetPath("profile_sample.dxf")
             };
-            var vm = new ProfileDxfOperationViewModel(null, dialogService);
+            var vm = new ProfileDxfOperationViewModel(null, dialogService, new DxfImportService());
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
@@ -125,7 +125,7 @@ namespace GCodeGenerator.Tests
             {
                 OpenDialogResult = DxfFixtureLoader.GetAssetPath("pocket_sample.dxf")
             };
-            var vm = new PocketDxfOperationViewModel(null, dialogService);
+            var vm = new PocketDxfOperationViewModel(null, dialogService, new DxfImportService());
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 

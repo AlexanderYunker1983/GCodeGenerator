@@ -14,16 +14,6 @@ namespace GCodeGenerator.ViewModels.Pocket
         private readonly IDialogService _dialogService;
         private readonly IDxfImportService _dxfImportService;
 
-        public PocketDxfOperationViewModel()
-            : this(null, null, new DxfImportService())
-        {
-        }
-
-        public PocketDxfOperationViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
-            : this(localizationManager, dialogService, new DxfImportService())
-        {
-        }
-
         public PocketDxfOperationViewModel(
             ILocalizationManager localizationManager,
             IDialogService dialogService,

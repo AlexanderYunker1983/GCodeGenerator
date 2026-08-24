@@ -49,7 +49,7 @@ namespace GCodeGenerator.Tests
             };
             var operations = new ObservableCollection<OperationBase> { operation };
             var dialogs = CreateDialogs(
-                _ => new ProfileDxfOperationViewModel(null, null),
+                _ => new ProfileDxfOperationViewModel(null, null, new DxfImportService()),
                 vm =>
                 {
                     var editor = (ProfileDxfOperationViewModel)vm;

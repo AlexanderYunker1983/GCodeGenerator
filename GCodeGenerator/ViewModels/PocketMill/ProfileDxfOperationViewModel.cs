@@ -17,16 +17,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         public ICommand ImportDxfCommand { get; }
 
-        public ProfileDxfOperationViewModel()
-            : this(null, null, new DxfImportService())
-        {
-        }
-
-        public ProfileDxfOperationViewModel(ILocalizationManager localizationManager, IDialogService dialogService)
-            : this(localizationManager, dialogService, new DxfImportService())
-        {
-        }
-
         public ProfileDxfOperationViewModel(
             ILocalizationManager localizationManager,
             IDialogService dialogService,
