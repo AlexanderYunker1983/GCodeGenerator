@@ -30,11 +30,8 @@ namespace GCodeGenerator.Tests
     /// нормализован к именам ассетов без машинного пути (генератор использует
     /// контуры, а не путь; файл остаётся переносимым).
     ///
-    /// Примечание: .ygc хранит AssemblyQualifiedName с версией сборки
-    /// (в локальных/CI-сборках — 0.0.0.0). Уязвимость: файл, сохранённый сборкой
-    /// с версией (YBUILD_PRODUCT_VERSION_DOTNET), не откроется в сборке 0.0.0.0
-    /// (Type.GetType не разрешит тип) — устраняется в п. 1.2 (явный дискриминатор
-    /// типов, короткие имена).
+    /// Эталон хранится в текущем формате v3: короткие дискриминаторы операций и
+    /// все четыре группы настроек генерации. Legacy v1 и v2 проверяются отдельно.
     ///
     /// Перегенерация эталонного набора: переменная окружения GCG_WRITE_REFERENCE=1
     /// + тест Write_Reference_Set (пишет в исходный каталог), затем пересобрать
@@ -86,9 +83,18 @@ namespace GCodeGenerator.Tests
                 "Нет эталонного проекта Reference/reference_project.ygc " +
                 "(запустите Write_Reference_Set с GCG_WRITE_REFERENCE=1 и закоммитьте файлы)");
 
-            var ops = Service.Load(ygcPath).Operations;
+            var data = Service.Load(ygcPath);
+            var ops = data.Operations;
             Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             Assert.AreEqual(19, ops.Count, "Число операций в эталонном проекте");
+            Assert.IsNotNull(data.Format, "Эталон v3 должен содержать format");
+            Assert.IsNotNull(data.Spindle, "Эталон v3 должен содержать spindle");
+            Assert.IsNotNull(data.Coolant, "Эталон v3 должен содержать coolant");
+            Assert.IsNotNull(data.WorkCoordinate, "Эталон v3 должен содержать workCoordinate");
+            Assert.IsTrue(data.Format.UseLineNumbers);
+            Assert.AreEqual(12000, data.Spindle.SpindleSpeedRpm);
+            Assert.IsTrue(data.Coolant.CoolantStartEnabled);
+            Assert.AreEqual("G54", data.WorkCoordinate.WorkCoordinateSystem);
 
             var expectedTypes = new[]
             {
@@ -155,7 +161,7 @@ namespace GCodeGenerator.Tests
 
             Directory.CreateDirectory(ReferenceSourceDirectory);
             var ops = BuildReferenceOperations();
-            // Пункт 8.2 (D4): эталонный .ygc — в новой схеме с секциями spindle/coolant.
+            // Эталонный .ygc — в текущей схеме со всеми настройками генерации.
             Service.Save(Path.Combine(ReferenceSourceDirectory, "reference_project.ygc"), ops, SettingsFixtures.Default());
 
             var program = Generator.Generate(ops, SettingsFixtures.Default());
