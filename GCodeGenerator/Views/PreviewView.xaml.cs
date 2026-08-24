@@ -71,9 +71,6 @@ namespace GCodeGenerator.Views
                         Camera.LookDirection = new Vector3D(0, 0, -_cameraDistance); // Looking straight down
                         Camera.UpDirection = new Vector3D(0, 1, 0); // Y-axis up for correct orientation
                         
-                        // Update camera distance
-                        _cameraDistance = _cameraDistance;
-                        
                         // Initialize spherical angles for top view
                         _theta = 0; // Start facing along positive X axis
                         _phi = Math.PI / 2; // Top view (90 degrees elevation)
