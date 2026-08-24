@@ -4,13 +4,19 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Результат чтения файла проекта .ygc (пункт 8.2 плана, D4):
-    /// операции + необязательные секции spindle/coolant.
+    /// Результат чтения файла проекта .ygc: операции и необязательные секции
+    /// настроек, влияющих на генерацию G-code.
     /// </summary>
     public sealed class ProjectFileData
     {
         /// <summary>Операции (null — в файле нет секции операций).</summary>
         public List<OperationBase> Operations { get; init; }
+
+        /// <summary>
+        /// Настройки формата G-code из секции "format" (null — секции нет в
+        /// legacy/v2-файле; в этом случае используются глобальные настройки).
+        /// </summary>
+        public GCodeFormatSettings Format { get; init; }
 
         /// <summary>
         /// Настройки шпинделя из секции "spindle" (null — секции нет в файле,
@@ -23,5 +29,11 @@ namespace GCodeGenerator.Services
         /// напр. старый .ygc; в этом случае сохраняются глобальные настройки).
         /// </summary>
         public CoolantSettings Coolant { get; init; }
+
+        /// <summary>
+        /// Настройки рабочей системы координат из секции "workCoordinate"
+        /// (null — секции нет в legacy/v2-файле).
+        /// </summary>
+        public WorkCoordinateSettings WorkCoordinate { get; init; }
     }
 }

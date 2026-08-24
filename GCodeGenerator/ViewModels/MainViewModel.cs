@@ -497,9 +497,9 @@ namespace GCodeGenerator.ViewModels
             AllOperations.Clear();
             SelectedOperation = null;
 
-            // Пункт 8.2 (решение исполнителя): новый проект стартует с глобальных
-            // настроек шпинделя/СОЖ, не наследуя их от ранее открытого проекта.
-            _settingsStore.RestoreGlobalSpindleAndCoolant();
+            // Новый проект стартует со всеми глобальными настройками генерации,
+            // не наследуя их от ранее открытого проекта. Тема UI не меняется.
+            _settingsStore.RestoreGlobalGenerationSettings();
 
             ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
@@ -523,7 +523,7 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                // Пункт 8.2 (D4): секции spindle/coolant пишутся в файл.
+                // Все настройки, влияющие на генерацию, пишутся в файл.
                 _projectFileService.Save(fileName, AllOperations, _settings);
             }
             catch (Exception ex)
@@ -578,16 +578,20 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// Пункт 8.2 (D4): секции spindle/coolant проекта подставляются в сессию
-        /// (ISettingsStore.Current); секции нет (старый .ygc) → глобальные настройки.
+        /// Настройки генерации проекта подставляются в сессию; отсутствующие
+        /// секции старых .ygc получают глобальные значения. Тема UI не меняется.
         /// </summary>
         private void ApplyProjectSettings(ProjectFileData data)
         {
-            _settingsStore.RestoreGlobalSpindleAndCoolant();
+            _settingsStore.RestoreGlobalGenerationSettings();
+            if (data.Format != null)
+                _settings.Format = data.Format;
             if (data.Spindle != null)
                 _settings.Spindle = data.Spindle;
             if (data.Coolant != null)
                 _settings.Coolant = data.Coolant;
+            if (data.WorkCoordinate != null)
+                _settings.WorkCoordinate = data.WorkCoordinate;
         }
 
         private void LoadOperationsFromProject(List<OperationBase> operations)

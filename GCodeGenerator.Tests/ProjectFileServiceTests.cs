@@ -157,20 +157,20 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
-        // Формат v2
+        // Текущий формат v3
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Формат v2 зафиксирован: конверт {"version":2,"operations":[{type,data}...]},
+        /// Формат v3 зафиксирован: конверт {"version":3,"operations":[{type,data}...]},
         /// короткий дискриминатор типа, данные операции — вложенный JSON-объект.
         /// </summary>
         [TestMethod]
-        public void FileFormat_V2Structure()
+        public void FileFormat_V3Structure()
         {
             var json = Service.Serialize(BuildAllOperations(), null);
 
-            Assert.IsTrue(json.StartsWith("{\"version\":2,\"operations\":[", StringComparison.Ordinal),
-                "Файл должен начинаться с {\"version\":2,\"operations\":[");
+            Assert.IsTrue(json.StartsWith("{\"version\":3,\"operations\":[", StringComparison.Ordinal),
+                "Файл должен начинаться с {\"version\":3,\"operations\":[");
             Assert.IsTrue(json.Contains("\"type\":\"DrillPoints\""),
                 "type — короткое имя операции (не AssemblyQualifiedName)");
             Assert.IsTrue(json.Contains("\"data\":{"),
@@ -224,7 +224,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_UnsupportedVersion_Throws()
         {
-            var newer = "{\"version\":3,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
+            var newer = "{\"version\":4,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
             var olderTagged = "{\"version\":1,\"operations\":[]}";
 
             Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(newer));
@@ -405,57 +405,63 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Миграция при сохранении: легаси v1 → загрузить → сохранить → файл становится v2,
-        /// операции сохраняются (round-trip через v2).
+        /// Миграция при сохранении: легаси v1 → загрузить → сохранить → файл становится v3,
+        /// операции сохраняются (round-trip через v3).
         /// </summary>
         [TestMethod]
-        public void Save_MigratesLegacyToV2()
+        public void Save_MigratesLegacyToV3()
         {
             var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
             var loaded = Service.Load(legacyPath).Operations;
             Assert.IsNotNull(loaded);
             Assert.AreEqual(19, loaded.Count);
 
-            var v2Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
+            var v3Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(v2Path, loaded, null);
-                var json = File.ReadAllText(v2Path, Encoding.UTF8);
-                Assert.IsTrue(json.StartsWith("{\"version\":2,\"operations\":[", StringComparison.Ordinal),
-                    "Сохранённый файл должен быть в формате v2");
+                Service.Save(v3Path, loaded, null);
+                var json = File.ReadAllText(v3Path, Encoding.UTF8);
+                Assert.IsTrue(json.StartsWith("{\"version\":3,\"operations\":[", StringComparison.Ordinal),
+                    "Сохранённый файл должен быть в формате v3");
                 Assert.IsFalse(json.Contains("\"Operations\""), "Не должно остаться легаси-секции Operations");
 
-                var reloaded = Service.Load(v2Path).Operations;
+                var reloaded = Service.Load(v3Path).Operations;
                 Assert.AreEqual(19, reloaded.Count, "Число операций после миграции");
                 for (int i = 0; i < loaded.Count; i++)
                     CompareOperation($"операция[{i}]", loaded[i], reloaded[i]);
             }
             finally
             {
-                if (File.Exists(v2Path))
-                    File.Delete(v2Path);
+                if (File.Exists(v3Path))
+                    File.Delete(v3Path);
             }
         }
 
         // ------------------------------------------------------------------
-        // Секции spindle/coolant (пункт 8.2 плана, D4)
+        // Настройки генерации в проекте
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Сохранение с настройками: в файл пишутся секции "spindle" и "coolant"
-        /// с фактическими значениями (PascalCase, как payload операций).
+        /// Сохранение с настройками: в файл пишутся все четыре группы, влияющие
+        /// на G-code. UI-настройки в проект не попадают.
         /// </summary>
         [TestMethod]
-        public void Save_WithSettings_WritesSpindleAndCoolantSections()
+        public void Save_WithSettings_WritesAllGenerationSections()
         {
             var settings = new GCodeSettings();
+            settings.Format.UseLineNumbers = false;
             settings.Spindle.SpindleSpeedRpm = 8000;
             settings.Spindle.SpindleStartCommand = "M4";
             settings.Spindle.SpindleDelaySeconds = 3.5;
             settings.Coolant.CoolantStartEnabled = false;
+            settings.WorkCoordinate.SetWorkCoordinateSystem = true;
+            settings.WorkCoordinate.WorkCoordinateSystem = "G57";
+            settings.Ui.UseDarkTheme = true;
 
             var json = Service.Serialize(new List<OperationBase> { OperationFixtures.ProfileCircle() }, settings);
 
+            Assert.IsTrue(json.Contains("\"format\":{\"UseLineNumbers\":false,"),
+                "Секция format с фактическим значением");
             Assert.IsTrue(json.Contains("\"spindle\":{\"SpindleControlEnabled\":true,"),
                 "Секция spindle с payload'ом PascalCase");
             Assert.IsTrue(json.Contains("\"SpindleSpeedRpm\":8000"), "Значение шпинделя из настроек");
@@ -464,6 +470,12 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(json.Contains("\"coolant\":{\"CoolantControlEnabled\":true,"),
                 "Секция coolant с payload'ом PascalCase");
             Assert.IsTrue(json.Contains("\"CoolantStartEnabled\":false"), "Значение СОЖ из настроек");
+            Assert.IsTrue(json.Contains("\"workCoordinate\":{\"AddStartPosition\":false,"),
+                "Секция workCoordinate с payload'ом PascalCase");
+            Assert.IsTrue(json.Contains("\"WorkCoordinateSystem\":\"G57\""),
+                "Рабочая система координат из настроек");
+            Assert.IsFalse(json.Contains("\"ui\"", StringComparison.OrdinalIgnoreCase),
+                "Настройки UI не должны зависеть от проекта");
         }
 
         /// <summary>
@@ -477,16 +489,24 @@ namespace GCodeGenerator.Tests
 
             Assert.IsFalse(json.Contains("\"spindle\""), "Секции spindle быть не должно");
             Assert.IsFalse(json.Contains("\"coolant\""), "Секции coolant быть не должно");
+            Assert.IsFalse(json.Contains("\"format\""), "Секции format быть не должно");
+            Assert.IsFalse(json.Contains("\"workCoordinate\""), "Секции workCoordinate быть не должно");
         }
 
         /// <summary>
-        /// Round-trip секций: сохранить проект с кастомными spindle/coolant →
+        /// Round-trip секций: сохранить проект со всеми настройками генерации →
         /// открыть → значения совпадают (переоткрытие идемпотентно).
         /// </summary>
         [TestMethod]
-        public void RoundTrip_SpindleCoolantSections_PreservesValues()
+        public void RoundTrip_AllGenerationSections_PreservesValues()
         {
             var settings = new GCodeSettings();
+            settings.Format.UseLineNumbers = false;
+            settings.Format.LineNumberStart = 25;
+            settings.Format.LineNumberStep = 5;
+            settings.Format.UseComments = false;
+            settings.Format.AllowArcs = false;
+            settings.Format.UsePaddedGCodes = true;
             settings.Spindle.SpindleControlEnabled = false;
             settings.Spindle.SpindleSpeedEnabled = false;
             settings.Spindle.SpindleSpeedRpm = 4500;
@@ -498,6 +518,16 @@ namespace GCodeGenerator.Tests
             settings.Coolant.CoolantControlEnabled = false;
             settings.Coolant.CoolantStartEnabled = false;
             settings.Coolant.CoolantStopEnabled = true;
+            settings.WorkCoordinate.AddStartPosition = true;
+            settings.WorkCoordinate.StartX = 1.25;
+            settings.WorkCoordinate.StartY = -2.5;
+            settings.WorkCoordinate.StartZ = 3.75;
+            settings.WorkCoordinate.AddEndPosition = true;
+            settings.WorkCoordinate.EndX = 10;
+            settings.WorkCoordinate.EndY = 20;
+            settings.WorkCoordinate.EndZ = 30;
+            settings.WorkCoordinate.SetWorkCoordinateSystem = true;
+            settings.WorkCoordinate.WorkCoordinateSystem = "G58";
 
             var ops = new List<OperationBase> { OperationFixtures.ProfileCircle() };
             var filePath = Path.Combine(Path.GetTempPath(), "gcg_sections_" + Guid.NewGuid().ToString("N") + ".ygc");
@@ -506,8 +536,16 @@ namespace GCodeGenerator.Tests
                 Service.Save(filePath, ops, settings);
                 var loaded = Service.Load(filePath);
 
+                Assert.IsNotNull(loaded.Format, "Секция format должна прочитаться");
                 Assert.IsNotNull(loaded.Spindle, "Секция spindle должна прочитаться");
                 Assert.IsNotNull(loaded.Coolant, "Секция coolant должна прочитаться");
+                Assert.IsNotNull(loaded.WorkCoordinate, "Секция workCoordinate должна прочитаться");
+                Assert.AreEqual(settings.Format.UseLineNumbers, loaded.Format.UseLineNumbers);
+                Assert.AreEqual(settings.Format.LineNumberStart, loaded.Format.LineNumberStart);
+                Assert.AreEqual(settings.Format.LineNumberStep, loaded.Format.LineNumberStep);
+                Assert.AreEqual(settings.Format.UseComments, loaded.Format.UseComments);
+                Assert.AreEqual(settings.Format.AllowArcs, loaded.Format.AllowArcs);
+                Assert.AreEqual(settings.Format.UsePaddedGCodes, loaded.Format.UsePaddedGCodes);
                 Assert.AreEqual(settings.Spindle.SpindleControlEnabled, loaded.Spindle.SpindleControlEnabled);
                 Assert.AreEqual(settings.Spindle.SpindleSpeedEnabled, loaded.Spindle.SpindleSpeedEnabled);
                 Assert.AreEqual(settings.Spindle.SpindleSpeedRpm, loaded.Spindle.SpindleSpeedRpm);
@@ -519,11 +557,23 @@ namespace GCodeGenerator.Tests
                 Assert.AreEqual(settings.Coolant.CoolantControlEnabled, loaded.Coolant.CoolantControlEnabled);
                 Assert.AreEqual(settings.Coolant.CoolantStartEnabled, loaded.Coolant.CoolantStartEnabled);
                 Assert.AreEqual(settings.Coolant.CoolantStopEnabled, loaded.Coolant.CoolantStopEnabled);
+                Assert.AreEqual(settings.WorkCoordinate.AddStartPosition, loaded.WorkCoordinate.AddStartPosition);
+                Assert.AreEqual(settings.WorkCoordinate.StartX, loaded.WorkCoordinate.StartX, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.StartY, loaded.WorkCoordinate.StartY, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.StartZ, loaded.WorkCoordinate.StartZ, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.AddEndPosition, loaded.WorkCoordinate.AddEndPosition);
+                Assert.AreEqual(settings.WorkCoordinate.EndX, loaded.WorkCoordinate.EndX, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.EndY, loaded.WorkCoordinate.EndY, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.EndZ, loaded.WorkCoordinate.EndZ, 1e-9);
+                Assert.AreEqual(settings.WorkCoordinate.SetWorkCoordinateSystem, loaded.WorkCoordinate.SetWorkCoordinateSystem);
+                Assert.AreEqual(settings.WorkCoordinate.WorkCoordinateSystem, loaded.WorkCoordinate.WorkCoordinateSystem);
 
                 // Переоткрытие (идемпотентность): сохранить прочитанные секции → те же значения.
                 var reloaded = Service.Load(filePath);
                 Assert.AreEqual(loaded.Spindle.SpindleSpeedRpm, reloaded.Spindle.SpindleSpeedRpm);
                 Assert.AreEqual(loaded.Coolant.CoolantStartEnabled, reloaded.Coolant.CoolantStartEnabled);
+                Assert.AreEqual(loaded.Format.UsePaddedGCodes, reloaded.Format.UsePaddedGCodes);
+                Assert.AreEqual(loaded.WorkCoordinate.WorkCoordinateSystem, reloaded.WorkCoordinate.WorkCoordinateSystem);
             }
             finally
             {
@@ -546,6 +596,8 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(19, loaded.Operations.Count);
             Assert.IsNull(loaded.Spindle, "Секции spindle в старом файле нет");
             Assert.IsNull(loaded.Coolant, "Секции coolant в старом файле нет");
+            Assert.IsNull(loaded.Format, "Секции format в старом файле нет");
+            Assert.IsNull(loaded.WorkCoordinate, "Секции workCoordinate в старом файле нет");
         }
 
         /// <summary>
@@ -561,6 +613,8 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(1, loaded.Operations.Count);
             Assert.IsNull(loaded.Spindle);
             Assert.IsNull(loaded.Coolant);
+            Assert.IsNull(loaded.Format);
+            Assert.IsNull(loaded.WorkCoordinate);
         }
 
         /// <summary>
@@ -568,7 +622,7 @@ namespace GCodeGenerator.Tests
         /// обработчик ошибки — в MainViewModel.OpenProject.
         /// </summary>
         [TestMethod]
-        public void Deserialize_NonObjectSpindleSection_Throws()
+        public void Deserialize_NonObjectSettingsSection_Throws()
         {
             var json = "{\"version\":2,\"operations\":[],\"spindle\":42}";
             try
@@ -580,6 +634,12 @@ namespace GCodeGenerator.Tests
             {
                 // Ожидаемо
             }
+
+            var json3 = "{\"version\":3,\"operations\":[],\"format\":true}";
+            Assert.ThrowsException<JsonException>(() => Service.Deserialize(json3));
+
+            var json4 = "{\"version\":3,\"operations\":[],\"workCoordinate\":[]}";
+            Assert.ThrowsException<JsonException>(() => Service.Deserialize(json4));
 
             var json2 = "{\"version\":2,\"operations\":[],\"coolant\":\"x\"}";
             try
@@ -599,11 +659,13 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_NullSpindleSection_ReturnsNull()
         {
-            var json = "{\"version\":2,\"operations\":[],\"spindle\":null,\"coolant\":null}";
+            var json = "{\"version\":3,\"operations\":[],\"format\":null,\"spindle\":null,\"coolant\":null,\"workCoordinate\":null}";
             var loaded = Service.Deserialize(json);
 
             Assert.IsNull(loaded.Spindle);
             Assert.IsNull(loaded.Coolant);
+            Assert.IsNull(loaded.Format);
+            Assert.IsNull(loaded.WorkCoordinate);
         }
 
         // ------------------------------------------------------------------

@@ -94,7 +94,7 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// Фикс ISettingsStore (пункт 7.5 плана): настройки по умолчанию, без персистентности.
-        /// Пункт 8.2: «глобальные» значения шпинделя/СОЖ — значения по умолчанию.
+        /// «Глобальные» значения настроек генерации — значения по умолчанию.
         /// </summary>
         /// <summary>Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.</summary>
         internal sealed class FakeSettingsStore : ISettingsStore
@@ -106,11 +106,13 @@ namespace GCodeGenerator.Tests
 
             public void Save() => SettingsChanged?.Invoke(this, EventArgs.Empty);
 
-            public void RestoreGlobalSpindleAndCoolant()
+            public void RestoreGlobalGenerationSettings()
             {
                 RestoreCalls++;
+                Current.Format = new GCodeFormatSettings();
                 Current.Spindle = new SpindleSettings();
                 Current.Coolant = new CoolantSettings();
+                Current.WorkCoordinate = new WorkCoordinateSettings();
                 SettingsChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -214,22 +216,27 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
-        // Пункт 8.2 плана (D4): секции spindle/coolant в сессии
+        // Настройки генерации проекта в сессии
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Открытие проекта с секциями spindle/coolant: значения из файла
-        /// подставляются в сессию (ISettingsStore.Current).
+        /// Открытие проекта: все настройки генерации подставляются в сессию,
+        /// а настройка темы UI остаётся текущей.
         /// </summary>
         [TestMethod]
-        public void OpenProject_FileWithSections_SessionSpindleCoolantReplaced()
+        public void OpenProject_FileWithSections_AllGenerationSettingsReplacedAndUiPreserved()
         {
             var (main, _, dialogService, store) = CreateMain();
 
             var settings = new GCodeSettings();
+            settings.Format.UseLineNumbers = false;
             settings.Spindle.SpindleSpeedRpm = 8000;
             settings.Spindle.SpindleStartCommand = "M4";
             settings.Coolant.CoolantStartEnabled = false;
+            settings.WorkCoordinate.SetWorkCoordinateSystem = true;
+            settings.WorkCoordinate.WorkCoordinateSystem = "G57";
+            settings.Ui.UseDarkTheme = false;
+            store.Current.Ui.UseDarkTheme = true;
 
             var filePath = Path.Combine(Path.GetTempPath(), "gcg_open_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
@@ -241,9 +248,13 @@ namespace GCodeGenerator.Tests
                 main.OpenProjectCommand.Execute(null);
 
                 Assert.AreEqual(1, main.AllOperations.Count, "Операция из файла загружена");
+                Assert.IsFalse(store.Current.Format.UseLineNumbers, "Формат из секции файла в сессии");
                 Assert.AreEqual(8000, store.Current.Spindle.SpindleSpeedRpm, "Шпиндель из секции файла в сессии");
                 Assert.AreEqual("M4", store.Current.Spindle.SpindleStartCommand);
                 Assert.IsFalse(store.Current.Coolant.CoolantStartEnabled, "СОЖ из секции файла в сессии");
+                Assert.AreEqual("G57", store.Current.WorkCoordinate.WorkCoordinateSystem,
+                    "Рабочая система координат из секции файла в сессии");
+                Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Проект не должен менять тему UI");
             }
             finally
             {
@@ -264,6 +275,9 @@ namespace GCodeGenerator.Tests
             // Сессия «изменена ранее открытым проектом».
             store.Current.Spindle.SpindleSpeedRpm = 9999;
             store.Current.Coolant.CoolantStartEnabled = false;
+            store.Current.Format.UseLineNumbers = false;
+            store.Current.WorkCoordinate.WorkCoordinateSystem = "G59";
+            store.Current.Ui.UseDarkTheme = true;
 
             var legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference", "legacy_project_v1.ygc");
             Assert.IsTrue(File.Exists(legacyPath), "Нет эталонного легаси-файла");
@@ -274,6 +288,10 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(19, main.AllOperations.Count, "Операции из старого файла загружены");
             Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Старый файл → глобальный шпиндель (дефолт)");
             Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Старый файл → глобальный СОЖ (дефолт)");
+            Assert.IsTrue(store.Current.Format.UseLineNumbers, "Старый файл → глобальный формат (дефолт)");
+            Assert.AreEqual("G54", store.Current.WorkCoordinate.WorkCoordinateSystem,
+                "Старый файл → глобальная система координат (дефолт)");
+            Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Открытие проекта не меняет тему UI");
         }
 
         [TestMethod]
@@ -286,7 +304,7 @@ namespace GCodeGenerator.Tests
             var path = Path.Combine(Path.GetTempPath(), "gcg_future_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                File.WriteAllText(path, "{\"version\":3,\"operations\":[]}");
+                File.WriteAllText(path, "{\"version\":4,\"operations\":[]}");
                 dialogService.OpenDialogResult = path;
 
                 main.OpenProjectCommand.Execute(null);
@@ -303,24 +321,31 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Новый проект: сессия шпинделя/СОЖ сбрасывается к глобальным значениям
-        /// (решение исполнителя: не наследовать настройки от предыдущего проекта).
+        /// Новый проект: все настройки генерации сбрасываются к глобальным,
+        /// тема UI остаётся текущей.
         /// </summary>
         [TestMethod]
-        public void NewProgram_SessionSpindleCoolantRestoredToGlobal()
+        public void NewProgram_AllGenerationSettingsRestoredToGlobalAndUiPreserved()
         {
             var (main, _, _, store) = CreateMain();
 
             main.AllOperations.Add(OperationFixtures.DrillPoints());
             store.Current.Spindle.SpindleSpeedRpm = 9999;
             store.Current.Coolant.CoolantStartEnabled = false;
+            store.Current.Format.UseLineNumbers = false;
+            store.Current.WorkCoordinate.WorkCoordinateSystem = "G59";
+            store.Current.Ui.UseDarkTheme = true;
 
             main.NewProgramCommand.Execute(null);
 
             Assert.AreEqual(0, main.AllOperations.Count, "Операции очищены");
             Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Новый проект → глобальный шпиндель");
             Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Новый проект → глобальный СОЖ");
-            Assert.IsTrue(store.RestoreCalls >= 1, "RestoreGlobalSpindleAndCoolant вызван");
+            Assert.IsTrue(store.Current.Format.UseLineNumbers, "Новый проект → глобальный формат");
+            Assert.AreEqual("G54", store.Current.WorkCoordinate.WorkCoordinateSystem,
+                "Новый проект → глобальная система координат");
+            Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Новый проект не должен менять тему UI");
+            Assert.IsTrue(store.RestoreCalls >= 1, "RestoreGlobalGenerationSettings вызван");
         }
     }
 }

@@ -8,7 +8,7 @@ namespace GCodeGenerator.Services
     /// Пункт 8.1 плана: единственная таблица маппинга настроек
     /// «путь до свойства в <see cref="GCodeSettings"/> → имя в Properties.Settings».
     /// Используется <see cref="AppSettingsStore"/> и для загрузки, и для сохранения
-    /// (ранее — ручная копия всех 30 свойств ×2).
+    /// (ранее — ручная копия всех 28 свойств ×2).
     /// </summary>
     public static class SettingsMapping
     {

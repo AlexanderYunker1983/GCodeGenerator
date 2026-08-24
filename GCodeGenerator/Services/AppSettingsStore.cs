@@ -9,7 +9,7 @@ namespace GCodeGenerator.Services
     /// Пункт 7.5 плана: экземпляр через IoC (статический фасад <c>GCodeSettingsStore</c>
     /// остаётся [Obsolete] на один релиз). Пункт 8.1 плана: загрузка/сохранение —
     /// по одной таблице маппинга (<see cref="SettingsMapping"/>, ранее — ручная копия
-    /// всех 30 свойств ×2).
+    /// всех 28 свойств ×2).
     /// </summary>
     public sealed class AppSettingsStore : ISettingsStore
     {
@@ -44,17 +44,19 @@ namespace GCodeGenerator.Services
         }
 
         /// <summary>
-        /// Пункт 8.2 плана (D4): шпиндель/СОЖ из персистентных глобальных значений.
-        /// Та же таблица SettingsMapping, только строки Spindle.*/Coolant.*.
+        /// Восстанавливает все настройки, влияющие на генерацию, из глобального
+        /// хранилища. Группа Ui.* сохраняет текущее состояние приложения.
         /// </summary>
-        public void RestoreGlobalSpindleAndCoolant()
+        public void RestoreGlobalGenerationSettings()
         {
             var persisted = Properties.Settings.Default;
             foreach (var (path, setting) in SettingsMapping.Entries)
             {
-                if (path.StartsWith("Spindle.") || path.StartsWith("Coolant."))
+                if (!path.StartsWith("Ui.", StringComparison.Ordinal))
                     SettingsMapping.SetValue(Current, path, persisted[setting]);
             }
+            if (string.IsNullOrEmpty(Current.WorkCoordinate.WorkCoordinateSystem))
+                Current.WorkCoordinate.WorkCoordinateSystem = "G54";
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }

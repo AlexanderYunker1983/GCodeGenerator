@@ -2,7 +2,7 @@ namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Aggregate of all settings that influence the application and generated
-    /// g-code. Пункт 8.1 плана: плоский класс на 30 свойств разбит на
+    /// g-code. Пункт 8.1 плана: плоский класс на 28 свойств разбит на
     /// тематические группы — <see cref="Format"/>, <see cref="Spindle"/>,
     /// <see cref="Coolant"/>, <see cref="WorkCoordinate"/> и <see cref="Ui"/>.
     /// </summary>
