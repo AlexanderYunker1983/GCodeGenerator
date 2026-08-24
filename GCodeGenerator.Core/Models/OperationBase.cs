@@ -82,6 +82,17 @@ namespace GCodeGenerator.Models
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+
+        /// <summary>
+        /// Явное уведомление «содержимое изменилось» (пункт 7.2 плана).
+        /// Геометрические параметры производных классов — авто-свойства
+        /// (без PropertyChanged), поэтому диалоги редактора (после
+        /// ApplyToOperation) и импорт DXF вызывают этот метод после
+        /// изменения операции: подписчики PropertyChanged (пересборка сцены
+        /// 2D-превью) получают обновление сразу, а не при следующем изменении
+        /// коллекции операций.
+        /// </summary>
+        public void NotifyContentChanged() => OnPropertyChanged(null);
     }
 }
 

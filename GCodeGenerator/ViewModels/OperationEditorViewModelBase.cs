@@ -77,7 +77,14 @@ namespace GCodeGenerator.ViewModels
         {
             if (_operation == null) return;
             if (IsValid())
+            {
                 ApplyToOperation();
+                // Пункт 7.2 плана: сохранение из диалога перерисовывает 2D-превью.
+                // Геометрия — авто-свойства (без PropertyChanged), поэтому
+                // уведомление явное (иначе сцена обновится только при следующем
+                // изменении коллекции операций).
+                _operation.NotifyContentChanged();
+            }
             else
                 RemoveOperation();
             RequestClose();

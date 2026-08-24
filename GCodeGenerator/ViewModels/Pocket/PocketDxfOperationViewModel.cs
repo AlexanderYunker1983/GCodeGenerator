@@ -394,6 +394,9 @@ namespace GCodeGenerator.ViewModels.Pocket
 
                 Operation.ClosedContours = closedContours;
                 Operation.DxfFilePath = fileName;
+                // Пункт 7.2 плана: импорт DXF перерисовывает 2D-превью
+                // (ClosedContours — авто-свойство, без PropertyChanged).
+                Operation.NotifyContentChanged();
                 FilePath = fileName;
                 var contourCount = closedContours.Count;
                 var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";

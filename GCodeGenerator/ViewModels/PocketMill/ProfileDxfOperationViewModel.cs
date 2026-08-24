@@ -202,6 +202,9 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
                 Operation.Polylines = polylines;
                 Operation.DxfFilePath = fileName;
+                // Пункт 7.2 плана: импорт DXF перерисовывает 2D-превью
+                // (Polylines — авто-свойство, без PropertyChanged).
+                Operation.NotifyContentChanged();
                 FilePath = fileName;
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "DxfImportInfo";
