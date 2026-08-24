@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
@@ -26,7 +27,8 @@ namespace GCodeGenerator.ViewModels.Pocket
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
-            ImportDxfCommand = new RelayCommand(ImportDxfFile);
+            // Пункт 8.4 плана: импорт DXF — async: парсинг файла выполняется в пуле (Task.Run), UI-поток не блокируется даже на больших файлах.
+            ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
             DisplayName = _localizationManager?.GetString("PocketDxfName") ?? "PocketDxfName";
@@ -373,7 +375,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             FinishingMode = operation.FinishingMode;
         }
 
-        private void ImportDxfFile()
+        private async Task ImportDxfFileAsync()
         {
             var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
             var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
@@ -382,7 +384,7 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             try
             {
-                var closedContours = ParseDxfClosedContours(fileName);
+                var closedContours = await Task.Run(() => ParseDxfClosedContours(fileName));
                 if (closedContours.Count == 0)
                 {
                     var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "DxfImportNoClosedContours";

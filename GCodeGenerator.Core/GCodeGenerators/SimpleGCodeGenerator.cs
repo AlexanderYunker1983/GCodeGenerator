@@ -21,7 +21,7 @@ namespace GCodeGenerator.GCodeGenerators
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         }
 
-        public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings)
+        public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
         {
             // План 4.3/4.4: программа собирается структурой (ProgramBuilder)
             // и рендерится GCodeFormatter; операционные генераторы пишут
@@ -70,8 +70,12 @@ namespace GCodeGenerator.GCodeGenerators
                     builder.Dwell(spindle.SpindleDelaySeconds * 1000.0);
             }
 
-            foreach (var operation in operations)
+            // Пункт 8.4 плана: прогресс по операциям (0–100) — для async-генерации в UI.
+            var total = operations.Count;
+            for (var index = 0; index < operations.Count; index++)
             {
+                var operation = operations[index];
+
                 // Skip disabled operations completely when generating trajectory
                 if (operation == null || !operation.IsEnabled)
                     continue;
@@ -83,6 +87,9 @@ namespace GCodeGenerator.GCodeGenerators
                 {
                     generator.Generate(operation, builder, settings);
                 }
+
+                if (total > 0)
+                    progress?.Report((index + 1) * 100 / total);
             }
 
             if (coolant.CoolantControlEnabled && coolant.CoolantStopEnabled)

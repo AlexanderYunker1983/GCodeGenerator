@@ -16,6 +16,10 @@
         Height="600" Width="1200"
         MinHeight="600" MinWidth="1200"
         WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <!-- Пункт 8.4 плана: показ/скрытие полосы прогресса генерации -->
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </Window.Resources>
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left: operation type selector takes all free width -->
@@ -130,6 +134,11 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Content="{loc:Loc GenerateGCode}" VerticalAlignment="Center"
                     Command="{Binding GenerateGCodeCommand}" Width="160"/>
+            <!-- Пункт 8.4 плана: прогресс генерации G-кода (видна только во время генерации) -->
+            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100"
+                         Value="{Binding ProgressPercent, Mode=OneWay}"
+                         Height="16" Margin="8,0" VerticalAlignment="Center"
+                         Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVis}}"/>
             <Button Grid.Column="2" Content="{loc:Loc SaveGCode}" VerticalAlignment="Center"
                     Command="{Binding SaveGCodeCommand}"  Width="140"/>
 

@@ -9,6 +9,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
 using GCodeGenerator.GCodeGenerators;
@@ -61,7 +62,9 @@ namespace GCodeGenerator.ViewModels
             PocketOperations = new Pocket.PocketOperationsViewModel(localizationManager, operationEditorFactory, AllOperations);
             PocketOperations.OperationAdded += OnCategoryOperationAdded;
             
-            GenerateGCodeCommand = new RelayCommand(GenerateGCode, () => AllOperations.Count > 0);
+            // Пункт 8.4 плана: генерация — async (Task.Run в GenerateGCodeAsync),
+            // UI не блокируется; AsyncRelayCommand сам запрещает повторный запуск.
+            GenerateGCodeCommand = new AsyncRelayCommand(GenerateGCodeAsync, () => AllOperations.Count > 0);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
             PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
             OpenSettingsCommand = new RelayCommand(OpenSettings);
@@ -195,7 +198,7 @@ namespace GCodeGenerator.ViewModels
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
+            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
 
             if (e?.NewItems != null)
             {
@@ -241,15 +244,63 @@ namespace GCodeGenerator.ViewModels
 
         private GCodeProgram _generatedProgram;
 
-        private void GenerateGCode()
+        /// <summary>Пункт 8.4: идёт ли генерация G-кода (UI-индикатор).</summary>
+        public bool IsGenerating
         {
-            var program = _generator.Generate(new System.Collections.Generic.List<OperationBase>(AllOperations), _settings);
-            _generatedProgram = program;
-            var sb = new StringBuilder();
-            foreach (var line in program.Lines)
-                sb.AppendLine(line);
-            GCodePreview = sb.ToString();
-            ((RelayCommand)SaveGCodeCommand).NotifyCanExecuteChanged();
+            get => _isGenerating;
+            private set
+            {
+                if (value == _isGenerating) return;
+                _isGenerating = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private bool _isGenerating;
+
+        /// <summary>Пункт 8.4: прогресс генерации, 0–100 (для ProgressBar).</summary>
+        public int ProgressPercent
+        {
+            get => _progressPercent;
+            private set
+            {
+                if (value == _progressPercent) return;
+                _progressPercent = value;
+                OnPropertyChanged();
+            }
+        }
+
+        private int _progressPercent;
+
+        /// <summary>
+        /// Пункт 8.4 плана: генерация G-кода — async с прогрессом.
+        /// Core остаётся синхронным: тяжёлая работа — в Task.Run, прогресс —
+        /// IProgress&lt;int&gt; (marshalling на UI-поток встроен в Progress).
+        /// </summary>
+        private async Task GenerateGCodeAsync()
+        {
+            if (IsGenerating)
+                return;
+
+            IsGenerating = true;
+            ProgressPercent = 0;
+            try
+            {
+                var operations = new System.Collections.Generic.List<OperationBase>(AllOperations);
+                var settings = _settings;
+                var program = await Task.Run(() =>
+                    _generator.Generate(operations, settings, new Progress<int>(p => ProgressPercent = p)));
+                _generatedProgram = program;
+                var sb = new StringBuilder();
+                foreach (var line in program.Lines)
+                    sb.AppendLine(line);
+                GCodePreview = sb.ToString();
+            }
+            finally
+            {
+                IsGenerating = false;
+                ProgressPercent = 100;
+            }
         }
 
         private void SaveGCode()
@@ -406,7 +457,7 @@ namespace GCodeGenerator.ViewModels
             // настроек шпинделя/СОЖ, не наследуя их от ранее открытого проекта.
             _settingsStore.RestoreGlobalSpindleAndCoolant();
 
-            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
+            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
             UpdateOperationCommandsCanExecute();
@@ -510,7 +561,7 @@ namespace GCodeGenerator.ViewModels
                 AllOperations.Add(operation);
             }
 
-            ((RelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
+            ((IRelayCommand)GenerateGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)SaveGCodeCommand)?.NotifyCanExecuteChanged();
             ((RelayCommand)PreviewGCodeCommand)?.NotifyCanExecuteChanged();
             UpdateOperationCommandsCanExecute();

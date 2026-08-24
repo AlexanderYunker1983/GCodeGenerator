@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
@@ -5,8 +6,11 @@ namespace GCodeGenerator.GCodeGenerators
 {
     public interface IGCodeGenerator
     {
-        GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings);
+        /// <summary>
+        /// Генерирует G-код-программу. Пункт 8.4 плана: <paramref name="progress"/>
+        /// — необязательное сообщение о прогрессе (0–100, по операциям); метод остаётся
+        /// чистым синхронным (асинхронность — на стороне UI, Task.Run).
+        /// </summary>
+        GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null);
     }
 }
-
-

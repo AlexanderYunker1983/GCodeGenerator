@@ -31,7 +31,8 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>Фиксирует вызовы IDialogService без показа окон.</summary>
-        private sealed class RecordingDialogService : IDialogService
+        /// Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.
+        internal sealed class RecordingDialogService : IDialogService
         {
             public Type CreatedType { get; private set; }
             public Type ShownType { get; private set; }
@@ -66,14 +67,18 @@ namespace GCodeGenerator.Tests
             }
         }
 
-        private static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain()
+        /// <summary>
+        /// Пункт 8.4: internal + опциональный генератор — переиспользуется в
+        /// AsyncGenerationTests (медленный фикс-генератор для проверки async).
+        /// </summary>
+        internal static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain(IGCodeGenerator generator = null)
         {
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var settingsStore = new FakeSettingsStore();
-            var main = new MainViewModel(null, dialogService, new SimpleGCodeGenerator(), factory,
+            var main = new MainViewModel(null, dialogService, generator ?? new SimpleGCodeGenerator(), factory,
                 new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService());
             return (main, factory, dialogService, settingsStore);
         }
@@ -82,7 +87,8 @@ namespace GCodeGenerator.Tests
         /// Фикс ISettingsStore (пункт 7.5 плана): настройки по умолчанию, без персистентности.
         /// Пункт 8.2: «глобальные» значения шпинделя/СОЖ — значения по умолчанию.
         /// </summary>
-        private sealed class FakeSettingsStore : ISettingsStore
+        /// <summary>Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.</summary>
+        internal sealed class FakeSettingsStore : ISettingsStore
         {
             public GCodeSettings Current { get; } = new GCodeSettings();
             public int RestoreCalls { get; private set; }

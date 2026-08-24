@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
@@ -27,7 +28,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
-            ImportDxfCommand = new RelayCommand(ImportDxfFile);
+            // Пункт 8.4 плана: импорт DXF — async: парсинг файла выполняется в пуле (Task.Run), UI-поток не блокируется даже на больших файлах.
+            ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
 
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
@@ -181,7 +183,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             set { if (value == Operation.Decimals) return; Operation.Decimals = value; OnPropertyChanged(); }
         }
 
-        private void ImportDxfFile()
+        private async Task ImportDxfFileAsync()
         {
             var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
             var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
@@ -190,7 +192,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
             try
             {
-                var polylines = ParseDxfLines(fileName);
+                var polylines = await Task.Run(() => ParseDxfLines(fileName));
                 if (polylines.Count == 0)
                 {
                     var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "DxfImportNoLines";
