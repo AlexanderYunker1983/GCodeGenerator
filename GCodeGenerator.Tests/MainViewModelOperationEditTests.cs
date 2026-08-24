@@ -52,9 +52,10 @@ namespace GCodeGenerator.Tests
 
             /// <summary>Пункт 8.2: путь, который «выбирает» диалог открытия (null — отмена).</summary>
             public string OpenDialogResult { get; set; }
+            public string SaveDialogResult { get; set; }
 
             public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => OpenDialogResult;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
+            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => SaveDialogResult;
 
             public TViewModel CreateViewModel<TViewModel>() where TViewModel : class
                 => throw new NotSupportedException("в тесте используется CreateViewModel(Type)");
@@ -80,7 +81,9 @@ namespace GCodeGenerator.Tests
         /// Пункт 8.4: internal + опциональный генератор — переиспользуется в
         /// AsyncGenerationTests (медленный фикс-генератор для проверки async).
         /// </summary>
-        internal static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain(IGCodeGenerator generator = null)
+        internal static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain(
+            IGCodeGenerator generator = null,
+            IGCodeFileService gCodeFileService = null)
         {
             var dialogService = new RecordingDialogService();
             var factory = new OperationEditorFactory(dialogService);
@@ -88,7 +91,8 @@ namespace GCodeGenerator.Tests
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var settingsStore = new FakeSettingsStore();
             var main = new MainViewModel(null, dialogService, generator ?? new SimpleGCodeGenerator(), factory,
-                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService());
+                new ProgramInfo("1.0"), settingsStore, new FakeThemeService(), new ProjectFileService(),
+                gCodeFileService ?? new GCodeFileService());
             return (main, factory, dialogService, settingsStore);
         }
 

@@ -30,8 +30,9 @@ namespace GCodeGenerator.ViewModels
         private readonly IProgramInfo _programInfo;
         private readonly IThemeService _themeService;
         private readonly IProjectFileService _projectFileService;
+        private readonly IGCodeFileService _gCodeFileService;
 
-        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService)
+        public MainViewModel(ILocalizationManager localizationManager, IDialogService dialogService, IGCodeGenerator generator, IOperationEditorFactory operationEditorFactory, IProgramInfo programInfo, ISettingsStore settingsStore, IThemeService themeService, IProjectFileService projectFileService, IGCodeFileService gCodeFileService)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
@@ -49,6 +50,7 @@ namespace GCodeGenerator.ViewModels
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             // Пункт 7.6 плана: служба файлов проекта через IoC (new удалён).
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
+            _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
 
             // Пункт 7.2 плана: AllOperations — единый источник истины по операциям;
             // категориальные VM получают его и открывают фильтрованные представления
@@ -351,13 +353,13 @@ namespace GCodeGenerator.ViewModels
             {
                 try
                 {
-                    System.IO.File.WriteAllText(fileName, GCodePreview, System.Text.Encoding.UTF8);
+                    _gCodeFileService.Save(fileName, GCodePreview);
                 }
-                catch (System.Exception ex)
+                catch (Exception ex)
                 {
                     var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
-                var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
+                    var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
+                    _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
                 }
             }
         }
