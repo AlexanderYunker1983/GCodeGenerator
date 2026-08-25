@@ -142,6 +142,14 @@ namespace GCodeGenerator.Tests
             public bool ObservedUseLineNumbers { get; private set; }
 
             public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                => new SimpleGCodeGenerator().Generate(operations, settings, progress);
+
+            /// <summary>
+            /// Окно строит траекторию, поэтому слепок документа виден здесь:
+            /// именно с этими данными работает фоновый поток.
+            /// </summary>
+            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
             {
                 Started.Set();
                 Continue.Wait(TimeSpan.FromSeconds(5));
@@ -151,13 +159,8 @@ namespace GCodeGenerator.Tests
                 ObservedEnabled = drill.IsEnabled;
                 ObservedUseLineNumbers = settings.Format.UseLineNumbers;
 
-                return new SimpleGCodeGenerator().Generate(operations, settings, progress);
+                return new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
             }
-
-            /// <summary>Траектория тесту не нужна: проверяется работа с программой.</summary>
-            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
-                => new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
         }
     }
 }

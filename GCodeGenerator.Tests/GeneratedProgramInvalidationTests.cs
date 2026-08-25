@@ -26,17 +26,20 @@ namespace GCodeGenerator.Tests
                 IList<OperationBase> operations,
                 GCodeSettings settings,
                 IProgress<int> progress = null)
+                => _inner.Generate(operations, settings, progress);
+
+            /// <summary>
+            /// Окно строит траекторию, а программу из неё делает постпроцессор,
+            /// поэтому останавливаться нужно здесь.
+            /// </summary>
+            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
             {
                 _started.Set();
                 if (!_continue.Wait(TimeSpan.FromSeconds(5)))
                     throw new TimeoutException("Test generator was not released.");
-                return _inner.Generate(operations, settings, progress);
+                return _inner.BuildToolPath(operations, settings, progress);
             }
-
-            /// <summary>Траектория тесту не нужна: проверяется работа с программой.</summary>
-            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
-                => new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
 
             public void Dispose()
             {

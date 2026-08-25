@@ -99,6 +99,12 @@ namespace GCodeGenerator
             builder.RegisterType<SimpleGCodeGenerator>()
                 .As<IGCodeGenerator>()
                 .SingleInstance();
+            // Всё, что зависит от станка, а не от детали: модальные состояния
+            // в начале программы, вид команд шпинделя и охлаждения, единица
+            // аргумента паузы, завершение программы.
+            builder.RegisterType<GenericPostProcessor>()
+                .As<IPostProcessor>()
+                .SingleInstance();
             builder.RegisterType<GCodeWorkflowFactory>()
                 .As<IGCodeWorkflowFactory>()
                 .SingleInstance();

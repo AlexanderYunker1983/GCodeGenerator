@@ -22,11 +22,12 @@ namespace GCodeGenerator.ViewModels
         private readonly IList<OperationBase> _operations;
         private readonly GCodeSettings _settings;
         private readonly IGCodeGenerator _generator;
+        private readonly IPostProcessor _postProcessor;
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IGCodeFileService _gCodeFileService;
         private readonly IAppLogger _logger;
-        private GCodeProgram _generatedProgram;
+        private Toolpath.ToolPath _generatedToolPath;
         private long _documentRevision;
         private string _gCodePreview;
         private bool _isGenerating;
@@ -36,6 +37,7 @@ namespace GCodeGenerator.ViewModels
             IList<OperationBase> operations,
             GCodeSettings settings,
             IGCodeGenerator generator,
+            IPostProcessor postProcessor,
             ILocalizationManager localizationManager,
             IDialogService dialogService,
             IGCodeFileService gCodeFileService,
@@ -44,6 +46,7 @@ namespace GCodeGenerator.ViewModels
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
+            _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
             _localizationManager = localizationManager;
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
@@ -98,7 +101,7 @@ namespace GCodeGenerator.ViewModels
         public void InvalidateGeneratedProgram()
         {
             Interlocked.Increment(ref _documentRevision);
-            _generatedProgram = null;
+            _generatedToolPath = null;
             GCodePreview = string.Empty;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
         }
@@ -110,7 +113,7 @@ namespace GCodeGenerator.ViewModels
 
             IsGenerating = true;
             ProgressPercent = 0;
-            _generatedProgram = null;
+            _generatedToolPath = null;
             GCodePreview = string.Empty;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
@@ -127,8 +130,13 @@ namespace GCodeGenerator.ViewModels
                     if (generationRevision == Volatile.Read(ref _documentRevision))
                         ProgressPercent = p;
                 });
-                var program = await Task.Run(() =>
-                    _generator.Generate(operations, settings, progress));
+                // Траектория строится один раз: постпроцессор делает из неё
+                // программу, а трёхмерный предпросмотр показывает её саму.
+                var (toolPath, program) = await Task.Run(() =>
+                {
+                    var path = _generator.BuildToolPath(operations, settings, progress);
+                    return (path, _postProcessor.Build(path, settings));
+                });
 
                 if (generationRevision != Volatile.Read(ref _documentRevision))
                 {
@@ -137,7 +145,7 @@ namespace GCodeGenerator.ViewModels
                     return;
                 }
 
-                _generatedProgram = program;
+                _generatedToolPath = toolPath;
                 var text = new StringBuilder();
                 foreach (var line in program.Lines)
                     text.AppendLine(line);
@@ -147,7 +155,7 @@ namespace GCodeGenerator.ViewModels
             }
             catch (Exception ex)
             {
-                _generatedProgram = null;
+                _generatedToolPath = null;
                 GCodePreview = string.Empty;
                 ProgressPercent = 0;
                 _logger.Error("G-code generation failed", ex);
@@ -196,7 +204,7 @@ namespace GCodeGenerator.ViewModels
                 return;
 
             var viewModel = _dialogService.CreateViewModel<PreviewViewModel>();
-            viewModel.Program = _generatedProgram;
+            viewModel.ToolPath = _generatedToolPath;
             _dialogService.ShowDialog(viewModel);
         }
     }

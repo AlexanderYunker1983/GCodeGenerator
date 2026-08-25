@@ -107,6 +107,7 @@ namespace GCodeGenerator.Tests
             var settingsStore = new FakeSettingsStore();
             var gCodeWorkflowFactory = new GCodeWorkflowFactory(
                 generator ?? new SimpleGCodeGenerator(),
+                new GenericPostProcessor(),
                 null,
                 dialogService,
                 gCodeFileService ?? new GCodeFileService());

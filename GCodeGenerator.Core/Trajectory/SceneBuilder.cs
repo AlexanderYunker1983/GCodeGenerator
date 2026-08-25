@@ -7,6 +7,14 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.Trajectory
 {
     /// <summary>
+    /// Собирает сцену разбором готовой программы.
+    ///
+    /// Собственную программу так разбирать больше не нужно: предпросмотр
+    /// строится прямо из траектории (<see cref="ToolPathSceneBuilder"/>),
+    /// из которой она и сделана. Этот разбор остаётся ради чужих файлов —
+    /// когда программа научится открывать G-код, написанный не ею, — и
+    /// служит проверкой: сцены, полученные обоими путями, обязаны совпадать.
+    ///
     /// Builds a <see cref="TrajectoryScene"/> from a structured
     /// <see cref="GCodeProgram"/> (plan items 6.1/6.2). Replaces the
     /// hand-written text parser that used to live in <c>PreviewViewModel</c>:

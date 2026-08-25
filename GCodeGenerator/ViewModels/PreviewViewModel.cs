@@ -1,20 +1,19 @@
 using GCodeGenerator.Localization;
-using GCodeGenerator.Models;
 using GCodeGenerator.Trajectory;
 
 namespace GCodeGenerator.ViewModels
 {
     /// <summary>
     /// ViewModel of the 3D G-code preview dialog (plan item 6.1).
-    /// Takes a structured <see cref="GCodeProgram"/> (not text) and exposes
-    /// a pure <see cref="TrajectoryScene"/> — no G-code parsing and no
-    /// <c>System.Windows.Media.*</c> types here. The WPF <c>Model3DGroup</c>
-    /// is built by <see cref="Views.SceneRenderer"/> in the view's code-behind.
+    /// Получает траекторию инструмента и отдаёт чистую сцену
+    /// (<see cref="TrajectoryScene"/>) — без разбора G-кода и без типов
+    /// <c>System.Windows.Media.*</c>. Трёхмерную модель строит
+    /// <see cref="Views.SceneRenderer"/> в code-behind окна.
     /// </summary>
     public class PreviewViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
-        private GCodeProgram _program;
+        private Toolpath.ToolPath _toolPath;
         private TrajectoryScene _scene;
 
         public PreviewViewModel(ILocalizationManager localizationManager)
@@ -27,18 +26,22 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// The generated program to preview (structured blocks, not text).
-        /// Setting it rebuilds <see cref="Scene"/>.
+        /// Траектория, которую показывает окно. Задание её пересобирает
+        /// <see cref="Scene"/>.
+        ///
+        /// Раньше окно получало готовую программу и разбирало её обратно,
+        /// восстанавливая по G-словам, чем было каждое движение. Теперь
+        /// показывается ровно то, из чего программа сделана.
         /// </summary>
-        public GCodeProgram Program
+        public Toolpath.ToolPath ToolPath
         {
-            get => _program;
+            get => _toolPath;
             set
             {
-                if (ReferenceEquals(value, _program)) return;
-                _program = value;
+                if (ReferenceEquals(value, _toolPath)) return;
+                _toolPath = value;
                 OnPropertyChanged();
-                Scene = value != null ? SceneBuilder.Build(value) : TrajectoryScene.Empty;
+                Scene = value != null ? ToolPathSceneBuilder.Build(value) : TrajectoryScene.Empty;
             }
         }
 

@@ -77,6 +77,7 @@ namespace GCodeGenerator.Tests
             var logger = new RecordingLogger();
             var factory = new GCodeWorkflowFactory(
                 new SimpleGCodeGenerator(),
+                new GenericPostProcessor(),
                 null,
                 new SilentDialogService(),
                 new GCodeFileService(),
@@ -95,6 +96,7 @@ namespace GCodeGenerator.Tests
             var logger = new RecordingLogger();
             var factory = new GCodeWorkflowFactory(
                 new ThrowingGenerator(),
+                new GenericPostProcessor(),
                 null,
                 new SilentDialogService(),
                 new GCodeFileService(),
@@ -125,6 +127,7 @@ namespace GCodeGenerator.Tests
                 logger);
             var gCodeFactory = new GCodeWorkflowFactory(
                 new SimpleGCodeGenerator(),
+                new GenericPostProcessor(),
                 null,
                 dialogService,
                 new GCodeFileService(),
