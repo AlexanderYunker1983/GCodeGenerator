@@ -1,21 +1,15 @@
 using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for ellipse contour.
     /// </summary>
-    public class ProfileEllipseOperation : MillingOperationBase, IProfileOperation, IValidatable
+    public class ProfileEllipseOperation : ProfileOperationBase, IValidatable
     {
         public ProfileEllipseOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Ellipse")
         {
         }
-
-        /// <summary>
-        /// Tool path mode: on line, outside, or inside contour.
-        /// </summary>
-        public ToolPathMode ToolPathMode { get; set; } = ToolPathMode.OnLine;
 
         /// <summary>
         /// Ellipse center X coordinate.
@@ -41,26 +35,6 @@ namespace GCodeGenerator.Models
         /// Rotation angle of the ellipse in degrees.
         /// </summary>
         public double RotationAngle { get; set; } = 0.0;
-
-        /// <summary>
-        /// Maximum segment length for arc approximation when arc support is disabled.
-        /// </summary>
-        public double MaxSegmentLength { get; set; } = 0.5;
-
-        /// <summary>
-        /// Tool entry mode: vertical or angled.
-        /// </summary>
-        public EntryMode EntryMode { get; set; } = EntryMode.Vertical;
-
-        /// <summary>
-        /// Entry angle in degrees (for angled entry).
-        /// </summary>
-        public double EntryAngle { get; set; } = 5.0;
-
-        /// <summary>
-        /// Safe distance between passes (for angled entry).
-        /// </summary>
-        public double SafeDistanceBetweenPasses { get; set; } = 1.0;
 
         public override string GetDescription()
         {

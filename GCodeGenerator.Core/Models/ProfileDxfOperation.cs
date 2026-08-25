@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
@@ -17,7 +16,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation imported from DXF lines.
     /// </summary>
-    public class ProfileDxfOperation : MillingOperationBase, IProfileOperation, IValidatable
+    public class ProfileDxfOperation : ProfileOperationBase, IValidatable
     {
         public ProfileDxfOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile DXF")
         {
@@ -26,26 +25,6 @@ namespace GCodeGenerator.Models
         public List<DxfPolyline> Polylines { get; set; } = new List<DxfPolyline>();
 
         public string DxfFilePath { get; set; }
-
-        /// <summary>
-        /// Tool path mode: on line, outside, or inside contour.
-        /// </summary>
-        public ToolPathMode ToolPathMode { get; set; } = ToolPathMode.OnLine;
-
-        /// <summary>
-        /// Tool entry mode: vertical or angled.
-        /// </summary>
-        public EntryMode EntryMode { get; set; } = EntryMode.Vertical;
-
-        /// <summary>
-        /// Entry angle in degrees (for angled entry).
-        /// </summary>
-        public double EntryAngle { get; set; } = 5.0;
-
-        /// <summary>
-        /// Maximum segment length for arc approximation when arc support is disabled.
-        /// </summary>
-        public double MaxSegmentLength { get; set; } = 0.5;
 
         public override string GetDescription()
         {

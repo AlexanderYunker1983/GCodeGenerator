@@ -1,21 +1,15 @@
 using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for rounded rectangle contour.
     /// </summary>
-    public class ProfileRoundedRectangleOperation : MillingOperationBase, IProfileOperation, IValidatable
+    public class ProfileRoundedRectangleOperation : ProfileOperationBase, IValidatable
     {
         public ProfileRoundedRectangleOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Rounded Rectangle")
         {
         }
-
-        /// <summary>
-        /// Tool path mode: on line, outside, or inside contour.
-        /// </summary>
-        public ToolPathMode ToolPathMode { get; set; } = ToolPathMode.OnLine;
 
         /// <summary>
         /// Rectangle width.
@@ -66,26 +60,6 @@ namespace GCodeGenerator.Models
         /// Reference point type (center, corner, etc.).
         /// </summary>
         public ReferencePointType ReferencePointType { get; set; } = ReferencePointType.Center;
-
-        /// <summary>
-        /// Tool entry mode: vertical or angled.
-        /// </summary>
-        public EntryMode EntryMode { get; set; } = EntryMode.Vertical;
-
-        /// <summary>
-        /// Entry angle in degrees (for angled entry).
-        /// </summary>
-        public double EntryAngle { get; set; } = 5.0;
-
-        /// <summary>
-        /// Safe distance between passes (for angled entry).
-        /// </summary>
-        public double SafeDistanceBetweenPasses { get; set; } = 1.0;
-
-        /// <summary>
-        /// Maximum allowed linear segment length when approximating arcs.
-        /// </summary>
-        public double MaxSegmentLength { get; set; } = 0.5;
 
         public override string GetDescription()
         {

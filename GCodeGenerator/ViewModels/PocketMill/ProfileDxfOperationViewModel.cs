@@ -1,23 +1,39 @@
-using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
-using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.PocketMill
 {
-    public class ProfileDxfOperationViewModel : OperationEditorViewModelBase<ProfileDxfOperation>, IHasDisplayName
+    /// <summary>
+    /// Диалог обработки контура из чертежа: импорт DXF и общие параметры
+    /// профильной обработки. Геометрия приходит из файла, поэтому собственных
+    /// размеров у операции нет.
+    /// </summary>
+    public partial class ProfileDxfOperationViewModel
+        : ProfileOperationEditorViewModelBase<ProfileDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IDxfImportService _dxfImportService;
         private readonly IAppLogger _logger;
 
-        public ICommand ImportDxfCommand { get; }
+        [ObservableProperty]
+        private string _displayName;
+
+        /// <summary>Путь к импортированному чертежу.</summary>
+        [ObservableProperty]
+        private string _filePath;
+
+        /// <summary>Итог импорта: сколько отрезков контура получено.</summary>
+        [ObservableProperty]
+        private string _importInfo;
 
         public ProfileDxfOperationViewModel(
             ILocalizationManager localizationManager,
@@ -29,7 +45,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             _dialogService = dialogService;
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
             _logger = logger ?? NullAppLogger.Instance;
-            // Пункт 8.4 плана: импорт DXF — async: парсинг файла выполняется в пуле (Task.Run), UI-поток не блокируется даже на больших файлах.
+            // Пункт 8.4 плана: импорт DXF — async: разбор файла выполняется в пуле,
+            // поэтому интерфейс не замирает даже на больших чертежах.
             ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
 
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
@@ -37,20 +54,21 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = _localizationManager?.GetString("ProfileDxfName") ?? "ProfileDxfName";
 
             // Пункт 7.3: операция по умолчанию для автономного создания
-            // (в потоках добавления/редактирования фабрику задаёт Operation).
+            // (в потоках добавления/редактирования операцию задаёт фабрика).
             if (Operation == null)
                 Operation = new ProfileDxfOperation();
         }
+
+        public ICommand ImportDxfCommand { get; }
 
         protected override void LoadFromOperation(ProfileDxfOperation operation)
         {
             if (operation == null)
                 return;
 
-            // Загружаем сохраненный путь к файлу
+            LoadCommonProfileParameters(operation);
+
             FilePath = operation.DxfFilePath;
-            
-            // Показываем информацию об импорте, если данные уже загружены
             if (operation.Polylines != null && operation.Polylines.Count > 0)
             {
                 var lineCount = operation.Polylines.Sum(p => p?.Points?.Count > 1 ? p.Points.Count - 1 : 0);
@@ -61,127 +79,11 @@ namespace GCodeGenerator.ViewModels.PocketMill
             {
                 ImportInfo = null;
             }
-            
-            // Уведомляем об изменении всех свойств, которые зависят от Operation
-            OnPropertyChanged(nameof(TotalDepth));
-            OnPropertyChanged(nameof(StepDepth));
-            OnPropertyChanged(nameof(ToolDiameter));
-            OnPropertyChanged(nameof(ContourHeight));
-            OnPropertyChanged(nameof(FeedXYRapid));
-            OnPropertyChanged(nameof(FeedXYWork));
-            OnPropertyChanged(nameof(FeedZRapid));
-            OnPropertyChanged(nameof(FeedZWork));
-            OnPropertyChanged(nameof(SafeZHeight));
-            OnPropertyChanged(nameof(RetractHeight));
-            OnPropertyChanged(nameof(Decimals));
         }
 
-        // Пункт 7.3: свойства пишут в Operation напрямую (pass-through),
-        // отдельное сохранение не требуется.
         protected override void ApplyToOperation()
         {
-        }
-
-        private string _displayName;
-        public string DisplayName
-        {
-            get => _displayName;
-            set
-            {
-                if (Equals(value, _displayName)) return;
-                _displayName = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private string _filePath;
-        public string FilePath
-        {
-            get => _filePath;
-            set
-            {
-                if (Equals(value, _filePath)) return;
-                _filePath = value;
-                OnPropertyChanged();
-            }
-        }
-
-        private string _importInfo;
-        public string ImportInfo
-        {
-            get => _importInfo;
-            set
-            {
-                if (Equals(value, _importInfo)) return;
-                _importInfo = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double TotalDepth
-        {
-            get => Operation.TotalDepth;
-            set { if (value.Equals(Operation.TotalDepth)) return; Operation.TotalDepth = value; OnPropertyChanged(); }
-        }
-
-        public double StepDepth
-        {
-            get => Operation.StepDepth;
-            set { if (value.Equals(Operation.StepDepth)) return; Operation.StepDepth = value; OnPropertyChanged(); }
-        }
-
-        public double ToolDiameter
-        {
-            get => Operation.ToolDiameter;
-            set { if (value.Equals(Operation.ToolDiameter)) return; Operation.ToolDiameter = value; OnPropertyChanged(); }
-        }
-
-        public double ContourHeight
-        {
-            get => Operation.ContourHeight;
-            set { if (value.Equals(Operation.ContourHeight)) return; Operation.ContourHeight = value; OnPropertyChanged(); }
-        }
-
-        public double FeedXYRapid
-        {
-            get => Operation.FeedXYRapid;
-            set { if (value.Equals(Operation.FeedXYRapid)) return; Operation.FeedXYRapid = value; OnPropertyChanged(); }
-        }
-
-        public double FeedXYWork
-        {
-            get => Operation.FeedXYWork;
-            set { if (value.Equals(Operation.FeedXYWork)) return; Operation.FeedXYWork = value; OnPropertyChanged(); }
-        }
-
-        public double FeedZRapid
-        {
-            get => Operation.FeedZRapid;
-            set { if (value.Equals(Operation.FeedZRapid)) return; Operation.FeedZRapid = value; OnPropertyChanged(); }
-        }
-
-        public double FeedZWork
-        {
-            get => Operation.FeedZWork;
-            set { if (value.Equals(Operation.FeedZWork)) return; Operation.FeedZWork = value; OnPropertyChanged(); }
-        }
-
-        public double SafeZHeight
-        {
-            get => Operation.SafeZHeight;
-            set { if (value.Equals(Operation.SafeZHeight)) return; Operation.SafeZHeight = value; OnPropertyChanged(); }
-        }
-
-        public double RetractHeight
-        {
-            get => Operation.RetractHeight;
-            set { if (value.Equals(Operation.RetractHeight)) return; Operation.RetractHeight = value; OnPropertyChanged(); }
-        }
-
-        public int Decimals
-        {
-            get => Operation.Decimals;
-            set { if (value == Operation.Decimals) return; Operation.Decimals = value; OnPropertyChanged(); }
+            ApplyCommonProfileParameters(Operation);
         }
 
         private async Task ImportDxfFileAsync()
@@ -220,6 +122,5 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
         }
-
     }
 }
