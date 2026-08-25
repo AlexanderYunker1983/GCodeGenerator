@@ -8,26 +8,23 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Creates an isolated operation graph for a modal editor and commits it
-    /// back while preserving the identity of the operation stored in the main
-    /// collection. Nested holes/DXF points are cloned through the same stable
-    /// serializer used by project files.
+    /// Даёт модальному редактору отдельную копию операции и переносит
+    /// изменения обратно, сохраняя тождество операции в общем списке:
+    /// подписки на неё и её место в порядке обработки не должны страдать
+    /// от редактирования.
+    ///
+    /// Копию создаёт <see cref="OperationCloner"/> — тот же механизм, что
+    /// применяется при черновой и чистовой обработке кармана, поэтому состав
+    /// переносимых данных везде одинаков.
     /// </summary>
     internal static class OperationEditTransaction
     {
-        private static readonly ProjectFileService SnapshotSerializer = new ProjectFileService();
-
         public static OperationBase CreateWorkingCopy(OperationBase source)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
-            var snapshot = SnapshotSerializer.Serialize(new[] { source }, null);
-            var operations = SnapshotSerializer.Deserialize(snapshot).Operations;
-            if (operations == null || operations.Count != 1 || operations[0].GetType() != source.GetType())
-                throw new InvalidOperationException($"Не удалось создать рабочую копию операции {source.GetType().Name}.");
-
-            return operations[0];
+            return OperationCloner.Clone(source);
         }
 
         public static void Commit(OperationBase workingCopy, OperationBase target)
