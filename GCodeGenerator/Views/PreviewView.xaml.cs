@@ -3,12 +3,17 @@ using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Media3D;
+using GCodeGenerator.Trajectory;
 using GCodeGenerator.ViewModels;
+using GCodeGenerator.Views.Scene;
 
 namespace GCodeGenerator.Views
 {
     public partial class PreviewView : Window
     {
+        /// <summary>Палитра сцены: фон окна и цвета траектории берутся из одной темы.</summary>
+        private readonly SceneMaterials _materials = SceneMaterials.ForCurrentTheme();
+
         private PreviewViewModel _viewModel;
         private Point3D _modelCenter = new Point3D(0, 0, 0);
         private Point3D _rotationPivot = new Point3D(0, 0, 0); // Точка поворота при правой кнопке мыши
@@ -22,6 +27,7 @@ namespace GCodeGenerator.Views
         public PreviewView()
         {
             InitializeComponent();
+            MainGrid.Background = _materials.BackgroundBrush;
             DataContextChanged += PreviewView_DataContextChanged;
             Closed += PreviewView_Closed;
         }
@@ -37,7 +43,7 @@ namespace GCodeGenerator.Views
 
                 if (_viewModel.Scene != null)
                 {
-                    UpdateTrajectoryModel(SceneRenderer.Render(_viewModel.Scene));
+                    RenderScene(_viewModel.Scene);
                 }
             }
         }
@@ -53,8 +59,13 @@ namespace GCodeGenerator.Views
                 sender is PreviewViewModel viewModel &&
                 ReferenceEquals(viewModel, _viewModel))
             {
-                UpdateTrajectoryModel(SceneRenderer.Render(viewModel.Scene));
+                RenderScene(viewModel.Scene);
             }
+        }
+
+        private void RenderScene(TrajectoryScene scene)
+        {
+            UpdateTrajectoryModel(SceneRenderer.Render(scene, _materials));
         }
 
         private void UnhookViewModel()
