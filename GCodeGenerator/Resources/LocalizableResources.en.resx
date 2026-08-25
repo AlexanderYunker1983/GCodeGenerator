@@ -336,6 +336,9 @@
   <data name="Error" xml:space="preserve">
     <value>Error</value>
   </data>
+  <data name="UnexpectedErrorMessage" xml:space="preserve">
+    <value>Unexpected error. The application keeps running, please save the project. Details are written to the log:</value>
+  </data>
   <data name="CodeGenerationSettingsTab" xml:space="preserve">
     <value>Code generation</value>
   </data>

@@ -1,7 +1,12 @@
+using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Threading;
 using Autofac;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
+using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
@@ -14,6 +19,9 @@ namespace GCodeGenerator
     /// </summary>
     public partial class App
     {
+        private IAppLogger _logger = NullAppLogger.Instance;
+        private ILocalizationManager _localizationManager;
+
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
@@ -27,13 +35,21 @@ namespace GCodeGenerator
         /// </summary>
         private void StartupCore()
         {
+            // Журнал создаётся первым: он нужен обработчикам необработанных
+            // исключений и менеджеру локализации.
+            var logger = new FileAppLogger();
+            _logger = logger;
+            HookUnhandledExceptionHandlers();
+
             // Локализация (ранее — LocalizationModule.Load).
-            var localizationManager = new AppLocalizationManager();
+            var localizationManager = new AppLocalizationManager(logger);
             localizationManager.AddAssembly("GCodeGenerator");
             LocalizationProvider.Instance = localizationManager;
+            _localizationManager = localizationManager;
 
             // Autofac: регистрация сервисов и view-моделей.
             var builder = new ContainerBuilder();
+            builder.RegisterInstance(logger).As<IAppLogger>().SingleInstance();
             builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
             builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
 
@@ -90,6 +106,8 @@ namespace GCodeGenerator
                 .InstancePerDependency();
             var scope = builder.Build();
 
+            logger.Info($"Запуск GCodeGenerator {versionString}");
+
             // Главное окно (ранее — MvvmApplication.GetStartViewModelType + ShowAsync).
             var mainViewModel = scope.Resolve<MainViewModel>();
             var mainWindow = new MainView { DataContext = mainViewModel };
@@ -97,6 +115,66 @@ namespace GCodeGenerator
             mainWindow.Show();
 
             scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
+        }
+
+        /// <summary>
+        /// Перехват необработанных исключений: до этого любое исключение вне
+        /// собственных catch закрывало приложение молча, вместе с несохранённым
+        /// проектом.
+        ///
+        /// Исключение UI-потока журналируется и показывается пользователю, после
+        /// чего помечается обработанным: приложение продолжает работу, чтобы
+        /// проект можно было сохранить. Исключения фоновых потоков остановить
+        /// нельзя — они только журналируются.
+        /// </summary>
+        private void HookUnhandledExceptionHandlers()
+        {
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+        }
+
+        private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            _logger.Error("Необработанное исключение в потоке пользовательского интерфейса", e.Exception);
+            e.Handled = true;
+            ShowUnhandledExceptionMessage(e.Exception);
+        }
+
+        private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            _logger.Error(
+                $"Необработанное исключение вне потока пользовательского интерфейса (IsTerminating={e.IsTerminating})",
+                e.ExceptionObject as Exception);
+        }
+
+        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            _logger.Error("Необработанное исключение фоновой задачи", e.Exception);
+            e.SetObserved();
+        }
+
+        /// <summary>
+        /// Сообщение о сбое с путём к журналу. Само по себе не должно приводить
+        /// к повторному исключению, поэтому вызов защищён.
+        /// </summary>
+        private void ShowUnhandledExceptionMessage(Exception exception)
+        {
+            try
+            {
+                var title = _localizationManager?.GetString("Error") ?? "Error";
+                var message = _localizationManager?.GetString("UnexpectedErrorMessage")
+                    ?? "UnexpectedErrorMessage";
+                var logPath = (_logger as FileAppLogger)?.FilePath;
+                var details = string.IsNullOrEmpty(logPath)
+                    ? exception?.Message
+                    : $"{exception?.Message}\n\n{logPath}";
+                MessageBox.Show($"{message}\n\n{details}", title, MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception reportingFailure)
+            {
+                _logger.Error("Не удалось показать сообщение о сбое", reportingFailure);
+            }
         }
     }
 }

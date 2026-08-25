@@ -1,3 +1,4 @@
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -13,17 +14,20 @@ namespace GCodeGenerator.Services
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IGCodeFileService _gCodeFileService;
+        private readonly IAppLogger _logger;
 
         public GCodeWorkflowFactory(
             IGCodeGenerator generator,
             ILocalizationManager localizationManager,
             IDialogService dialogService,
-            IGCodeFileService gCodeFileService)
+            IGCodeFileService gCodeFileService,
+            IAppLogger logger = null)
         {
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
             _localizationManager = localizationManager;
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
+            _logger = logger ?? NullAppLogger.Instance;
         }
 
         public GCodeWorkflowViewModel Create(IList<OperationBase> operations, GCodeSettings settings)
@@ -33,6 +37,7 @@ namespace GCodeGenerator.Services
                 _generator,
                 _localizationManager,
                 _dialogService,
-                _gCodeFileService);
+                _gCodeFileService,
+                _logger);
     }
 }

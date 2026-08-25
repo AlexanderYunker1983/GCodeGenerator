@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
@@ -20,6 +21,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IDialogService _dialogService;
         private readonly ISettingsStore _settingsStore;
         private readonly IProjectFileService _projectFileService;
+        private readonly IAppLogger _logger;
 
         internal ProjectWorkflowViewModel(
             ObservableCollection<OperationBase> operations,
@@ -27,7 +29,8 @@ namespace GCodeGenerator.ViewModels
             ILocalizationManager localizationManager,
             IDialogService dialogService,
             ISettingsStore settingsStore,
-            IProjectFileService projectFileService)
+            IProjectFileService projectFileService,
+            IAppLogger logger = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _gCodeWorkflow = gCodeWorkflow ?? throw new ArgumentNullException(nameof(gCodeWorkflow));
@@ -35,6 +38,7 @@ namespace GCodeGenerator.ViewModels
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
+            _logger = logger ?? NullAppLogger.Instance;
 
             NewProgramCommand = new RelayCommand(CreateNewProgram);
             SaveProjectCommand = new RelayCommand(SaveProject, () => _operations.Count > 0);
@@ -82,9 +86,11 @@ namespace GCodeGenerator.ViewModels
             try
             {
                 _projectFileService.Save(fileName, _operations, _settingsStore.Current);
+                _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
             }
             catch (Exception ex)
             {
+                _logger.Error($"Saving project failed: {fileName}", ex);
                 var message = Localize("ErrorSavingProject");
                 _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }
@@ -106,6 +112,7 @@ namespace GCodeGenerator.ViewModels
                 var data = _projectFileService.Load(fileName);
                 if (data?.Operations == null)
                 {
+                    _logger.Warning($"Project file has no operations section: {fileName}");
                     _dialogService.ShowError(Localize("InvalidProjectFile"), title);
                     return;
                 }
@@ -114,9 +121,11 @@ namespace GCodeGenerator.ViewModels
                 ResetOperations();
                 foreach (var operation in data.Operations)
                     _operations.Add(operation);
+                _logger.Info($"Project opened: {fileName} ({data.Operations.Count} operation(s))");
             }
             catch (Exception ex)
             {
+                _logger.Error($"Opening project failed: {fileName}", ex);
                 var message = Localize("ErrorOpeningProject");
                 _dialogService.ShowError($"{message}\n{ex.Message}", title);
             }

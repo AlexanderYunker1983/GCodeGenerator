@@ -1,3 +1,4 @@
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
@@ -12,17 +13,20 @@ namespace GCodeGenerator.Services
         private readonly IDialogService _dialogService;
         private readonly ISettingsStore _settingsStore;
         private readonly IProjectFileService _projectFileService;
+        private readonly IAppLogger _logger;
 
         public ProjectWorkflowFactory(
             ILocalizationManager localizationManager,
             IDialogService dialogService,
             ISettingsStore settingsStore,
-            IProjectFileService projectFileService)
+            IProjectFileService projectFileService,
+            IAppLogger logger = null)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
+            _logger = logger ?? NullAppLogger.Instance;
         }
 
         public ProjectWorkflowViewModel Create(
@@ -34,6 +38,7 @@ namespace GCodeGenerator.Services
                 _localizationManager,
                 _dialogService,
                 _settingsStore,
-                _projectFileService);
+                _projectFileService,
+                _logger);
     }
 }

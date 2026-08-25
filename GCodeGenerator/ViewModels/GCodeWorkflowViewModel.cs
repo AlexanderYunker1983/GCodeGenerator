@@ -1,4 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -24,6 +25,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IGCodeFileService _gCodeFileService;
+        private readonly IAppLogger _logger;
         private GCodeProgram _generatedProgram;
         private long _documentRevision;
         private string _gCodePreview;
@@ -36,7 +38,8 @@ namespace GCodeGenerator.ViewModels
             IGCodeGenerator generator,
             ILocalizationManager localizationManager,
             IDialogService dialogService,
-            IGCodeFileService gCodeFileService)
+            IGCodeFileService gCodeFileService,
+            IAppLogger logger = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -44,6 +47,7 @@ namespace GCodeGenerator.ViewModels
             _localizationManager = localizationManager;
             _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
             _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
+            _logger = logger ?? NullAppLogger.Instance;
 
             GenerateGCodeCommand = new AsyncRelayCommand(GenerateGCodeAsync, () => _operations.Count > 0);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
@@ -124,6 +128,7 @@ namespace GCodeGenerator.ViewModels
                 if (generationRevision != Volatile.Read(ref _documentRevision))
                 {
                     ProgressPercent = 0;
+                    _logger.Info("G-code generation result discarded: operations changed while generating");
                     return;
                 }
 
@@ -133,12 +138,14 @@ namespace GCodeGenerator.ViewModels
                     text.AppendLine(line);
                 GCodePreview = text.ToString();
                 generationCompleted = true;
+                _logger.Info($"G-code generated: {operations.Count} operation(s), {program.Lines.Count} line(s)");
             }
             catch (Exception ex)
             {
                 _generatedProgram = null;
                 GCodePreview = string.Empty;
                 ProgressPercent = 0;
+                _logger.Error("G-code generation failed", ex);
                 var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
                 _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
@@ -167,9 +174,11 @@ namespace GCodeGenerator.ViewModels
             try
             {
                 _gCodeFileService.Save(fileName, GCodePreview);
+                _logger.Info($"G-code saved: {fileName}");
             }
             catch (Exception ex)
             {
+                _logger.Error($"Saving G-code failed: {fileName}", ex);
                 var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
                 _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);

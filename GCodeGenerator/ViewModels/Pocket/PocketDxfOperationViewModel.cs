@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
@@ -13,15 +14,18 @@ namespace GCodeGenerator.ViewModels.Pocket
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IDxfImportService _dxfImportService;
+        private readonly IAppLogger _logger;
 
         public PocketDxfOperationViewModel(
             ILocalizationManager localizationManager,
             IDialogService dialogService,
-            IDxfImportService dxfImportService)
+            IDxfImportService dxfImportService,
+            IAppLogger logger = null)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
+            _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.4 плана: импорт DXF — async: парсинг файла выполняется в пуле (Task.Run), UI-поток не блокируется даже на больших файлах.
             ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
@@ -382,6 +386,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 var closedContours = await Task.Run(() => _dxfImportService.ReadPocketClosedContours(fileName));
                 if (closedContours.Count == 0)
                 {
+                    _logger.Warning($"DXF import found no closed contours: {fileName}");
                     var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "DxfImportNoClosedContours";
                     _dialogService?.ShowInfo(msg, title);
                     return;
@@ -396,9 +401,11 @@ namespace GCodeGenerator.ViewModels.Pocket
                 var contourCount = closedContours.Count;
                 var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
                 ImportInfo = string.Format(infoTemplate, contourCount);
+                _logger.Info($"DXF imported for pocket: {fileName} ({contourCount} closed contour(s))");
             }
             catch (Exception ex)
             {
+                _logger.Error($"DXF import failed: {fileName}", ex);
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
                 _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }

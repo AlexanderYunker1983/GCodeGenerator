@@ -336,6 +336,9 @@
   <data name="Error" xml:space="preserve">
     <value>Ошибка</value>
   </data>
+  <data name="UnexpectedErrorMessage" xml:space="preserve">
+    <value>Непредвиденная ошибка. Работа программы продолжена, сохраните проект. Подробности записаны в журнал:</value>
+  </data>
   <data name="CodeGenerationSettingsTab" xml:space="preserve">
     <value>Генерация кода</value>
   </data>

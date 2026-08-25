@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
@@ -14,17 +15,20 @@ namespace GCodeGenerator.ViewModels.PocketMill
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IDxfImportService _dxfImportService;
+        private readonly IAppLogger _logger;
 
         public ICommand ImportDxfCommand { get; }
 
         public ProfileDxfOperationViewModel(
             ILocalizationManager localizationManager,
             IDialogService dialogService,
-            IDxfImportService dxfImportService)
+            IDxfImportService dxfImportService,
+            IAppLogger logger = null)
         {
             _localizationManager = localizationManager;
             _dialogService = dialogService;
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
+            _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.4 плана: импорт DXF — async: парсинг файла выполняется в пуле (Task.Run), UI-поток не блокируется даже на больших файлах.
             ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
 
@@ -192,6 +196,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 var polylines = await Task.Run(() => _dxfImportService.ReadProfilePolylines(fileName));
                 if (polylines.Count == 0)
                 {
+                    _logger.Warning($"DXF import found no profile geometry: {fileName}");
                     var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "DxfImportNoLines";
                     _dialogService?.ShowInfo(msg, title);
                     return;
@@ -206,9 +211,11 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 var lineCount = polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
                 var infoTemplate = _localizationManager?.GetString("DxfImportInfo") ?? "DxfImportInfo";
                 ImportInfo = string.Format(infoTemplate, lineCount);
+                _logger.Info($"DXF imported for profile: {fileName} ({polylines.Count} polyline(s), {lineCount} segment(s))");
             }
             catch (Exception ex)
             {
+                _logger.Error($"DXF import failed: {fileName}", ex);
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
                 _dialogService?.ShowError($"{msg} {ex.Message}", title);
             }
