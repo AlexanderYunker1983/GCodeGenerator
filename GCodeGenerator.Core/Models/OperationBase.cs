@@ -101,6 +101,14 @@ namespace GCodeGenerator.Models
         public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
 
         /// <inheritdoc />
+        /// <remarks>
+        /// В файл проекта не пишется: это вычисляемое состояние проверки,
+        /// а не параметр операции. Без [JsonIgnore] свойство однажды уже
+        /// утекло в формат — состав файла изменился без смены версии,
+        /// а сохранение попутно запускало проверку всех операций; страховкой
+        /// от повторения служит сверка с эталонным .ygc в тестах.
+        /// </remarks>
+        [JsonIgnore]
         public bool HasErrors => Issues.Count > 0;
 
         /// <inheritdoc />

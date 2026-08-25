@@ -137,6 +137,48 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Замок формата файла: сериализация эталонных операций сегодняшним
+        /// кодом совпадает с закоммиченным reference_project.ygc символ
+        /// в символ. Состав payload операции — часть формата: однажды
+        /// вычисляемое HasErrors утекло в файл, состав изменился без смены
+        /// версии, и ни один тест этого не заметил — G-код эталона совпадал,
+        /// а сам файл никто не сравнивал. Теперь дрейф формата — падающий
+        /// тест: новое свойство либо помечается [JsonIgnore], либо судьба
+        /// файла решается осознанно — с перегенерацией эталона и причиной
+        /// в сообщении коммита.
+        /// </summary>
+        [TestMethod]
+        public void Reference_Project_Ygc_Matches_Current_Serialization()
+        {
+            var ygcPath = Path.Combine(ReferenceOutputDirectory, "reference_project.ygc");
+            Assert.IsTrue(File.Exists(ygcPath),
+                "Нет эталонного проекта Reference/reference_project.ygc " +
+                "(запустите Write_Reference_Set с GCG_WRITE_REFERENCE=1 и закоммитьте файлы)");
+            var expected = File.ReadAllText(ygcPath);
+
+            var actual = Service.Serialize(BuildReferenceOperations(), SettingsFixtures.Default());
+
+            if (expected == actual)
+                return;
+
+            var comparable = Math.Min(expected.Length, actual.Length);
+            var divergence = 0;
+            while (divergence < comparable && expected[divergence] == actual[divergence])
+                divergence++;
+            var from = Math.Max(0, divergence - 40);
+            string Excerpt(string text)
+            {
+                var start = Math.Min(from, text.Length);
+                return text.Substring(start, Math.Min(100, text.Length - start));
+            }
+            Assert.Fail(
+                $"Формат файла разошёлся с эталоном в позиции {divergence} " +
+                $"(эталон {expected.Length} символов, фактически {actual.Length}):\n" +
+                $"  эталон:     …{Excerpt(expected)}…\n" +
+                $"  фактически: …{Excerpt(actual)}…");
+        }
+
+        /// <summary>
         /// Перегенерация эталонного набора в исходный каталог.
         /// Выполняется только при GCG_WRITE_REFERENCE=1 (в CI — no-op).
         /// </summary>

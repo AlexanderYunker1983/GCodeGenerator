@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 using GCodeGenerator.Tests.Fixtures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using GCodeGenerator.Persistence;
@@ -670,6 +671,46 @@ namespace GCodeGenerator.Tests
             return t == typeof(double) || t == typeof(float) || t == typeof(decimal)
                 || t == typeof(int) || t == typeof(uint) || t == typeof(long) || t == typeof(ulong)
                 || t == typeof(short) || t == typeof(ushort) || t == typeof(byte) || t == typeof(sbyte);
+        }
+
+        // ------------------------------------------------------------------
+        // Состав payload: вычисляемое состояние проверки — не часть формата
+
+        /// <summary>
+        /// Вычисляемое HasErrors не попадает в файл ни у одного типа каталога:
+        /// это состояние проверки, а не параметр операции, и его запись
+        /// попутно запускала бы саму проверку при каждом сохранении.
+        /// Проверка нарочно не опирается на эталонный файл, поэтому переживёт
+        /// его перегенерацию: даже нарочно обновлённый эталон с утечкой
+        /// этот тест назовёт по имени типа.
+        /// </summary>
+        [TestMethod]
+        public void Serialize_DoesNotEmitValidationState()
+        {
+            foreach (var descriptor in OperationCatalog.All)
+            {
+                var json = Service.Serialize(new[] { descriptor.Create() }, null);
+                Assert.IsFalse(json.Contains("\"HasErrors\""),
+                    $"{descriptor.OperationType.Name}: вычисляемое HasErrors утекло в файл проекта.");
+            }
+        }
+
+        /// <summary>
+        /// Файлы, сохранённые сборками с утечкой HasErrors, открываются:
+        /// лишнее поле в данных операции пропускается, как и прочие
+        /// неизвестные поля payload, — целиком-отказ действует только
+        /// на уровне конверта.
+        /// </summary>
+        [TestMethod]
+        public void Load_PayloadWithLeakedHasErrors_IsAccepted()
+        {
+            var json = "{\"version\":4,\"operations\":[{\"type\":\"ProfileCircle\"," +
+                       "\"data\":{\"Radius\":7,\"HasErrors\":false}}]}";
+
+            var data = Service.Deserialize(json);
+
+            var circle = (ProfileCircleOperation)data.Operations.Single();
+            Assert.AreEqual(7.0, circle.Radius, 1e-12);
         }
     }
 }
