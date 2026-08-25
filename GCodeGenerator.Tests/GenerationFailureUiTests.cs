@@ -20,14 +20,14 @@ namespace GCodeGenerator.Tests
         public async Task ValidationFailure_ClearsPreviewAndShowsReason()
         {
             var (main, _, dialogService, _) = MainViewModelOperationEditTests.CreateMain();
-            main.GCodePreview = "stale G-code";
-            main.AllOperations.Add(new ProfileCircleOperation { Radius = 0 });
+            main.GCodeWorkflow.GCodePreview = "stale G-code";
+            main.OperationsWorkspace.AllOperations.Add(new ProfileCircleOperation { Radius = 0 });
 
-            await ((IAsyncRelayCommand)main.GenerateGCodeCommand).ExecuteAsync(null);
+            await ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
 
-            Assert.IsFalse(main.IsGenerating);
-            Assert.AreEqual(0, main.ProgressPercent);
-            Assert.AreEqual(string.Empty, main.GCodePreview, "Устаревшая программа убрана");
+            Assert.IsFalse(main.GCodeWorkflow.IsGenerating);
+            Assert.AreEqual(0, main.GCodeWorkflow.ProgressPercent);
+            Assert.AreEqual(string.Empty, main.GCodeWorkflow.GCodePreview, "Устаревшая программа убрана");
             Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage), "Причина показана");
             StringAssert.Contains(dialogService.LastErrorMessage, "Radius", "Назван параметр");
         }

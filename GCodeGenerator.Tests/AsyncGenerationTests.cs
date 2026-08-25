@@ -68,9 +68,9 @@ namespace GCodeGenerator.Tests
         public async Task GenerateGCodeCommand_DoesNotBlockCaller_AndCompletes()
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain(new SlowGCodeGenerator());
-            main.AllOperations.Add(CreateDrillOperation("Drill1"));
+            main.OperationsWorkspace.AllOperations.Add(CreateDrillOperation("Drill1"));
 
-            var command = (IAsyncRelayCommand)main.GenerateGCodeCommand;
+            var command = (IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand;
             var stopwatch = Stopwatch.StartNew();
             var task = command.ExecuteAsync(null);
             stopwatch.Stop();
@@ -84,9 +84,9 @@ namespace GCodeGenerator.Tests
 
             await task;
 
-            Assert.IsFalse(main.IsGenerating, "После завершения генерации IsGenerating == false");
-            Assert.AreEqual(100, main.ProgressPercent, "После завершения ProgressPercent == 100");
-            Assert.IsFalse(string.IsNullOrEmpty(main.GCodePreview), "G-код должен быть сгенерирован");
+            Assert.IsFalse(main.GCodeWorkflow.IsGenerating, "После завершения генерации IsGenerating == false");
+            Assert.AreEqual(100, main.GCodeWorkflow.ProgressPercent, "После завершения ProgressPercent == 100");
+            Assert.IsFalse(string.IsNullOrEmpty(main.GCodeWorkflow.GCodePreview), "G-код должен быть сгенерирован");
         }
 
         [TestMethod]

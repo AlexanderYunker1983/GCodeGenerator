@@ -44,21 +44,21 @@
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="0" Padding="3" Margin="0,0,3,0"
-                    Command="{Binding NewProgramCommand}"
+                    Command="{Binding ProjectWorkflow.NewProgramCommand}"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource NewFileImage}" Width="24" Height="24"/>
             </Button>
 
             <Button Grid.Column="1" Padding="3" Margin="0,0,3,0"
-                    Command="{Binding OpenProjectCommand}"
+                    Command="{Binding ProjectWorkflow.OpenProjectCommand}"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource OpenFileImage}" Width="24" Height="24"/>
             </Button>
 
             <Button Grid.Column="2" Padding="3" Margin="0,0,3,0"
-                    Command="{Binding SaveProjectCommand}"
+                    Command="{Binding ProjectWorkflow.SaveProjectCommand}"
                     ToolTip="{loc:Loc SaveProjectTitle}"
                     ToolTipService.BetweenShowDelay="0"
                     ToolTipService.InitialShowDelay="0"
@@ -70,7 +70,7 @@
             <!-- Сохранение в другой файл: обычное «Сохранить» после первого
                  раза пишет в тот же файл без вопросов. -->
             <Button Grid.Column="3" Padding="3" Margin="0,0,3,0"
-                    Command="{Binding SaveProjectAsCommand}"
+                    Command="{Binding ProjectWorkflow.SaveProjectAsCommand}"
                     Content="{loc:Loc SaveProjectAs}"
                     ToolTip="{loc:Loc SaveProjectAs}"
                     ToolTipService.BetweenShowDelay="0"
@@ -94,13 +94,13 @@
         <mah:MetroTabControl Grid.Row="1" Grid.Column="0" Grid.RowSpan="2" Margin="0,0,8,0">
             <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->
             <mah:MetroTabItem Header="{loc:Loc DrillingTab}">
-                <drillViews:DrillOperationsView DataContext="{Binding DrillOperations}"/>
+                <drillViews:DrillOperationsView DataContext="{Binding OperationsWorkspace.DrillOperations}"/>
             </mah:MetroTabItem>
             <mah:MetroTabItem Header="{loc:Loc ProfileTab}">
-                <pocketMillViews:ProfileMillingOperationsView DataContext="{Binding ProfileMillingOperations}"/>
+                <pocketMillViews:ProfileMillingOperationsView DataContext="{Binding OperationsWorkspace.ProfileMillingOperations}"/>
             </mah:MetroTabItem>
             <mah:MetroTabItem Header="{loc:Loc PocketTab}">
-                <pocketViews:PocketOperationsView DataContext="{Binding PocketOperations}"/>
+                <pocketViews:PocketOperationsView DataContext="{Binding OperationsWorkspace.PocketOperations}"/>
             </mah:MetroTabItem>
         </mah:MetroTabControl>
 
@@ -113,14 +113,14 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Button VerticalAlignment="Center" Grid.Column="0"
-                    Command="{Binding MoveOperationUpCommand}" Width="80" Margin="0,0,6,0">
+                    Command="{Binding OperationsWorkspace.MoveOperationUpCommand}" Width="80" Margin="0,0,6,0">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="{StaticResource UpImage}" Width="16" Height="16"/>
                     <TextBlock Text="{loc:Loc MoveUp}"/>
                 </StackPanel>
             </Button>
             <Button VerticalAlignment="Center" Grid.Column="1"
-                    Command="{Binding MoveOperationDownCommand}" Width="80">
+                    Command="{Binding OperationsWorkspace.MoveOperationDownCommand}" Width="80">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="{StaticResource DownImage}" Width="16" Height="16"/>
                     <TextBlock Text="{loc:Loc MoveDown}"/>
@@ -128,7 +128,7 @@
             </Button>
             <Button VerticalAlignment="Center"
                     Grid.Column="3" Margin="0,0,6,0"
-                    Command="{Binding RemoveOperationCommand}" Width="80">
+                    Command="{Binding OperationsWorkspace.RemoveOperationCommand}" Width="80">
                 <StackPanel Orientation="Horizontal">
                     <Image Source="{StaticResource DeleteImage}" Width="16" Height="16"/>
                     <TextBlock Text="{loc:Loc DeleteOperation}"/>
@@ -144,22 +144,22 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Content="{loc:Loc GenerateGCode}" VerticalAlignment="Center"
-                    Command="{Binding GenerateGCodeCommand}" Width="160"/>
+                    Command="{Binding GCodeWorkflow.GenerateGCodeCommand}" Width="160"/>
             <!-- Пункт 8.4 плана: прогресс генерации G-кода (видна только во время генерации) -->
             <ProgressBar Grid.Column="1" Minimum="0" Maximum="100"
-                         Value="{Binding ProgressPercent, Mode=OneWay}"
+                         Value="{Binding GCodeWorkflow.ProgressPercent, Mode=OneWay}"
                          Height="16" Margin="8,0" VerticalAlignment="Center"
-                         Visibility="{Binding IsGenerating, Converter={StaticResource BoolToVis}}"/>
+                         Visibility="{Binding GCodeWorkflow.IsGenerating, Converter={StaticResource BoolToVis}}"/>
             <Button Grid.Column="2" Content="{loc:Loc SaveGCode}" VerticalAlignment="Center"
-                    Command="{Binding SaveGCodeCommand}"  Width="140"/>
+                    Command="{Binding GCodeWorkflow.SaveGCodeCommand}"  Width="140"/>
 
         </Grid>
         <!-- Middle: operations list with fixed width -->
         <GroupBox Header="{loc:Loc OperationsHeader}"
                   Grid.Row="2" Grid.Column="1" Margin="0,0,4,0">
             <ListBox x:Name="OperationsList"
-                     ItemsSource="{Binding AllOperations}"
-                     SelectedItem="{Binding SelectedOperation, Mode=TwoWay}"
+                     ItemsSource="{Binding OperationsWorkspace.AllOperations}"
+                     SelectedItem="{Binding OperationsWorkspace.SelectedOperation, Mode=TwoWay}"
                      MouseDoubleClick="OperationsList_MouseDoubleClick">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
@@ -182,7 +182,7 @@
                   Grid.Row="2" Grid.Column="2">
             <!-- Пункт 1.4: 1.x-ключи ControlBackgroundBrush/TextBrush/TextBoxBorderBrush
                  заменены на 2.x-аналоги из темы MahApps. -->
-            <TextBox Text="{Binding GCodePreview}" FontFamily="Consolas"
+            <TextBox Text="{Binding GCodeWorkflow.GCodePreview}" FontFamily="Consolas"
                      Style="{StaticResource MahApps.Styles.TextBox}"
                      Background="{DynamicResource MahApps.Brushes.Control.Background}"
                      Foreground="{DynamicResource MahApps.Brushes.Text}"
@@ -198,10 +198,10 @@
                       Background="Gray" Margin="0,2,0,2"/>
         <!-- Bottom: 2D preview of operations -->
         <!-- Пункт 6.3 плана: DataContext — OperationsPreviewViewModel (чистая OperationScene). -->
-        <views:OperationsPreviewView Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding OperationsPreview}"/>
+        <views:OperationsPreviewView Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0" DataContext="{Binding OperationsWorkspace.OperationsPreview}"/>
 
         <!-- Preview button above TabControl -->
-        <Button Command="{Binding PreviewGCodeCommand}"
+        <Button Command="{Binding GCodeWorkflow.PreviewGCodeCommand}"
                 Grid.Row="4" Grid.Column="0" TabIndex="100"
                 Margin="11,18,0,0"
                 HorizontalAlignment="Left"
@@ -223,6 +223,6 @@
                 HorizontalAlignment="Right"
                 VerticalAlignment="Top"
                 Padding="7,5"
-                Command="{Binding ShowAllPreviewCommand}" Margin="0,18,11,0" />
+                Command="{Binding OperationsWorkspace.ShowAllPreviewCommand}" Margin="0,18,11,0" />
     </Grid>
 </Window>

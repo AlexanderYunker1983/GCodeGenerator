@@ -50,7 +50,7 @@ namespace GCodeGenerator.Tests
         public void AddingOperation_MakesDocumentDirty()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
 
             main.ConfirmClose();
 
@@ -75,10 +75,10 @@ namespace GCodeGenerator.Tests
         public void Saving_ClearsDirtyFlagAndRemembersFile()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
 
-            main.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             Assert.IsTrue(File.Exists(_projectPath), "Проект записан в файл");
             main.ConfirmClose();
@@ -94,13 +94,13 @@ namespace GCodeGenerator.Tests
         public void SavingTwice_DoesNotAskForFileNameAgain()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             dialogs.SaveDialogResult = null; // диалог выбора файла ответил бы отказом
-            main.AllOperations.Add(Drill());
-            main.SaveProjectCommand.Execute(null);
+            main.OperationsWorkspace.AllOperations.Add(Drill());
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             main.ConfirmClose();
             Assert.AreEqual(0, dialogs.SaveConfirmationCount,
@@ -111,15 +111,15 @@ namespace GCodeGenerator.Tests
         public void SaveAs_AlwaysAsksForFileName()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             var otherPath = Path.Combine(Path.GetTempPath(), $"gcodegen_doc_{Guid.NewGuid():N}.ygc");
             dialogs.SaveDialogResult = otherPath;
             try
             {
-                main.SaveProjectAsCommand.Execute(null);
+                main.ProjectWorkflow.SaveProjectAsCommand.Execute(null);
                 Assert.IsTrue(File.Exists(otherPath), "«Сохранить как» пишет в выбранный файл");
             }
             finally
@@ -133,15 +133,15 @@ namespace GCodeGenerator.Tests
         public void OpeningProject_StartsClean()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.SaveProjectCommand.Execute(null);
-            main.NewProgramCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.NewProgramCommand.Execute(null);
 
             dialogs.OpenDialogResult = _projectPath;
-            main.OpenProjectCommand.Execute(null);
+            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
 
-            Assert.AreEqual(1, main.AllOperations.Count, "Проект открыт");
+            Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Проект открыт");
             main.ConfirmClose();
             Assert.AreEqual(0, dialogs.SaveConfirmationCount,
                 "Только что открытый проект несохранённым не считается");
@@ -155,20 +155,20 @@ namespace GCodeGenerator.Tests
         public void CancelAnswer_StopsTheAction()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveConfirmationResult = SaveConfirmation.Cancel;
 
             Assert.IsFalse(main.ConfirmClose(), "Закрытие отменено");
 
-            main.NewProgramCommand.Execute(null);
-            Assert.AreEqual(1, main.AllOperations.Count, "Создание нового проекта отменено");
+            main.ProjectWorkflow.NewProgramCommand.Execute(null);
+            Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Создание нового проекта отменено");
         }
 
         [TestMethod]
         public void SaveAnswer_WritesFileAndAllowsTheAction()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveConfirmationResult = SaveConfirmation.Save;
             dialogs.SaveDialogResult = _projectPath;
 
@@ -186,7 +186,7 @@ namespace GCodeGenerator.Tests
         public void SaveAnswer_WithCancelledFileDialog_StopsTheAction()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveConfirmationResult = SaveConfirmation.Save;
             dialogs.SaveDialogResult = null;
 
@@ -197,7 +197,7 @@ namespace GCodeGenerator.Tests
         public void DiscardAnswer_AllowsTheActionWithoutSaving()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveConfirmationResult = SaveConfirmation.Discard;
 
             Assert.IsTrue(main.ConfirmClose(), "Пользователь согласился потерять изменения");
@@ -215,11 +215,11 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(main.DisplayName, "UntitledProject",
                 "У несохранённого проекта вместо имени файла — «без имени»");
 
-            main.AllOperations.Add(Drill());
+            main.OperationsWorkspace.AllOperations.Add(Drill());
             StringAssert.Contains(main.DisplayName, "*", "Изменения отмечены звёздочкой");
 
             dialogs.SaveDialogResult = _projectPath;
-            main.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             StringAssert.Contains(main.DisplayName, Path.GetFileName(_projectPath),
                 "После сохранения виден файл проекта");

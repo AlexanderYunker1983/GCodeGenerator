@@ -36,14 +36,14 @@ namespace GCodeGenerator.Tests
             var (main, _, dialogs, settingsStore) = MainViewModelOperationEditTests.CreateMain(
                 projectFileService: projectFiles);
             var operation = new DrillPointsOperation();
-            main.AllOperations.Add(operation);
+            main.OperationsWorkspace.AllOperations.Add(operation);
             settingsStore.Current.Spindle.SpindleSpeedRpm = 7300;
             dialogs.SaveDialogResult = filePath;
 
-            main.SaveProjectCommand.Execute(null);
+            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
 
             Assert.AreEqual(filePath, projectFiles.FilePath);
-            Assert.AreSame(main.AllOperations, projectFiles.Operations);
+            Assert.AreSame(main.OperationsWorkspace.AllOperations, projectFiles.Operations);
             Assert.AreSame(settingsStore.Current, projectFiles.Settings);
             Assert.AreSame(operation, projectFiles.Operations[0]);
             Assert.AreEqual(7300, projectFiles.Settings.Spindle.SpindleSpeedRpm);

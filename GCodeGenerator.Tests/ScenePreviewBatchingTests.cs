@@ -29,7 +29,7 @@ namespace GCodeGenerator.Tests
         private static int CountRebuilds(MainViewModel main, Action action)
         {
             var rebuilds = 0;
-            var preview = main.OperationsPreview;
+            var preview = main.OperationsWorkspace.OperationsPreview;
             OperationScene previous = preview.Scene;
 
             void OnChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -59,7 +59,7 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var operation = new PocketCircleOperation();
-            main.AllOperations.Add(operation);
+            main.OperationsWorkspace.AllOperations.Add(operation);
 
             var rebuilds = CountRebuilds(main, () =>
             {
@@ -81,7 +81,7 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var operation = new PocketCircleOperation();
-            main.AllOperations.Add(operation);
+            main.OperationsWorkspace.AllOperations.Add(operation);
 
             var rebuilds = CountRebuilds(main, () =>
             {
@@ -108,9 +108,9 @@ namespace GCodeGenerator.Tests
                 var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
                 dialogs.OpenDialogResult = path;
 
-                var rebuilds = CountRebuilds(main, () => main.OpenProjectCommand.Execute(null));
+                var rebuilds = CountRebuilds(main, () => main.ProjectWorkflow.OpenProjectCommand.Execute(null));
 
-                Assert.AreEqual(5, main.AllOperations.Count, "Проект открыт целиком");
+                Assert.AreEqual(5, main.OperationsWorkspace.AllOperations.Count, "Проект открыт целиком");
                 Assert.AreEqual(1, rebuilds, "Пять операций — одно обновление предпросмотра");
             }
             finally
@@ -129,7 +129,7 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var operation = new PocketCircleOperation();
-            main.AllOperations.Add(operation);
+            main.OperationsWorkspace.AllOperations.Add(operation);
 
             var rebuilds = CountRebuilds(main, () =>
             {
@@ -149,7 +149,7 @@ namespace GCodeGenerator.Tests
         public void BatchWithoutChanges_DoesNotRebuild()
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(new PocketCircleOperation());
+            main.OperationsWorkspace.AllOperations.Add(new PocketCircleOperation());
 
             var rebuilds = CountRebuilds(main, () =>
             {

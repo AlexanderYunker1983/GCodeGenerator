@@ -214,10 +214,10 @@ namespace GCodeGenerator.Tests
                 DrillMode = DrillMode.Arc,
                 Name = "Переименованная операция"
             };
-            main.AllOperations.Add(op);
-            main.SelectedOperation = op;
+            main.OperationsWorkspace.AllOperations.Add(op);
+            main.OperationsWorkspace.SelectedOperation = op;
 
-            main.EditOperationCommand.Execute(null);
+            main.OperationsWorkspace.EditOperationCommand.Execute(null);
 
             Assert.AreEqual(typeof(DrillArcOperationViewModel), editors.RequestedType,
                 "Диалог выбирается по DrillMode, а не по имени");
@@ -227,7 +227,7 @@ namespace GCodeGenerator.Tests
             Assert.AreNotSame(op, shown.EditedOperation,
                 "Диалог должен получать изолированную рабочую копию");
             Assert.AreEqual(op.DrillMode, ((DrillPointsOperation)shown.EditedOperation).DrillMode);
-            Assert.AreEqual(1, main.AllOperations.Count,
+            Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count,
                 "Открытие диалога не меняет состав документа");
         }
 
@@ -252,10 +252,10 @@ namespace GCodeGenerator.Tests
                 var editors = new FakeEditorIndex();
                 var (main, _, _, _) = CreateMain(editors: editors);
                 var op = new DrillPointsOperation { DrillMode = mode, Name = "Имя" };
-                main.AllOperations.Add(op);
-                main.SelectedOperation = op;
+                main.OperationsWorkspace.AllOperations.Add(op);
+                main.OperationsWorkspace.SelectedOperation = op;
 
-                main.EditOperationCommand.Execute(null);
+                main.OperationsWorkspace.EditOperationCommand.Execute(null);
 
                 Assert.AreEqual(expectedType, editors.RequestedType, $"mode={mode}");
             }
@@ -291,9 +291,9 @@ namespace GCodeGenerator.Tests
                     new List<OperationBase> { OperationFixtures.DrillPoints() }, settings);
                 dialogs.OpenDialogResult = filePath;
 
-                main.OpenProjectCommand.Execute(null);
+                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
 
-                Assert.AreEqual(1, main.AllOperations.Count, "Операция из файла загружена");
+                Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Операция из файла загружена");
                 Assert.IsFalse(store.Current.Format.UseLineNumbers, "Формат из секции файла в сессии");
                 Assert.AreEqual(8000, store.Current.Spindle.SpindleSpeedRpm, "Шпиндель из секции файла в сессии");
                 Assert.AreEqual("M4", store.Current.Spindle.SpindleStartCommand);
@@ -329,9 +329,9 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(File.Exists(legacyPath), "Нет эталонного легаси-файла");
             dialogs.OpenDialogResult = legacyPath;
 
-            main.OpenProjectCommand.Execute(null);
+            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
 
-            Assert.AreEqual(19, main.AllOperations.Count, "Операции из старого файла загружены");
+            Assert.AreEqual(19, main.OperationsWorkspace.AllOperations.Count, "Операции из старого файла загружены");
             Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Старый файл → глобальный шпиндель (дефолт)");
             Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Старый файл → глобальный СОЖ (дефолт)");
             Assert.IsTrue(store.Current.Format.UseLineNumbers, "Старый файл → глобальный формат (дефолт)");
@@ -345,7 +345,7 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, dialogs, _) = CreateMain();
             var existingOperation = OperationFixtures.DrillPoints();
-            main.AllOperations.Add(existingOperation);
+            main.OperationsWorkspace.AllOperations.Add(existingOperation);
 
             var path = Path.Combine(Path.GetTempPath(), "gcg_future_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
@@ -353,10 +353,10 @@ namespace GCodeGenerator.Tests
                 File.WriteAllText(path, "{\"version\":5,\"operations\":[]}");
                 dialogs.OpenDialogResult = path;
 
-                main.OpenProjectCommand.Execute(null);
+                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
 
-                Assert.AreEqual(1, main.AllOperations.Count);
-                Assert.AreSame(existingOperation, main.AllOperations[0],
+                Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count);
+                Assert.AreSame(existingOperation, main.OperationsWorkspace.AllOperations[0],
                     "Неподдерживаемый файл не должен частично заменять текущий проект");
                 Assert.IsFalse(string.IsNullOrEmpty(dialogs.LastErrorMessage));
             }
@@ -375,16 +375,16 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, store) = CreateMain();
 
-            main.AllOperations.Add(OperationFixtures.DrillPoints());
+            main.OperationsWorkspace.AllOperations.Add(OperationFixtures.DrillPoints());
             store.Current.Spindle.SpindleSpeedRpm = 9999;
             store.Current.Coolant.CoolantStartEnabled = false;
             store.Current.Format.UseLineNumbers = false;
             store.Current.WorkCoordinate.WorkCoordinateSystem = "G59";
             store.Current.Ui.UseDarkTheme = true;
 
-            main.NewProgramCommand.Execute(null);
+            main.ProjectWorkflow.NewProgramCommand.Execute(null);
 
-            Assert.AreEqual(0, main.AllOperations.Count, "Операции очищены");
+            Assert.AreEqual(0, main.OperationsWorkspace.AllOperations.Count, "Операции очищены");
             Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Новый проект → глобальный шпиндель");
             Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Новый проект → глобальный СОЖ");
             Assert.IsTrue(store.Current.Format.UseLineNumbers, "Новый проект → глобальный формат");

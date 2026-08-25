@@ -105,8 +105,8 @@ namespace GCodeGenerator.Tests
 
             FindAddCommand(main).Execute(null);
 
-            Assert.AreEqual(0, main.AllOperations.Count, "Отмена не добавляет операцию");
-            Assert.IsNull(main.SelectedOperation, "Выделять нечего");
+            Assert.AreEqual(0, main.OperationsWorkspace.AllOperations.Count, "Отмена не добавляет операцию");
+            Assert.IsNull(main.OperationsWorkspace.SelectedOperation, "Выделять нечего");
         }
 
         [TestMethod]
@@ -118,15 +118,15 @@ namespace GCodeGenerator.Tests
 
             FindAddCommand(main).Execute(null);
 
-            Assert.AreEqual(1, main.AllOperations.Count, "Подтверждённая операция добавлена");
-            Assert.AreSame(main.AllOperations[0], main.SelectedOperation, "Новая операция выделена");
+            Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Подтверждённая операция добавлена");
+            Assert.AreSame(main.OperationsWorkspace.AllOperations[0], main.OperationsWorkspace.SelectedOperation, "Новая операция выделена");
         }
 
         private static ICommand FindAddCommand(MainViewModel main)
-            => main.PocketOperations.GetType()
+            => main.OperationsWorkspace.PocketOperations.GetType()
                 .GetProperties()
                 .Where(p => p.Name == "AddPocketCircleCommand")
-                .Select(p => (ICommand)p.GetValue(main.PocketOperations))
+                .Select(p => (ICommand)p.GetValue(main.OperationsWorkspace.PocketOperations))
                 .Single();
     }
 }

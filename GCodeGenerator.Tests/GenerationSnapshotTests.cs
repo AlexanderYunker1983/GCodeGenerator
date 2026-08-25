@@ -107,9 +107,9 @@ namespace GCodeGenerator.Tests
             settingsStore.Current.Format.UseLineNumbers = true;
 
             var operation = Drill(10);
-            main.AllOperations.Add(operation);
+            main.OperationsWorkspace.AllOperations.Add(operation);
 
-            var task = ((IAsyncRelayCommand)main.GenerateGCodeCommand).ExecuteAsync(null);
+            var task = ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
             Assert.IsTrue(generator.Started.Wait(TimeSpan.FromSeconds(5)), "Генерация должна начаться");
 
             // Документ меняется, пока фоновая генерация уже идёт.

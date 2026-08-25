@@ -1,17 +1,23 @@
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
-using GCodeGenerator.Models;
 using GCodeGenerator.Services;
-using GCodeGenerator.ViewModels.Drill;
-using GCodeGenerator.ViewModels.Pocket;
-using GCodeGenerator.ViewModels.PocketMill;
 using System;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Input;
 
 namespace GCodeGenerator.ViewModels
 {
+    /// <summary>
+    /// Главное окно: сводит вместе рабочую область операций, генерацию
+    /// программы и файл проекта.
+    ///
+    /// Прежде оно пересказывало их свойства и команды своими: два десятка
+    /// свойств вида «отдать то, что лежит в подчинённой модели», и подписки,
+    /// повторно сообщавшие об изменениях. Разметка привязана к подчинённым
+    /// моделям напрямую, поэтому здесь остаётся то, что действительно
+    /// принадлежит окну: заголовок, вызов настроек, вопрос при закрытии — и
+    /// связи между тремя частями, которые сами друг о друге не знают.
+    /// </summary>
     public class MainViewModel : ViewModelBase, IHasDisplayName
     {
         private readonly OperationsWorkspaceViewModel _operationsWorkspace;
@@ -46,31 +52,18 @@ namespace GCodeGenerator.ViewModels
                 ?? throw new ArgumentNullException(nameof(operationsWorkspace));
 
             _gCodeWorkflow = (gCodeWorkflowFactory ?? throw new ArgumentNullException(nameof(gCodeWorkflowFactory)))
-                .Create(AllOperations, _settingsStore.Current);
+                .Create(_operationsWorkspace.AllOperations, _settingsStore.Current);
             _gCodeWorkflow.PropertyChanged += OnGCodeWorkflowPropertyChanged;
             _projectWorkflow = (projectWorkflowFactory ?? throw new ArgumentNullException(nameof(projectWorkflowFactory)))
-                .Create(AllOperations, _gCodeWorkflow);
+                .Create(_operationsWorkspace.AllOperations, _gCodeWorkflow);
             _projectWorkflow.ProjectResetting += OnProjectResetting;
             _projectWorkflow.PropertyChanged += OnProjectWorkflowPropertyChanged;
             // Загрузка проекта добавляет операции по одной; предпросмотр
             // собирается один раз в конце, а не после каждой операции.
             _projectWorkflow.DocumentApplying += OnDocumentApplying;
             _projectWorkflow.DocumentApplied += OnDocumentApplied;
-            _operationsWorkspace.PropertyChanged += OnOperationsWorkspacePropertyChanged;
             _operationsWorkspace.ContentChanged += OnOperationsWorkspaceContentChanged;
 
-            GenerateGCodeCommand = _gCodeWorkflow.GenerateGCodeCommand;
-            SaveGCodeCommand = _gCodeWorkflow.SaveGCodeCommand;
-            PreviewGCodeCommand = _gCodeWorkflow.PreviewGCodeCommand;
-            NewProgramCommand = _projectWorkflow.NewProgramCommand;
-            SaveProjectCommand = _projectWorkflow.SaveProjectCommand;
-            SaveProjectAsCommand = _projectWorkflow.SaveProjectAsCommand;
-            OpenProjectCommand = _projectWorkflow.OpenProjectCommand;
-            ShowAllPreviewCommand = _operationsWorkspace.ShowAllPreviewCommand;
-            MoveOperationUpCommand = _operationsWorkspace.MoveOperationUpCommand;
-            MoveOperationDownCommand = _operationsWorkspace.MoveOperationDownCommand;
-            RemoveOperationCommand = _operationsWorkspace.RemoveOperationCommand;
-            EditOperationCommand = _operationsWorkspace.EditOperationCommand;
             OpenSettingsCommand = new RelayCommand(OpenSettings);
 
             var baseTitle = _localizationManager?.GetString("MainTitle") ?? "MainTitle";
@@ -90,61 +83,16 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        public DrillOperationsViewModel DrillOperations => _operationsWorkspace.DrillOperations;
-
-        public ProfileMillingOperationsViewModel ProfileMillingOperations
-            => _operationsWorkspace.ProfileMillingOperations;
-
-        public PocketOperationsViewModel PocketOperations => _operationsWorkspace.PocketOperations;
-
-        public OperationsPreviewViewModel OperationsPreview => _operationsWorkspace.OperationsPreview;
-
-        /// <summary>Рабочая область операций: список, выбор и предпросмотр.</summary>
+        /// <summary>Рабочая область операций: вкладки, список, выбор и схема.</summary>
         public OperationsWorkspaceViewModel OperationsWorkspace => _operationsWorkspace;
 
-        public ObservableCollection<OperationBase> AllOperations => _operationsWorkspace.AllOperations;
+        /// <summary>Генерация программы: ход, текст и его сохранение.</summary>
+        public GCodeWorkflowViewModel GCodeWorkflow => _gCodeWorkflow;
 
-        public OperationBase SelectedOperation
-        {
-            get => _operationsWorkspace.SelectedOperation;
-            set => _operationsWorkspace.SelectedOperation = value;
-        }
-
-        public string GCodePreview
-        {
-            get => _gCodeWorkflow.GCodePreview;
-            set => _gCodeWorkflow.GCodePreview = value;
-        }
-
-        public bool IsGenerating => _gCodeWorkflow.IsGenerating;
-
-        public int ProgressPercent => _gCodeWorkflow.ProgressPercent;
-
-        public ICommand GenerateGCodeCommand { get; }
-
-        public ICommand SaveGCodeCommand { get; }
-
-        public ICommand PreviewGCodeCommand { get; }
+        /// <summary>Файл проекта: создание, открытие и сохранение.</summary>
+        public ProjectWorkflowViewModel ProjectWorkflow => _projectWorkflow;
 
         public ICommand OpenSettingsCommand { get; }
-
-        public ICommand ShowAllPreviewCommand { get; }
-
-        public ICommand MoveOperationUpCommand { get; }
-
-        public ICommand MoveOperationDownCommand { get; }
-
-        public ICommand RemoveOperationCommand { get; }
-
-        public ICommand EditOperationCommand { get; }
-
-        public ICommand NewProgramCommand { get; }
-
-        public ICommand SaveProjectCommand { get; }
-
-        public ICommand SaveProjectAsCommand { get; }
-
-        public ICommand OpenProjectCommand { get; }
 
         public void NotifyOperationsChanged()
         {
@@ -187,18 +135,6 @@ namespace GCodeGenerator.ViewModels
             if (e.PropertyName == nameof(GCodeWorkflowViewModel.GeneratedToolPath))
                 _operationsWorkspace.OperationsPreview.ToolPath = _gCodeWorkflow.GeneratedToolPath;
 
-            if (e.PropertyName == nameof(GCodeWorkflowViewModel.GCodePreview) ||
-                e.PropertyName == nameof(GCodeWorkflowViewModel.IsGenerating) ||
-                e.PropertyName == nameof(GCodeWorkflowViewModel.ProgressPercent))
-            {
-                OnPropertyChanged(e.PropertyName);
-            }
-        }
-
-        private void OnOperationsWorkspacePropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(OperationsWorkspaceViewModel.SelectedOperation))
-                OnPropertyChanged(nameof(SelectedOperation));
         }
 
         private void OnOperationsWorkspaceContentChanged(object sender, EventArgs e)
@@ -209,7 +145,7 @@ namespace GCodeGenerator.ViewModels
 
         private void OnProjectResetting(object sender, EventArgs e)
         {
-            SelectedOperation = null;
+            _operationsWorkspace.SelectedOperation = null;
         }
 
         private void OnDocumentApplying(object sender, EventArgs e)

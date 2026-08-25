@@ -29,9 +29,9 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var op = new DrillPointsOperation();
-            main.AllOperations.Add(op);
+            main.OperationsWorkspace.AllOperations.Add(op);
 
-            var sceneBefore = main.OperationsPreview.Scene;
+            var sceneBefore = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.AreEqual(0, sceneBefore.Shapes.Count, "У нового сверления ещё нет отверстий");
 
             // Диалог: LoadFromOperation создаёт отверстие по умолчанию (0,0); OK сохраняет его.
@@ -39,7 +39,7 @@ namespace GCodeGenerator.Tests
             dlg.Operation = op;
             ((RelayCommand)dlg.OkCommand).Execute(null);
 
-            var sceneAfter = main.OperationsPreview.Scene;
+            var sceneAfter = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.IsFalse(ReferenceEquals(sceneBefore, sceneAfter), "Сцена должна пересобраться после OK");
             Assert.IsTrue(sceneAfter.Shapes.Any(s => ReferenceEquals(s.Operation, op)
                 && s.Kind == OperationShapeKind.Point), "Точка отверстия должна быть в сцене");
@@ -50,9 +50,9 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var op = new ProfileCircleOperation();
-            main.AllOperations.Add(op);
+            main.OperationsWorkspace.AllOperations.Add(op);
 
-            var sceneBefore = main.OperationsPreview.Scene;
+            var sceneBefore = main.OperationsWorkspace.OperationsPreview.Scene;
 
             // Диалог: меняем радиус (по умолчанию 10) и сохраняем.
             var dlg = new ProfileCircleOperationViewModel(null);
@@ -60,7 +60,7 @@ namespace GCodeGenerator.Tests
             dlg.Operation.Radius = 25;
             ((RelayCommand)dlg.OkCommand).Execute(null);
 
-            var sceneAfter = main.OperationsPreview.Scene;
+            var sceneAfter = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.IsFalse(ReferenceEquals(sceneBefore, sceneAfter), "Сцена должна пересобраться после OK");
 
             // Контур в сцене — с новым радиусом (25), а не со значением по умолчанию (10).
@@ -74,9 +74,9 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var op = new ProfileDxfOperation();
-            main.AllOperations.Add(op);
+            main.OperationsWorkspace.AllOperations.Add(op);
 
-            var sceneBefore = main.OperationsPreview.Scene;
+            var sceneBefore = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.AreEqual(0, sceneBefore.Shapes.Count, "У нового DXF-профиля ещё нет контуров");
 
             var dialogs = new FakeDialogs
@@ -87,7 +87,7 @@ namespace GCodeGenerator.Tests
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
-            var sceneAfter = main.OperationsPreview.Scene;
+            var sceneAfter = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.IsFalse(ReferenceEquals(sceneBefore, sceneAfter), "Сцена должна пересобраться после импорта DXF");
             Assert.IsTrue(sceneAfter.Shapes.Any(s => ReferenceEquals(s.Operation, op)
                 && s.Kind == OperationShapeKind.Contour), "Контур DXF должен быть в сцене");
@@ -98,9 +98,9 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var op = new PocketDxfOperation();
-            main.AllOperations.Add(op);
+            main.OperationsWorkspace.AllOperations.Add(op);
 
-            var sceneBefore = main.OperationsPreview.Scene;
+            var sceneBefore = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.AreEqual(0, sceneBefore.Shapes.Count, "У нового DXF-кармана ещё нет контуров");
 
             var dialogs = new FakeDialogs
@@ -111,7 +111,7 @@ namespace GCodeGenerator.Tests
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
-            var sceneAfter = main.OperationsPreview.Scene;
+            var sceneAfter = main.OperationsWorkspace.OperationsPreview.Scene;
             Assert.IsFalse(ReferenceEquals(sceneBefore, sceneAfter), "Сцена должна пересобраться после импорта DXF");
             Assert.IsTrue(sceneAfter.Shapes.Any(s => ReferenceEquals(s.Operation, op)
                 && s.Kind == OperationShapeKind.Contour), "Контур DXF должен быть в сцене");

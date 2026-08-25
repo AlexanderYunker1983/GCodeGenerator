@@ -30,10 +30,9 @@ namespace GCodeGenerator.Views
         private void OperationsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (DataContext is MainViewModel vm &&
-                vm.EditOperationCommand != null &&
-                vm.EditOperationCommand.CanExecute(null))
+                vm.OperationsWorkspace.EditOperationCommand?.CanExecute(null) == true)
             {
-                vm.EditOperationCommand.Execute(null);
+                vm.OperationsWorkspace.EditOperationCommand.Execute(null);
             }
         }
     }

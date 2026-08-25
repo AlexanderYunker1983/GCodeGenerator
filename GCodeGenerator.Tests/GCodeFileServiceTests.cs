@@ -26,10 +26,10 @@ namespace GCodeGenerator.Tests
             var fileService = new RecordingGCodeFileService();
             var (main, _, dialog, _) = MainViewModelOperationEditTests.CreateMain(
                 gCodeFileService: fileService);
-            main.GCodePreview = gCode;
+            main.GCodeWorkflow.GCodePreview = gCode;
             dialog.SaveDialogResult = filePath;
 
-            main.SaveGCodeCommand.Execute(null);
+            main.GCodeWorkflow.SaveGCodeCommand.Execute(null);
 
             Assert.AreEqual(filePath, fileService.FilePath);
             Assert.AreEqual(gCode, fileService.GCode);

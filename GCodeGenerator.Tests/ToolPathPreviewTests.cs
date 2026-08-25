@@ -103,8 +103,8 @@ namespace GCodeGenerator.Tests
         public void PreviewViewModel_FallsBackToContoursWithoutToolPath()
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
-            main.AllOperations.Add(OperationFixtures.PocketCircle());
-            var preview = main.OperationsPreview;
+            main.OperationsWorkspace.AllOperations.Add(OperationFixtures.PocketCircle());
+            var preview = main.OperationsWorkspace.OperationsPreview;
 
             Assert.IsFalse(preview.HasToolPath, "Траектории ещё нет");
 
@@ -119,9 +119,9 @@ namespace GCodeGenerator.Tests
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var pocket = OperationFixtures.PocketCircle();
-            main.AllOperations.Add(pocket);
+            main.OperationsWorkspace.AllOperations.Add(pocket);
 
-            var preview = main.OperationsPreview;
+            var preview = main.OperationsWorkspace.OperationsPreview;
             preview.ToolPath = BuildPath(pocket);
 
             Assert.IsTrue(preview.HasToolPath, "Траектория получена");
