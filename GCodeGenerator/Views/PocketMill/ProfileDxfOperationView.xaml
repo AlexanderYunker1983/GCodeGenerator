@@ -46,7 +46,7 @@
                             <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{loc:Loc MaxSegmentLength}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="1" Text="{Binding MaxSegmentLength, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                        <TextBox Grid.Column="1" Text="{Binding Operation.MaxSegmentLength, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                     </Grid>
                 </GroupBox>
 

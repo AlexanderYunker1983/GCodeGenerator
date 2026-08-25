@@ -16,11 +16,11 @@
                 <ColumnDefinition Width="120"/>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="{loc:Loc TotalDepthLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+            <TextBox Grid.Column="1" Text="{Binding Operation.TotalDepth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
             <TextBlock Grid.Column="3" Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-            <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+            <TextBox Grid.Column="4" Text="{Binding Operation.StepDepth, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
             <TextBlock Grid.Column="6" Text="{loc:Loc ToolDiameter}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-            <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+            <TextBox Grid.Column="7" Text="{Binding Operation.ToolDiameter, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
         </Grid>
     </GroupBox>
 </UserControl>

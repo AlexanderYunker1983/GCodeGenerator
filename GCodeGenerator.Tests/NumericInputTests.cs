@@ -45,11 +45,11 @@ namespace GCodeGenerator.Tests
                 {
                     Operation = new PocketRectangleOperation()
                 };
-                vm.StepDepth = initialValue;
+                vm.Operation.StepDepth = initialValue;
 
                 var box = new TextBox { DataContext = vm };
                 NumericInput.SetMode(box, NumericInputMode.Decimal);
-                box.SetBinding(TextBox.TextProperty, new Binding("StepDepth")
+                box.SetBinding(TextBox.TextProperty, new Binding("Operation.StepDepth")
                 {
                     UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
                     Converter = new NumericTextConverter()
@@ -65,7 +65,7 @@ namespace GCodeGenerator.Tests
                 }
 
                 text = box.Text;
-                value = vm.StepDepth;
+                value = vm.Operation.StepDepth;
             });
 
             return (text, value);

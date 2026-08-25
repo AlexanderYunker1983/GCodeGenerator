@@ -45,22 +45,22 @@
                 <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,4,4"
                            Text="{loc:Loc FeedXYRapid}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,4,4" Width="80"
-                         Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                         Text="{Binding Operation.FeedXYRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
 
                 <TextBlock Grid.Row="0" Grid.Column="3" Margin="8,0,4,4"
                            Text="{loc:Loc FeedXYWork}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,4,4" Width="80"
-                         Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                         Text="{Binding Operation.FeedXYWork, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,0"
                            Text="{loc:Loc SafeZBetweenHolesLabel}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,4,0" Width="80"
-                         Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                         Text="{Binding Operation.SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
 
                 <TextBlock Grid.Row="1" Grid.Column="3" Margin="8,4,4,0"
                            Text="{loc:Loc Decimals}" VerticalAlignment="Center"/>
                 <TextBox Grid.Row="1" Grid.Column="4" Margin="0,4,4,0" Width="60"
-                         Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer"/>
+                         Text="{Binding Operation.Decimals, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer"/>
             </Grid>
         </GroupBox>
 
@@ -80,7 +80,7 @@
                 </StackPanel>
 
                 <DataGrid Grid.Row="1"
-                          ItemsSource="{Binding Holes}"
+                          ItemsSource="{Binding Operation.Holes}"
                           SelectedItem="{Binding SelectedHole, Mode=TwoWay}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"

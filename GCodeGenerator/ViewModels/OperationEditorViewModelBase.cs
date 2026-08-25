@@ -13,12 +13,7 @@ namespace GCodeGenerator.ViewModels
     /// <summary>
     /// Контракт диалога редактора операции, не зависящий от конкретного типа
     /// операции. Нужен фабрике диалогов: она выбирает view-модель по типу
-    /// операции и должна передать ей операцию и общий список, ничего не зная
-    /// об их типах. Прежде фабрика перебирала одиннадцать типов view-моделей
-    /// в switch, где все ветки делали одно и то же.
-    ///
-    /// Реализуется базовым классом <see cref="OperationEditorViewModelBase{TOperation}"/>,
-    /// который приводит операцию к своему типу.
+    /// операции и должна передать ей операцию, ничего не зная об их типах.
     /// </summary>
     public interface IOperationEditorViewModel : IOperationEditorSession
     {
@@ -36,24 +31,22 @@ namespace GCodeGenerator.ViewModels
     }
 
     /// <summary>
-    /// Базовый класс view-моделей диалогов редактора операций (пункт 7.3 плана):
-    /// явная семантика OK/Cancel.
+    /// Базовый класс view-моделей диалогов редактора операций.
     ///
-    /// OK (<see cref="OkCommand"/>): валидация (<see cref="IsValid"/>),
-    /// сохранение VM→операция (<see cref="ApplyToOperation"/>), закрытие.
-    /// При провале валидации окно остаётся открытым и показывает пояснение
-    /// (<see cref="HasValidationError"/>): операция принадлежит пользователю,
-    /// и ошибка в поле — повод её исправить, а не потерять. Прежде такое
-    /// нажатие OK закрывало окно и удаляло операцию из списка
-    /// (legacy-поведение «remove if invalid»). Cancel (<see cref="CancelCommand"/>)
-    /// и закрытие окна крестиком — без изменений.
+    /// Окно правит саму операцию — рабочую копию, которую даёт фабрика.
+    /// Раньше каждый диалог заводил собственную копию всех параметров
+    /// операции и переносил значения туда и обратно двумя методами: один
+    /// параметр существовал в трёх местах — в модели, в диалоге и в двух
+    /// списках переноса, — а забытый параметр не ломал сборку, он просто
+    /// терялся при сохранении или подменялся значением по умолчанию при
+    /// открытии.
     ///
-    /// <see cref="CloseableViewModel.OnClosed"/> больше не сохраняет (пункт 7.3):
-    /// изменения применяются только по OK.
-    ///
-    /// Сеттер <see cref="Operation"/> читает значения операции в свойства VM
-    /// (<see cref="LoadFromOperation"/>). Диалоговые VM мигрируют на этот базовый
-    /// класс в пункте 7.4 плана (по одному диалогу на коммит).
+    /// OK (<see cref="OkCommand"/>) проверяет параметры и закрывает окно;
+    /// изменения уже в операции. При провале проверки окно остаётся открытым
+    /// с пояснением (<see cref="HasValidationError"/>): операция принадлежит
+    /// пользователю, и ошибка в поле — повод её исправить, а не потерять.
+    /// Отмена (<see cref="CancelCommand"/>) и закрытие окна крестиком просто
+    /// закрывают окно — рабочая копия выбрасывается вместе с правками.
     /// </summary>
     public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel, IOperationEditorViewModel
         where TOperation : OperationBase
@@ -68,7 +61,10 @@ namespace GCodeGenerator.ViewModels
         /// <inheritdoc />
         OperationBase IOperationEditorViewModel.EditedOperation => Operation;
 
-        /// <summary>Редактируемая операция. Сеттер читает значения в свойства VM.</summary>
+        /// <summary>
+        /// Редактируемая операция — рабочая копия. Разметка окна привязана
+        /// прямо к её параметрам.
+        /// </summary>
         public TOperation Operation
         {
             get => _operation;
@@ -78,34 +74,35 @@ namespace GCodeGenerator.ViewModels
                 _operation = value;
                 IsAccepted = false;
                 HasValidationError = false;
+                OnPropertyChanged();
                 if (_operation != null)
-                    LoadFromOperation(_operation);
+                    OnOperationChanged(_operation);
             }
         }
 
         /// <summary>
-        /// Читает значения операции в свойства VM (вызывается из сеттера
-        /// <see cref="Operation"/>).
+        /// Вызывается, когда диалог получил операцию: место для подготовки
+        /// состояния окна, которое не является параметром операции
+        /// (предпросмотр отверстий, сведения об импорте).
         /// </summary>
-        protected abstract void LoadFromOperation(TOperation operation);
-
-        /// <summary>Сохраняет значения свойств VM в операцию (вызывается по OK).</summary>
-        protected abstract void ApplyToOperation();
+        protected virtual void OnOperationChanged(TOperation operation)
+        {
+        }
 
         /// <summary>
-        /// Валидация перед сохранением. <c>false</c> → окно остаётся открытым
-        /// с пояснением (<see cref="HasValidationError"/>), изменения не
-        /// применяются, операция остаётся в списке.
+        /// Проверка перед закрытием. <c>false</c> → окно остаётся открытым
+        /// с пояснением (<see cref="HasValidationError"/>), операция остаётся
+        /// в списке.
         /// </summary>
         protected virtual bool IsValid() => true;
 
-        /// <summary>OK: валидация + сохранение + закрытие (пункт 7.3 плана).</summary>
+        /// <summary>OK: проверка параметров и закрытие.</summary>
         public ICommand OkCommand { get; }
 
-        /// <summary>Cancel: закрытие без изменений (пункт 7.3 плана).</summary>
+        /// <summary>Cancel: закрытие без изменений.</summary>
         public ICommand CancelCommand { get; }
 
-        /// <summary>True only when validation and ApplyToOperation completed successfully.</summary>
+        /// <summary>True only when the parameters passed validation.</summary>
         public bool IsAccepted { get; private set; }
 
         /// <summary>
@@ -142,14 +139,17 @@ namespace GCodeGenerator.ViewModels
             }
 
             HasValidationError = false;
-            ApplyToOperation();
-            // Пункт 7.2 плана: сохранение из диалога перерисовывает 2D-превью.
-            // Геометрия — авто-свойства (без PropertyChanged), поэтому
-            // уведомление явное (иначе сцена обновится только при следующем
-            // изменении коллекции операций).
-            _operation.NotifyContentChanged();
+            BeforeAccept(_operation);
             IsAccepted = true;
             RequestClose();
+        }
+
+        /// <summary>
+        /// Последний шаг перед принятием: место для того, что окно вычисляет
+        /// само, а не берёт из полей (список отверстий шаблона сверления).
+        /// </summary>
+        protected virtual void BeforeAccept(TOperation operation)
+        {
         }
 
         private void OnCancel()

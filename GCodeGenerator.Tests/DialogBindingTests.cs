@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -110,7 +111,8 @@ namespace GCodeGenerator.Tests
                     continue;
 
                 var viewName = Path.GetFileName(viewPath);
-                var shown = new HashSet<string>(BoundPaths(viewPath), StringComparer.Ordinal);
+                var shown = new HashSet<string>(
+                    BoundPaths(viewPath).Select(StripOperationPrefix), StringComparer.Ordinal);
                 HiddenParameters.TryGetValue(viewName, out var hidden);
 
                 foreach (var parameter in EditableParameters(viewModelType, operationType))
@@ -156,7 +158,7 @@ namespace GCodeGenerator.Tests
             files.AddRange(IncludedBlocks(xamlPath));
 
             return files
-                .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"\{Binding\s+(?:Path=)?([A-Za-z_][A-Za-z0-9_]*)")
+                .SelectMany(file => Regex.Matches(File.ReadAllText(file), @"\{Binding\s+(?:Path=)?([A-Za-z_][A-Za-z0-9_.]*)")
                     .Select(m => m.Groups[1].Value))
                 .Distinct(StringComparer.Ordinal);
         }
@@ -185,22 +187,48 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Параметры, которые диалог переносит в операцию: одноимённые
-        /// свойства простых типов у view-модели и у операции.
+        /// Параметры операции, которые пользователь может изменить: простые
+        /// свойства с сеттером. Раньше список строился по одноимённым
+        /// свойствам диалога — теперь диалог их не заводит, и проверка идёт
+        /// прямо от операции, то есть строже: параметр не спрячется от неё,
+        /// даже если о нём забыли везде.
         /// </summary>
         private static IEnumerable<string> EditableParameters(Type viewModelType, Type operationType)
-        {
-            var operationProperties = operationType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite && IsScalar(p.PropertyType))
-                .ToDictionary(p => p.Name, p => p.PropertyType, StringComparer.Ordinal);
-
-            return viewModelType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite)
-                .Where(p => operationProperties.TryGetValue(p.Name, out var operationType2)
-                            && operationType2 == p.PropertyType)
+            => operationType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(p => p.CanRead && p.SetMethod?.IsPublic == true && IsScalar(p.PropertyType))
+                .Where(p => p.Name != nameof(OperationBase.IsEnabled) && p.Name != nameof(OperationBase.Name))
+                .Where(p => !IsPatternParameterOfOtherMode(viewModelType, operationType, p.Name))
                 .Select(p => p.Name)
                 .OrderBy(name => name, StringComparer.Ordinal);
+
+        /// <summary>
+        /// Сверление описывает девять шаблонов одним типом операции, поэтому
+        /// у каждого диалога свои параметры: окно линии не показывает радиус
+        /// окружности и наоборот. Признак шаблона — параметр объявлен
+        /// в операции, но не встречается ни в одном окне этого режима.
+        /// </summary>
+        private static bool IsPatternParameterOfOtherMode(Type viewModelType, Type operationType, string parameter)
+        {
+            if (operationType != typeof(DrillPointsOperation))
+                return false;
+
+            return !DrillParametersShownAnywhere(viewModelType).Contains(parameter);
         }
+
+        /// <summary>Параметры, которые показывает именно это окно сверления.</summary>
+        private static HashSet<string> DrillParametersShownAnywhere(Type viewModelType)
+        {
+            var viewPath = Dialogs().FirstOrDefault(d => d.ViewModelType == viewModelType).ViewPath;
+            if (viewPath == null)
+                return new HashSet<string>(StringComparer.Ordinal);
+
+            return new HashSet<string>(
+                BoundPaths(viewPath).Select(StripOperationPrefix),
+                StringComparer.Ordinal);
+        }
+
+        private static string StripOperationPrefix(string path)
+            => path.StartsWith("Operation.", StringComparison.Ordinal) ? path.Substring("Operation.".Length) : path;
 
         private static bool IsScalar(Type type)
             => type.IsEnum || type == typeof(double) || type == typeof(int) || type == typeof(bool);
@@ -214,21 +242,45 @@ namespace GCodeGenerator.Tests
         private static HashSet<string> CollectBindableNames(Type viewModelType)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
-            var properties = viewModelType.GetProperties(BindingFlags.Instance | BindingFlags.Public);
+            AddBindableNames(viewModelType, names, names, depth: 0);
+            return names;
+        }
 
-            foreach (var property in properties)
+        /// <summary>
+        /// Имена, доступные разметке: свойства самого источника, свойства
+        /// элементов его коллекций (внутри шаблона списка источником
+        /// становится элемент) и пути через вложенные объекты — окно операции
+        /// привязано прямо к её параметрам, то есть «Operation.StepDepth».
+        /// </summary>
+        private static void AddBindableNames(Type type, HashSet<string> names, HashSet<string> rowNames, int depth)
+        {
+            if (type == null || depth > 2)
+                return;
+
+            foreach (var property in type.GetProperties(BindingFlags.Instance | BindingFlags.Public))
             {
                 names.Add(property.Name);
 
                 var itemType = GetCollectionItemType(property.PropertyType);
-                if (itemType == null)
+                if (itemType != null)
+                {
+                    // Внутри шаблона списка источником становится сам элемент —
+                    // отверстие, корпус, операция, — поэтому его свойства
+                    // адресуются без пути к коллекции.
+                    foreach (var itemProperty in itemType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                        rowNames.Add(itemProperty.Name);
+                    continue;
+                }
+
+                if (IsScalar(property.PropertyType) || property.PropertyType == typeof(string))
                     continue;
 
-                foreach (var itemProperty in itemType.GetProperties(BindingFlags.Instance | BindingFlags.Public))
-                    names.Add(itemProperty.Name);
+                // Составной путь: «Operation.StepDepth» и подобные.
+                var nested = new HashSet<string>(StringComparer.Ordinal);
+                AddBindableNames(property.PropertyType, nested, rowNames, depth + 1);
+                foreach (var name in nested)
+                    names.Add($"{property.Name}.{name}");
             }
-
-            return names;
         }
 
         /// <summary>Тип элемента коллекции или <c>null</c>, если свойство не коллекция.</summary>

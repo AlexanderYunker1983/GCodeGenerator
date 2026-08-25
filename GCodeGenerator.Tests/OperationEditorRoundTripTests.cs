@@ -11,75 +11,106 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Перенос параметров между операцией и диалогом.
+    /// Открытие диалога не должно менять параметры операции.
     ///
-    /// Диалог читает значения операции в свои свойства и по OK записывает их
-    /// обратно. Если очередной параметр забыли в одном из этих двух методов,
-    /// сборка не ломается: поле в окне живёт своей жизнью, а введённое
-    /// значение либо теряется при закрытии, либо подменяется значением по
-    /// умолчанию при открытии. Именно так безопасное расстояние между
-    /// проходами не доезжало до операции по чертежу.
+    /// Окно правит операцию напрямую, поэтому переносить значения туда и
+    /// обратно больше не нужно — прежняя проверка круга «операция → диалог →
+    /// OK → операция» ушла вместе с этим переносом. Но осталась другая
+    /// опасность: диалог что-то делает при открытии — задаёт режим шаблона,
+    /// создаёт первое отверстие, выбирает корпус, — и заполненная операция
+    /// может незаметно потерять значение просто оттого, что её открыли
+    /// и подтвердили.
     ///
-    /// Тест сверяет пары «свойство операции — одноимённое свойство диалога»:
-    /// раз оба существуют, значение обязано пережить круг
-    /// операция → диалог → OK → операция.
-    ///
-    /// За круг меняется ровно один параметр: часть из них связана друг с
-    /// другом (черновая и чистовая обработка взаимоисключающие), и групповая
-    /// правка сама нарушала бы эти зависимости.
+    /// Проверяются все диалоги на готовых операциях эталонного набора.
     /// </summary>
     [TestClass]
     public class OperationEditorRoundTripTests
     {
+        /// <summary>
+        /// Параметры, которые диалог задаёт сам: режим шаблона он определяет
+        /// своим типом, а список отверстий рассчитывает по шаблону.
+        /// </summary>
+        private static readonly HashSet<string> DialogOwned = new HashSet<string>(StringComparer.Ordinal)
+        {
+            nameof(DrillPointsOperation.DrillMode)
+        };
+
         [TestMethod]
-        public void EveryEditor_CarriesMatchingValuesBothWays()
+        public void OpeningAndAcceptingDialog_KeepsOperationParameters()
         {
             var problems = new List<string>();
-            var checkedParameters = 0;
-            var editorTypes = EditorTypes().ToList();
+            var checkedDialogs = 0;
 
-            foreach (var editorType in editorTypes)
+            foreach (var editorType in EditorTypes())
             {
-                var template = FindFixture(editorType);
-                foreach (var pair in MatchingProperties(editorType, template.GetType()))
+                var operation = OperationCloner.Clone(FindFixture(editorType));
+                var before = Snapshot(operation);
+
+                var editor = (IOperationEditorViewModel)CreateEditor(editorType);
+                editor.SetOperation(operation);
+                Ok(editor);
+                checkedDialogs++;
+
+                if (!editor.IsAccepted)
                 {
-                    checkedParameters++;
-                    var operation = OperationCloner.Clone(template);
-                    var stored = NextValue(pair.Operation.GetValue(operation));
-                    pair.Operation.SetValue(operation, stored);
+                    problems.Add($"{editorType.Name}: диалог счёл готовую операцию невалидной");
+                    continue;
+                }
 
-                    var editor = (IOperationEditorViewModel)CreateEditor(editorType);
-                    editor.SetOperation(operation);
-
-                    var shown = pair.Editor.GetValue(editor);
-                    if (!Equals(shown, stored))
-                    {
-                        problems.Add($"{editorType.Name}.{pair.Operation.Name}: окно открылось со значением " +
-                                     $"{shown} вместо сохранённого {stored}");
+                foreach (var pair in before)
+                {
+                    if (DialogOwned.Contains(pair.Key))
                         continue;
-                    }
 
-                    var entered = NextValue(stored);
-                    pair.Editor.SetValue(editor, entered);
-                    Ok(editor);
-
-                    if (!editor.IsAccepted)
-                    {
-                        problems.Add($"{editorType.Name}.{pair.Operation.Name}: диалог счёл операцию невалидной");
-                        continue;
-                    }
-
-                    var saved = pair.Operation.GetValue(operation);
-                    if (!Equals(saved, entered))
-                        problems.Add($"{editorType.Name}.{pair.Operation.Name}: введённое {entered} не сохранилось, " +
-                                     $"в операции осталось {saved}");
+                    var after = pair.Value.Property.GetValue(operation);
+                    if (!Equals(after, pair.Value.Value))
+                        problems.Add($"{editorType.Name}.{pair.Key}: было {pair.Value.Value}, стало {after}");
                 }
             }
 
-            Assert.IsTrue(editorTypes.Count > 0, "Ни одного диалога редактора операции не найдено");
-            Assert.IsTrue(checkedParameters > 0, "Ни одного параметра не проверено");
+            Assert.IsTrue(checkedDialogs > 0, "Ни одного диалога редактора операции не найдено");
             Assert.AreEqual(0, problems.Count, string.Join(Environment.NewLine, problems));
         }
+
+        /// <summary>
+        /// Диалог сверления по шаблону пересчитывает отверстия при открытии:
+        /// список в операции обязан соответствовать её параметрам, даже если
+        /// в файле проекта он от них отстал.
+        /// </summary>
+        [TestMethod]
+        public void DrillPatternDialog_RecalculatesHolesOnOpen()
+        {
+            var operation = new DrillPointsOperation
+            {
+                DrillMode = DrillMode.Line,
+                StartX = 0,
+                StartY = 0,
+                Distance = 10,
+                HoleCount = 4,
+                TotalDepth = 2,
+                StepDepth = 1
+            };
+            operation.Holes.Clear(); // список отстал от параметров
+
+            var editor = (IOperationEditorViewModel)CreateEditor(
+                typeof(GCodeGenerator.ViewModels.Drill.DrillLineOperationViewModel));
+            editor.SetOperation(operation);
+            Ok(editor);
+
+            Assert.IsTrue(editor.IsAccepted, "Заполненный шаблон принимается");
+            Assert.AreEqual(4, operation.Holes.Count, "Отверстия пересчитаны по параметрам шаблона");
+        }
+
+        /// <summary>Значения параметров операции до открытия диалога.</summary>
+        private static Dictionary<string, (PropertyInfo Property, object Value)> Snapshot(OperationBase operation)
+            => operation.GetType()
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(p => p.CanRead && p.SetMethod?.IsPublic == true)
+                .Where(p => p.PropertyType.IsValueType || p.PropertyType == typeof(string))
+                .ToDictionary(p => p.Name, p => (p, p.GetValue(operation)), StringComparer.Ordinal);
+
+        private static void Ok(object editor)
+            => ((ICommand)editor.GetType().GetProperty("OkCommand").GetValue(editor)).Execute(null);
 
         /// <summary>Все диалоги редактирования операций приложения.</summary>
         private static IEnumerable<Type> EditorTypes()
@@ -161,73 +192,5 @@ namespace GCodeGenerator.Tests
 
             return implementation == null ? null : Activator.CreateInstance(implementation);
         }
-
-        /// <summary>Одноимённые свойства операции и диалога.</summary>
-        private sealed class ParameterPair
-        {
-            public ParameterPair(PropertyInfo operation, PropertyInfo editor)
-            {
-                Operation = operation;
-                Editor = editor;
-            }
-
-            public PropertyInfo Operation { get; }
-
-            public PropertyInfo Editor { get; }
-        }
-
-        /// <summary>
-        /// Свойства операции, у которых есть одноимённое свойство диалога того
-        /// же типа. Списки точек и имена файлов не сверяются: их диалог правит
-        /// собственными командами, а не текстовым полем.
-        /// </summary>
-        private static IEnumerable<ParameterPair> MatchingProperties(Type editorType, Type operationType)
-        {
-            var editorProperties = editorType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite)
-                .ToDictionary(p => p.Name, p => p, StringComparer.Ordinal);
-
-            return operationType.GetProperties(BindingFlags.Instance | BindingFlags.Public)
-                .Where(p => p.CanRead && p.CanWrite && IsScalar(p.PropertyType))
-                .Select(p => editorProperties.TryGetValue(p.Name, out var editorProperty)
-                             && editorProperty.PropertyType == p.PropertyType
-                    ? new ParameterPair(p, editorProperty)
-                    : null)
-                .Where(pair => pair != null)
-                .OrderBy(pair => pair.Operation.Name, StringComparer.Ordinal);
-        }
-
-        private static bool IsScalar(Type type)
-            => type.IsEnum || type == typeof(double) || type == typeof(int) || type == typeof(bool);
-
-        /// <summary>
-        /// Значение, заведомо отличное от текущего, но остающееся осмысленным:
-        /// размеры и подачи растут в полтора раза с небольшим сдвигом (нулевые
-        /// параметры тоже становятся ненулевыми), счётчики увеличиваются на
-        /// единицу, флаги переключаются, перечисления идут к следующему
-        /// варианту. Заведомо невалидное значение диалог отверг бы вместо
-        /// сохранения.
-        /// </summary>
-        private static object NextValue(object current)
-        {
-            switch (current)
-            {
-                case double value:
-                    return value * 1.25 + 0.5;
-                case int value:
-                    return value + 1;
-                case bool value:
-                    return !value;
-                case Enum value:
-                    var options = Enum.GetValues(value.GetType());
-                    var index = Array.IndexOf(options, value);
-                    return options.GetValue((index + 1) % options.Length);
-                default:
-                    throw new InvalidOperationException($"Неизвестный тип значения: {current?.GetType()}");
-            }
-        }
-
-        private static void Ok(IOperationEditorViewModel editor)
-            => ((ICommand)editor.GetType().GetProperty("OkCommand").GetValue(editor)).Execute(null);
     }
 }

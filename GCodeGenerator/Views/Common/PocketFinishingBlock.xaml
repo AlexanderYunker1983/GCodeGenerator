@@ -8,21 +8,21 @@
         <StackPanel Margin="8">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{loc:Loc WallTaperAngleDeg}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                <TextBox Width="120" Text="{Binding Operation.WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </StackPanel>
 
             <!-- Черновой проход оставляет припуск, чистовой его снимает: одновременно они не включаются. -->
             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                 <CheckBox Margin="0,0,16,0"
-                          IsChecked="{Binding IsRoughingEnabled}"
+                          IsChecked="{Binding Operation.IsRoughingEnabled}"
                           Content="{loc:Loc PocketRoughing}"/>
-                <CheckBox IsChecked="{Binding IsFinishingEnabled}"
+                <CheckBox IsChecked="{Binding Operation.IsFinishingEnabled}"
                           Content="{loc:Loc PocketFinishing}"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="{loc:Loc PocketFinishAllowance}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBox Width="120" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                <TextBox Width="120" Text="{Binding Operation.FinishAllowance, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
@@ -30,7 +30,7 @@
                     <Style TargetType="StackPanel">
                         <Setter Property="Visibility" Value="Collapsed"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsFinishingEnabled}" Value="True">
+                            <DataTrigger Binding="{Binding Operation.IsFinishingEnabled}" Value="True">
                                 <Setter Property="Visibility" Value="Visible"/>
                             </DataTrigger>
                         </Style.Triggers>
@@ -40,16 +40,16 @@
                              GroupName="FinishingMode"
                              VerticalAlignment="Center"
                              Margin="0,0,16,0"
-                             IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Walls}}"/>
+                             IsChecked="{Binding Operation.FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Walls}}"/>
                 <RadioButton Content="{loc:Loc PocketFinishingBottom}"
                              GroupName="FinishingMode"
                              VerticalAlignment="Center"
                              Margin="0,0,16,0"
-                             IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Bottom}}"/>
+                             IsChecked="{Binding Operation.FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Bottom}}"/>
                 <RadioButton Content="{loc:Loc PocketFinishingAll}"
                              GroupName="FinishingMode"
                              VerticalAlignment="Center"
-                             IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.All}}"/>
+                             IsChecked="{Binding Operation.FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.All}}"/>
             </StackPanel>
         </StackPanel>
     </GroupBox>

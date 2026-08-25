@@ -33,19 +33,46 @@ namespace GCodeGenerator.Models
         private double _lineAngleDeg = 0.0;
 
         /// <summary>
-        /// Уклон стенки, градусы (0 — вертикально). Положительные значения
-        /// сужают карман книзу.
+        /// Наибольший уклон стенки. При 90 градусах стенка становится
+        /// горизонтальной, а смещение контура обращается в бесконечность.
         /// </summary>
-        [ObservableProperty]
-        private double _wallTaperAngleDeg = 0.0;
+        private const double MaxWallTaperAngleDeg = 89.999999;
 
-        /// <summary>Выполнять черновой проход с припуском.</summary>
-        [ObservableProperty]
+        private double _wallTaperAngleDeg;
         private bool _isRoughingEnabled;
+        private bool _isFinishingEnabled;
+
+        /// <summary>
+        /// Уклон стенки, градусы (0 — вертикально). Положительные значения
+        /// сужают карман книзу. Значение вне диапазона заменяется ближайшим
+        /// допустимым: ограничение принадлежит самой операции, а не окну —
+        /// нарушить его может и файл проекта.
+        /// </summary>
+        public double WallTaperAngleDeg
+        {
+            get => _wallTaperAngleDeg;
+            set => SetProperty(ref _wallTaperAngleDeg,
+                value < 0 ? 0 : value > MaxWallTaperAngleDeg ? MaxWallTaperAngleDeg : value);
+        }
+
+        /// <summary>
+        /// Выполнять черновой проход с припуском. Вместе с
+        /// <see cref="IsFinishingEnabled"/> даёт полный цикл: сначала выборка
+        /// с припуском, затем его снятие — планировщик проходов поддерживает
+        /// такое сочетание, поэтому запрета здесь нет.
+        /// </summary>
+        public bool IsRoughingEnabled
+        {
+            get => _isRoughingEnabled;
+            set => SetProperty(ref _isRoughingEnabled, value);
+        }
 
         /// <summary>Выполнять чистовой проход по припуску.</summary>
-        [ObservableProperty]
-        private bool _isFinishingEnabled;
+        public bool IsFinishingEnabled
+        {
+            get => _isFinishingEnabled;
+            set => SetProperty(ref _isFinishingEnabled, value);
+        }
 
         /// <summary>Припуск на обработку, мм: по контуру и по глубине.</summary>
         [ObservableProperty]

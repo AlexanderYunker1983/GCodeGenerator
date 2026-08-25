@@ -1,115 +1,47 @@
-using System;
-using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.ViewModels.Pocket
 {
     /// <summary>
-    /// Общая часть диалогов карманов: стратегия выборки, шаг обработки, уклон
-    /// стенок и параметры черновой и чистовой обработки. Дополняет общие
-    /// параметры фрезерования из <see cref="MillingOperationEditorViewModelBase{TOperation}"/>.
+    /// Общая часть диалогов карманов.
+    ///
+    /// Параметры выборки — стратегия, шаг, уклон, припуск — окно правит прямо
+    /// в операции, поэтому здесь остаётся только то, чего в операции нет:
+    /// какие поля показывать для выбранной стратегии.
     /// </summary>
-    public abstract partial class PocketOperationEditorViewModelBase<TOperation>
-        : MillingOperationEditorViewModelBase<TOperation>
+    public abstract class PocketOperationEditorViewModelBase<TOperation>
+        : OperationEditorViewModelBase<TOperation>
         where TOperation : PocketOperationBase
     {
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(IsLinesStrategy))]
-        [NotifyPropertyChangedFor(nameof(IsLinesOrZigZagStrategy))]
-        private PocketStrategy _pocketStrategy = PocketStrategy.Spiral;
-
-        [ObservableProperty]
-        private double _stepPercentOfTool = 40.0;
-
-        [ObservableProperty]
-        private double _lineAngleDeg;
-
-        [ObservableProperty]
-        private double _wallTaperAngleDeg;
-
-        [ObservableProperty]
-        private bool _isRoughingEnabled;
-
-        [ObservableProperty]
-        private bool _isFinishingEnabled;
-
-        [ObservableProperty]
-        private double _finishAllowance;
-
-        [ObservableProperty]
-        private PocketFinishingMode _finishingMode = PocketFinishingMode.All;
-
         /// <summary>Угол линий задаётся только для стратегии параллельных линий.</summary>
-        public bool IsLinesStrategy => PocketStrategy == PocketStrategy.Lines;
+        public bool IsLinesStrategy => Operation?.PocketStrategy == PocketStrategy.Lines;
 
         /// <summary>Шаг между проходами задаётся для линейных стратегий.</summary>
         public bool IsLinesOrZigZagStrategy
-            => PocketStrategy == PocketStrategy.Lines || PocketStrategy == PocketStrategy.ZigZag;
+            => Operation?.PocketStrategy == PocketStrategy.Lines
+               || Operation?.PocketStrategy == PocketStrategy.ZigZag;
 
-        /// <summary>
-        /// Уклон стенок ограничен диапазоном [0; 90): при 90 градусах стенка
-        /// становится горизонтальной, и смещение контура обращается
-        /// в бесконечность. Значение вне диапазона заменяется ближайшим
-        /// допустимым — повторное присваивание с тем же значением уже
-        /// не вызывает обработчик.
-        /// </summary>
-        partial void OnWallTaperAngleDegChanged(double value)
+        protected override void OnOperationChanged(TOperation operation)
         {
-            var clamped = Math.Max(0, Math.Min(89.999999, value));
-            if (!clamped.Equals(value))
-                WallTaperAngleDeg = clamped;
+            base.OnOperationChanged(operation);
+
+            // Состав видимых полей зависит от выбранной стратегии, а её меняют
+            // прямо в операции — значит и следить надо за операцией.
+            operation.PropertyChanged += OnOperationPropertyChanged;
+            RaiseStrategyDependentProperties();
         }
 
-        /// <summary>
-        /// Черновая и чистовая обработка взаимоисключающие: припуск либо
-        /// оставляется, либо снимается.
-        /// </summary>
-        partial void OnIsRoughingEnabledChanged(bool value)
+        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (value && IsFinishingEnabled)
-                IsFinishingEnabled = false;
+            if (e.PropertyName == nameof(PocketOperationBase.PocketStrategy) || string.IsNullOrEmpty(e.PropertyName))
+                RaiseStrategyDependentProperties();
         }
 
-        /// <summary>
-        /// Черновая и чистовая обработка взаимоисключающие: припуск либо
-        /// оставляется, либо снимается.
-        /// </summary>
-        partial void OnIsFinishingEnabledChanged(bool value)
+        private void RaiseStrategyDependentProperties()
         {
-            if (value && IsRoughingEnabled)
-                IsRoughingEnabled = false;
-        }
-
-        /// <summary>Читает общие параметры кармана из операции в диалог.</summary>
-        protected void LoadCommonPocketParameters(TOperation operation)
-        {
-            LoadCommonMillingParameters(operation);
-
-            PocketStrategy = operation.PocketStrategy;
-            StepPercentOfTool = operation.StepPercentOfTool;
-            LineAngleDeg = operation.LineAngleDeg;
-            WallTaperAngleDeg = Math.Max(0, operation.WallTaperAngleDeg);
-
-            IsRoughingEnabled = operation.IsRoughingEnabled;
-            IsFinishingEnabled = operation.IsFinishingEnabled;
-            FinishAllowance = operation.FinishAllowance;
-            FinishingMode = operation.FinishingMode;
-        }
-
-        /// <summary>Сохраняет общие параметры кармана из диалога в операцию.</summary>
-        protected void ApplyCommonPocketParameters(TOperation operation)
-        {
-            ApplyCommonMillingParameters(operation);
-
-            operation.PocketStrategy = PocketStrategy;
-            operation.StepPercentOfTool = StepPercentOfTool;
-            operation.LineAngleDeg = LineAngleDeg;
-            operation.WallTaperAngleDeg = WallTaperAngleDeg;
-
-            operation.IsRoughingEnabled = IsRoughingEnabled;
-            operation.IsFinishingEnabled = IsFinishingEnabled;
-            operation.FinishAllowance = FinishAllowance;
-            operation.FinishingMode = FinishingMode;
+            OnPropertyChanged(nameof(IsLinesStrategy));
+            OnPropertyChanged(nameof(IsLinesOrZigZagStrategy));
         }
     }
 }

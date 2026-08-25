@@ -12,10 +12,10 @@
             </Grid.RowDefinitions>
             <StackPanel Grid.Row="0" Margin="0,0,0,8">
                 <RadioButton Content="{loc:Loc EntryModeVertical}" GroupName="EntryMode"
-                             IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Vertical}}"
+                             IsChecked="{Binding Operation.EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Vertical}}"
                              Margin="0,0,0,4"/>
                 <RadioButton Content="{loc:Loc EntryModeAngled}" GroupName="EntryMode"
-                             IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Angled}}"/>
+                             IsChecked="{Binding Operation.EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Angled}}"/>
             </StackPanel>
 
             <!-- Угол и безопасное расстояние имеют смысл только для наклонного врезания. -->
@@ -28,9 +28,9 @@
                     <ColumnDefinition Width="120"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{loc:Loc EntryAngleDeg}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding EntryAngle, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+                <TextBox Grid.Column="1" Text="{Binding Operation.EntryAngle, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                 <TextBlock Grid.Column="3" Text="{loc:Loc SafeDistanceBetweenPasses}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding SafeDistanceBetweenPasses, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                <TextBox Grid.Column="4" Text="{Binding Operation.SafeDistanceBetweenPasses, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </Grid>
         </Grid>
     </GroupBox>

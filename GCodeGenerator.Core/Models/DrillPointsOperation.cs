@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -16,6 +18,7 @@ namespace GCodeGenerator.Models
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
         {
+            AttachHoles(_holes);
         }
 
         /// <summary>
@@ -29,9 +32,70 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Holes with full coordinates and Z parameters.
         /// Setter is needed for JSON deserialization of saved projects.
+        ///
+        /// Наблюдаемая коллекция: отверстия правят прямо в таблице диалога,
+        /// и добавленное, удалённое или изменённое отверстие должно быть
+        /// видно в предпросмотре сразу.
+        ///
+        /// Операция следит и за составом списка, и за самими отверстиями:
+        /// иначе о правке координаты в таблице не узнал бы никто — обычное
+        /// уведомление приходит только при замене всего списка.
         /// </summary>
-        [ObservableProperty]
-        private List<DrillHole> _holes = new List<DrillHole>();
+        public ObservableCollection<DrillHole> Holes
+        {
+            get => _holes;
+            set
+            {
+                var replacement = value ?? new ObservableCollection<DrillHole>();
+                if (ReferenceEquals(_holes, replacement))
+                    return;
+
+                DetachHoles(_holes);
+                _holes = replacement;
+                AttachHoles(_holes);
+                OnPropertyChanged();
+            }
+        }
+
+        private ObservableCollection<DrillHole> _holes = new ObservableCollection<DrillHole>();
+
+        private void AttachHoles(ObservableCollection<DrillHole> holes)
+        {
+            if (holes == null)
+                return;
+
+            holes.CollectionChanged += OnHolesCollectionChanged;
+            foreach (var hole in holes)
+                if (hole != null) hole.PropertyChanged += OnHoleChanged;
+        }
+
+        private void DetachHoles(ObservableCollection<DrillHole> holes)
+        {
+            if (holes == null)
+                return;
+
+            holes.CollectionChanged -= OnHolesCollectionChanged;
+            foreach (var hole in holes)
+                if (hole != null) hole.PropertyChanged -= OnHoleChanged;
+        }
+
+        private void OnHolesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Отверстие может быть пустым: файл проекта, написанный вручную,
+            // способен принести и такое — валидация сообщит об этом отдельно.
+            if (e.OldItems != null)
+                foreach (DrillHole hole in e.OldItems)
+                    if (hole != null) hole.PropertyChanged -= OnHoleChanged;
+
+            if (e.NewItems != null)
+                foreach (DrillHole hole in e.NewItems)
+                    if (hole != null) hole.PropertyChanged += OnHoleChanged;
+
+            OnPropertyChanged(nameof(Holes));
+        }
+
+        private void OnHoleChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+            => OnPropertyChanged(nameof(Holes));
 
         /// <summary>
         /// Rapid feed in XY plane (G0).

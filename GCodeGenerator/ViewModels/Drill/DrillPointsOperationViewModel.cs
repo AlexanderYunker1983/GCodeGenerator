@@ -1,24 +1,36 @@
-using CommunityToolkit.Mvvm.Input;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Windows.Input;
-using GCodeGenerator.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Models;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillPointsOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName
+    /// <summary>
+    /// Диалог сверления по точкам: отверстия задаются поштучно в таблице.
+    ///
+    /// В отличие от шаблонов, список отверстий здесь не рассчитывается,
+    /// а составляется пользователем, поэтому таблица правит отверстия самой
+    /// операции, а окно добавляет команды управления списком.
+    /// </summary>
+    public partial class DrillPointsOperationViewModel
+        : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName
     {
-        private readonly ILocalizationManager _localizationManager;
+        [ObservableProperty]
+        private string _displayName;
+
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(RemoveHoleCommand))]
+        [NotifyCanExecuteChangedFor(nameof(MoveHoleUpCommand))]
+        [NotifyCanExecuteChangedFor(nameof(MoveHoleDownCommand))]
+        private DrillHole _selectedHole;
 
         public DrillPointsOperationViewModel(ILocalizationManager localizationManager)
         {
-            _localizationManager = localizationManager;
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
-            DisplayName = _localizationManager?.GetString("DrillPointsName") ?? "DrillPointsName";
-
-            Holes = new ObservableCollection<DrillHole>();
+            DisplayName = localizationManager?.GetString("DrillPointsName") ?? "DrillPointsName";
 
             AddHoleCommand = new RelayCommand(AddHole);
             RemoveHoleCommand = new RelayCommand(RemoveSelectedHole, () => SelectedHole != null);
@@ -26,132 +38,54 @@ namespace GCodeGenerator.ViewModels.Drill
             MoveHoleDownCommand = new RelayCommand(MoveSelectedHoleDown, CanMoveSelectedHoleDown);
         }
 
-        protected override void LoadFromOperation(DrillPointsOperation operation)
-        {
-            // Sync existing holes from operation into local collection.
-            Holes.Clear();
-            if (operation.Holes.Any())
-            {
-                foreach (var hole in operation.Holes)
-                    Holes.Add(hole);
-                SelectedHole = Holes.FirstOrDefault();
-            }
-            else
-            {
-                // Create first default hole if list is empty
-                var defaultHole = new DrillHole
-                {
-                    X = 0,
-                    Y = 0,
-                    Z = 0,
-                    TotalDepth = 2,
-                    StepDepth = 1,
-                    FeedZRapid = 500,
-                    FeedZWork = 200,
-                    RetractHeight = 0.3
-                };
-                Holes.Add(defaultHole);
-                SelectedHole = defaultHole;
-            }
-        }
-
-        public ObservableCollection<DrillHole> Holes { get; }
-
-        private DrillHole _selectedHole;
-
-        public DrillHole SelectedHole
-        {
-            get => _selectedHole;
-            set
-            {
-                if (Equals(value, _selectedHole)) return;
-                _selectedHole = value;
-                OnPropertyChanged();
-                UpdateCommands();
-            }
-        }
-
-        private string _displayName;
-        public string DisplayName
-        {
-            get => _displayName;
-            set
-            {
-                if (Equals(value, _displayName)) return;
-                _displayName = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double FeedXYRapid
-        {
-            get => Operation?.FeedXYRapid ?? 0;
-            set
-            {
-                if (Operation == null || value.Equals(Operation.FeedXYRapid)) return;
-                Operation.FeedXYRapid = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double FeedXYWork
-        {
-            get => Operation?.FeedXYWork ?? 0;
-            set
-            {
-                if (Operation == null || value.Equals(Operation.FeedXYWork)) return;
-                Operation.FeedXYWork = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double SafeZBetweenHoles
-        {
-            get => Operation?.SafeZBetweenHoles ?? 0;
-            set
-            {
-                if (Operation == null || value.Equals(Operation.SafeZBetweenHoles)) return;
-                Operation.SafeZBetweenHoles = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public int Decimals
-        {
-            get => Operation?.Decimals ?? 3;
-            set
-            {
-                if (Operation == null || value == Operation.Decimals) return;
-                Operation.Decimals = value;
-                OnPropertyChanged();
-            }
-        }
-
         public ICommand AddHoleCommand { get; }
-        public ICommand RemoveHoleCommand { get; }
-        public ICommand MoveHoleUpCommand { get; }
-        public ICommand MoveHoleDownCommand { get; }
 
-        protected override void ApplyToOperation()
+        public IRelayCommand RemoveHoleCommand { get; }
+
+        public IRelayCommand MoveHoleUpCommand { get; }
+
+        public IRelayCommand MoveHoleDownCommand { get; }
+
+        protected override void OnOperationChanged(DrillPointsOperation operation)
         {
-            // Save holes to operation (пункт 3.3: режим фиксируется в DrillMode).
-            Operation.DrillMode = DrillMode.Points;
-            Operation.Holes.Clear();
-            foreach (var hole in Holes)
-                Operation.Holes.Add(hole);
+            base.OnOperationChanged(operation);
+
+            operation.DrillMode = DrillMode.Points;
+
+            // У новой операции отверстий нет: одно пустое даёт таблице
+            // строку, с которой можно начать.
+            if (operation.Holes.Count == 0)
+                operation.Holes.Add(DefaultHole());
+
+            SelectedHole = operation.Holes.FirstOrDefault();
         }
 
-        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
-        // сверление без отверстий не имеет смысла.
-        protected override bool IsValid() => Holes.Count > 0;
+        /// <summary>Сверление без отверстий не имеет смысла.</summary>
+        protected override bool IsValid() => Operation.Holes.Count > 0;
 
+        private static DrillHole DefaultHole()
+            => new DrillHole
+            {
+                X = 0,
+                Y = 0,
+                Z = 0,
+                TotalDepth = 2,
+                StepDepth = 1,
+                FeedZRapid = 500,
+                FeedZWork = 200,
+                RetractHeight = 0.3
+            };
+
+        /// <summary>
+        /// Новое отверстие повторяет последнее: подряд сверлят обычно
+        /// одинаковые отверстия, меняя только координаты.
+        /// </summary>
         private void AddHole()
         {
-            DrillHole newHole;
-            if (Holes.Any())
-            {
-                var last = Holes.Last();
-                newHole = new DrillHole
+            var last = Operation.Holes.LastOrDefault();
+            var hole = last == null
+                ? DefaultHole()
+                : new DrillHole
                 {
                     X = last.X,
                     Y = last.Y,
@@ -162,71 +96,45 @@ namespace GCodeGenerator.ViewModels.Drill
                     FeedZWork = last.FeedZWork,
                     RetractHeight = last.RetractHeight
                 };
-            }
-            else
-            {
-                // First hole defaults: Z = 0, rest as reasonable drilling defaults.
-                newHole = new DrillHole
-                {
-                    X = 0,
-                    Y = 0,
-                    Z = 0,
-                    TotalDepth = 2,
-                    StepDepth = 1,
-                    FeedZRapid = 500,
-                    FeedZWork = 200,
-                    RetractHeight = 0.3
-                };
-            }
 
-            Holes.Add(newHole);
-            SelectedHole = newHole;
+            Operation.Holes.Add(hole);
+            SelectedHole = hole;
         }
 
         private void RemoveSelectedHole()
         {
             if (SelectedHole == null) return;
-            var index = Holes.IndexOf(SelectedHole);
+            var index = Operation.Holes.IndexOf(SelectedHole);
             if (index < 0) return;
-            Holes.RemoveAt(index);
-            SelectedHole = index < Holes.Count ? Holes[index] : Holes.LastOrDefault();
+
+            Operation.Holes.RemoveAt(index);
+            SelectedHole = index < Operation.Holes.Count
+                ? Operation.Holes[index]
+                : Operation.Holes.LastOrDefault();
         }
 
         private bool CanMoveSelectedHoleUp()
-        {
-            if (SelectedHole == null) return false;
-            var index = Holes.IndexOf(SelectedHole);
-            return index > 0;
-        }
+            => SelectedHole != null && Operation != null && Operation.Holes.IndexOf(SelectedHole) > 0;
 
         private bool CanMoveSelectedHoleDown()
         {
-            if (SelectedHole == null) return false;
-            var index = Holes.IndexOf(SelectedHole);
-            return index >= 0 && index < Holes.Count - 1;
+            if (SelectedHole == null || Operation == null) return false;
+            var index = Operation.Holes.IndexOf(SelectedHole);
+            return index >= 0 && index < Operation.Holes.Count - 1;
         }
 
         private void MoveSelectedHoleUp()
         {
             if (!CanMoveSelectedHoleUp()) return;
-            var index = Holes.IndexOf(SelectedHole);
-            Holes.Move(index, index - 1);
+            var index = Operation.Holes.IndexOf(SelectedHole);
+            Operation.Holes.Move(index, index - 1);
         }
 
         private void MoveSelectedHoleDown()
         {
             if (!CanMoveSelectedHoleDown()) return;
-            var index = Holes.IndexOf(SelectedHole);
-            Holes.Move(index, index + 1);
-        }
-
-        private void UpdateCommands()
-        {
-            (RemoveHoleCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (MoveHoleUpCommand as RelayCommand)?.NotifyCanExecuteChanged();
-            (MoveHoleDownCommand as RelayCommand)?.NotifyCanExecuteChanged();
+            var index = Operation.Holes.IndexOf(SelectedHole);
+            Operation.Holes.Move(index, index + 1);
         }
     }
 }
-
-

@@ -61,12 +61,9 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         public ICommand ImportDxfCommand { get; }
 
-        protected override void LoadFromOperation(ProfileDxfOperation operation)
+        protected override void OnOperationChanged(ProfileDxfOperation operation)
         {
-            if (operation == null)
-                return;
-
-            LoadCommonProfileParameters(operation);
+            base.OnOperationChanged(operation);
 
             FilePath = operation.DxfFilePath;
             if (operation.Polylines != null && operation.Polylines.Count > 0)
@@ -79,11 +76,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
             {
                 ImportInfo = null;
             }
-        }
-
-        protected override void ApplyToOperation()
-        {
-            ApplyCommonProfileParameters(Operation);
         }
 
         private async Task ImportDxfFileAsync()

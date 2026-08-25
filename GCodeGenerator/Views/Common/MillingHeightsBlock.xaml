@@ -13,9 +13,9 @@
                 <ColumnDefinition Width="120"/>
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Text="{loc:Loc SafeZHeight}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+            <TextBox Grid.Column="1" Text="{Binding Operation.SafeZHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
             <TextBlock Grid.Column="3" Text="{loc:Loc RetractZHeight}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-            <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+            <TextBox Grid.Column="4" Text="{Binding Operation.RetractHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
         </Grid>
     </GroupBox>
 </UserControl>

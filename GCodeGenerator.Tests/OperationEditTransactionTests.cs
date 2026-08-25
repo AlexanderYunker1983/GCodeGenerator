@@ -25,8 +25,8 @@ namespace GCodeGenerator.Tests
                 vm =>
                 {
                     var editor = (DrillPointsOperationViewModel)vm;
-                    editor.FeedXYRapid = 9999;
-                    editor.Holes[0].X = 777;
+                    editor.Operation.FeedXYRapid = 9999;
+                    editor.Operation.Holes[0].X = 777;
                     editor.CancelCommand.Execute(null);
                 });
 
@@ -52,7 +52,7 @@ namespace GCodeGenerator.Tests
                 vm =>
                 {
                     var editor = (ProfileDxfOperationViewModel)vm;
-                    editor.ToolDiameter = 12;
+                    editor.Operation.ToolDiameter = 12;
                     editor.Operation.DxfFilePath = "changed.dxf";
                     editor.Operation.Polylines = new System.Collections.Generic.List<DxfPolyline>
                     {
@@ -80,7 +80,7 @@ namespace GCodeGenerator.Tests
                 vm =>
                 {
                     var editor = (ProfileCircleOperationViewModel)vm;
-                    editor.Radius = 25;
+                    editor.Operation.Radius = 25;
                     editor.OkCommand.Execute(null);
                 });
 
@@ -98,7 +98,7 @@ namespace GCodeGenerator.Tests
             var operations = new ObservableCollection<OperationBase> { operation };
             var dialogs = CreateDialogs(
                 _ => new ProfileCircleOperationViewModel(null),
-                vm => ((ProfileCircleOperationViewModel)vm).Radius = 99);
+                vm => ((ProfileCircleOperationViewModel)vm).Operation.Radius = 99);
 
             new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
 
@@ -123,7 +123,7 @@ namespace GCodeGenerator.Tests
                 vm =>
                 {
                     var editor = (DrillPointsOperationViewModel)vm;
-                    editor.Holes.Clear();
+                    editor.Operation.Holes.Clear();
                     editor.OkCommand.Execute(null);
                 });
 

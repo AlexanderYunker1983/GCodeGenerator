@@ -73,7 +73,7 @@ namespace GCodeGenerator.Tests
             // Диалог: меняем радиус (по умолчанию 10) и сохраняем.
             var dlg = new ProfileCircleOperationViewModel(null);
             dlg.Operation = op;
-            dlg.Radius = 25;
+            dlg.Operation.Radius = 25;
             ((RelayCommand)dlg.OkCommand).Execute(null);
 
             var sceneAfter = main.OperationsPreview.Scene;

@@ -1,4 +1,4 @@
-<UserControl x:Class="GCodeGenerator.Views.Common.ToolPathModeBlock"
+﻿<UserControl x:Class="GCodeGenerator.Views.Common.ToolPathModeBlock"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:GCodeGenerator.Localization"
@@ -6,13 +6,13 @@
     <GroupBox Header="{loc:Loc ToolPathModeHeader}" Margin="0,0,0,8">
         <StackPanel Margin="8">
             <RadioButton Content="{loc:Loc ToolPathModeOnLine}" GroupName="ToolPathMode"
-                         IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.OnLine}}"
+                         IsChecked="{Binding Operation.ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.OnLine}}"
                          Margin="0,0,0,4"/>
             <RadioButton Content="{loc:Loc ToolPathModeOutside}" GroupName="ToolPathMode"
-                         IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Outside}}"
+                         IsChecked="{Binding Operation.ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Outside}}"
                          Margin="0,0,0,4"/>
             <RadioButton Content="{loc:Loc ToolPathModeInside}" GroupName="ToolPathMode"
-                         IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Inside}}"/>
+                         IsChecked="{Binding Operation.ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Inside}}"/>
         </StackPanel>
     </GroupBox>
 </UserControl>

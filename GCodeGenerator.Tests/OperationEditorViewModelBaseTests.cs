@@ -6,9 +6,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Тесты OperationEditorViewModelBase (пункт 7.3 плана): явная семантика
-    /// OK/Cancel — OK сохраняет (или удаляет невалидную) и закрывает, Cancel и
-    /// OnClosed — без изменений.
+    /// Семантика OK и отмены в диалоге операции.
+    ///
+    /// Окно правит рабочую копию операции напрямую, поэтому OK ничего не
+    /// переносит — он только проверяет параметры и закрывает окно. Отмена
+    /// закрывает окно, а копия с правками выбрасывается.
     /// </summary>
     [TestClass]
     public class OperationEditorViewModelBaseTests
@@ -16,22 +18,13 @@ namespace GCodeGenerator.Tests
         /// <summary>Фейковая диалоговая VM поверх базового класса.</summary>
         private sealed class FakeEditorVm : OperationEditorViewModelBase<PocketCircleOperation>
         {
-            public bool ApplyCalled { get; private set; }
-            public double Radius { get; set; }
             public bool Valid { get; set; } = true;
 
-            protected override void LoadFromOperation(PocketCircleOperation operation)
-            {
-                Radius = operation.Radius;
-            }
-
-            protected override void ApplyToOperation()
-            {
-                ApplyCalled = true;
-                Operation.Radius = Radius;
-            }
+            public int AcceptedCount { get; private set; }
 
             protected override bool IsValid() => Valid;
+
+            protected override void BeforeAccept(PocketCircleOperation operation) => AcceptedCount++;
         }
 
         private static (FakeEditorVm vm, PocketCircleOperation op, ObservableCollection<OperationBase> ops, int[] closeCount) Create()
@@ -47,94 +40,87 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void OperationSetter_LoadsTypedProperties()
+        public void Operation_IsEditedDirectly()
         {
             var (vm, op, _, _) = Create();
-            Assert.AreEqual(10.0, vm.Radius, 1e-9, "сеттер Operation читает значения в свойства VM");
-            Assert.AreSame(op, vm.Operation);
+
+            vm.Operation.Radius = 20;
+
+            Assert.AreSame(op, vm.Operation, "Диалог правит ту операцию, которую ему дали");
+            Assert.AreEqual(20.0, op.Radius, 1e-9, "Правка сразу в операции — переносить нечего");
         }
 
         [TestMethod]
-        public void Ok_Valid_SavesAndCloses()
+        public void Ok_Valid_AcceptsAndCloses()
         {
-            var (vm, op, ops, closeCount) = Create();
-            vm.Radius = 20;
+            var (vm, _, ops, closeCount) = Create();
+            vm.Operation.Radius = 20;
 
             vm.OkCommand.Execute(null);
 
-            Assert.IsTrue(vm.ApplyCalled, "OK вызывает ApplyToOperation");
-            Assert.AreEqual(20.0, op.Radius, 1e-9, "значения VM сохранены в операцию");
-            Assert.AreEqual(1, ops.Count, "валидная операция не удаляется");
+            Assert.IsTrue(vm.IsAccepted, "OK принимает параметры");
+            Assert.AreEqual(1, vm.AcceptedCount, "Перед принятием окно получает последнее слово");
+            Assert.AreEqual(1, ops.Count, "Операция остаётся в коллекции");
             Assert.AreEqual(1, closeCount[0], "OK закрывает окно");
         }
 
         /// <summary>
         /// Неверные параметры — повод их исправить, а не потерять операцию:
-        /// окно остаётся открытым с пояснением, операция не трогается.
+        /// окно остаётся открытым с пояснением.
         /// </summary>
         [TestMethod]
-        public void Ok_Invalid_KeepsDialogOpenAndOperationIntact()
+        public void Ok_Invalid_KeepsDialogOpen()
         {
-            var (vm, op, ops, closeCount) = Create();
-            vm.Radius = 999;
+            var (vm, _, ops, closeCount) = Create();
             vm.Valid = false;
 
             vm.OkCommand.Execute(null);
 
-            Assert.IsFalse(vm.ApplyCalled, "невалидные значения не сохраняются");
-            Assert.AreEqual(10.0, op.Radius, 1e-9, "операция не изменена");
-            Assert.AreEqual(1, ops.Count, "операция остаётся в коллекции");
-            Assert.AreEqual(0, closeCount[0], "окно не закрывается");
-            Assert.IsTrue(vm.HasValidationError, "окно показывает, что параметры неверны");
-            Assert.IsFalse(vm.IsAccepted, "изменения не приняты");
+            Assert.IsFalse(vm.IsAccepted, "Параметры не приняты");
+            Assert.AreEqual(0, vm.AcceptedCount, "Принятие не выполнялось");
+            Assert.AreEqual(1, ops.Count, "Операция остаётся в коллекции");
+            Assert.AreEqual(0, closeCount[0], "Окно не закрывается");
+            Assert.IsTrue(vm.HasValidationError, "Окно показывает, что параметры неверны");
         }
 
-        /// <summary>
-        /// Исправленные параметры сохраняются обычным образом, а пояснение
-        /// об ошибке исчезает.
-        /// </summary>
         [TestMethod]
-        public void Ok_AfterFixingParameters_SavesAndCloses()
+        public void Ok_AfterFixingParameters_AcceptsAndCloses()
         {
-            var (vm, op, ops, closeCount) = Create();
+            var (vm, _, _, closeCount) = Create();
             vm.Valid = false;
             vm.OkCommand.Execute(null);
 
             vm.Valid = true;
-            vm.Radius = 20;
             vm.OkCommand.Execute(null);
 
-            Assert.IsFalse(vm.HasValidationError, "пояснение об ошибке снято");
-            Assert.AreEqual(20.0, op.Radius, 1e-9, "исправленные значения сохранены");
-            Assert.AreEqual(1, ops.Count, "операция на месте");
-            Assert.AreEqual(1, closeCount[0], "окно закрывается только после исправления");
+            Assert.IsFalse(vm.HasValidationError, "Пояснение об ошибке снято");
+            Assert.IsTrue(vm.IsAccepted, "Исправленные параметры приняты");
+            Assert.AreEqual(1, closeCount[0], "Окно закрывается только после исправления");
         }
 
         [TestMethod]
-        public void Cancel_NoChanges_Closes()
+        public void Cancel_Closes_WithoutAccepting()
         {
-            var (vm, op, ops, closeCount) = Create();
-            vm.Radius = 999;
+            var (vm, _, ops, closeCount) = Create();
+            vm.Operation.Radius = 999;
 
             vm.CancelCommand.Execute(null);
 
-            Assert.IsFalse(vm.ApplyCalled, "Cancel не сохраняет");
-            Assert.AreEqual(10.0, op.Radius, 1e-9, "операция не изменена");
-            Assert.AreEqual(1, ops.Count, "операция не удалена");
+            Assert.IsFalse(vm.IsAccepted, "Отмена не принимает параметры");
+            Assert.AreEqual(0, vm.AcceptedCount, "Принятие не выполнялось");
+            Assert.AreEqual(1, ops.Count, "Операция не удалена");
             Assert.AreEqual(1, closeCount[0], "Cancel закрывает окно");
         }
 
         [TestMethod]
-        public void OnClosed_NoSave_NoRemove()
+        public void OnClosed_DoesNothing()
         {
-            var (vm, op, ops, closeCount) = Create();
-            vm.Radius = 999;
+            var (vm, _, ops, closeCount) = Create();
 
             vm.OnClosed();
 
-            Assert.IsFalse(vm.ApplyCalled, "OnClosed больше не сохраняет (пункт 7.3)");
-            Assert.AreEqual(10.0, op.Radius, 1e-9, "операция не изменена");
-            Assert.AreEqual(1, ops.Count, "операция не удалена");
+            Assert.IsFalse(vm.IsAccepted, "Закрытие окна само по себе ничего не принимает");
+            Assert.AreEqual(1, ops.Count, "Операция не удалена");
             Assert.AreEqual(0, closeCount[0], "OnClosed не запрашивает закрытие");
         }
 
@@ -145,7 +131,7 @@ namespace GCodeGenerator.Tests
 
             vm.OkCommand.Execute(null);
 
-            Assert.IsFalse(vm.ApplyCalled, "OK без операции — нет-оп");
+            Assert.IsFalse(vm.IsAccepted, "OK без операции — нет-оп");
         }
     }
 }

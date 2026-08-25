@@ -20,7 +20,7 @@
             </Grid.RowDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc PocketStrategy}" VerticalAlignment="Center" Margin="0,0,4,0"/>
             <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
-                      SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
+                      SelectedValue="{Binding Operation.PocketStrategy, Mode=TwoWay}"
                       SelectedValuePath="Tag"
                       Margin="0,0,0,8">
                 <ComboBoxItem Content="{loc:Loc PocketStrategySpiral}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
@@ -30,7 +30,7 @@
                 <ComboBoxItem Content="{loc:Loc PocketStrategyLines}" Tag="{x:Static models:PocketStrategy.Lines}"/>
             </ComboBox>
             <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc StepPercentOfTool}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Operation.StepPercentOfTool, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
 
             <!-- Угол строк задаётся только для строчных стратегий. -->
             <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,6,0,0">
@@ -45,7 +45,7 @@
                     </Style>
                 </StackPanel.Style>
                 <TextBlock Text="{loc:Loc LineAngleDegToX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Width="120" Text="{Binding LineAngleDeg, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                <TextBox Width="120" Text="{Binding Operation.LineAngleDeg, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </StackPanel>
         </Grid>
     </GroupBox>

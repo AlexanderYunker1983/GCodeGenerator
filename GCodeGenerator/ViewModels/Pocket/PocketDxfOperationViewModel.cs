@@ -59,9 +59,9 @@ namespace GCodeGenerator.ViewModels.Pocket
 
         public ICommand ImportDxfCommand { get; }
 
-        protected override void LoadFromOperation(PocketDxfOperation operation)
+        protected override void OnOperationChanged(PocketDxfOperation operation)
         {
-            LoadCommonPocketParameters(operation);
+            base.OnOperationChanged(operation);
 
             FilePath = operation.DxfFilePath;
             if (operation.ClosedContours != null && operation.ClosedContours.Count > 0)
@@ -73,11 +73,6 @@ namespace GCodeGenerator.ViewModels.Pocket
             {
                 ImportInfo = null;
             }
-        }
-
-        protected override void ApplyToOperation()
-        {
-            ApplyCommonPocketParameters(Operation);
         }
 
         private async Task ImportDxfFileAsync()
@@ -117,8 +112,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3).
-        protected override bool IsValid() => ToolDiameter > 0 && StepPercentOfTool > 0
-            && Operation.ClosedContours != null && Operation.ClosedContours.Count > 0;
+        protected override bool IsValid()
+            => Operation.ToolDiameter > 0 && Operation.StepPercentOfTool > 0
+               && Operation.ClosedContours != null && Operation.ClosedContours.Count > 0;
     }
 }

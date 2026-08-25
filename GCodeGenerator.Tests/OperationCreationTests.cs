@@ -49,7 +49,7 @@ namespace GCodeGenerator.Tests
                 DialogAction = vm =>
                 {
                     var editor = (PocketCircleOperationViewModel)vm;
-                    editor.Radius = 33;
+                    editor.Operation.Radius = 33;
                     editor.OkCommand.Execute(null);
                 },
             };
@@ -78,7 +78,7 @@ namespace GCodeGenerator.Tests
                 DialogAction = vm =>
                 {
                     var editor = (PocketCircleOperationViewModel)vm;
-                    editor.Radius = 0;
+                    editor.Operation.Radius = 0;
                     editor.OkCommand.Execute(null);
                     Assert.IsTrue(editor.HasValidationError, "Окно сообщает о неверных параметрах");
                 },

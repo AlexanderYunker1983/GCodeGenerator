@@ -40,17 +40,17 @@
                             <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc CenterX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Operation.CenterX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc CenterY}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding Operation.CenterY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="6" Text="{loc:Loc RadiusX}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding RadiusX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
+                        <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding Operation.RadiusX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                         <TextBlock Grid.Row="0" Grid.Column="9" Text="{loc:Loc RadiusY}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Row="0" Grid.Column="10" Text="{Binding RadiusY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
+                        <TextBox Grid.Row="0" Grid.Column="10" Text="{Binding Operation.RadiusY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc EllipseRotationAngle}" VerticalAlignment="Center" Margin="0,8,4,0"/>
-                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,8,4,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Operation.RotationAngle, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,8,4,0"/>
                         <TextBlock Grid.Row="1" Grid.Column="3" Text="{loc:Loc MaxSegmentLength}" VerticalAlignment="Center" Margin="8,8,4,0"/>
-                        <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding MaxSegmentLength, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,8,0,0"/>
+                        <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding Operation.MaxSegmentLength, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,8,0,0"/>
                     </Grid>
                 </GroupBox>
 
