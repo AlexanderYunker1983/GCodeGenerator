@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
@@ -27,16 +26,11 @@ namespace GCodeGenerator.Tests
         /// <summary>Заглушка диалоговой VM: фиксирует операцию и коллекцию, переданные в диалог.</summary>
         private sealed class StubEditorViewModel : IOperationEditorViewModel
         {
-            public ObservableCollection<OperationBase> Operations { private get; set; }
-
             public OperationBase EditedOperation { get; private set; }
 
             public bool IsAccepted => false;
 
             public void SetOperation(OperationBase operation) => EditedOperation = operation;
-
-            /// <summary>Коллекция, переданная диалогу (для проверок теста).</summary>
-            public ObservableCollection<OperationBase> ReceivedOperations => Operations;
         }
 
         /// <summary>Фиксирует вызовы IDialogService без показа окон.</summary>
@@ -232,8 +226,8 @@ namespace GCodeGenerator.Tests
             Assert.AreNotSame(op, shown.EditedOperation,
                 "Диалог должен получать изолированную рабочую копию");
             Assert.AreEqual(op.DrillMode, ((DrillPointsOperation)shown.EditedOperation).DrillMode);
-            Assert.AreSame(main.AllOperations, shown.ReceivedOperations,
-                "Диалог получает единую коллекцию операций (пункт 7.2)");
+            Assert.AreEqual(1, main.AllOperations.Count,
+                "Открытие диалога не меняет состав документа");
         }
 
         [TestMethod]

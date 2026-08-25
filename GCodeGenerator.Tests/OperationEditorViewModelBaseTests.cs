@@ -39,7 +39,7 @@ namespace GCodeGenerator.Tests
             var ops = new ObservableCollection<OperationBase>();
             var op = new PocketCircleOperation { Radius = 10 };
             ops.Add(op);
-            var vm = new FakeEditorVm { Operations = ops };
+            var vm = new FakeEditorVm();
             var closeCount = new[] { 0 };
             vm.CloseRequested += () => closeCount[0]++;
             vm.Operation = op;
@@ -141,7 +141,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Ok_NullOperation_DoesNothing()
         {
-            var vm = new FakeEditorVm { Operations = new ObservableCollection<OperationBase>() };
+            var vm = new FakeEditorVm();
 
             vm.OkCommand.Execute(null);
 

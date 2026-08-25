@@ -50,9 +50,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddPocketCircle()
@@ -62,9 +61,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddPocketEllipse()
@@ -74,9 +72,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddPocketDxf()
@@ -86,9 +83,8 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
     }
 }

@@ -24,10 +24,19 @@ namespace GCodeGenerator.Services
         Type GetViewModelType(OperationBase operation);
 
         /// <summary>
-        /// Показывает диалог редактора операции (модально): создаёт диалоговую
-        /// VM, задаёт единую коллекцию операций и операцию, показывает окно.
+        /// Показывает диалог редактора существующей операции (модально).
+        /// Изменения применяются к операции только по OK.
         /// </summary>
         void ShowEditor(OperationBase operation, ObservableCollection<OperationBase> allOperations);
+
+        /// <summary>
+        /// Показывает диалог для новой операции и добавляет её в список
+        /// только в случае подтверждения.
+        /// </summary>
+        /// <param name="operation">Новая операция со значениями по умолчанию.</param>
+        /// <param name="allOperations">Единая коллекция операций документа.</param>
+        /// <returns><c>true</c>, если операция подтверждена и добавлена.</returns>
+        bool CreateOperation(OperationBase operation, ObservableCollection<OperationBase> allOperations);
     }
 
     /// <summary>
@@ -65,23 +74,46 @@ namespace GCodeGenerator.Services
         public void ShowEditor(OperationBase operation, ObservableCollection<OperationBase> allOperations)
         {
             if (operation == null) return;
-            var vmType = GetViewModelType(operation);
-            if (vmType == null) return;
+
+            // Диалог правит копию: отмена и закрытие крестиком не меняют
+            // операцию, а неверные параметры её не удаляют — окно не
+            // закроется, пока их не исправят.
             var workingCopy = OperationEditTransaction.CreateWorkingCopy(operation);
+            if (RunEditor(workingCopy))
+                OperationEditTransaction.Commit(workingCopy, operation);
+        }
+
+        public bool CreateOperation(OperationBase operation, ObservableCollection<OperationBase> allOperations)
+        {
+            if (operation == null) return false;
+
+            // Новая операция ещё никому не принадлежит, поэтому диалог правит
+            // её саму: в документ она попадает только после подтверждения,
+            // а отмена не оставляет после себя ничего.
+            if (!RunEditor(operation))
+                return false;
+
+            allOperations?.Add(operation);
+            return true;
+        }
+
+        /// <summary>
+        /// Показывает диалог операции модально и сообщает, подтвердил ли
+        /// пользователь параметры.
+        /// </summary>
+        private bool RunEditor(OperationBase operation)
+        {
+            var vmType = GetViewModelType(operation);
+            if (vmType == null) return false;
+
             var vm = _dialogService.CreateViewModel(vmType);
             if (!(vm is IOperationEditorViewModel editor))
                 throw new InvalidOperationException(
                     $"View-модель {vmType.Name} не реализует {nameof(IOperationEditorViewModel)}.");
 
-            editor.Operations = allOperations;
-            editor.SetOperation(workingCopy);
+            editor.SetOperation(operation);
             _dialogService.ShowDialog(vmType, vm);
-
-            // Отмена и закрытие крестиком не меняют операцию: рабочая копия
-            // просто выбрасывается. Неверные параметры операцию тоже не
-            // удаляют — диалог не закроется, пока их не исправят.
-            if (editor.IsAccepted)
-                OperationEditTransaction.Commit(workingCopy, operation);
+            return editor.IsAccepted;
         }
 
         /// <summary>

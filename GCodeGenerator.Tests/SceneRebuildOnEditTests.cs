@@ -52,7 +52,6 @@ namespace GCodeGenerator.Tests
             // Диалог: LoadFromOperation создаёт отверстие по умолчанию (0,0); OK сохраняет его.
             var dlg = new DrillPointsOperationViewModel(null);
             dlg.Operation = op;
-            dlg.Operations = main.AllOperations;
             ((RelayCommand)dlg.OkCommand).Execute(null);
 
             var sceneAfter = main.OperationsPreview.Scene;
@@ -73,7 +72,6 @@ namespace GCodeGenerator.Tests
             // Диалог: меняем радиус (по умолчанию 10) и сохраняем.
             var dlg = new ProfileCircleOperationViewModel(null);
             dlg.Operation = op;
-            dlg.Operations = main.AllOperations;
             dlg.Radius = 25;
             ((RelayCommand)dlg.OkCommand).Execute(null);
 

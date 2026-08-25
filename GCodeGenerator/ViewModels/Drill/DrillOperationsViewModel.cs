@@ -60,9 +60,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillLine()
@@ -72,9 +71,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillArray()
@@ -84,9 +82,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillRect()
@@ -96,9 +93,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillCircle()
@@ -108,9 +104,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillArc()
@@ -120,9 +115,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillPolygon()
@@ -132,9 +126,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillEllipse()
@@ -144,9 +137,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddDrillPackage()
@@ -156,9 +148,8 @@ namespace GCodeGenerator.ViewModels.Drill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
 using System.Windows.Input;
@@ -50,7 +49,6 @@ namespace GCodeGenerator.Tests
                     pair.Operation.SetValue(operation, stored);
 
                     var editor = (IOperationEditorViewModel)CreateEditor(editorType);
-                    editor.Operations = new ObservableCollection<OperationBase> { operation };
                     editor.SetOperation(operation);
 
                     var shown = pair.Editor.GetValue(editor);

@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
@@ -23,9 +22,6 @@ namespace GCodeGenerator.ViewModels
     /// </summary>
     public interface IOperationEditorViewModel : IOperationEditorSession
     {
-        /// <summary>Единая коллекция операций (MainViewModel.AllOperations).</summary>
-        ObservableCollection<OperationBase> Operations { set; }
-
         /// <summary>Операция, которую редактирует диалог (рабочая копия).</summary>
         OperationBase EditedOperation { get; }
 
@@ -64,12 +60,6 @@ namespace GCodeGenerator.ViewModels
     {
         private TOperation _operation;
         private bool _hasValidationError;
-
-        /// <summary>
-        /// Единая коллекция операций (MainViewModel.AllOperations) — для удаления
-        /// невалидной операции по OK.
-        /// </summary>
-        public ObservableCollection<OperationBase> Operations { get; set; }
 
         /// <inheritdoc />
         void IOperationEditorViewModel.SetOperation(OperationBase operation)

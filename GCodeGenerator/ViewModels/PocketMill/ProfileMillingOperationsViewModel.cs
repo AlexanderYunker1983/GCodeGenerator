@@ -54,9 +54,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddProfileRoundedRectangle()
@@ -66,9 +65,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddProfileCircle()
@@ -78,9 +76,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddProfileEllipse()
@@ -90,9 +87,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddProfilePolygon()
@@ -102,9 +98,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
 
         private void AddProfileDxf()
@@ -114,9 +109,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
             if (!string.IsNullOrEmpty(name))
                 op.Name = name;
 
-            _allOperations.Add(op);
-            OperationAdded?.Invoke(op);
-            _operationEditorFactory.ShowEditor(op, _allOperations);
+            if (_operationEditorFactory.CreateOperation(op, _allOperations))
+                OperationAdded?.Invoke(op);
         }
     }
 }
