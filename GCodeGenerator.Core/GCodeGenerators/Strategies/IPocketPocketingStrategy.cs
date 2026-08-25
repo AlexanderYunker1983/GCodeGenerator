@@ -1,8 +1,3 @@
-using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
-using GCodeGenerator.Models;
-
 using GCodeGenerator.Toolpath;
 
 namespace GCodeGenerator.GCodeGenerators.Strategies
@@ -16,33 +11,16 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// Реализации (фаза 5, D1): <see cref="SpiralPocketingStrategy"/>,
     /// <see cref="ConcentricPocketingStrategy"/>, <see cref="RadialPocketingStrategy"/>,
     /// <see cref="ZigZagPocketingStrategy"/>, <see cref="LinesPocketingStrategy"/>.
+    /// Стратегии не хранят состояния между вызовами и существуют в одном
+    /// экземпляре — их выдаёт <see cref="PocketStrategies"/>.
     /// </summary>
     public interface IPocketPocketingStrategy
     {
         /// <summary>
         /// Фрезерует один слой контура кармана.
         /// </summary>
-        /// <param name="op">Операция кармана (подача, направление, Decimals).</param>
-        /// <param name="geometry">Геометрия контура (IsPointInside для контроля выхода).</param>
-        /// <param name="toolRadius">Радиус инструмента.</param>
-        /// <param name="taperOffset">Смещение из-за уклона стенок.</param>
-        /// <param name="step">Шаг обработки (радиальный шаг спирали).</param>
-        /// <param name="workingZ">Рабочая Z слоя (nextZ). Пункт 5.1: нужен стратегиям
-        /// с отводами (Lines) — инструмент входит в слой на этой высоте.</param>
-        /// <param name="contourPoints">Точки смещённого контура слоя (траектория центра инструмента).</param>
-        /// <param name="center">Центр контура (стартовая позиция инструмента, на рабочей Z).</param>
+        /// <param name="layer">Слой: операция, геометрия, контур, шаг и высота.</param>
         /// <param name="builder">Построитель траектории.</param>
-        /// <param name="settings">Настройки генерации G-кода.</param>
-        void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings);
+        void MillContour(PocketLayerContext layer, ToolPathBuilder builder);
     }
 }

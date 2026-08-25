@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
-using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
 
@@ -28,36 +24,27 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class LinesPocketingStrategy : IPocketPocketingStrategy
     {
-        public void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings)
+        public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
+            var op = layer.Operation;
             int decimals = op.Decimals;
 
-            if (contourPoints == null || contourPoints.Count < 3 || step <= 0)
+            if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
-            var scanLines = PocketScanLines.Build(contourPoints, center, op.LineAngleDeg, step);
+            var scanLines = PocketScanLines.Build(layer.ContourPoints, layer.Center, op.LineAngleDeg, layer.Step);
 
             foreach (var line in scanLines)
             {
                 foreach (var seg in line.Segments)
                 {
-                    var entry = PocketScanLines.ToWorld((seg.x1, line.Y), center, op.LineAngleDeg);
-                    var exit = PocketScanLines.ToWorld((seg.x2, line.Y), center, op.LineAngleDeg);
+                    var entry = PocketScanLines.ToWorld((seg.x1, line.Y), layer.Center, op.LineAngleDeg);
+                    var exit = PocketScanLines.ToWorld((seg.x2, line.Y), layer.Center, op.LineAngleDeg);
 
                     // Независимый рез: подъём → подход → вход в слой → рез
                     builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
                     builder.RapidTo(x: entry.x, y: entry.y, feed: op.FeedXYRapid, decimals: decimals);
-                    builder.RapidTo(z: workingZ, feed: op.FeedZRapid, decimals: decimals);
+                    builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid, decimals: decimals);
                     builder.LinearTo(x: exit.x, y: exit.y, feed: op.FeedXYWork, decimals: decimals);
                 }
             }

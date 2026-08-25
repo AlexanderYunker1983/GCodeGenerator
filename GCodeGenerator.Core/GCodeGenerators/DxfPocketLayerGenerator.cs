@@ -103,7 +103,12 @@ namespace GCodeGenerator.GCodeGenerators
                         builder.RapidTo(z: nextZ, feed: op.FeedZRapid, decimals: decimals);
                     }
 
-                    strategy.MillContour(op, areaGeometry, 0, 0, step, nextZ, contourPoints, center, builder, settings);
+                    // Область уже смещена на радиус инструмента и уклон стенки,
+                    // поэтому для неё оба смещения нулевые.
+                    strategy.MillContour(
+                        new PocketLayerContext(
+                            op, areaGeometry, 0, 0, step, nextZ, contourPoints, center, settings),
+                        builder);
 
                     // Возврат в центр области и подъем
                     builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);

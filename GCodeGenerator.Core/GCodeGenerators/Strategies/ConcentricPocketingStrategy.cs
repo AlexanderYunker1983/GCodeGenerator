@@ -1,9 +1,7 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -27,30 +25,21 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class ConcentricPocketingStrategy : IPocketPocketingStrategy
     {
-        public void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings)
+        public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
+            var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
             int decimals = op.Decimals;
 
-            if (contourPoints == null || contourPoints.Count == 0 || step <= 0)
+            if (layer.ContourPoints == null || layer.ContourPoints.Count == 0 || layer.Step <= 0)
                 return;
 
             // Максимальное расстояние от центра до контура — страховочный предел смещения
             double maxDistance = 0.0;
-            foreach (var point in contourPoints)
+            foreach (var point in layer.ContourPoints)
             {
-                double dx = point.x - center.x;
-                double dy = point.y - center.y;
+                double dx = point.x - layer.Center.x;
+                double dy = point.y - layer.Center.y;
                 double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance > maxDistance)
                     maxDistance = distance;
@@ -65,13 +54,13 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             int safetyLimit = 10000;
             while (safetyLimit-- > 0)
             {
-                double effectiveToolRadius = toolRadius + offset;
+                double effectiveToolRadius = layer.ToolRadius + offset;
 
                 // Контур прохода слишком маленький — прекращаем
-                if (geometry.IsContourTooSmall(effectiveToolRadius, taperOffset))
+                if (layer.Geometry.IsContourTooSmall(effectiveToolRadius, layer.TaperOffset))
                     break;
 
-                var contour = geometry.GetContour(effectiveToolRadius, taperOffset);
+                var contour = layer.Geometry.GetContour(effectiveToolRadius, layer.TaperOffset);
                 if (contour == null)
                     break;
 
@@ -96,7 +85,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     builder.LinearTo(x: first.x, y: first.y, feed: op.FeedXYWork, decimals: decimals);
                 }
 
-                offset += step;
+                offset += layer.Step;
                 if (offset >= maxDistance)
                     break;
             }

@@ -1,7 +1,3 @@
-using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
-using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
 
@@ -27,25 +23,16 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class ZigZagPocketingStrategy : IPocketPocketingStrategy
     {
-        public void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings)
+        public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
+            var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
             int decimals = op.Decimals;
 
-            if (contourPoints == null || contourPoints.Count < 3 || step <= 0)
+            if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
-            var scanLines = PocketScanLines.Build(contourPoints, center, op.LineAngleDeg, step);
+            var scanLines = PocketScanLines.Build(layer.ContourPoints, layer.Center, op.LineAngleDeg, layer.Step);
             if (scanLines.Count == 0)
                 return;
 
@@ -65,7 +52,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     double xFrom = leftToRight ? seg.x1 : seg.x2;
                     double xTo = leftToRight ? seg.x2 : seg.x1;
 
-                    var to = PocketScanLines.ToWorld((xTo, line.Y), center, op.LineAngleDeg);
+                    var to = PocketScanLines.ToWorld((xTo, line.Y), layer.Center, op.LineAngleDeg);
 
                     // Первый вызов — связка из центра (инструмент уже на рабочей Z);
                     // остальные — рез сегмента или связка к следующему сегменту.

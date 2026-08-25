@@ -17,30 +17,21 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class SpiralPocketingStrategy : IPocketPocketingStrategy
     {
-        public void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings)
+        public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
+            var op = layer.Operation;
             // Спираль работает на рабочей Z без отводов — workingZ не используется.
             int decimals = op.Decimals;
 
-            if (contourPoints == null || contourPoints.Count == 0)
+            if (layer.ContourPoints == null || layer.ContourPoints.Count == 0)
                 return;
 
             // Находим максимальное расстояние от центра до контура
             double maxDistance = 0.0;
-            foreach (var point in contourPoints)
+            foreach (var point in layer.ContourPoints)
             {
-                double dx = point.x - center.x;
-                double dy = point.y - center.y;
+                double dx = point.x - layer.Center.x;
+                double dy = point.y - layer.Center.y;
                 double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance > maxDistance)
                     maxDistance = distance;
@@ -53,7 +44,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             // a = 0 (начинаем с центра)
             // b = step / (2*π) (шаг спирали)
             double a = 0.0;
-            double b = step / (2.0 * Math.PI);
+            double b = layer.Step / (2.0 * Math.PI);
 
             // Направление спирали
             double dirSign = op.Direction == MillingDirection.Clockwise ? -1.0 : 1.0;
@@ -67,7 +58,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             const double tolerance = GeometryTolerances.Vertex;
 
             // Начинаем с центра
-            (double x, double y) currentPos = center;
+            (double x, double y) currentPos = layer.Center;
             builder.LinearTo(x: currentPos.x, y: currentPos.y, feed: op.FeedXYWork, decimals: decimals);
 
             bool wasInside = true;
@@ -82,12 +73,12 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             {
                 double r = a + b * θ;
                 double ang = θ * dirSign;
-                double nextX = center.x + r * Math.Cos(ang);
-                double nextY = center.y + r * Math.Sin(ang);
+                double nextX = layer.Center.x + r * Math.Cos(ang);
+                double nextY = layer.Center.y + r * Math.Sin(ang);
                 (double x, double y) nextPos = (nextX, nextY);
 
                 // Проверяем, находится ли следующая точка внутри контура
-                bool isInside = geometry.IsPointInside(nextX, nextY, toolRadius, taperOffset);
+                bool isInside = layer.Geometry.IsPointInside(nextX, nextY, layer.ToolRadius, layer.TaperOffset);
 
                 if (isInside && wasInside)
                 {
@@ -102,7 +93,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     // Пересекли контур - вышли наружу
                     // Находим точку пересечения и точный угол в этой точке
                     var exitResult = FindExitPointWithTheta(
-                        currentPos, nextPos, prevTheta, θ, contourPoints, center, a, b, dirSign, tolerance);
+                        currentPos, nextPos, prevTheta, θ, layer.ContourPoints, layer.Center, a, b, dirSign, tolerance);
 
                     if (exitResult.HasValue)
                     {
@@ -114,8 +105,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
 
                         // Ищем точку повторного входа с сохранением угла
                         var reentryResult = FindReentryPointWithTheta(
-                            exitPoint.Value, exitTheta, θMax, stepAngle, dirSign, center, a, b,
-                            geometry, toolRadius, taperOffset, contourPoints, tolerance);
+                            exitPoint.Value, exitTheta, θMax, stepAngle, dirSign, layer.Center, a, b,
+                            layer.Geometry, layer.ToolRadius, layer.TaperOffset, layer.ContourPoints, tolerance);
 
                         if (reentryResult.HasValue)
                         {
@@ -124,7 +115,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
 
                             // Найдена точка входа - обходим контур от точки выхода к точке входа
                             FollowContourToReentry(
-                                op, exitPoint.Value, reentryPoint, contourPoints,
+                                op, exitPoint.Value, reentryPoint, layer.ContourPoints,
                                 builder, decimals);
                             currentPos = reentryPoint;
                             wasInside = true;
@@ -142,9 +133,9 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                             // Точки входа нет - точка выхода последняя
                             // Обходим контур полностью и возвращаемся в центр
                             FollowContourFull(
-                                op, exitPoint.Value, contourPoints, builder, decimals);
+                                op, exitPoint.Value, layer.ContourPoints, builder, decimals);
                             // Возвращаемся в центр без подъема инструмента
-                            builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
+                            builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork, decimals: decimals);
                             finished = true;
                         }
                     }
@@ -177,11 +168,11 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (!finished && wasInside && exitPoint == null)
             {
                 // Находим ближайшую точку контура к текущей позиции
-                int closestIndex = FindClosestContourPoint(currentPos, contourPoints);
+                int closestIndex = FindClosestContourPoint(currentPos, layer.ContourPoints);
                 FollowContourFromPoint(
-                    op, closestIndex, contourPoints, builder, decimals);
+                    op, closestIndex, layer.ContourPoints, builder, decimals);
                 // Возвращаемся в центр без подъема инструмента
-                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
+                builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork, decimals: decimals);
             }
         }
 

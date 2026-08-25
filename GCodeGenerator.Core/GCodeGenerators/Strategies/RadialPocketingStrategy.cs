@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Geometry;
-using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
-using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
 
@@ -24,30 +21,21 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class RadialPocketingStrategy : IPocketPocketingStrategy
     {
-        public void MillContour(
-            IPocketOperation op,
-            IPocketGeometry geometry,
-            double toolRadius,
-            double taperOffset,
-            double step,
-            double workingZ,
-            List<(double x, double y)> contourPoints,
-            (double x, double y) center,
-            ToolPathBuilder builder,
-            GCodeSettings settings)
+        public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
+            var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
             int decimals = op.Decimals;
 
-            if (contourPoints == null || contourPoints.Count == 0 || step <= 0)
+            if (layer.ContourPoints == null || layer.ContourPoints.Count == 0 || layer.Step <= 0)
                 return;
 
             // Максимальное расстояние от центра до контура
             double maxDistance = 0.0;
-            foreach (var point in contourPoints)
+            foreach (var point in layer.ContourPoints)
             {
-                double dx = point.x - center.x;
-                double dy = point.y - center.y;
+                double dx = point.x - layer.Center.x;
+                double dy = point.y - layer.Center.y;
                 double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance > maxDistance)
                     maxDistance = distance;
@@ -56,17 +44,17 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 return;
 
             // Число лучей: зазор на границе ≤ step
-            double stepAngle = step / maxDistance;
+            double stepAngle = layer.Step / maxDistance;
             int spokes = Math.Max(2, (int)Math.Ceiling(2.0 * Math.PI / stepAngle));
 
             for (int i = 0; i < spokes; i++)
             {
                 double theta = 2.0 * Math.PI * i / spokes;
-                var boundary = FarthestRayIntersection(center, theta, contourPoints);
+                var boundary = FarthestRayIntersection(layer.Center, theta, layer.ContourPoints);
 
                 // Проход: центр → граница → центр
                 builder.LinearTo(x: boundary.x, y: boundary.y, feed: op.FeedXYWork, decimals: decimals);
-                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
+                builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork, decimals: decimals);
             }
         }
 

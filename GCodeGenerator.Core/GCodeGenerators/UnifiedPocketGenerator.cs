@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
@@ -33,33 +32,6 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
-        /// Выбор стратегии обработки по <c>op.PocketStrategy</c> (пункт 5.1 плана).
-        /// Все значения перечисления зарегистрированы (фаза 5). Значение вне
-        /// перечисления — отказ: файл проекта, принесший неизвестную стратегию,
-        /// не должен молча обрабатываться спиралью, потому что траектория
-        /// получится не той, что записана в проекте.
-        /// </summary>
-        private static IPocketPocketingStrategy GetStrategy(PocketStrategy strategy)
-        {
-            switch (strategy)
-            {
-                case PocketStrategy.Concentric:
-                    return new ConcentricPocketingStrategy();
-                case PocketStrategy.Radial:
-                    return new RadialPocketingStrategy();
-                case PocketStrategy.ZigZag:
-                    return new ZigZagPocketingStrategy();
-                case PocketStrategy.Lines:
-                    return new LinesPocketingStrategy();
-                case PocketStrategy.Spiral:
-                    return new SpiralPocketingStrategy();
-                default:
-                    throw new NotSupportedException(
-                        $"Стратегия обработки кармана {(int)strategy} не поддерживается.");
-            }
-        }
-
-        /// <summary>
         /// Создаёт геометрию для операции кармана. Все реализации
         /// <see cref="IPocketOperation"/> наследуются от <see cref="OperationBase"/>.
         /// </summary>
@@ -79,12 +51,17 @@ namespace GCodeGenerator.GCodeGenerators
             if (plan.SkipComment != null)
                 builder.Comment(plan.SkipComment);
 
+            // Проходы плана отличаются только способом обхода слоя: чистовая
+            // обработка стенки идёт по замкнутому контуру, остальные — тем
+            // способом, который выбран в операции. Цикл по слоям для них общий:
+            // прежде он существовал дважды, отдельно для стенки и для дна.
             foreach (var pass in plan.Passes)
             {
-                if (pass.Kind == PocketPassKind.WallFinishing)
-                    MillWallsFinishing(pass.Operation, builder, settings, plan.TaperOriginZ);
-                else
-                    MillPocket(pass.Operation, CreateGeometry(pass.Operation), builder, settings, plan.TaperOriginZ);
+                var strategy = pass.Kind == PocketPassKind.WallFinishing
+                    ? WallFinishingStrategy.Instance
+                    : PocketStrategies.For(pass.Operation.PocketStrategy);
+
+                MillPocket(pass.Operation, strategy, builder, settings, plan.TaperOriginZ);
             }
         }
 
@@ -92,18 +69,19 @@ namespace GCodeGenerator.GCodeGenerators
         /// Генерирует основную фрезеровку кармана (цикл по слоям + стратегия).
         /// </summary>
         /// <param name="op">Операция кармана.</param>
-        /// <param name="geometry">Геометрия контура операции.</param>
+        /// <param name="strategy">Способ обхода слоя.</param>
         /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
         private void MillPocket(
             IPocketOperation op,
-            IPocketGeometry geometry,
+            IPocketPocketingStrategy strategy,
             ToolPathBuilder builder,
             GCodeSettings settings,
             double? taperOriginZ = null)
         {
+            var geometry = CreateGeometry(op);
             double toolRadius = op.ToolDiameter / 2.0;
             // Шаг проверен предполётным разбором: подставлять «разумное»
             // значение вместо заданного — значит выдать не ту траекторию.
@@ -119,6 +97,7 @@ namespace GCodeGenerator.GCodeGenerators
                     step,
                     currentZ,
                     nextZ,
+                    strategy,
                     builder,
                     settings,
                     taperOriginZ),
@@ -137,8 +116,8 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="nextZ">Рабочая Z слоя.</param>
         /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
+        /// <param name="strategy">Способ обхода слоя.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
-        /// <param name="strategy">Стратегия обработки (null — по <c>op.PocketStrategy</c>).</param>
         /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
         private bool GenerateLayer(
             IPocketOperation op,
@@ -147,17 +126,15 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double currentZ,
             double nextZ,
+            IPocketPocketingStrategy strategy,
             ToolPathBuilder builder,
             GCodeSettings settings,
-            double? taperOriginZ = null,
-            IPocketPocketingStrategy strategy = null)
+            double? taperOriginZ = null)
         {
             int decimals = op.Decimals;
 
             double depthFromTop = (taperOriginZ ?? op.ContourHeight) - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
-
-            var activeStrategy = strategy ?? GetStrategy(op.PocketStrategy);
 
             // Для DXF-операций слой состоит из областей, на которые распадается
             // эквидистанта каждого замкнутого контура (см. DxfPocketLayerGenerator).
@@ -165,7 +142,7 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 return _dxfLayerGenerator.GenerateLayer(
                     dxfOp, toolRadius, taperOffset, step,
-                    currentZ, nextZ, activeStrategy, builder, settings);
+                    currentZ, nextZ, strategy, builder, settings);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -191,8 +168,11 @@ namespace GCodeGenerator.GCodeGenerators
             builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
             builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
 
-            // Генерируем обработку контура стратегией (выбор по op.PocketStrategy, пункт 5.1)
-            activeStrategy.MillContour(op, geometry, toolRadius, taperOffset, step, nextZ, contourPoints, center, builder, settings);
+            // Обработка слоя выбранным способом обхода.
+            strategy.MillContour(
+                new PocketLayerContext(
+                    op, geometry, toolRadius, taperOffset, step, nextZ, contourPoints, center, settings),
+                builder);
 
             // Возврат в центр и подъем
             builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
@@ -202,63 +182,21 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
-        /// Чистовая обработка стенок (пункт 5.6 плана): цикл по слоям слоя припуска,
-        /// каждый слой — замкнутый контур <c>GetContour(toolRadius, taperOffset)</c>
-        /// (режущая кромка фрезы точно на стенке). Уклон измеряется от верха
-        /// исходного кармана (<paramref name="taperOriginZ"/>). Для DXF — по
-        /// каждому контуру (с подъёмом на SafeZ между контурами).
-        /// </summary>
-        private void MillWallsFinishing(
-            IPocketOperation wallOp,
-            ToolPathBuilder builder,
-            GCodeSettings settings,
-            double taperOriginZ)
-        {
-            double toolRadius = wallOp.ToolDiameter / 2.0;
-            double step = GCodeGenerationHelper.CalculateStep(wallOp.ToolDiameter, wallOp.StepPercentOfTool);
-
-            var geometry = CreateGeometry(wallOp);
-
-            _helper.GenerateLayerLoop(
-                wallOp,
-                (currentZ, nextZ, passNumber) => GenerateLayer(
-                    wallOp,
-                    geometry,
-                    toolRadius,
-                    step,
-                    currentZ,
-                    nextZ,
-                    builder,
-                    settings,
-                    taperOriginZ: taperOriginZ,
-                    strategy: WallFinishingStrategy.Instance),
-                builder,
-                settings);
-        }
-
-        /// <summary>
         /// Стратегия чистовой обработки стенок (пункт 5.6 плана): замкнутый контур
-        /// (режущая кромка фрезы на стенке). Используется <see cref="MillWallsFinishing"/>
-        /// независимо от выбранной стратегии черновой обработки.
+        /// с режущей кромкой фрезы точно на стенке. Выбирается для прохода
+        /// <see cref="PocketPassKind.WallFinishing"/> независимо от того, каким
+        /// способом выбиралось дно.
         /// </summary>
         private sealed class WallFinishingStrategy : IPocketPocketingStrategy
         {
             public static readonly WallFinishingStrategy Instance = new WallFinishingStrategy();
 
-            public void MillContour(
-                IPocketOperation op,
-                IPocketGeometry geometry,
-                double toolRadius,
-                double taperOffset,
-                double step,
-                double workingZ,
-                List<(double x, double y)> contourPoints,
-                (double x, double y) center,
-                ToolPathBuilder builder,
-                GCodeSettings settings)
+            public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
             {
-                // Стратегия работает на рабочей Z без отводов — workingZ не используется.
+                // Стратегия работает на рабочей Z без отводов — WorkingZ не используется.
+                var op = layer.Operation;
                 int decimals = op.Decimals;
+                var contourPoints = layer.ContourPoints;
 
                 if (contourPoints == null || contourPoints.Count < 3)
                     return;
