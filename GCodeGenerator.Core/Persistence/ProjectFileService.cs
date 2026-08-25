@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Persistence
@@ -21,7 +20,7 @@ namespace GCodeGenerator.Persistence
     /// UI-настройки остаются глобальными. В v4 удалён легаси-словарь Metadata;
     /// форматы v2/v3 читаются через отдельную границу миграции.
     ///
-    /// Легаси-формат v1 (JavaScriptSerializer) — только чтение, мигрируется при сохранении:
+    /// Формат первой версии (JavaScriptSerializer) больше не читается:
     /// <code>{"Operations":[{"Type":"&lt;AssemblyQualifiedName&gt;","Data":"&lt;JSON операции&gt;"}]}</code>
     ///
     /// Старые .ygc (v1-v3) остаются читаемыми; сохранение — всегда v4.
@@ -39,10 +38,6 @@ namespace GCodeGenerator.Persistence
         /// </summary>
         private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions();
 
-        private static readonly JsonSerializerOptions LegacyMetadataOptions = new JsonSerializerOptions
-        {
-            Converters = { new LegacyMetadataDictionaryConverter() }
-        };
 
         /// <summary>
         /// Сериализует проект в JSON .ygc v4 (in-memory), включая все настройки,
@@ -137,7 +132,7 @@ namespace GCodeGenerator.Persistence
         }
 
         /// <summary>
-        /// Десериализует JSON проекта .ygc (v4, v3, v2 или легаси v1).
+        /// Десериализует JSON проекта .ygc (v4, v3 или v2).
         /// Отсутствующие секции настроек возвращаются как null.
         /// Бросает исключение при некорректном JSON.
         /// </summary>
@@ -148,31 +143,27 @@ namespace GCodeGenerator.Persistence
             if (root.ValueKind != JsonValueKind.Object)
                 throw new JsonException("Файл проекта должен содержать JSON-объект.");
 
-            // Версионный формат определяется наличием поля "version"; иначе — legacy v1.
-            if (root.TryGetProperty("version", out var versionElement))
+            if (!root.TryGetProperty("version", out var versionElement))
             {
-                var version = ValidateVersionedEnvelope(root, versionElement);
-                var operations = root.TryGetProperty("operations", out var operationsElement)
-                    ? ReadOperationsArray(operationsElement, version)
-                    : null;
-                return new ProjectFileData
-                {
-                    Operations = operations,
-                    Format = version >= 3 ? ReadSection<GCodeFormatSettings>(root, "format") : null,
-                    Spindle = ReadSection<SpindleSettings>(root, "spindle"),
-                    Coolant = ReadSection<CoolantSettings>(root, "coolant"),
-                    WorkCoordinate = version >= 3
-                        ? ReadSection<WorkCoordinateSettings>(root, "workCoordinate")
-                        : null
-                };
+                throw new NotSupportedException(
+                    "Файл проекта не содержит версии формата. Так выглядят файлы первой версии, "
+                    + "которые больше не читаются: откройте такой файл прежней сборкой программы "
+                    + "и пересохраните.");
             }
 
-            // Legacy v1: секций настроек нет по определению.
-            if (!root.TryGetProperty("Operations", out var legacyOperationsElement))
-                return new ProjectFileData();
+            var version = ValidateVersionedEnvelope(root, versionElement);
+            var operations = root.TryGetProperty("operations", out var operationsElement)
+                ? ReadOperationsArray(operationsElement, version)
+                : null;
             return new ProjectFileData
             {
-                Operations = ReadOperationsArray(legacyOperationsElement, version: 1)
+                Operations = operations,
+                Format = version >= 3 ? ReadSection<GCodeFormatSettings>(root, "format") : null,
+                Spindle = ReadSection<SpindleSettings>(root, "spindle"),
+                Coolant = ReadSection<CoolantSettings>(root, "coolant"),
+                WorkCoordinate = version >= 3
+                    ? ReadSection<WorkCoordinateSettings>(root, "workCoordinate")
+                    : null
             };
         }
 
@@ -238,38 +229,18 @@ namespace GCodeGenerator.Persistence
                 if (entry.ValueKind != JsonValueKind.Object)
                     throw new JsonException($"Операция [{operationIndex}] должна быть JSON-объектом.");
 
-                string typeName;
-                string dataJson;
-
-                if (version >= 2)
+                if (!entry.TryGetProperty("type", out var typeElement)
+                    || typeElement.ValueKind != JsonValueKind.String
+                    || string.IsNullOrWhiteSpace(typeElement.GetString()))
                 {
-                    if (!entry.TryGetProperty("type", out var typeElement)
-                        || typeElement.ValueKind != JsonValueKind.String
-                        || string.IsNullOrWhiteSpace(typeElement.GetString()))
-                    {
-                        throw new JsonException($"У операции [{operationIndex}] отсутствует строковое поле type.");
-                    }
-                    typeName = typeElement.GetString();
-                    if (!entry.TryGetProperty("data", out var dataElement) || dataElement.ValueKind == JsonValueKind.Null)
-                        throw new JsonException($"У операции [{operationIndex}] (type={typeName}) отсутствует поле data.");
-                    if (dataElement.ValueKind != JsonValueKind.Object)
-                        throw new JsonException($"Данные операции (type={typeName}) должны быть JSON-объектом.");
-                    dataJson = dataElement.GetRawText();
+                    throw new JsonException($"У операции [{operationIndex}] отсутствует строковое поле type.");
                 }
-                else
-                {
-                    var rawType = entry.TryGetProperty("Type", out var legacyTypeElement) ? legacyTypeElement.GetString() : null;
-                    typeName = ExtractLegacyClassName(rawType);
-                    if (string.IsNullOrWhiteSpace(typeName))
-                        throw new JsonException($"У legacy-операции [{operationIndex}] отсутствует строковое поле Type.");
-                    if (!entry.TryGetProperty("Data", out var legacyDataElement) || legacyDataElement.ValueKind == JsonValueKind.Null)
-                        throw new JsonException($"У legacy-операции [{operationIndex}] (Type={rawType}) отсутствует поле Data.");
-                    if (legacyDataElement.ValueKind != JsonValueKind.String)
-                        throw new JsonException($"Данные операции (Type={rawType}) в формате v1 должны быть JSON-строкой.");
-                    dataJson = legacyDataElement.GetString();
-                    if (string.IsNullOrWhiteSpace(dataJson))
-                        throw new JsonException($"Данные legacy-операции [{operationIndex}] не могут быть пустыми.");
-                }
+                var typeName = typeElement.GetString();
+                if (!entry.TryGetProperty("data", out var dataElement) || dataElement.ValueKind == JsonValueKind.Null)
+                    throw new JsonException($"У операции [{operationIndex}] (type={typeName}) отсутствует поле data.");
+                if (dataElement.ValueKind != JsonValueKind.Object)
+                    throw new JsonException($"Данные операции (type={typeName}) должны быть JSON-объектом.");
+                var dataJson = dataElement.GetRawText();
 
                 var type = OperationTypeNames.Resolve(typeName);
                 if (type == null)
@@ -288,10 +259,7 @@ namespace GCodeGenerator.Persistence
                 if (operation == null)
                     throw new JsonException($"Не удалось прочитать операцию [{operationIndex}] (type={typeName}).");
 
-                if (version >= 4)
-                    RejectCurrentMetadata(payload, typeName, operationIndex);
-                else
-                    MigrateLegacyMetadata(operation, payload, typeName, operationIndex);
+                RejectCurrentMetadata(payload, typeName, operationIndex);
 
                 result.Add(operation);
                 operationIndex++;
@@ -307,43 +275,6 @@ namespace GCodeGenerator.Persistence
                 throw new NotSupportedException(
                     $"Операция [{operationIndex}] (type={typeName}) содержит удалённое поле Metadata, "
                     + "которое не поддерживается форматом v4.");
-            }
-        }
-
-        private static void MigrateLegacyMetadata(
-            OperationBase operation,
-            JsonElement payload,
-            string typeName,
-            int operationIndex)
-        {
-            if (!TryGetSingleMetadata(payload, typeName, operationIndex, out var metadataElement)
-                || metadataElement.ValueKind == JsonValueKind.Null)
-            {
-                return;
-            }
-
-            if (metadataElement.ValueKind != JsonValueKind.Object)
-            {
-                throw new JsonException(
-                    $"Metadata операции [{operationIndex}] (type={typeName}) должно быть JSON-объектом.");
-            }
-
-            // Профильные диалоги всегда писали те же значения в типизированные поля,
-            // а Metadata никогда не участвовало в их восстановлении.
-            if (operation is IProfileOperation)
-                return;
-
-            var metadata = JsonSerializer.Deserialize<Dictionary<string, object>>(
-                metadataElement.GetRawText(),
-                LegacyMetadataOptions) ?? new Dictionary<string, object>();
-
-            LegacyMetadataMigrator.Migrate(operation, metadata);
-            if (metadata.Count > 0)
-            {
-                throw new NotSupportedException(
-                    $"Metadata операции [{operationIndex}] (type={typeName}) содержит неподдерживаемые ключи: "
-                    + string.Join(", ", metadata.Keys)
-                    + ". Файл не загружен, чтобы эти данные не потерялись при сохранении в v4.");
             }
         }
 
@@ -373,24 +304,5 @@ namespace GCodeGenerator.Persistence
             return found;
         }
 
-        /// <summary>
-        /// Извлекает имя класса из AssemblyQualifiedName (формат v1):
-        /// "GCodeGenerator.Models.DrillPointsOperation, GCodeGenerator, Version=..." → "DrillPointsOperation".
-        /// Версия сборки игнорируется (устраняет уязвимость версий из п. 0.7).
-        /// </summary>
-        private static string ExtractLegacyClassName(string assemblyQualifiedName)
-        {
-            if (string.IsNullOrWhiteSpace(assemblyQualifiedName))
-                return null;
-
-            var commaIndex = assemblyQualifiedName.IndexOf(',');
-            var typeName = commaIndex >= 0
-                ? assemblyQualifiedName.Substring(0, commaIndex)
-                : assemblyQualifiedName;
-            typeName = typeName.Trim();
-
-            var dotIndex = typeName.LastIndexOf('.');
-            return dotIndex >= 0 ? typeName.Substring(dotIndex + 1) : typeName;
-        }
     }
 }

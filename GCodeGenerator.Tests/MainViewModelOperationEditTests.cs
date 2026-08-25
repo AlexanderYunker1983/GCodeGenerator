@@ -310,11 +310,12 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Открытие СТАРОГО проекта (без секций): сессия восстанавливается к
-        /// глобальным настройкам (не наследует значения ранее открытого проекта).
+        /// Открытие проекта старой схемы (без секций настроек): сессия
+        /// восстанавливается к глобальным настройкам, а не наследует значения
+        /// ранее открытого проекта.
         /// </summary>
         [TestMethod]
-        public void OpenProject_OldFileWithoutSections_SessionRestoredToGlobal()
+        public void OpenProject_FileWithoutSettingsSections_SessionRestoredToGlobal()
         {
             var (main, _, dialogs, store) = CreateMain();
 
@@ -325,19 +326,29 @@ namespace GCodeGenerator.Tests
             store.Current.WorkCoordinate.WorkCoordinateSystem = "G59";
             store.Current.Ui.UseDarkTheme = true;
 
-            var legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference", "legacy_project_v1.ygc");
-            Assert.IsTrue(File.Exists(legacyPath), "Нет эталонного легаси-файла");
-            dialogs.OpenDialogResult = legacyPath;
+            // Схема второй версии: операции есть, секций настроек нет.
+            var path = Path.Combine(Path.GetTempPath(), "gcg_v2_" + Guid.NewGuid().ToString("N") + ".ygc");
+            File.WriteAllText(
+                path,
+                "{\"version\":2,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{\"Radius\":10}}]}");
+            try
+            {
+                dialogs.OpenDialogResult = path;
 
-            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
 
-            Assert.AreEqual(19, main.OperationsWorkspace.AllOperations.Count, "Операции из старого файла загружены");
-            Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Старый файл → глобальный шпиндель (дефолт)");
-            Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Старый файл → глобальный СОЖ (дефолт)");
-            Assert.IsTrue(store.Current.Format.UseLineNumbers, "Старый файл → глобальный формат (дефолт)");
-            Assert.AreEqual("G54", store.Current.WorkCoordinate.WorkCoordinateSystem,
-                "Старый файл → глобальная система координат (дефолт)");
-            Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Открытие проекта не меняет тему UI");
+                Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Операции из файла загружены");
+                Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Файл без секций → глобальный шпиндель (дефолт)");
+                Assert.IsTrue(store.Current.Coolant.CoolantStartEnabled, "Файл без секций → глобальный СОЖ (дефолт)");
+                Assert.IsTrue(store.Current.Format.UseLineNumbers, "Файл без секций → глобальный формат (дефолт)");
+                Assert.AreEqual("G54", store.Current.WorkCoordinate.WorkCoordinateSystem,
+                    "Файл без секций → глобальная система координат (дефолт)");
+                Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Открытие проекта не меняет тему UI");
+            }
+            finally
+            {
+                File.Delete(path);
+            }
         }
 
         [TestMethod]

@@ -18,7 +18,7 @@ namespace GCodeGenerator.Persistence
         void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings);
 
         /// <summary>
-        /// Читает проект из файла (v4, v3, v2 или легаси v1).
+        /// Читает проект из файла (v4, v3 или v2).
         /// <see cref="ProjectFileData.Operations"/> равно <c>null</c>, если в файле
         /// нет секции операций (пустой/чужой файл).
         /// Бросает исключение при некорректном JSON — обработчик ошибки остаётся у вызывающего.

@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Text.Json;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
@@ -337,11 +336,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_NoOperationsSection_ReturnsNull()
         {
-            Assert.IsNull(Service.Deserialize("{}").Operations, "пустой объект");
             Assert.IsNull(Service.Deserialize("{\"version\":2}").Operations, "v2 без operations");
             Assert.IsNull(Service.Deserialize("{\"version\":2,\"operations\":null}").Operations, "v2 operations=null");
-            Assert.IsNull(Service.Deserialize("{\"Operations\":null}").Operations, "легаси Operations=null");
-            Assert.IsNull(Service.Deserialize("{\"Foo\":\"bar\"}").Operations, "чужой файл без секции операций");
         }
 
         /// <summary>
@@ -353,10 +349,6 @@ namespace GCodeGenerator.Tests
             var v2 = Service.Deserialize("{\"version\":2,\"operations\":[]}").Operations;
             Assert.IsNotNull(v2, "v2 пустой массив");
             Assert.AreEqual(0, v2.Count);
-
-            var legacy = Service.Deserialize("{\"Operations\":[]}").Operations;
-            Assert.IsNotNull(legacy, "легаси пустой массив");
-            Assert.AreEqual(0, legacy.Count);
         }
 
         /// <summary>
@@ -373,115 +365,6 @@ namespace GCodeGenerator.Tests
             catch (Exception)
             {
                 // Ожидаемо: обработчик ошибки — в MainViewModel.OpenProject
-            }
-        }
-
-        // ------------------------------------------------------------------
-        // Легаси (v1, JavaScriptSerializer)
-        // ------------------------------------------------------------------
-
-        /// <summary>
-        /// Эталонный легаси-файл v1 (Reference/legacy_project_v1.ygc) открывается:
-        /// 19 операций, ожидаемые типы и порядок.
-        /// </summary>
-        [TestMethod]
-        public void Legacy_LoadsV1ReferenceFile()
-        {
-            var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            Assert.IsTrue(File.Exists(path), "Нет эталонного легаси-файла Reference/legacy_project_v1.ygc");
-
-            var loaded = Service.Load(path).Operations;
-            Assert.IsNotNull(loaded, "Легаси-файл должен содержать секцию операций");
-            Assert.AreEqual(19, loaded.Count, "Число операций в легаси-файле");
-
-            var expectedTypes = new[]
-            {
-                typeof(DrillPointsOperation), typeof(DrillPointsOperation), typeof(DrillPointsOperation),
-                typeof(DrillPointsOperation), typeof(DrillPointsOperation), typeof(DrillPointsOperation),
-                typeof(DrillPointsOperation), typeof(DrillPointsOperation), typeof(DrillPointsOperation),
-                typeof(ProfileRectangleOperation), typeof(ProfileRoundedRectangleOperation),
-                typeof(ProfileCircleOperation), typeof(ProfileEllipseOperation),
-                typeof(ProfilePolygonOperation), typeof(ProfileDxfOperation),
-                typeof(PocketRectangleOperation), typeof(PocketCircleOperation),
-                typeof(PocketEllipseOperation), typeof(PocketDxfOperation)
-            };
-            for (int i = 0; i < expectedTypes.Length; i++)
-                Assert.AreEqual(expectedTypes[i], loaded[i].GetType(), $"Операция [{i}]");
-        }
-
-        /// <summary>
-        /// Операции из легаси-файла v1 по полям совпадают с эталонными in-memory операциями
-        /// (Fixtures/ReferenceOperations) — легаси-ридер восстанавливает все значения.
-        /// </summary>
-        [TestMethod]
-        public void Legacy_FieldsMatchInMemoryReference()
-        {
-            var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(path).Operations;
-            var expected = ReferenceOperations.Build();
-
-            Assert.AreEqual(expected.Count, loaded.Count, "Число операций");
-            for (int i = 0; i < expected.Count; i++)
-            {
-                Assert.AreEqual(expected[i].GetType(), loaded[i].GetType(), $"Операция [{i}]: тип");
-                CompareOperation($"операция[{i}] ({expected[i].GetType().Name})", expected[i], loaded[i]);
-            }
-        }
-
-        /// <summary>
-        /// Файл v1, сохранённый сборкой с версией (Version=9.9.9.9 в AssemblyQualifiedName),
-        /// всё равно открывается: версия сборки игнорируется, тип разрешается по имени класса.
-        /// Устраняет уязвимость версий, зафиксированную в п. 0.7.
-        /// </summary>
-        [TestMethod]
-        public void Legacy_VersionedBuildAqn_StillLoads()
-        {
-            var json = "{\"Operations\":[{" +
-                "\"Type\":\"GCodeGenerator.Models.ProfileCircleOperation, GCodeGenerator, Version=9.9.9.9, Culture=neutral, PublicKeyToken=null\"," +
-                "\"Data\":\"{\\\"CenterX\\\":20,\\\"CenterY\\\":20,\\\"Radius\\\":10}\"}" +
-                "]}";
-
-            var loaded = Service.Deserialize(json).Operations;
-            Assert.AreEqual(1, loaded.Count, "Операция с версией сборки должна загрузиться");
-            Assert.AreEqual(typeof(ProfileCircleOperation), loaded[0].GetType());
-
-            var circle = (ProfileCircleOperation)loaded[0];
-            Assert.AreEqual(20.0, circle.CenterX, 1e-9);
-            Assert.AreEqual(20.0, circle.CenterY, 1e-9);
-            Assert.AreEqual(10.0, circle.Radius, 1e-9);
-        }
-
-        /// <summary>
-        /// Миграция при сохранении: легаси v1 → загрузить → сохранить → файл становится v4,
-        /// операции сохраняются (round-trip через v4).
-        /// </summary>
-        [TestMethod]
-        public void Save_MigratesLegacyToV4()
-        {
-            var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(legacyPath).Operations;
-            Assert.IsNotNull(loaded);
-            Assert.AreEqual(19, loaded.Count);
-
-            var v4Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
-            try
-            {
-                Service.Save(v4Path, loaded, null);
-                var json = File.ReadAllText(v4Path, Encoding.UTF8);
-                Assert.IsTrue(json.StartsWith("{\"version\":4,\"operations\":[", StringComparison.Ordinal),
-                    "Сохранённый файл должен быть в формате v4");
-                Assert.IsFalse(json.Contains("\"Operations\""), "Не должно остаться легаси-секции Operations");
-                Assert.IsFalse(json.Contains("\"Metadata\""), "В формате v4 не должно быть Metadata");
-
-                var reloaded = Service.Load(v4Path).Operations;
-                Assert.AreEqual(19, reloaded.Count, "Число операций после миграции");
-                for (int i = 0; i < loaded.Count; i++)
-                    CompareOperation($"операция[{i}]", loaded[i], reloaded[i]);
-            }
-            finally
-            {
-                if (File.Exists(v4Path))
-                    File.Delete(v4Path);
             }
         }
 
@@ -631,21 +514,30 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Старый файл без секций (легаси v1): операции читаются, секции — null
-        /// (в UI — сохраняются глобальные настройки, п. 8.2).
+        /// Файл первой версии формата больше не читается, и отказ объясняет,
+        /// что делать: такие файлы писались до появления поля версии, их
+        /// поддержка удалена вместе с миграцией.
         /// </summary>
         [TestMethod]
-        public void Load_OldFileWithoutSections_SectionsAreNull()
+        public void Load_FirstFormatVersion_IsRefusedWithExplanation()
         {
-            var path = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
-            var loaded = Service.Load(path);
+            var legacy = "{\"Operations\":[{\"Type\":\"GCodeGenerator.Models.ProfileCircleOperation, GCodeGenerator\","
+                + "\"Data\":\"{\\\"Radius\\\":10}\"}]}";
 
-            Assert.IsNotNull(loaded.Operations, "Операции из старого файла читаются");
-            Assert.AreEqual(19, loaded.Operations.Count);
-            Assert.IsNull(loaded.Spindle, "Секции spindle в старом файле нет");
-            Assert.IsNull(loaded.Coolant, "Секции coolant в старом файле нет");
-            Assert.IsNull(loaded.Format, "Секции format в старом файле нет");
-            Assert.IsNull(loaded.WorkCoordinate, "Секции workCoordinate в старом файле нет");
+            var failure = Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(legacy));
+
+            StringAssert.Contains(failure.Message, "версии формата");
+        }
+
+        /// <summary>
+        /// Чужой или пустой JSON-объект — тоже отказ: без версии формата
+        /// нельзя понять, что перед нами.
+        /// </summary>
+        [TestMethod]
+        public void Deserialize_ObjectWithoutVersion_IsRefused()
+        {
+            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize("{}"));
+            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize("{\"Foo\":\"bar\"}"));
         }
 
         /// <summary>
