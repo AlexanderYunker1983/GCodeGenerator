@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "Autofac": {
+        "type": "Direct",
+        "requested": "[4.4.0, )",
+        "resolved": "4.4.0",
+        "contentHash": "L++XOgj2O8r1aM+tKNYqns2mbuVxfyKqUV4CoB2YXOWv/7df6yLF34ktu9yDlOyoGfdKT78vECxuTxBYUDm+bg==",
+        "dependencies": {
+          "NETStandard.Library": "1.6.0"
+        }
+      },
+      "CommunityToolkit.Mvvm": {
+        "type": "Direct",
+        "requested": "[8.4.2, )",
+        "resolved": "8.4.2",
+        "contentHash": "WadCzGEc2U+3e20avRLng4qNtt4zoOGWrdUISqJWrHe3/FSnrYjuM5Sb4yQb09LhkBXrrI4Zt3dLKgRMbItsrg=="
+      },
+      "ControlzEx": {
+        "type": "Direct",
+        "requested": "[4.4.0, )",
+        "resolved": "4.4.0",
+        "contentHash": "pZ5z4hYWwE4R13UMCVs6vII//nL7hz+Nwn4oJlnsZJRGqJNy6Z9KnJiTZfly6lKFu0pMc1aWBZpx+VqFTQKP1Q==",
+        "dependencies": {
+          "Microsoft.Xaml.Behaviors.Wpf": "1.1.19"
+        }
+      },
+      "MahApps.Metro": {
+        "type": "Direct",
+        "requested": "[2.4.11, )",
+        "resolved": "2.4.11",
+        "contentHash": "pvk757N/ViZy+zlbB56AakryuZkts328M6pX2mMn/Z7r5ifkScDrS300zSBjLd+eGOPeHgUjH4f7cZbRiMyvQg==",
+        "dependencies": {
+          "ControlzEx": "[4.4.0, 6.0.0)"
+        }
+      },
+      "Microsoft.Xaml.Behaviors.Wpf": {
+        "type": "Direct",
+        "requested": "[1.1.142, )",
+        "resolved": "1.1.142",
+        "contentHash": "c47wA/8GHiQ9w+O6+mdqrZhZrxHogx2/fSZyRKL9tz0k+ypoTiwOx6fID0X3jr5LnCazJbCk7KiAcL0zVnNgNA=="
+      },
+      "Clipper2": {
+        "type": "Transitive",
+        "resolved": "2.0.0",
+        "contentHash": "2X23RZxJrjRjOSZc20aqXY9jpmHLekDRy4PIMfrsi2LPNzxFYlnuqzX/nLdk77fbURHUeX+gMhUn2a1z9/wMTQ=="
+      },
+      "Microsoft.NETCore.Platforms": {
+        "type": "Transitive",
+        "resolved": "1.0.1",
+        "contentHash": "2G6OjjJzwBfNOO8myRV/nFrbTw5iA+DEm0N+qUqhrOmaVtn4pC77h38I1jsXGw5VH55+dPfQsqHD0We9sCl9FQ=="
+      },
+      "netDxf": {
+        "type": "Transitive",
+        "resolved": "2023.11.10",
+        "contentHash": "7BFtw6P5Zfli59HJJ3INq6InaWzgNnC7qQopP+5H8CUg/7FjUX0qG63kLLPplOy1sZSjnwGzAPEjk67g1O7LuQ=="
+      },
+      "NETStandard.Library": {
+        "type": "Transitive",
+        "resolved": "1.6.0",
+        "contentHash": "ypsCvIdCZ4IoYASJHt6tF2fMo7N30NLgV1EbmC+snO490OMl9FvVxmumw14rhReWU3j3g7BYudG6YCrchwHJlA==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "1.0.1"
+        }
+      },
+      "gcodegenerator.core": {
+        "type": "Project",
+        "dependencies": {
+          "Clipper2": "[2.0.0, )",
+          "CommunityToolkit.Mvvm": "[8.4.2, )",
+          "netDxf": "[2023.11.10, )"
+        }
+      }
+    }
+  }
+}

@@ -26,12 +26,14 @@ jobs:
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          # Версия пакета разработки берётся из global.json: раннер собирает
+          # тем же набором инструментов, что и разработчик.
+          global-json-file: global.json
 
       # Репозиторного NuGet.config нет — раннер восстанавливает пакеты из nuget.org
       # по умолчанию (все используемые пакеты там доступны).
       - name: Restore
-        run: dotnet restore GCodeGenerator.sln
+        run: dotnet restore GCodeGenerator.sln --locked-mode
 
       - name: Build (Release)
         run: dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror

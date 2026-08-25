@@ -48,4 +48,22 @@
     <PublishDocumentationFiles>false</PublishDocumentationFiles>
     <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
+
+  <!--
+    Точный состав зависимостей фиксируется файлом packages.lock.json рядом
+    с каждым проектом. Версии в csproj задают только прямые ссылки, а что
+    именно приедет транзитивно — решал восстановитель пакетов в момент
+    сборки: тот же коммит на другой машине или через полгода мог собраться
+    с другим набором. Замок перечисляет всё дерево вместе с контрольными
+    суммами, а рабочие процессы восстанавливают пакеты в закреплённом режиме
+    (ключ locked-mode), где расхождение с замком — отказ, а не молчаливое
+    обновление.
+
+    Обновление пакета: поменять версию в csproj и восстановить пакеты
+    с ключом force-evaluate — замок пересоберётся и попадёт в тот же
+    коммит, что и само обновление.
+  -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
 </Project>

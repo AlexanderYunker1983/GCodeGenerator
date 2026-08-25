@@ -50,11 +50,13 @@ jobs:
         if: steps.tag.outputs.skip == 'false'
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          # Версия пакета разработки берётся из global.json: раннер собирает
+          # тем же набором инструментов, что и разработчик.
+          global-json-file: global.json
 
       - name: Restore
         if: steps.tag.outputs.skip == 'false'
-        run: dotnet restore GCodeGenerator.sln
+        run: dotnet restore GCodeGenerator.sln --locked-mode
 
       # Релиз публикуется только при зелёных тестах (сборка тестов собирает и приложение).
       - name: Test (Release)
