@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Import
@@ -17,10 +18,10 @@ namespace GCodeGenerator.Import
         public List<Polyline2D> ReadProfilePolylines(string path)
             => DxfEntityReader.Read(path);
 
-        public List<Polyline2D> ReadPocketClosedContours(string path)
+        public List<Polyline2D> ReadPocketClosedContours(string path, CancellationToken cancellation = default)
         {
             var entities = DxfEntityReader.Read(path);
-            return new DxfClosedContourBuilder().Build(entities);
+            return new DxfClosedContourBuilder().Build(entities, cancellation);
         }
     }
 }

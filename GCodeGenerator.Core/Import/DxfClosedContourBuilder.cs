@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
@@ -20,13 +21,13 @@ namespace GCodeGenerator.Import
         private readonly DxfPointCycleFinder _pointCycleFinder =
             new DxfPointCycleFinder(ClosedContourTolerance);
 
-        internal List<Polyline2D> Build(List<Polyline2D> allPolylines)
+        internal List<Polyline2D> Build(List<Polyline2D> allPolylines, CancellationToken cancellation = default)
         {
             // Теперь пытаемся соединить отдельные линии и дуги в замкнутые контуры
             var connectedContours = _segmentConnector.Connect(allPolylines);
-            
+
             // Ищем замкнутые области, образованные пересекающимися линиями
-            var intersectionContours = FindClosedAreasFromIntersections(allPolylines);
+            var intersectionContours = FindClosedAreasFromIntersections(allPolylines, cancellation);
             
             var closedContours = new List<Polyline2D>();
             AddUniqueClosedContours(closedContours, allPolylines);
@@ -51,20 +52,21 @@ namespace GCodeGenerator.Import
         private static bool PointsMatch(Point2D p1, Point2D p2)
             => Geometry2D.PointsMatch(p1, p2, ClosedContourTolerance);
 
-        private List<Polyline2D> FindClosedAreasFromIntersections(List<Polyline2D> segments)
+        private List<Polyline2D> FindClosedAreasFromIntersections(
+            List<Polyline2D> segments, CancellationToken cancellation)
         {
             var contours = new List<Polyline2D>();
-            
+
             if (segments == null || segments.Count == 0)
                 return contours;
-            
+
             // Находим все точки пересечения и разбиваем сегменты
             var splitSegments = _intersectionSplitter.Split(segments);
-            
+
             if (splitSegments == null || splitSegments.Count == 0)
                 return contours;
-            
-            var cycleContours = _pointCycleFinder.FindContours(splitSegments);
+
+            var cycleContours = _pointCycleFinder.FindContours(splitSegments, cancellation);
 
             // Фильтруем циклы - оставляем только те, которые образуют
             // невырожденные замкнутые области.

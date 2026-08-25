@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Import;
@@ -47,7 +48,7 @@ namespace GCodeGenerator.Tests
                 return ProfileResult;
             }
 
-            public List<Polyline2D> ReadPocketClosedContours(string path)
+            public List<Polyline2D> ReadPocketClosedContours(string path, CancellationToken cancellation = default)
             {
                 PocketPath = path;
                 return PocketResult;

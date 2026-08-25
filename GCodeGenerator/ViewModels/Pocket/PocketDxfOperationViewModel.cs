@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -50,7 +51,9 @@ namespace GCodeGenerator.ViewModels.Pocket
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
             _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.4 плана: импорт DXF — async: разбор файла выполняется в пуле,
-            // поэтому интерфейс не замирает даже на больших чертежах.
+            // поэтому интерфейс не замирает даже на больших чертежах. Команда
+            // отменяема: токен доходит до перебора циклов в ядре, где сложный
+            // чертёж занимает заметное время.
             ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
@@ -80,7 +83,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        private async Task ImportDxfFileAsync()
+        private async Task ImportDxfFileAsync(CancellationToken cancellation)
         {
             // Импорт правит открытую в окне операцию: без неё импортировать
             // некуда, и команда до этого места не доходит.
@@ -94,7 +97,8 @@ namespace GCodeGenerator.ViewModels.Pocket
 
             try
             {
-                var closedContours = await Task.Run(() => _dxfImportService.ReadPocketClosedContours(fileName));
+                var closedContours = await Task.Run(
+                    () => _dxfImportService.ReadPocketClosedContours(fileName, cancellation), cancellation);
                 if (closedContours.Count == 0)
                 {
                     _logger.Warning($"DXF import found no closed contours: {fileName}");
@@ -113,6 +117,12 @@ namespace GCodeGenerator.ViewModels.Pocket
                 var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
                 ImportInfo = string.Format(infoTemplate, contourCount);
                 _logger.Info($"DXF imported for pocket: {fileName} ({contourCount} closed contour(s))");
+            }
+            catch (OperationCanceledException)
+            {
+                // Отменённый импорт — не ошибка: пользователь передумал,
+                // сообщать не о чем.
+                _logger.Info($"DXF import canceled: {fileName}");
             }
             catch (Exception ex)
             {
