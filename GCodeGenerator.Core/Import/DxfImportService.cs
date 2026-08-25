@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Координатор DXF-импорта: отделяет разбор файла от геометрического

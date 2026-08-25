@@ -1,6 +1,6 @@
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     internal sealed class DxfPolylineIntersection
     {

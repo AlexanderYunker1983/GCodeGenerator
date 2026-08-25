@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using GCodeGenerator.Import;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests

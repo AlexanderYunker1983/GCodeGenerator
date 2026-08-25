@@ -7,7 +7,7 @@ using netDxf;
 using netDxf.Entities;
 using netDxf.Units;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Разбирает DXF-файл в независимые полилинии.

@@ -185,7 +185,11 @@ namespace GCodeGenerator.Tests
             if (!serviceType.IsInterface && !serviceType.IsAbstract)
                 return Activator.CreateInstance(serviceType);
 
-            var implementation = typeof(MainViewModel).Assembly.GetTypes()
+            // Службы живут и в приложении, и в ядре: импорт чертежей,
+            // например, переехал в ядро вместе с чтением DXF.
+            var assemblies = new[] { typeof(MainViewModel).Assembly, typeof(OperationBase).Assembly };
+            var implementation = assemblies
+                .SelectMany(assembly => assembly.GetTypes())
                 .FirstOrDefault(t => !t.IsAbstract
                                      && serviceType.IsAssignableFrom(t)
                                      && t.GetConstructor(Type.EmptyTypes) != null);

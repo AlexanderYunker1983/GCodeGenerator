@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Splits DXF polylines at all pairwise intersections while preserving

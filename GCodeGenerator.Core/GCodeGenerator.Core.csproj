@@ -39,7 +39,19 @@
     <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Разбор чертежа состоит из шагов, каждый из которых проверяется
+         отдельно: поиск замкнутых циклов, разрезание пересечений,
+         соединение отрезков. Наружу они не выходят, но тестам видны. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>GCodeGenerator.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Clipper2" Version="2.0.0" />
+    <!-- Чтение чертежей — часть ядра: восстановление контуров из DXF
+         не зависит от интерфейса и нужно любому потребителю моделей. -->
+    <PackageReference Include="netDxf" Version="2023.11.10" />
     <!-- Уведомления об изменении параметров операции. Пакет не зависит от WPF
          (netstandard2.0) и даёт генератор свойств: иначе сто с лишним
          параметров пришлось бы расписывать сеттерами вручную, а забытый

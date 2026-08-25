@@ -4,7 +4,7 @@ using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Восстанавливает замкнутые области из DXF-полилиний, соединяя сегменты

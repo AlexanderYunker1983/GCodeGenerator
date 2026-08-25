@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
+using GCodeGenerator.Import;
 
 namespace GCodeGenerator.Tests.Fixtures
 {

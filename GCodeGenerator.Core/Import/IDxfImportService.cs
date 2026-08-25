@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Чистая граница импорта DXF. ViewModel отвечает только за выбор файла и

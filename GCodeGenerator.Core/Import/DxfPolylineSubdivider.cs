@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Inserts collected intersection points into their source polylines and

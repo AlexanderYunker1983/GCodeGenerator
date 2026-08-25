@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Connects ordered or reversed DXF segments whose endpoints match within

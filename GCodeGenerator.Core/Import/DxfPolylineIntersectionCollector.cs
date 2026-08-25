@@ -4,7 +4,7 @@ using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Import
 {
     /// <summary>
     /// Collects unique pairwise intersections for every polyline and orders
