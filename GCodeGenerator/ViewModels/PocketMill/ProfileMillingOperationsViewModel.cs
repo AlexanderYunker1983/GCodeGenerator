@@ -28,8 +28,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
             _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
 
-            Operations = new FilteredOperationsView(_allOperations, OperationCategory.Profile);
-
             AddProfileRectangleCommand = new RelayCommand(AddProfileRectangle);
             AddProfileRoundedRectangleCommand = new RelayCommand(AddProfileRoundedRectangle);
             AddProfileCircleCommand = new RelayCommand(AddProfileCircle);
@@ -37,12 +35,6 @@ namespace GCodeGenerator.ViewModels.PocketMill
             AddProfilePolygonCommand = new RelayCommand(AddProfilePolygon);
             AddProfileDxfCommand = new RelayCommand(AddProfileDxf);
         }
-
-        /// <summary>
-        /// Фильтрованное представление единой коллекции операций
-        /// (пункт 7.2 плана): только операции профиля, в порядке AllOperations.
-        /// </summary>
-        public FilteredOperationsView Operations { get; }
 
         /// <summary>
         /// Событие: пользователь добавил новую операцию через вкладку

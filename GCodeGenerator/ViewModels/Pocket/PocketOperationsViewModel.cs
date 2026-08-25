@@ -28,19 +28,11 @@ namespace GCodeGenerator.ViewModels.Pocket
             _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
             _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
 
-            Operations = new FilteredOperationsView(_allOperations, OperationCategory.Pocket);
-
             AddPocketRectangleCommand = new RelayCommand(AddPocketRectangle);
             AddPocketCircleCommand = new RelayCommand(AddPocketCircle);
             AddPocketEllipseCommand = new RelayCommand(AddPocketEllipse);
             AddPocketDxfCommand = new RelayCommand(AddPocketDxf);
         }
-
-        /// <summary>
-        /// Фильтрованное представление единой коллекции операций
-        /// (пункт 7.2 плана): только операции карманов, в порядке AllOperations.
-        /// </summary>
-        public FilteredOperationsView Operations { get; }
 
         /// <summary>
         /// Событие: пользователь добавил новую операцию через вкладку

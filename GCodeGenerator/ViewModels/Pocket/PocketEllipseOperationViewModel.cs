@@ -376,18 +376,6 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        private bool _isIslandMillingEnabled = false;
-        public bool IsIslandMillingEnabled
-        {
-            get => _isIslandMillingEnabled;
-            set
-            {
-                if (value == _isIslandMillingEnabled) return;
-                _isIslandMillingEnabled = value;
-                OnPropertyChanged();
-            }
-        }
-
         protected override void ApplyToOperation()
         {
             Operation.Direction = Direction;

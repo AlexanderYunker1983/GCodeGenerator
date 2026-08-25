@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -58,28 +57,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return dist <= 1.0 + 1e-6; // Небольшой допуск для численных ошибок
         }
 
-        public IPocketGeometry ApplyRoughingAllowance(double allowance)
-        {
-            var newOp = CloneOperation();
-            newOp.TotalDepth -= allowance;
-            newOp.RadiusX -= allowance;
-            newOp.RadiusY -= allowance;
-            return new EllipsePocketGeometry(newOp);
-        }
-
-        public IPocketGeometry ApplyBottomFinishingAllowance(double allowance)
-        {
-            var newOp = CloneOperation();
-            newOp.RadiusX -= allowance;
-            newOp.RadiusY -= allowance;
-            return new EllipsePocketGeometry(newOp);
-        }
-
-        public bool IsTooSmall()
-        {
-            return _operation.RadiusX <= 0 || _operation.RadiusY <= 0;
-        }
-
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
         {
             double effectiveToolRadius = toolRadius + taperOffset;
@@ -94,52 +71,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             
             // Контур слишком маленький, если любой из диаметров меньше минимального порога
             return effectiveDiameterX < minSizeThreshold - 1e-6 || effectiveDiameterY < minSizeThreshold - 1e-6;
-        }
-
-        public IPocketOperationParameters GetParameters()
-        {
-            return new PocketOperationParameters
-            {
-                TotalDepth = _operation.TotalDepth,
-                ContourHeight = _operation.ContourHeight,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance
-            };
-        }
-
-        private PocketEllipseOperation CloneOperation()
-        {
-            return new PocketEllipseOperation
-            {
-                Name = _operation.Name,
-                IsEnabled = _operation.IsEnabled,
-                PocketStrategy = _operation.PocketStrategy,
-                Direction = _operation.Direction,
-                CenterX = _operation.CenterX,
-                CenterY = _operation.CenterY,
-                RadiusX = _operation.RadiusX,
-                RadiusY = _operation.RadiusY,
-                RotationAngle = _operation.RotationAngle,
-                TotalDepth = _operation.TotalDepth,
-                StepDepth = _operation.StepDepth,
-                ToolDiameter = _operation.ToolDiameter,
-                ContourHeight = _operation.ContourHeight,
-                FeedXYRapid = _operation.FeedXYRapid,
-                FeedXYWork = _operation.FeedXYWork,
-                FeedZRapid = _operation.FeedZRapid,
-                FeedZWork = _operation.FeedZWork,
-                SafeZHeight = _operation.SafeZHeight,
-                RetractHeight = _operation.RetractHeight,
-                StepPercentOfTool = _operation.StepPercentOfTool,
-                Decimals = _operation.Decimals,
-                LineAngleDeg = _operation.LineAngleDeg,
-                WallTaperAngleDeg = _operation.WallTaperAngleDeg,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance,
-                FinishingMode = _operation.FinishingMode
-            };
         }
 
         /// <summary>
@@ -192,25 +123,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             {
                 return Math.PI * _radiusX * _radiusY;
             }
-
-            public double GetPerimeter()
-            {
-                // Приближенная формула Рамануджана для периметра эллипса
-                double h = Math.Pow(_radiusX - _radiusY, 2) / Math.Pow(_radiusX + _radiusY, 2);
-                return Math.PI * (_radiusX + _radiusY) * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
-            }
-        }
-
-        /// <summary>
-        /// Реализация параметров операции для клонирования.
-        /// </summary>
-        private class PocketOperationParameters : IPocketOperationParameters
-        {
-            public double TotalDepth { get; set; }
-            public double ContourHeight { get; set; }
-            public bool IsRoughingEnabled { get; set; }
-            public bool IsFinishingEnabled { get; set; }
-            public double FinishAllowance { get; set; }
         }
     }
 }

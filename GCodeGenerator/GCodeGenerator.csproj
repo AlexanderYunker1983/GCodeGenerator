@@ -68,18 +68,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Устаревшие XAML + code-behind после переноса Views в Views/Drill/ (b9ff348):
-         не участвовали в сборке и в старом csproj, SDK-style включает их автоматически —
-         исключаем явно (Views/DrillOperationsView.xaml объявляет тот же класс, что и
-         Views/Drill/DrillOperationsView.xaml — конфликт генерируемых .g.cs).
-         Кандидаты на удаление в фазе 2/7. -->
-    <Compile Remove="Views\DrillOperationsView.xaml.cs" />
-    <Compile Remove="Views\DrillPointsOperationView.xaml.cs" />
-    <Page Remove="Views\DrillOperationsView.xaml" />
-    <Page Remove="Views\DrillPointsOperationView.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
     <!-- Иконка как WPF-ресурс (как в старом csproj) + иконка exe -->
     <Resource Include="cnc_machine.ico" />
   </ItemGroup>

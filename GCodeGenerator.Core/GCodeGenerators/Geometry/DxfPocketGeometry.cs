@@ -103,34 +103,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return IsPointInsideContour(x, y, offsetContour);
         }
 
-        public IPocketGeometry ApplyRoughingAllowance(double allowance)
-        {
-            // Для DXF припуск применяется через увеличение диаметра инструмента
-            // В генераторе: roughOp.ToolDiameter += 2 * depthAllowance
-            // Это эквивалентно уменьшению контура на allowance
-            var newOp = CloneOperation();
-            newOp.TotalDepth -= allowance;
-            // Припуск по контуру будет применен через увеличение toolRadius в GetContour
-            return new DxfPocketGeometry(newOp, _primaryContour);
-        }
-
-        public IPocketGeometry ApplyBottomFinishingAllowance(double allowance)
-        {
-            // Для чистовой обработки дна также применяем через смещение контура
-            var newOp = CloneOperation();
-            return new DxfPocketGeometry(newOp, _primaryContour);
-        }
-
-        public bool IsTooSmall()
-        {
-            if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count < 3)
-                return true;
-
-            // Проверяем площадь контура
-            double area = GetContourArea(_primaryContour);
-            return area <= 0.001 * 0.001; // Минимальная площадь
-        }
-
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
         {
             if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count < 3)
@@ -519,63 +491,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
         }
 
-        private double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2)
-        {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
-                return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
-            
-            double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-            t = Math.Max(0, Math.Min(1, t));
-            double projX = x1 + t * dx;
-            double projY = y1 + t * dy;
-            return Math.Sqrt(Math.Pow(px - projX, 2) + Math.Pow(py - projY, 2));
-        }
-
-        public IPocketOperationParameters GetParameters()
-        {
-            return new PocketOperationParameters
-            {
-                TotalDepth = _operation.TotalDepth,
-                ContourHeight = _operation.ContourHeight,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance
-            };
-        }
-
-        private PocketDxfOperation CloneOperation()
-        {
-            return new PocketDxfOperation
-            {
-                Name = _operation.Name,
-                IsEnabled = _operation.IsEnabled,
-                ClosedContours = _operation.ClosedContours,
-                DxfFilePath = _operation.DxfFilePath,
-                Direction = _operation.Direction,
-                PocketStrategy = _operation.PocketStrategy,
-                TotalDepth = _operation.TotalDepth,
-                StepDepth = _operation.StepDepth,
-                ToolDiameter = _operation.ToolDiameter,
-                ContourHeight = _operation.ContourHeight,
-                FeedXYRapid = _operation.FeedXYRapid,
-                FeedXYWork = _operation.FeedXYWork,
-                FeedZRapid = _operation.FeedZRapid,
-                FeedZWork = _operation.FeedZWork,
-                SafeZHeight = _operation.SafeZHeight,
-                RetractHeight = _operation.RetractHeight,
-                StepPercentOfTool = _operation.StepPercentOfTool,
-                Decimals = _operation.Decimals,
-                LineAngleDeg = _operation.LineAngleDeg,
-                WallTaperAngleDeg = _operation.WallTaperAngleDeg,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance,
-                FinishingMode = _operation.FinishingMode
-            };
-        }
-
         /// <summary>
         /// Смещает контур на заданное расстояние (положительное - наружу, отрицательное - внутрь).
         /// Новый алгоритм: строим параллельные прямые для каждого сегмента, находим пересечения и обрезаем.
@@ -640,8 +555,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 offsetSegments.Add(new OffsetSegment
                 {
                     Start = offsetP1,
-                    End = offsetP2,
-                    OriginalIndex = i
+                    End = offsetP2
                 });
             }
 
@@ -752,23 +666,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         {
             public DxfPoint Start { get; set; }
             public DxfPoint End { get; set; }
-            public int OriginalIndex { get; set; }
         }
-
-        /// <summary>
-        /// Представляет точку пересечения двух смещенных сегментов.
-        /// </summary>
-        private class IntersectionPoint
-        {
-            public DxfPoint Point { get; set; }
-            public int SegmentIndex1 { get; set; }
-            public int SegmentIndex2 { get; set; }
-            public bool IsStartOfSeg1 { get; set; }
-            public bool IsEndOfSeg1 { get; set; }
-            public bool IsStartOfSeg2 { get; set; }
-            public bool IsEndOfSeg2 { get; set; }
-        }
-
 
         /// <summary>
         /// Находит точку пересечения двух отрезков.
@@ -889,22 +787,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 return Math.Abs(area / 2.0);
             }
 
-            public double GetPerimeter()
-            {
-                if (_polyline?.Points == null || _polyline.Points.Count < 2)
-                    return 0;
-
-                double perimeter = 0;
-                for (int i = 0; i < _polyline.Points.Count; i++)
-                {
-                    var p1 = _polyline.Points[i];
-                    var p2 = _polyline.Points[(i + 1) % _polyline.Points.Count];
-                    double dx = p2.X - p1.X;
-                    double dy = p2.Y - p1.Y;
-                    perimeter += Math.Sqrt(dx * dx + dy * dy);
-                }
-                return perimeter;
-            }
         }
 
         /// <summary>
@@ -921,23 +803,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             {
                 return 0;
             }
-
-            public double GetPerimeter()
-            {
-                return 0;
-            }
-        }
-
-        /// <summary>
-        /// Реализация параметров операции для клонирования.
-        /// </summary>
-        private class PocketOperationParameters : IPocketOperationParameters
-        {
-            public double TotalDepth { get; set; }
-            public double ContourHeight { get; set; }
-            public bool IsRoughingEnabled { get; set; }
-            public bool IsFinishingEnabled { get; set; }
-            public double FinishAllowance { get; set; }
         }
     }
 }

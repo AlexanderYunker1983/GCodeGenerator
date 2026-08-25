@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
@@ -147,61 +145,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
             builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid, decimals: decimals);
             builder.RapidTo(z: nextZ, feed: op.FeedZRapid, decimals: decimals);
-        }
-
-        /// <summary>
-        /// Генерирует путь по контуру из списка точек.
-        /// </summary>
-        /// <param name="points">Точки контура</param>
-        /// <param name="direction">Направление фрезерования</param>
-        /// <param name="feedXYWork">Скорость рабочей подачи в плоскости XY</param>
-        /// <param name="allowArcs">Разрешить использование дуг в G-коде</param>
-        /// <param name="settings">Настройки генерации G-кода</param>
-        /// <param name="builder">Построитель структурированной программы</param>
-        /// <param name="decimals">Количество знаков после запятой</param>
-        public void GenerateContourPath(
-            IEnumerable<(double x, double y)> points,
-            MillingDirection direction,
-            double feedXYWork,
-            bool allowArcs,
-            GCodeSettings settings,
-            ProgramBuilder builder,
-            int decimals)
-        {
-            var pointsList = direction == MillingDirection.Clockwise
-                ? points.Reverse().ToList()
-                : points.ToList();
-
-            foreach (var point in pointsList)
-            {
-                builder.LinearTo(x: point.x, y: point.y, feed: feedXYWork, decimals: decimals);
-            }
-        }
-
-        /// <summary>
-        /// Генерирует путь по контуру с поддержкой дуг (если доступны).
-        /// </summary>
-        /// <param name="points">Точки контура (линейные сегменты)</param>
-        /// <param name="arcSegments">Сегменты дуг (линейные сегменты)</param>
-        /// <param name="direction">Направление фрезерования</param>
-        /// <param name="feedXYWork">Скорость рабочей подачи в плоскости XY</param>
-        /// <param name="allowArcs">Разрешить использование дуг в G-коде</param>
-        /// <param name="settings">Настройки генерации G-кода</param>
-        /// <param name="builder">Построитель структурированной программы</param>
-        /// <param name="decimals">Количество знаков после запятой</param>
-        public void GenerateContourPathWithArcs(
-            IEnumerable<(double x, double y)> points,
-            IEnumerable<(double x, double y, double centerX, double centerY, double radius, bool isClockwise)> arcSegments,
-            MillingDirection direction,
-            double feedXYWork,
-            bool allowArcs,
-            GCodeSettings settings,
-            ProgramBuilder builder,
-            int decimals)
-        {
-            // Эта реализация будет расширена позже для поддержки дуг
-            // Пока используем простую генерацию точек
-            GenerateContourPath(points, direction, feedXYWork, allowArcs, settings, builder, decimals);
         }
 
         private static string Fmt(int decimals) => "0." + new string('0', decimals);

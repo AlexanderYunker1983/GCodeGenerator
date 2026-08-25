@@ -31,10 +31,13 @@ namespace GCodeGenerator.Services
         /// <summary>Текущая версия формата файла .ygc (поле "version").</summary>
         public const int CurrentVersion = 4;
 
-        private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions
-        {
-            Converters = { new DoubleJsonConverter() }
-        };
+        /// <summary>
+        /// Настройки сериализации payload операций и секций настроек.
+        /// Отдельный конвертер double не нужен: System.Text.Json пишет
+        /// вещественные числа в кратчайшем round-trip-виде (0.3 → «0.3»),
+        /// совпадающем с форматом «R».
+        /// </summary>
+        private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions();
 
         private static readonly JsonSerializerOptions LegacyMetadataOptions = new JsonSerializerOptions
         {

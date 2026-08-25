@@ -160,22 +160,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         }
 
         private static string Fmt(int decimals) => "0." + new string('0', decimals);
-
-        /// <summary>
-        /// Вычисляет эффективный радиус инструмента с учетом уклона стенок.
-        /// </summary>
-        /// <param name="op">Операция кармана</param>
-        /// <param name="depthFromTop">Глубина от верха (расстояние от начальной высоты до текущей глубины)</param>
-        /// <param name="baseToolRadius">Базовый радиус инструмента</param>
-        /// <returns>Эффективный радиус инструмента с учетом уклона</returns>
-        public double CalculateEffectiveToolRadius(
-            IPocketOperation op,
-            double depthFromTop,
-            double baseToolRadius)
-        {
-            double offset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
-            return baseToolRadius + offset;
-        }
     }
 }
 

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -67,28 +66,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return Math.Abs(localX) <= halfW + 1e-6 && Math.Abs(localY) <= halfH + 1e-6;
         }
 
-        public IPocketGeometry ApplyRoughingAllowance(double allowance)
-        {
-            var newOp = CloneOperation();
-            newOp.TotalDepth -= allowance;
-            newOp.Width -= 2 * allowance;
-            newOp.Height -= 2 * allowance;
-            return new RectanglePocketGeometry(newOp);
-        }
-
-        public IPocketGeometry ApplyBottomFinishingAllowance(double allowance)
-        {
-            var newOp = CloneOperation();
-            newOp.Width -= 2 * allowance;
-            newOp.Height -= 2 * allowance;
-            return new RectanglePocketGeometry(newOp);
-        }
-
-        public bool IsTooSmall()
-        {
-            return _operation.Width <= 0 || _operation.Height <= 0;
-        }
-
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
         {
             double effectiveToolRadius = toolRadius + taperOffset;
@@ -103,18 +80,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             
             // Контур слишком маленький, если ширина или высота меньше минимального порога
             return effectiveWidth < minSizeThreshold - 1e-6 || effectiveHeight < minSizeThreshold - 1e-6;
-        }
-
-        public IPocketOperationParameters GetParameters()
-        {
-            return new PocketOperationParameters
-            {
-                TotalDepth = _operation.TotalDepth,
-                ContourHeight = _operation.ContourHeight,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance
-            };
         }
 
         private void GetCenter(ReferencePointType type,
@@ -149,41 +114,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                     cy = refY;
                     break;
             }
-        }
-
-        private PocketRectangleOperation CloneOperation()
-        {
-            return new PocketRectangleOperation
-            {
-                Name = _operation.Name,
-                IsEnabled = _operation.IsEnabled,
-                Direction = _operation.Direction,
-                PocketStrategy = _operation.PocketStrategy,
-                Width = _operation.Width,
-                Height = _operation.Height,
-                RotationAngle = _operation.RotationAngle,
-                TotalDepth = _operation.TotalDepth,
-                StepDepth = _operation.StepDepth,
-                ToolDiameter = _operation.ToolDiameter,
-                ContourHeight = _operation.ContourHeight,
-                FeedXYRapid = _operation.FeedXYRapid,
-                FeedXYWork = _operation.FeedXYWork,
-                FeedZRapid = _operation.FeedZRapid,
-                FeedZWork = _operation.FeedZWork,
-                SafeZHeight = _operation.SafeZHeight,
-                RetractHeight = _operation.RetractHeight,
-                ReferencePointX = _operation.ReferencePointX,
-                ReferencePointY = _operation.ReferencePointY,
-                ReferencePointType = _operation.ReferencePointType,
-                StepPercentOfTool = _operation.StepPercentOfTool,
-                Decimals = _operation.Decimals,
-                LineAngleDeg = _operation.LineAngleDeg,
-                WallTaperAngleDeg = _operation.WallTaperAngleDeg,
-                IsRoughingEnabled = _operation.IsRoughingEnabled,
-                IsFinishingEnabled = _operation.IsFinishingEnabled,
-                FinishAllowance = _operation.FinishAllowance,
-                FinishingMode = _operation.FinishingMode
-            };
         }
 
         /// <summary>
@@ -238,23 +168,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             {
                 return 4 * _halfWidth * _halfHeight;
             }
-
-            public double GetPerimeter()
-            {
-                return 2 * (_halfWidth + _halfHeight) * 2; // 2 * (width + height)
-            }
-        }
-
-        /// <summary>
-        /// Реализация параметров операции для клонирования.
-        /// </summary>
-        private class PocketOperationParameters : IPocketOperationParameters
-        {
-            public double TotalDepth { get; set; }
-            public double ContourHeight { get; set; }
-            public bool IsRoughingEnabled { get; set; }
-            public bool IsFinishingEnabled { get; set; }
-            public double FinishAllowance { get; set; }
         }
     }
 }
