@@ -29,7 +29,7 @@ namespace GCodeGenerator.Tests
             };
 
         private static GCodeGenerationValidationException Generate(GCodeSettings settings)
-            => Assert.ThrowsException<GCodeGenerationValidationException>(
+            => Assert.Throws<GCodeGenerationValidationException>(
                 () => new SimpleGCodeGenerator().Generate(OneDrill(), settings));
 
         [TestMethod]
@@ -89,7 +89,7 @@ namespace GCodeGenerator.Tests
                 new DrillPointsOperation { Name = "Без отверстий" }
             };
 
-            var error = Assert.ThrowsException<GCodeGenerationValidationException>(
+            var error = Assert.Throws<GCodeGenerationValidationException>(
                 () => new SimpleGCodeGenerator().Generate(operations, settings));
 
             Assert.AreEqual(1, error.SettingsIssues.Count, "Проблема настроек названа");
@@ -177,7 +177,7 @@ namespace GCodeGenerator.Tests
         {
             var builder = new ProgramBuilder(new GCodeProgram());
 
-            Assert.ThrowsException<System.ArgumentException>(() => builder.SpindleOn("M13"));
+            Assert.Throws<System.ArgumentException>(() => builder.SpindleOn("M13"));
         }
     }
 }

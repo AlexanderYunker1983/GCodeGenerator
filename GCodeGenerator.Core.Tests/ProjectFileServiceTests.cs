@@ -273,8 +273,8 @@ namespace GCodeGenerator.Tests
             var newer = "{\"version\":5,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
             var olderTagged = "{\"version\":1,\"operations\":[]}";
 
-            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(newer));
-            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(olderTagged));
+            Assert.Throws<NotSupportedException>(() => Service.Deserialize(newer));
+            Assert.Throws<NotSupportedException>(() => Service.Deserialize(olderTagged));
         }
 
         [TestMethod]
@@ -282,7 +282,7 @@ namespace GCodeGenerator.Tests
         {
             const string json = "{\"version\":2,\"operations\":[],\"futureData\":{\"keep\":true}}";
 
-            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(json));
+            Assert.Throws<NotSupportedException>(() => Service.Deserialize(json));
         }
 
         [TestMethod]
@@ -524,7 +524,7 @@ namespace GCodeGenerator.Tests
             var legacy = "{\"Operations\":[{\"Type\":\"GCodeGenerator.Models.ProfileCircleOperation, GCodeGenerator\","
                 + "\"Data\":\"{\\\"Radius\\\":10}\"}]}";
 
-            var failure = Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(legacy));
+            var failure = Assert.Throws<NotSupportedException>(() => Service.Deserialize(legacy));
 
             StringAssert.Contains(failure.Message, "версии формата");
         }
@@ -536,8 +536,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_ObjectWithoutVersion_IsRefused()
         {
-            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize("{}"));
-            Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize("{\"Foo\":\"bar\"}"));
+            Assert.Throws<NotSupportedException>(() => Service.Deserialize("{}"));
+            Assert.Throws<NotSupportedException>(() => Service.Deserialize("{\"Foo\":\"bar\"}"));
         }
 
         /// <summary>
@@ -576,10 +576,10 @@ namespace GCodeGenerator.Tests
             }
 
             var json3 = "{\"version\":3,\"operations\":[],\"format\":true}";
-            Assert.ThrowsException<JsonException>(() => Service.Deserialize(json3));
+            Assert.Throws<JsonException>(() => Service.Deserialize(json3));
 
             var json4 = "{\"version\":3,\"operations\":[],\"workCoordinate\":[]}";
-            Assert.ThrowsException<JsonException>(() => Service.Deserialize(json4));
+            Assert.Throws<JsonException>(() => Service.Deserialize(json4));
 
             var json2 = "{\"version\":2,\"operations\":[],\"coolant\":\"x\"}";
             try

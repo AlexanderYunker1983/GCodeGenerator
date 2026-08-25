@@ -100,7 +100,6 @@ namespace GCodeGenerator.Tests
             var clone = (PocketCircleOperation)OperationCloner.Clone(operation);
 
             Assert.AreEqual(OperationCategory.Pocket, clone.Category);
-            Assert.AreEqual(OperationType.PocketMilling, clone.Type);
         }
 
         /// <summary>
@@ -159,7 +158,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Clone_Null_Throws()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => OperationCloner.Clone((OperationBase)null));
+            Assert.Throws<ArgumentNullException>(() => OperationCloner.Clone((OperationBase)null));
         }
 
         /// <summary>

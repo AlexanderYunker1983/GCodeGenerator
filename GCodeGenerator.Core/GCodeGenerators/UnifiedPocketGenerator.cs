@@ -226,20 +226,5 @@ namespace GCodeGenerator.GCodeGenerators
                 }
             }
         }
-
-        /// <summary>
-        /// Проверяет, не стал ли карман слишком маленьким (пункт 5.6 плана):
-        /// геометрия операции с учётом радиуса инструмента и уклона стенок
-        /// (худший случай — на дне, глубина = TotalDepth).
-        /// </summary>
-        private static bool IsOperationTooSmall<T>(T op) where T : IPocketOperation
-        {
-            if (op == null)
-                return true;
-
-            double toolRadius = op.ToolDiameter / 2.0;
-            double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(op.TotalDepth, op.WallTaperAngleDeg);
-            return CreateGeometry(op).IsContourTooSmall(toolRadius, taperOffset);
-        }
     }
 }

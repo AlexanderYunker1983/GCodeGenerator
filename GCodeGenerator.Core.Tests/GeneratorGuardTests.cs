@@ -63,7 +63,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.ProfileCircle();
             op.StepDepth = 0;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunProfile(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunProfile(op));
         }
 
         [TestMethod]
@@ -71,7 +71,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.ProfileCircle();
             op.StepDepth = -1;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunProfile(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunProfile(op));
         }
 
         // ------------------------------------------------------------------
@@ -83,7 +83,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.PocketCircle();
             op.StepDepth = 0;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunPocket(op));
         }
 
         [TestMethod]
@@ -91,7 +91,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.PocketCircle();
             op.StepDepth = -1;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunPocket(op));
         }
 
         [TestMethod]
@@ -100,7 +100,7 @@ namespace GCodeGenerator.Tests
             // Нулевой диаметр → нулевой шаг спирали → бесконечный цикл до 3.8.
             var op = OperationFixtures.PocketCircle();
             op.ToolDiameter = 0;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunPocket(op));
         }
 
         [TestMethod]
@@ -108,7 +108,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.PocketCircle();
             op.ToolDiameter = -3;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunPocket(op));
         }
 
         // ------------------------------------------------------------------
@@ -120,7 +120,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.DrillPoints();
             op.Holes[0].StepDepth = 0;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunDrill(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunDrill(op));
         }
 
         [TestMethod]
@@ -128,7 +128,7 @@ namespace GCodeGenerator.Tests
         {
             var op = OperationFixtures.DrillPoints();
             op.Holes[2].StepDepth = -0.5;
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunDrill(op));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunDrill(op));
         }
 
         // ------------------------------------------------------------------
@@ -138,14 +138,14 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void CalculateStep_ZeroDiameter_Throws()
         {
-            Assert.ThrowsException<ArgumentOutOfRangeException>(
+            Assert.Throws<ArgumentOutOfRangeException>(
                 () => GCodeGenerationHelper.CalculateStep(0, 40));
         }
 
         [TestMethod]
         public void CalculateStep_NegativeDiameter_Throws()
         {
-            Assert.ThrowsException<ArgumentOutOfRangeException>(
+            Assert.Throws<ArgumentOutOfRangeException>(
                 () => GCodeGenerationHelper.CalculateStep(-3, 40));
         }
 

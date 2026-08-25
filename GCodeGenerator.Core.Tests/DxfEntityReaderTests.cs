@@ -183,7 +183,7 @@ namespace GCodeGenerator.Tests
         {
             File.WriteAllText(_path, "это не DXF-файл");
 
-            Assert.ThrowsException<netDxf.IO.DxfVersionNotSupportedException>(
+            Assert.Throws<netDxf.IO.DxfVersionNotSupportedException>(
                 () => DxfImportServiceProbe.ReadProfile(_path));
         }
 

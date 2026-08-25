@@ -338,7 +338,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Pattern_WithoutOperation_Throws()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => DrillPatterns.For(DrillMode.Line).Holes(null));
+            Assert.Throws<ArgumentNullException>(() => DrillPatterns.For(DrillMode.Line).Holes(null));
         }
 
         /// <summary>
@@ -373,7 +373,7 @@ namespace GCodeGenerator.Tests
         {
             var unknown = (DrillMode)Enum.GetValues(typeof(DrillMode)).Cast<int>().Max() + 1;
 
-            var failure = Assert.ThrowsException<NotSupportedException>(() => DrillPatterns.For(unknown));
+            var failure = Assert.Throws<NotSupportedException>(() => DrillPatterns.For(unknown));
 
             StringAssert.Contains(failure.Message, ((int)unknown).ToString());
         }

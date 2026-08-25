@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class ProfileCircleOperation : ProfileOperationBase, IValidatable
     {
-        public ProfileCircleOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Circle")
+        public ProfileCircleOperation() : base(OperationCategory.Profile, "Profile Circle")
         {
         }
 

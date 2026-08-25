@@ -413,14 +413,14 @@ namespace GCodeGenerator.Tests
             };
 
             // Через полный генератор пользователь получает названную причину…
-            var error = Assert.ThrowsException<GCodeGenerationValidationException>(
+            var error = Assert.Throws<GCodeGenerationValidationException>(
                 () => new SimpleGCodeGenerator().Generate(
                     new List<OperationBase> { operation }, new GCodeSettings()));
             Assert.IsTrue(error.Failures.Any(f => f.Issues.Any(i => i.Property == "StepPercentOfTool")),
                 "Названа причина: шаг выборки");
 
             // …а расчёт шага не подставляет ничего и сам по себе.
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(operation));
+            Assert.Throws<ArgumentOutOfRangeException>(() => RunPocket(operation));
         }
 
         /// <summary>
@@ -556,8 +556,8 @@ namespace GCodeGenerator.Tests
 
             // Неположительный процент — отказ, а не «разумное» значение
             // вместо заданного: шаг определяет всю траекторию выборки.
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, 0));
-            Assert.ThrowsException<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, -5));
+            Assert.Throws<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, 0));
+            Assert.Throws<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, -5));
         }
 
         /// <summary>

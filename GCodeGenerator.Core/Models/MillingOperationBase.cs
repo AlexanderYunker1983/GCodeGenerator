@@ -23,8 +23,8 @@ namespace GCodeGenerator.Models
     /// </summary>
     public abstract partial class MillingOperationBase : CuttingOperationBase
     {
-        protected MillingOperationBase(OperationType type, OperationCategory category, string name)
-            : base(type, category, name)
+        protected MillingOperationBase(OperationCategory category, string name)
+            : base(category, name)
         {
         }
 

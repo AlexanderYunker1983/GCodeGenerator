@@ -9,7 +9,7 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class ProfileToolCompensationTests
     {
-        [DataTestMethod]
+        [TestMethod]
         [DataRow(ToolPathMode.Outside, 12.0)]
         [DataRow(ToolPathMode.Inside, 8.0)]
         public void CircleProfile_OffsetsPathByFullToolRadius(ToolPathMode mode, double expectedRadius)

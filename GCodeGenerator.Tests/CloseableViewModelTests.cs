@@ -27,9 +27,9 @@ namespace GCodeGenerator.Tests
         {
             var vm = new CloseableViewModel();
 
-            vm.RequestClose(); // без подписчиков — не бросает
-
-            Assert.IsTrue(true);
+            // Проверка в самом вызове: если бы событие вызывалось без
+            // проверки на подписчиков, здесь было бы исключение и тест упал бы.
+            vm.RequestClose();
         }
 
         [TestMethod]

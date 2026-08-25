@@ -15,10 +15,9 @@ namespace GCodeGenerator.Models
     /// Копирование выполняется через тот же сериализатор, что и файл проекта:
     /// состав копируемых данных по определению совпадает с составом
     /// сохраняемых, а вложенные списки (отверстия, полилинии, контуры)
-    /// копируются целиком. Свойства без публичного сеттера
-    /// (<see cref="OperationBase.Type"/>) и помеченные
+    /// копируются целиком. Свойства, помеченные
     /// <see cref="System.Text.Json.Serialization.JsonIgnoreAttribute"/>
-    /// (<see cref="OperationBase.Category"/>) восстанавливает конструктор
+    /// (<see cref="OperationBase.Category"/>), восстанавливает конструктор
     /// конкретного типа операции.
     /// </summary>
     public static class OperationCloner

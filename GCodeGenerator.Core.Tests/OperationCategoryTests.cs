@@ -75,19 +75,6 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Багфикс 7.2a: карманы (кроме DXF) раньше проходили как
-        /// OperationType.ProfileMilling — теперь PocketMilling.
-        /// </summary>
-        [TestMethod]
-        public void PocketOperations_HavePocketMillingOperationType()
-        {
-            Assert.AreEqual(OperationType.PocketMilling, new PocketCircleOperation().Type);
-            Assert.AreEqual(OperationType.PocketMilling, new PocketEllipseOperation().Type);
-            Assert.AreEqual(OperationType.PocketMilling, new PocketRectangleOperation().Type);
-            Assert.AreEqual(OperationType.PocketMilling, new PocketDxfOperation().Type);
-        }
-
-        /// <summary>
         /// Category не пишется в .ygc ([JsonIgnore]) и восстанавливается
         /// конструктором после загрузки.
         /// </summary>

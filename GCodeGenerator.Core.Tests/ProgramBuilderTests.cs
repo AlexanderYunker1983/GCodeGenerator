@@ -139,9 +139,9 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void SetWcs_Invalid_Throws()
         {
-            Assert.ThrowsException<ArgumentException>(() => _builder.SetWcs("G0"));
-            Assert.ThrowsException<ArgumentException>(() => _builder.SetWcs("G60"));
-            Assert.ThrowsException<ArgumentException>(() => _builder.SetWcs(""));
+            Assert.Throws<ArgumentException>(() => _builder.SetWcs("G0"));
+            Assert.Throws<ArgumentException>(() => _builder.SetWcs("G60"));
+            Assert.Throws<ArgumentException>(() => _builder.SetWcs(""));
         }
 
         [TestMethod]

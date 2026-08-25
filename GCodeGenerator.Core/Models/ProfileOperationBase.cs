@@ -17,8 +17,8 @@ namespace GCodeGenerator.Models
     /// </summary>
     public abstract partial class ProfileOperationBase : MillingOperationBase, IProfileOperation
     {
-        protected ProfileOperationBase(OperationType type, OperationCategory category, string name)
-            : base(type, category, name)
+        protected ProfileOperationBase(OperationCategory category, string name)
+            : base(category, name)
         {
         }
 

@@ -78,7 +78,7 @@ namespace GCodeGenerator.Tests
         {
             var unknown = (PocketStrategy)Enum.GetValues(typeof(PocketStrategy)).Cast<int>().Max() + 1;
 
-            var failure = Assert.ThrowsException<NotSupportedException>(() => PocketStrategies.For(unknown));
+            var failure = Assert.Throws<NotSupportedException>(() => PocketStrategies.For(unknown));
 
             StringAssert.Contains(failure.Message, ((int)unknown).ToString());
         }

@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class PocketDxfOperation : PocketOperationBase, IValidatable
     {
-        public PocketDxfOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket DXF")
+        public PocketDxfOperation() : base(OperationCategory.Pocket, "Pocket DXF")
         {
         }
 

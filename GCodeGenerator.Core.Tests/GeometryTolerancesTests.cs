@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using GCodeGenerator.Geometry;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -10,6 +11,13 @@ namespace GCodeGenerator.Tests
     /// с пересмотром эталонных программ, а не побочный эффект правки.
     /// </summary>
     [TestClass]
+    // Проверки этого класса сравнивают константы между собой, и анализатор
+    // считает такие утверждения бессмысленными. Здесь они и есть цель:
+    // значения допусков и порядок между ними — договорённость, на которой
+    // построены эталонные программы, и правка любого из них должна ронять
+    // тест, а не тихо менять G-code.
+    [SuppressMessage("Usage", "MSTEST0032:Assertion condition is always true",
+        Justification = "Значения допусков фиксируются намеренно")]
     public class GeometryTolerancesTests
     {
         [TestMethod]

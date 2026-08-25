@@ -15,8 +15,8 @@ namespace GCodeGenerator.Models
     /// </summary>
     public abstract partial class PocketOperationBase : MillingOperationBase, IPocketOperation
     {
-        protected PocketOperationBase(OperationType type, OperationCategory category, string name)
-            : base(type, category, name)
+        protected PocketOperationBase(OperationCategory category, string name)
+            : base(category, name)
         {
         }
 

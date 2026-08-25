@@ -47,8 +47,13 @@ namespace GCodeGenerator.Infrastructure
                 .As<IProjectWorkflowFactory>()
                 .SingleInstance();
 
+            // View-модели, которые собирает контейнер. Рабочие процессы
+            // генерации и проекта в этот список не входят: их создают фабрики,
+            // передавая коллекцию операций и настройки документа, и публичного
+            // конструктора у них нет — по нему они здесь и отсеиваются.
             builder.RegisterAssemblyTypes(typeof(MainViewModel).Assembly)
                 .AssignableTo<ViewModelBase>()
+                .Where(type => type.GetConstructors().Length > 0)
                 .InstancePerDependency();
         }
 

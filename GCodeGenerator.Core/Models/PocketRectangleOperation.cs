@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class PocketRectangleOperation : PocketOperationBase, IValidatable
     {
-        public PocketRectangleOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Rectangle")
+        public PocketRectangleOperation() : base(OperationCategory.Pocket, "Pocket Rectangle")
         {
         }
         [ObservableProperty]

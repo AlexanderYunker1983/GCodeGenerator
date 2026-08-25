@@ -17,7 +17,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class DrillPointsOperation : CuttingOperationBase, IValidatable
     {
-        public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
+        public DrillPointsOperation() : base(OperationCategory.Drill, "Drill points")
         {
             AttachHoles(_holes);
         }

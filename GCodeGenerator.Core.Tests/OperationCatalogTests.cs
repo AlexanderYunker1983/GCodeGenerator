@@ -98,8 +98,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Catalog_UnknownType_Throws()
         {
-            Assert.ThrowsException<NotSupportedException>(() => OperationCatalog.ForType(typeof(string)));
-            Assert.ThrowsException<ArgumentNullException>(() => OperationCatalog.ForType(null));
+            Assert.Throws<NotSupportedException>(() => OperationCatalog.ForType(typeof(string)));
+            Assert.Throws<ArgumentNullException>(() => OperationCatalog.ForType(null));
         }
 
         /// <summary>Для каждого типа каталога зарегистрирован генератор G-кода.</summary>
@@ -161,9 +161,9 @@ namespace GCodeGenerator.Tests
         {
             var drill = new DrillPointsOperation();
 
-            var profileFailure = Assert.ThrowsException<NotSupportedException>(
+            var profileFailure = Assert.Throws<NotSupportedException>(
                 () => OperationCatalog.CreateProfileGeometry(drill));
-            var pocketFailure = Assert.ThrowsException<NotSupportedException>(
+            var pocketFailure = Assert.Throws<NotSupportedException>(
                 () => OperationCatalog.CreatePocketGeometry(drill));
 
             StringAssert.Contains(profileFailure.Message, nameof(DrillPointsOperation));

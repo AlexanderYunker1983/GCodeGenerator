@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class ProfileDxfOperation : ProfileOperationBase, IValidatable
     {
-        public ProfileDxfOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile DXF")
+        public ProfileDxfOperation() : base(OperationCategory.Profile, "Profile DXF")
         {
         }
 

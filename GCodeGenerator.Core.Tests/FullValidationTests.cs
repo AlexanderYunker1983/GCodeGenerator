@@ -223,7 +223,7 @@ namespace GCodeGenerator.Tests
             operation.FeedXYWork = 0;
             operation.Decimals = 99;
 
-            var error = Assert.ThrowsException<GCodeGenerationValidationException>(
+            var error = Assert.Throws<GCodeGenerationValidationException>(
                 () => new SimpleGCodeGenerator().Generate(
                     new List<OperationBase> { operation }, new GCodeSettings()));
 

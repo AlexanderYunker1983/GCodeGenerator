@@ -56,7 +56,7 @@ namespace GCodeGenerator.Tests
             var invalid = ValidDrill("Invalid drill");
             invalid.Holes[0].StepDepth = 0;
 
-            var exception = Assert.ThrowsException<GCodeGenerationValidationException>(() =>
+            var exception = Assert.Throws<GCodeGenerationValidationException>(() =>
                 generator.Generate(
                     new List<OperationBase> { ValidDrill(), invalid },
                     new GCodeSettings()));
@@ -73,7 +73,7 @@ namespace GCodeGenerator.Tests
             var generator = new SimpleGCodeGenerator(
                 new SingleGeneratorRegistry(typeof(ProfileCircleOperation), new RecordingOperationGenerator()));
 
-            var exception = Assert.ThrowsException<GCodeGenerationValidationException>(() =>
+            var exception = Assert.Throws<GCodeGenerationValidationException>(() =>
                 generator.Generate(
                     new List<OperationBase> { ValidDrill("Missing generator") },
                     new GCodeSettings()));

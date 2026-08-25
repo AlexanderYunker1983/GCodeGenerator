@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class ProfilePolygonOperation : ProfileOperationBase, IValidatable
     {
-        public ProfilePolygonOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Polygon")
+        public ProfilePolygonOperation() : base(OperationCategory.Profile, "Profile Polygon")
         {
         }
 

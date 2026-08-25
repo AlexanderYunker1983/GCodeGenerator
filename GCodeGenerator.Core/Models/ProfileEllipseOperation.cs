@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class ProfileEllipseOperation : ProfileOperationBase, IValidatable
     {
-        public ProfileEllipseOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Ellipse")
+        public ProfileEllipseOperation() : base(OperationCategory.Profile, "Profile Ellipse")
         {
         }
 

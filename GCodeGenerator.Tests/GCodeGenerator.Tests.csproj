@@ -25,8 +25,8 @@
   <ItemGroup>
     <!-- Пункт 1.5: 18.x — поддержка net10.0 (17.8.0 — эпохи net481/net8). -->
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
-    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
-    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+    <PackageReference Include="MSTest.TestAdapter" Version="4.3.3" />
+    <PackageReference Include="MSTest.TestFramework" Version="4.3.3" />
   </ItemGroup>
 
   <ItemGroup>

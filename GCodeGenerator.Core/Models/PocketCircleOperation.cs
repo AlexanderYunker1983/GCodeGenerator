@@ -9,7 +9,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public partial class PocketCircleOperation : PocketOperationBase, IValidatable
     {
-        public PocketCircleOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Circle")
+        public PocketCircleOperation() : base(OperationCategory.Pocket, "Pocket Circle")
         {
         }
 
