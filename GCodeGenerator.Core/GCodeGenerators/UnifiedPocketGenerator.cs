@@ -15,8 +15,8 @@ namespace GCodeGenerator.GCodeGenerators
     /// Использует интерфейсы геометрии и классы-помощники для унификации логики.
     /// Пункт 4.6 плана (декомпозиция): слой DXF-кармана — <see cref="DxfPocketLayerGenerator"/>,
     /// обработка контура — <see cref="IPocketPocketingStrategy"/> (5 стратегий, фаза 5).
-    /// Пункт 5.6 плана: roughing/finishing через
-    /// <see cref="PocketGenerationHelper.ProcessRoughingFinishing"/>.
+    /// Пункт 5.6 плана: состав и порядок черновых и чистовых проходов
+    /// определяет <see cref="PocketPassPlanner"/>, генератор их исполняет.
     /// </summary>
     public class UnifiedPocketGenerator : IOperationGenerator
     {
@@ -65,36 +65,20 @@ namespace GCodeGenerator.GCodeGenerators
             if (!(operation is IPocketOperation pocketOp))
                 return;
 
-            // Пункт 5.6: быстрый путь — roughing/finishing выключены (все существующие
-            // фикстуры и legacy .ygc) — генерация напрямую, без клонирования операции.
-            if (!pocketOp.IsRoughingEnabled && !pocketOp.IsFinishingEnabled)
-            {
-                MillPocket(pocketOp, CreateGeometry(pocketOp), builder, settings);
-                return;
-            }
+            // Пункт 5.6: черновой и чистовые проходы. Состав и порядок проходов
+            // определяет PocketPassPlanner, генератор только исполняет план.
+            var plan = PocketPassPlanner.Plan(pocketOp);
 
-            // Пункт 5.6: roughing/finishing. Припуск применяется увеличением диаметра
-            // инструмента (равномерно для всех типов карманов, включая DXF, где контур
-            // нельзя сжать полем) — эквивалентно смещению траектории внутрь на припуск.
-            _helper.ProcessRoughingFinishing(
-                pocketOp,
-                generateInternal: roughOp => MillPocket(
-                    roughOp,
-                    CreateGeometry(roughOp),
-                    builder,
-                    settings,
-                    taperOriginZ: pocketOp.ContourHeight),
-                generateWallsFinishing: (wallOp, allowance) => MillWallsFinishing(wallOp, builder, settings, pocketOp),
-                cloneOperation: OperationCloner.Clone,
-                applyRoughingAllowance: (roughOp, d) =>
-                {
-                    roughOp.TotalDepth -= d;
-                    roughOp.ToolDiameter += 2.0 * d;
-                },
-                isOperationTooSmall: IsOperationTooSmall,
-                applyBottomFinishingAllowance: (bottomOp, a) => bottomOp.ToolDiameter += 2.0 * a,
-                builder,
-                settings);
+            if (plan.SkipComment != null)
+                builder.Comment(plan.SkipComment);
+
+            foreach (var pass in plan.Passes)
+            {
+                if (pass.Kind == PocketPassKind.WallFinishing)
+                    MillWallsFinishing(pass.Operation, builder, settings, plan.TaperOriginZ);
+                else
+                    MillPocket(pass.Operation, CreateGeometry(pass.Operation), builder, settings, plan.TaperOriginZ);
+            }
         }
 
         /// <summary>
@@ -212,15 +196,15 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Чистовая обработка стенок (пункт 5.6 плана): цикл по слоям слоя припуска,
         /// каждый слой — замкнутый контур <c>GetContour(toolRadius, taperOffset)</c>
-        /// (режущая кромка фрезы точно на стенке). Уклон измеряется от верха исходного
-        /// кармана (<paramref name="originalOp"/>). Для DXF — по каждому контуру
-        /// (с подъёмом на SafeZ между контурами).
+        /// (режущая кромка фрезы точно на стенке). Уклон измеряется от верха
+        /// исходного кармана (<paramref name="taperOriginZ"/>). Для DXF — по
+        /// каждому контуру (с подъёмом на SafeZ между контурами).
         /// </summary>
         private void MillWallsFinishing(
             IPocketOperation wallOp,
             ProgramBuilder builder,
             GCodeSettings settings,
-            IPocketOperation originalOp)
+            double taperOriginZ)
         {
             double toolRadius = wallOp.ToolDiameter / 2.0;
             double stepPercent = (wallOp.StepPercentOfTool <= 0) ? 40 : wallOp.StepPercentOfTool;
@@ -239,7 +223,7 @@ namespace GCodeGenerator.GCodeGenerators
                     nextZ,
                     builder,
                     settings,
-                    taperOriginZ: originalOp.ContourHeight,
+                    taperOriginZ: taperOriginZ,
                     strategy: WallFinishingStrategy.Instance),
                 builder,
                 settings);

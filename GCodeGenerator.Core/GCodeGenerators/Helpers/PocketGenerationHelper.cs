@@ -6,114 +6,11 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.GCodeGenerators.Helpers
 {
     /// <summary>
-    /// Класс-помощник для генерации G-кода карманов.
-    /// Содержит общую логику обработки черновой и чистовой обработки.
+    /// Класс-помощник для генерации G-кода карманов: цикл обработки по слоям
+    /// с проверкой, что контур ещё не выродился.
     /// </summary>
     public class PocketGenerationHelper
     {
-        /// <summary>
-        /// Обрабатывает логику черновой и чистовой обработки кармана.
-        /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
-        /// Мёртвый код: подключение — фаза 5 (пункт 5.6 плана).
-        /// </summary>
-        /// <typeparam name="T">Тип операции кармана</typeparam>
-        /// <param name="operation">Операция кармана</param>
-        /// <param name="generateInternal">Делегат для генерации внутренней обработки</param>
-        /// <param name="generateWallsFinishing">Делегат для генерации чистовой обработки стенок</param>
-        /// <param name="cloneOperation">Делегат для клонирования операции</param>
-        /// <param name="applyRoughingAllowance">Делегат для применения припуска при черновой обработке</param>
-        /// <param name="isOperationTooSmall">Делегат для проверки, не стал ли карман слишком маленьким</param>
-        /// <param name="applyBottomFinishingAllowance">Делегат для применения припуска при чистовой обработке дна</param>
-        /// <param name="builder">Построитель структурированной программы</param>
-        /// <param name="settings">Настройки генерации G-кода</param>
-        public void ProcessRoughingFinishing<T>(
-            T operation,
-            Action<T> generateInternal,
-            Action<T, double> generateWallsFinishing,
-            Func<T, T> cloneOperation,
-            Action<T, double> applyRoughingAllowance,
-            Func<T, bool> isOperationTooSmall,
-            Action<T, double> applyBottomFinishingAllowance,
-            ProgramBuilder builder,
-            GCodeSettings settings)
-            where T : IPocketOperation
-        {
-            bool roughing = operation.IsRoughingEnabled;
-            bool finishing = operation.IsFinishingEnabled;
-            double allowance = Math.Max(0.0, operation.FinishAllowance);
-
-            // Если оба выключены – обрабатываем как раньше, без припуска
-            if (!roughing && !finishing)
-            {
-                roughing = true;
-                allowance = 0.0;
-            }
-
-            // Черновая обработка
-            if (roughing)
-            {
-                var roughOp = cloneOperation(operation);
-                double depthAllowance = Math.Min(allowance, Math.Max(0.0, roughOp.TotalDepth - 1e-6));
-
-                if (depthAllowance > 0)
-                {
-                    applyRoughingAllowance(roughOp, depthAllowance);
-
-                    if (isOperationTooSmall(roughOp))
-                    {
-                        builder.Comment("Pocket too small after roughing allowance, skipping");
-                        return;
-                    }
-                }
-
-                generateInternal(roughOp);
-            }
-
-            // Чистовая обработка
-            if (finishing && allowance > 0)
-            {
-                double depthAllowance = Math.Min(allowance, Math.Max(0.0, operation.TotalDepth));
-                if (depthAllowance < 1e-6)
-                    return;
-
-                // Базовая чистовая операция по глубине: работаем только в слое припуска
-                var baseFinishOp = cloneOperation(operation);
-                baseFinishOp.ContourHeight = operation.ContourHeight - (operation.TotalDepth - depthAllowance);
-                baseFinishOp.TotalDepth = depthAllowance;
-                baseFinishOp.IsRoughingEnabled = false;
-                baseFinishOp.IsFinishingEnabled = false;
-                baseFinishOp.FinishAllowance = allowance;
-
-                switch (operation.FinishingMode)
-                {
-                    case PocketFinishingMode.Walls:
-                        generateWallsFinishing(baseFinishOp, allowance);
-                        break;
-
-                    case PocketFinishingMode.Bottom:
-                        {
-                            var bottomOp = cloneOperation(baseFinishOp);
-                            applyBottomFinishingAllowance(bottomOp, allowance);
-                            if (!isOperationTooSmall(bottomOp))
-                                generateInternal(bottomOp);
-                        }
-                        break;
-
-                    case PocketFinishingMode.All:
-                    default:
-                        {
-                            var bottomOp = cloneOperation(baseFinishOp);
-                            applyBottomFinishingAllowance(bottomOp, allowance);
-                            if (!isOperationTooSmall(bottomOp))
-                                generateInternal(bottomOp);
-
-                            generateWallsFinishing(baseFinishOp, allowance);
-                        }
-                        break;
-                }
-            }
-        }
-
         /// <summary>
         /// Генерирует цикл обработки по слоям.
         /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
