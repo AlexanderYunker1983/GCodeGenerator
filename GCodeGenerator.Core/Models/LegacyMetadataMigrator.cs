@@ -2,55 +2,54 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-// Metadata карманных операций помечено [Obsolete] (пункт 7.2c плана) —
-// мигратор намеренно читает и очищает его (разовая миграция легаси-.ygc;
-// после следующего сохранения мигрированные ключи из файла исчезают).
-#pragma warning disable CS0618
-
 namespace GCodeGenerator.Models
 {
     /// <summary>
-    /// Односторонняя миграция легаси-словаря <c>Metadata</c> сверления в
-    /// типизированные свойства (пункт 3.2 плана). Вызывается <c>ProjectFileService</c>
-    /// сразу после десериализации каждой операции.
+    /// Односторонняя миграция легаси-словаря <c>Metadata</c> в типизированные
+    /// свойства операции. Вызывается <c>ProjectFileService</c> только при чтении
+    /// форматов v1-v3; текущие доменные модели словаря Metadata больше не имеют.
     ///
     /// Старые .ygc (v1 и v2 до пункта 3.1) хранят параметры паттерна сверления
-    /// только в <see cref="DrillPointsOperation.Metadata"/>. После миграции значения
-    /// находятся в типизированных свойствах, а мигрированные ключи удаляются из
-    /// <c>Metadata</c>, поэтому при следующем сохранении файл уже не содержит их.
-    /// Нераспознанные ключи (вручную созданные файлы) сохраняются.
+    /// только в Metadata. После миграции значения находятся в типизированных
+    /// свойствах, а распознанные ключи удаляются из переданного словаря.
+    /// Оставшиеся ключи проверяются файловым адаптером: они не должны быть
+    /// незаметно потеряны при сохранении в новом формате.
     ///
-    /// Профили миграции не требуют (с пункта 3.6): <c>Metadata</c> профильных
-    /// операций не десериализуется ([JsonIgnore]), а легаси-файлы профилей
-    /// содержат типизированные свойства (старые диалоги писали значения дважды).
+    /// Профили миграции не требуют: легаси-файлы профилей содержат типизированные
+    /// свойства, а старый словарь был лишь их дубликатом.
     ///
     /// Карманы (пункт 7.2c): старые диалоги хранили параметры карманов в
     /// <c>Metadata</c> (ключ-триггер геометрии Radius/Width/RadiusX) — значения
     /// копируются в типизированные свойства, мигрированные ключи удаляются.
     /// DXF-карманы не мигрируются: их диалог никогда не читал Metadata.
     ///
-    /// Метод идемпотентен: операция с пустым <c>Metadata</c> не изменяется.
+    /// Метод идемпотентен: операция с пустым словарём не изменяется.
     /// </summary>
     public static class LegacyMetadataMigrator
     {
         /// <summary>
         /// Мигрирует легаси-Metadata операции в типизированные свойства.
         /// </summary>
-        public static void Migrate(OperationBase operation)
+        public static void Migrate(OperationBase operation, IDictionary<string, object> metadata)
         {
+            if (operation == null)
+                throw new ArgumentNullException(nameof(operation));
+            if (metadata == null || metadata.Count == 0)
+                return;
+
             switch (operation)
             {
                 case DrillPointsOperation drill:
-                    MigrateDrill(drill);
+                    MigrateDrill(drill, metadata);
                     break;
                 case PocketCircleOperation pocketCircle:
-                    MigratePocketCircle(pocketCircle);
+                    MigratePocketCircle(pocketCircle, metadata);
                     break;
                 case PocketRectangleOperation pocketRectangle:
-                    MigratePocketRectangle(pocketRectangle);
+                    MigratePocketRectangle(pocketRectangle, metadata);
                     break;
                 case PocketEllipseOperation pocketEllipse:
-                    MigratePocketEllipse(pocketEllipse);
+                    MigratePocketEllipse(pocketEllipse, metadata);
                     break;
                 default:
                     // Профили: Metadata не десериализуется (пункт 3.6), миграция не нужна.
@@ -64,17 +63,8 @@ namespace GCodeGenerator.Models
         // Сверление
         // ------------------------------------------------------------------
 
-        private static void MigrateDrill(DrillPointsOperation op)
+        private static void MigrateDrill(DrillPointsOperation op, IDictionary<string, object> meta)
         {
-            var meta = op.Metadata;
-            if (meta == null)
-            {
-                op.Metadata = new Dictionary<string, object>();
-                return;
-            }
-            if (meta.Count == 0)
-                return;
-
             var mode = DetectDrillMode(op, meta);
             if (mode == DrillMode.Points)
                 return; // распознанных ключей паттерна нет — Metadata оставляем как есть
@@ -200,10 +190,10 @@ namespace GCodeGenerator.Models
         // ------------------------------------------------------------------
         // Чтение значений Metadata
         //
-        // Значения после PrimitiveDictionaryConverter: Int32/Int64/Decimal/
+        // Значения после legacy JSON-адаптера: Int32/Int64/Decimal/
         // string/bool/null (enum — Int32). Читаем через Convert, как это делали
-        // диалоги; при неконвертируемом значении свойство не изменяется, а
-        // ключ удаляется (данные в файле были некорректны).
+        // диалоги. Неконвертируемый ключ остаётся в словаре, поэтому файловый
+        // адаптер отклонит проект вместо тихой подстановки значения по умолчанию.
         // ------------------------------------------------------------------
 
         private static void ReadDouble(IDictionary<string, object> meta, string key, Action<double> apply)
@@ -213,12 +203,12 @@ namespace GCodeGenerator.Models
                 try
                 {
                     apply(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+                    meta.Remove(key);
                 }
                 catch (Exception)
                 {
-                    // Некорректное значение — оставляем текущее свойство.
+                    // Файловый адаптер увидит оставшийся некорректный ключ.
                 }
-                meta.Remove(key);
             }
         }
 
@@ -229,12 +219,12 @@ namespace GCodeGenerator.Models
                 try
                 {
                     apply(Convert.ToInt32(value, CultureInfo.InvariantCulture));
+                    meta.Remove(key);
                 }
                 catch (Exception)
                 {
-                    // Некорректное значение — оставляем текущее свойство.
+                    // Файловый адаптер увидит оставшийся некорректный ключ.
                 }
-                meta.Remove(key);
             }
         }
 
@@ -245,14 +235,14 @@ namespace GCodeGenerator.Models
             {
                 try
                 {
-                    // enum в Metadata хранится как Int32 (PrimitiveDictionaryConverter).
+                    // enum в Metadata хранится как Int32.
                     apply((TEnum)Enum.ToObject(typeof(TEnum), Convert.ToInt32(value, CultureInfo.InvariantCulture)));
+                    meta.Remove(key);
                 }
                 catch (Exception)
                 {
-                    // Некорректное значение — оставляем текущее свойство.
+                    // Файловый адаптер увидит оставшийся некорректный ключ.
                 }
-                meta.Remove(key);
             }
         }
 
@@ -279,12 +269,12 @@ namespace GCodeGenerator.Models
                 try
                 {
                     apply(Convert.ToBoolean(value, CultureInfo.InvariantCulture));
+                    meta.Remove(key);
                 }
                 catch (Exception)
                 {
-                    // Некорректное значение — оставляем текущее свойство.
+                    // Файловый адаптер увидит оставшийся некорректный ключ.
                 }
-                meta.Remove(key);
             }
         }
 
@@ -298,18 +288,12 @@ namespace GCodeGenerator.Models
         // из типизированных свойств. Миграция повторяет это поведение в Core:
         // значения копируются в типизированные свойства, мигрированные ключи
         // удаляются, при следующем сохранении файл их уже не содержит.
-        // Нераспознанные ключи сохраняются. Metadata остаётся сериализуемым
-        // на один релиз ([Obsolete] без [JsonIgnore]) — см. модели.
+        // Нераспознанные ключи остаются в переданном словаре: файловый адаптер
+        // отклоняет такой проект, чтобы данные не потерялись при сохранении в v4.
         // ------------------------------------------------------------------
 
-        private static void MigratePocketCircle(PocketCircleOperation op)
+        private static void MigratePocketCircle(PocketCircleOperation op, IDictionary<string, object> meta)
         {
-            var meta = op.Metadata;
-            if (meta == null)
-            {
-                op.Metadata = new Dictionary<string, object>();
-                return;
-            }
             if (meta.Count == 0 || !meta.ContainsKey("Radius"))
                 return;
 
@@ -339,14 +323,8 @@ namespace GCodeGenerator.Models
                 v => op.FinishingMode = v);
         }
 
-        private static void MigratePocketRectangle(PocketRectangleOperation op)
+        private static void MigratePocketRectangle(PocketRectangleOperation op, IDictionary<string, object> meta)
         {
-            var meta = op.Metadata;
-            if (meta == null)
-            {
-                op.Metadata = new Dictionary<string, object>();
-                return;
-            }
             if (meta.Count == 0 || !meta.ContainsKey("Width"))
                 return;
 
@@ -379,14 +357,8 @@ namespace GCodeGenerator.Models
                 v => op.FinishingMode = v);
         }
 
-        private static void MigratePocketEllipse(PocketEllipseOperation op)
+        private static void MigratePocketEllipse(PocketEllipseOperation op, IDictionary<string, object> meta)
         {
-            var meta = op.Metadata;
-            if (meta == null)
-            {
-                op.Metadata = new Dictionary<string, object>();
-                return;
-            }
             if (meta.Count == 0 || !meta.ContainsKey("RadiusX"))
                 return;
 
@@ -465,4 +437,3 @@ namespace GCodeGenerator.Models
         }
     }
 }
-#pragma warning restore CS0618

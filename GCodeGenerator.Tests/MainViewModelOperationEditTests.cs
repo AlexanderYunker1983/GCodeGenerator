@@ -322,7 +322,7 @@ namespace GCodeGenerator.Tests
             var path = Path.Combine(Path.GetTempPath(), "gcg_future_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                File.WriteAllText(path, "{\"version\":4,\"operations\":[]}");
+                File.WriteAllText(path, "{\"version\":5,\"operations\":[]}");
                 dialogService.OpenDialogResult = path;
 
                 main.OpenProjectCommand.Execute(null);

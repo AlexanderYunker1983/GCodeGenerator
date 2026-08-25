@@ -17,14 +17,12 @@ namespace GCodeGenerator.Tests
     /// <summary>
     /// Тесты ProjectFileService (пункты 0.6 и 1.2 плана): round-trip проекта .ygc.
     ///
-    /// Формат v2 (System.Text.Json), в который всегда сохраняется:
-    /// {"version":2,"operations":[{"type":"&lt;короткое имя&gt;","data":{...}}]}.
+    /// Текущий формат v4 (System.Text.Json), в который всегда сохраняется:
+    /// {"version":4,"operations":[{"type":"&lt;короткое имя&gt;","data":{...}}]}.
     /// Легаси-формат v1 (JavaScriptSerializer) — только чтение:
     /// {"Operations":[{"Type":"&lt;AssemblyQualifiedName&gt;","Data":"&lt;JSON операции&gt;"}]}.
     ///
-    /// Нюанс сравнения: значения Metadata (Dictionary&lt;string, object&gt;) после round-trip
-    /// приходят как Int32/Decimal/string (повторяет JavaScriptSerializer), а не как исходный
-    /// тип — числа сравниваются как double.
+    /// Форматы v2/v3 и легаси v1 читаются для совместимости.
     /// </summary>
     [TestClass]
     public class ProjectFileServiceTests
@@ -157,20 +155,20 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
-        // Текущий формат v3
+        // Текущий формат v4
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Формат v3 зафиксирован: конверт {"version":3,"operations":[{type,data}...]},
+        /// Формат v4 зафиксирован: конверт {"version":4,"operations":[{type,data}...]},
         /// короткий дискриминатор типа, данные операции — вложенный JSON-объект.
         /// </summary>
         [TestMethod]
-        public void FileFormat_V3Structure()
+        public void FileFormat_V4Structure()
         {
             var json = Service.Serialize(BuildAllOperations(), null);
 
-            Assert.IsTrue(json.StartsWith("{\"version\":3,\"operations\":[", StringComparison.Ordinal),
-                "Файл должен начинаться с {\"version\":3,\"operations\":[");
+            Assert.IsTrue(json.StartsWith("{\"version\":4,\"operations\":[", StringComparison.Ordinal),
+                "Файл должен начинаться с {\"version\":4,\"operations\":[");
             Assert.IsTrue(json.Contains("\"type\":\"DrillPoints\""),
                 "type — короткое имя операции (не AssemblyQualifiedName)");
             Assert.IsTrue(json.Contains("\"data\":{"),
@@ -224,7 +222,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_UnsupportedVersion_Throws()
         {
-            var newer = "{\"version\":4,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
+            var newer = "{\"version\":5,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
             var olderTagged = "{\"version\":1,\"operations\":[]}";
 
             Assert.ThrowsException<NotSupportedException>(() => Service.Deserialize(newer));
@@ -405,35 +403,36 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Миграция при сохранении: легаси v1 → загрузить → сохранить → файл становится v3,
-        /// операции сохраняются (round-trip через v3).
+        /// Миграция при сохранении: легаси v1 → загрузить → сохранить → файл становится v4,
+        /// операции сохраняются (round-trip через v4).
         /// </summary>
         [TestMethod]
-        public void Save_MigratesLegacyToV3()
+        public void Save_MigratesLegacyToV4()
         {
             var legacyPath = Path.Combine(ReferenceOutputDirectory, "legacy_project_v1.ygc");
             var loaded = Service.Load(legacyPath).Operations;
             Assert.IsNotNull(loaded);
             Assert.AreEqual(19, loaded.Count);
 
-            var v3Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
+            var v4Path = Path.Combine(Path.GetTempPath(), "gcg_migrate_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
             {
-                Service.Save(v3Path, loaded, null);
-                var json = File.ReadAllText(v3Path, Encoding.UTF8);
-                Assert.IsTrue(json.StartsWith("{\"version\":3,\"operations\":[", StringComparison.Ordinal),
-                    "Сохранённый файл должен быть в формате v3");
+                Service.Save(v4Path, loaded, null);
+                var json = File.ReadAllText(v4Path, Encoding.UTF8);
+                Assert.IsTrue(json.StartsWith("{\"version\":4,\"operations\":[", StringComparison.Ordinal),
+                    "Сохранённый файл должен быть в формате v4");
                 Assert.IsFalse(json.Contains("\"Operations\""), "Не должно остаться легаси-секции Operations");
+                Assert.IsFalse(json.Contains("\"Metadata\""), "В формате v4 не должно быть Metadata");
 
-                var reloaded = Service.Load(v3Path).Operations;
+                var reloaded = Service.Load(v4Path).Operations;
                 Assert.AreEqual(19, reloaded.Count, "Число операций после миграции");
                 for (int i = 0; i < loaded.Count; i++)
                     CompareOperation($"операция[{i}]", loaded[i], reloaded[i]);
             }
             finally
             {
-                if (File.Exists(v3Path))
-                    File.Delete(v3Path);
+                if (File.Exists(v4Path))
+                    File.Delete(v4Path);
             }
         }
 
@@ -691,7 +690,7 @@ namespace GCodeGenerator.Tests
                 return;
             }
 
-            // Числа — как double: значения Metadata после round-trip приходят Int32/Decimal.
+            // Числовые свойства сравниваем как double независимо от конкретного CLR-типа.
             if (IsNumericType(a.GetType()) && IsNumericType(b.GetType()))
             {
                 Assert.AreEqual(Convert.ToDouble(a, CultureInfo.InvariantCulture),

@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 
 namespace GCodeGenerator.Models
@@ -148,17 +146,6 @@ namespace GCodeGenerator.Models
         /// Maximum allowed linear segment length when approximating arcs.
         /// </summary>
         public double MaxSegmentLength { get; set; } = 0.5;
-
-        /// <summary>
-        /// Legacy parameter storage (double-write of the old dialogs).
-        /// Deprecated (plan item 3.6): values are stored in typed properties,
-        /// the field is not serialized and is not restored when loading old .ygc
-        /// (legacy profile files already contain the typed properties).
-        /// Kept for one release; will be removed in the next.
-        /// </summary>
-        [Obsolete("Use typed properties. Metadata will be removed in the next release (plan item 3.6).")]
-        [JsonIgnore]
-        public Dictionary<string, object> Metadata { get; set; }
 
         public override string GetDescription()
         {

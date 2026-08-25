@@ -19,8 +19,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         protected override void LoadFromOperation(ProfileRectangleOperation operation)
         {
-            // Читаем только типизированные свойства (пункт 3.5 плана):
-            // легаси-Metadata мигрируется в свойства при загрузке (пункт 3.2).
+            // Типизированные свойства — единственный источник данных профиля;
+            // дублирующее легаси-Metadata файловый адаптер намеренно игнорирует.
             ToolPathMode = operation.ToolPathMode;
             Direction = operation.Direction;
             Width = operation.Width;
@@ -353,4 +353,3 @@ namespace GCodeGenerator.ViewModels.PocketMill
         protected override bool IsValid() => Width > 0 && Height > 0 && ToolDiameter > 0;
     }
 }
-

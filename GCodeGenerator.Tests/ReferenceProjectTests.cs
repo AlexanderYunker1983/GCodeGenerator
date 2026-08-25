@@ -30,8 +30,9 @@ namespace GCodeGenerator.Tests
     /// нормализован к именам ассетов без машинного пути (генератор использует
     /// контуры, а не путь; файл остаётся переносимым).
     ///
-    /// Эталон хранится в текущем формате v3: короткие дискриминаторы операций и
-    /// все четыре группы настроек генерации. Legacy v1 и v2 проверяются отдельно.
+    /// Эталон хранится в текущем формате v4: короткие дискриминаторы операций,
+    /// типизированные payload без Metadata и все четыре группы настроек генерации.
+    /// Legacy v1-v3 проверяются отдельно.
     ///
     /// Перегенерация эталонного набора: переменная окружения GCG_WRITE_REFERENCE=1
     /// + тест Write_Reference_Set (пишет в исходный каталог), затем пересобрать
@@ -82,15 +83,16 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(File.Exists(ygcPath),
                 "Нет эталонного проекта Reference/reference_project.ygc " +
                 "(запустите Write_Reference_Set с GCG_WRITE_REFERENCE=1 и закоммитьте файлы)");
+            StringAssert.StartsWith(File.ReadAllText(ygcPath), "{\"version\":4,");
 
             var data = Service.Load(ygcPath);
             var ops = data.Operations;
             Assert.IsNotNull(ops, "Эталонный проект должен содержать секцию операций");
             Assert.AreEqual(19, ops.Count, "Число операций в эталонном проекте");
-            Assert.IsNotNull(data.Format, "Эталон v3 должен содержать format");
-            Assert.IsNotNull(data.Spindle, "Эталон v3 должен содержать spindle");
-            Assert.IsNotNull(data.Coolant, "Эталон v3 должен содержать coolant");
-            Assert.IsNotNull(data.WorkCoordinate, "Эталон v3 должен содержать workCoordinate");
+            Assert.IsNotNull(data.Format, "Эталон v4 должен содержать format");
+            Assert.IsNotNull(data.Spindle, "Эталон v4 должен содержать spindle");
+            Assert.IsNotNull(data.Coolant, "Эталон v4 должен содержать coolant");
+            Assert.IsNotNull(data.WorkCoordinate, "Эталон v4 должен содержать workCoordinate");
             Assert.IsTrue(data.Format.UseLineNumbers);
             Assert.AreEqual(12000, data.Spindle.SpindleSpeedRpm);
             Assert.IsTrue(data.Coolant.CoolantStartEnabled);

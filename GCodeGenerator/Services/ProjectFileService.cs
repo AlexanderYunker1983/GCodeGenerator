@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -13,29 +14,35 @@ namespace GCodeGenerator.Services
     /// Некорректные или более новые файлы отклоняются целиком, чтобы последующее
     /// сохранение не приводило к тихой потере неизвестных операций/секций.
     ///
-    /// Текущий формат v3 (System.Text.Json):
-    /// <code>{"version":3,"operations":[...],"format":{...},"spindle":{...},"coolant":{...},"workCoordinate":{...}}</code>
+    /// Текущий формат v4 (System.Text.Json):
+    /// <code>{"version":4,"operations":[...],"format":{...},"spindle":{...},"coolant":{...},"workCoordinate":{...}}</code>
     /// — конверт camelCase; payload операций и настроек — PascalCase, как в модели.
     /// Все настройки, влияющие на генерацию, сохраняются вместе с проектом;
-    /// UI-настройки остаются глобальными. Формат v2 читается для совместимости.
+    /// UI-настройки остаются глобальными. В v4 удалён легаси-словарь Metadata;
+    /// форматы v2/v3 читаются через отдельную границу миграции.
     ///
     /// Легаси-формат v1 (JavaScriptSerializer) — только чтение, мигрируется при сохранении:
     /// <code>{"Operations":[{"Type":"&lt;AssemblyQualifiedName&gt;","Data":"&lt;JSON операции&gt;"}]}</code>
     ///
-    /// Старые .ygc (v1/v2) остаются читаемыми; сохранение — всегда v3.
+    /// Старые .ygc (v1-v3) остаются читаемыми; сохранение — всегда v4.
     /// </summary>
     public class ProjectFileService : IProjectFileService
     {
         /// <summary>Текущая версия формата файла .ygc (поле "version").</summary>
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions
         {
-            Converters = { new DoubleJsonConverter(), new PrimitiveDictionaryConverter() }
+            Converters = { new DoubleJsonConverter() }
+        };
+
+        private static readonly JsonSerializerOptions LegacyMetadataOptions = new JsonSerializerOptions
+        {
+            Converters = { new LegacyMetadataDictionaryConverter() }
         };
 
         /// <summary>
-        /// Сериализует проект в JSON .ygc v3 (in-memory), включая все настройки,
+        /// Сериализует проект в JSON .ygc v4 (in-memory), включая все настройки,
         /// влияющие на генерацию G-code.
         /// </summary>
         /// <param name="operations">Операции в том порядке, в котором они должны сохраниться.</param>
@@ -83,7 +90,7 @@ namespace GCodeGenerator.Services
             return Encoding.UTF8.GetString(stream.ToArray());
         }
 
-        /// <summary>Сохраняет проект в файл в формате v3 (UTF-8 с BOM, как раньше).</summary>
+        /// <summary>Сохраняет проект в файл в формате v4 (UTF-8 с BOM, как раньше).</summary>
         public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
         {
             if (string.IsNullOrWhiteSpace(filePath))
@@ -115,7 +122,7 @@ namespace GCodeGenerator.Services
         }
 
         /// <summary>
-        /// Читает проект из файла (v3, v2 или легаси v1).
+        /// Читает проект из файла (v4, v3, v2 или легаси v1).
         /// <see cref="ProjectFileData.Operations">Operations</see> равно <c>null</c>, если в файле
         /// нет секции операций (пустой/чужой файл).
         /// Бросает исключение при некорректном JSON — обработчик ошибки остаётся у вызывающего.
@@ -127,7 +134,7 @@ namespace GCodeGenerator.Services
         }
 
         /// <summary>
-        /// Десериализует JSON проекта .ygc (v3, v2 или легаси v1).
+        /// Десериализует JSON проекта .ygc (v4, v3, v2 или легаси v1).
         /// Отсутствующие секции настроек возвращаются как null.
         /// Бросает исключение при некорректном JSON.
         /// </summary>
@@ -143,7 +150,7 @@ namespace GCodeGenerator.Services
             {
                 var version = ValidateVersionedEnvelope(root, versionElement);
                 var operations = root.TryGetProperty("operations", out var operationsElement)
-                    ? ReadOperationsArray(operationsElement, isVersioned: true)
+                    ? ReadOperationsArray(operationsElement, version)
                     : null;
                 return new ProjectFileData
                 {
@@ -162,7 +169,7 @@ namespace GCodeGenerator.Services
                 return new ProjectFileData();
             return new ProjectFileData
             {
-                Operations = ReadOperationsArray(legacyOperationsElement, isVersioned: false)
+                Operations = ReadOperationsArray(legacyOperationsElement, version: 1)
             };
         }
 
@@ -171,10 +178,10 @@ namespace GCodeGenerator.Services
             if (versionElement.ValueKind != JsonValueKind.Number || !versionElement.TryGetInt32(out int version))
                 throw new JsonException("Версия формата проекта должна быть целым числом.");
 
-            if (version != 2 && version != CurrentVersion)
+            if (version < 2 || version > CurrentVersion)
             {
                 throw new NotSupportedException(
-                    $"Версия формата проекта {version} не поддерживается. Поддерживаются версии 2 и {CurrentVersion}.");
+                    $"Версия формата проекта {version} не поддерживается. Поддерживаются версии 2-{CurrentVersion}.");
             }
 
             var allowedProperties = new HashSet<string>(StringComparer.Ordinal)
@@ -213,7 +220,7 @@ namespace GCodeGenerator.Services
             return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
         }
 
-        private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement, bool isVersioned)
+        private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement, int version)
         {
             if (operationsElement.ValueKind == JsonValueKind.Null)
                 return null;
@@ -231,7 +238,7 @@ namespace GCodeGenerator.Services
                 string typeName;
                 string dataJson;
 
-                if (isVersioned)
+                if (version >= 2)
                 {
                     if (!entry.TryGetProperty("type", out var typeElement)
                         || typeElement.ValueKind != JsonValueKind.String
@@ -268,20 +275,99 @@ namespace GCodeGenerator.Services
                         $"Тип операции '{typeName}' в позиции [{operationIndex}] не поддерживается.");
                 }
 
+                using var payloadDocument = JsonDocument.Parse(dataJson);
+                var payload = payloadDocument.RootElement;
+                if (payload.ValueKind != JsonValueKind.Object)
+                    throw new JsonException($"Данные операции [{operationIndex}] (type={typeName}) должны быть JSON-объектом.");
+
                 // Валидный тип + не-объектный JSON данных — исключение (как в прежнем JavaScriptSerializer).
-                var operation = JsonSerializer.Deserialize(dataJson, type, PayloadOptions) as OperationBase;
+                var operation = JsonSerializer.Deserialize(payload.GetRawText(), type, PayloadOptions) as OperationBase;
                 if (operation == null)
                     throw new JsonException($"Не удалось прочитать операцию [{operationIndex}] (type={typeName}).");
 
-                // Миграция легаси-Metadata в типизированные свойства (пункт 3.2 плана):
-                // старые .ygc открываются, при сохранении Metadata уже не пишется.
-                LegacyMetadataMigrator.Migrate(operation);
+                if (version >= 4)
+                    RejectCurrentMetadata(payload, typeName, operationIndex);
+                else
+                    MigrateLegacyMetadata(operation, payload, typeName, operationIndex);
 
                 result.Add(operation);
                 operationIndex++;
             }
 
             return result;
+        }
+
+        private static void RejectCurrentMetadata(JsonElement payload, string typeName, int operationIndex)
+        {
+            if (TryGetSingleMetadata(payload, typeName, operationIndex, out _))
+            {
+                throw new NotSupportedException(
+                    $"Операция [{operationIndex}] (type={typeName}) содержит удалённое поле Metadata, "
+                    + "которое не поддерживается форматом v4.");
+            }
+        }
+
+        private static void MigrateLegacyMetadata(
+            OperationBase operation,
+            JsonElement payload,
+            string typeName,
+            int operationIndex)
+        {
+            if (!TryGetSingleMetadata(payload, typeName, operationIndex, out var metadataElement)
+                || metadataElement.ValueKind == JsonValueKind.Null)
+            {
+                return;
+            }
+
+            if (metadataElement.ValueKind != JsonValueKind.Object)
+            {
+                throw new JsonException(
+                    $"Metadata операции [{operationIndex}] (type={typeName}) должно быть JSON-объектом.");
+            }
+
+            // Профильные диалоги всегда писали те же значения в типизированные поля,
+            // а Metadata никогда не участвовало в их восстановлении.
+            if (operation is IProfileOperation)
+                return;
+
+            var metadata = JsonSerializer.Deserialize<Dictionary<string, object>>(
+                metadataElement.GetRawText(),
+                LegacyMetadataOptions) ?? new Dictionary<string, object>();
+
+            LegacyMetadataMigrator.Migrate(operation, metadata);
+            if (metadata.Count > 0)
+            {
+                throw new NotSupportedException(
+                    $"Metadata операции [{operationIndex}] (type={typeName}) содержит неподдерживаемые ключи: "
+                    + string.Join(", ", metadata.Keys)
+                    + ". Файл не загружен, чтобы эти данные не потерялись при сохранении в v4.");
+            }
+        }
+
+        private static bool TryGetSingleMetadata(
+            JsonElement payload,
+            string typeName,
+            int operationIndex,
+            out JsonElement metadata)
+        {
+            metadata = default;
+            var found = false;
+            foreach (var property in payload.EnumerateObject())
+            {
+                if (!string.Equals(property.Name, "Metadata", StringComparison.Ordinal))
+                    continue;
+
+                if (found)
+                {
+                    throw new JsonException(
+                        $"Поле Metadata операции [{operationIndex}] (type={typeName}) указано несколько раз.");
+                }
+
+                metadata = property.Value;
+                found = true;
+            }
+
+            return found;
         }
 
         /// <summary>

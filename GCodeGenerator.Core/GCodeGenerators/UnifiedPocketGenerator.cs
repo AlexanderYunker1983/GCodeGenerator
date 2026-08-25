@@ -293,9 +293,6 @@ namespace GCodeGenerator.GCodeGenerators
         /// Клонирует операцию кармана (пункт 5.6 плана; восстановлено из legacy,
         /// удалено в 4.6 как мёртвый код). Для DXF — глубокое клонирование контуров.
         /// </summary>
-        // Metadata устарело (пункт 7.2c плана) — копируется для полноты временного
-        // объекта; генерация читает только типизированные свойства.
-        #pragma warning disable CS0618
         private T CloneOperation<T>(T source) where T : IPocketOperation
         {
             if (source == null)
@@ -330,8 +327,7 @@ namespace GCodeGenerator.GCodeGenerators
                     IsRoughingEnabled = circleOp.IsRoughingEnabled,
                     IsFinishingEnabled = circleOp.IsFinishingEnabled,
                     FinishAllowance = circleOp.FinishAllowance,
-                    FinishingMode = circleOp.FinishingMode,
-                    Metadata = circleOp.Metadata != null ? new Dictionary<string, object>(circleOp.Metadata) : new Dictionary<string, object>()
+                    FinishingMode = circleOp.FinishingMode
                 };
             }
 
@@ -366,8 +362,7 @@ namespace GCodeGenerator.GCodeGenerators
                     IsRoughingEnabled = rectOp.IsRoughingEnabled,
                     IsFinishingEnabled = rectOp.IsFinishingEnabled,
                     FinishAllowance = rectOp.FinishAllowance,
-                    FinishingMode = rectOp.FinishingMode,
-                    Metadata = rectOp.Metadata != null ? new Dictionary<string, object>(rectOp.Metadata) : new Dictionary<string, object>()
+                    FinishingMode = rectOp.FinishingMode
                 };
             }
 
@@ -401,8 +396,7 @@ namespace GCodeGenerator.GCodeGenerators
                     IsRoughingEnabled = ellipseOp.IsRoughingEnabled,
                     IsFinishingEnabled = ellipseOp.IsFinishingEnabled,
                     FinishAllowance = ellipseOp.FinishAllowance,
-                    FinishingMode = ellipseOp.FinishingMode,
-                    Metadata = ellipseOp.Metadata != null ? new Dictionary<string, object>(ellipseOp.Metadata) : new Dictionary<string, object>()
+                    FinishingMode = ellipseOp.FinishingMode
                 };
             }
 
@@ -432,8 +426,7 @@ namespace GCodeGenerator.GCodeGenerators
                     IsFinishingEnabled = dxfOp.IsFinishingEnabled,
                     FinishAllowance = dxfOp.FinishAllowance,
                     FinishingMode = dxfOp.FinishingMode,
-                    DxfFilePath = dxfOp.DxfFilePath,
-                    Metadata = dxfOp.Metadata != null ? new Dictionary<string, object>(dxfOp.Metadata) : new Dictionary<string, object>()
+                    DxfFilePath = dxfOp.DxfFilePath
                 };
 
                 // Клонируем контуры (глубокое клонирование)
@@ -462,8 +455,6 @@ namespace GCodeGenerator.GCodeGenerators
 
             throw new NotSupportedException($"Unsupported pocket operation type: {source.GetType().Name}");
         }
-        #pragma warning restore CS0618
-
         /// <summary>
         /// Проверяет, не стал ли карман слишком маленьким (пункт 5.6 плана):
         /// геометрия операции с учётом радиуса инструмента и уклона стенок

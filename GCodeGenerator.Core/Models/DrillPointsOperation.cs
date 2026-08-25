@@ -14,7 +14,6 @@ namespace GCodeGenerator.Models
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
         {
-            Metadata = new Dictionary<string, object>();
         }
 
         /// <summary>
@@ -141,11 +140,6 @@ namespace GCodeGenerator.Models
 
         /// <summary>Retract height for the pattern holes.</summary>
         public double RetractHeight { get; set; } = 0.3;
-
-        /// <summary>
-        /// Metadata for storing operation-specific parameters (e.g., line distance, array dimensions, circle radius, etc.)
-        /// </summary>
-        public Dictionary<string, object> Metadata { get; set; }
 
         /// <summary>
         /// Creates a fresh operation for the given drill mode with the default
