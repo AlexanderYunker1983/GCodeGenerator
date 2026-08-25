@@ -280,72 +280,59 @@ namespace GCodeGenerator.ViewModels.Drill
 
         protected override void ApplyToOperation()
         {
-            Operation.FeedXYRapid = FeedXYRapid;
-            Operation.FeedXYWork = FeedXYWork;
-            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            Operation.Decimals = Decimals;
-
-            // Save operation-specific parameters to typed properties (пункт 3.3).
-            Operation.DrillMode = DrillMode.Ellipse;
-            Operation.CenterX = CenterX;
-            Operation.CenterY = CenterY;
-            Operation.Z = Z;
-            Operation.RadiusX = RadiusX;
-            Operation.RadiusY = RadiusY;
-            Operation.RotationAngle = RotationAngle;
-            Operation.HoleCount = HoleCount;
-            Operation.StartAngleDeg = StartAngleDeg;
-            Operation.TotalDepth = TotalDepth;
-            Operation.StepDepth = StepDepth;
-            Operation.FeedZRapid = FeedZRapid;
-            Operation.FeedZWork = FeedZWork;
-            Operation.RetractHeight = RetractHeight;
+            ApplyPatternParameters(Operation);
 
             Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 Operation.Holes.Add(hole);
         }
 
+        /// <summary>
+        /// Переносит параметры шаблона из диалога в операцию. Используется и при
+        /// сохранении, и при предварительном расчёте отверстий, поэтому диалог
+        /// и файл проекта описывают шаблон одинаково.
+        /// </summary>
+        private void ApplyPatternParameters(DrillPointsOperation target)
+        {
+            target.FeedXYRapid = FeedXYRapid;
+            target.FeedXYWork = FeedXYWork;
+            target.SafeZBetweenHoles = SafeZBetweenHoles;
+            target.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            target.DrillMode = DrillMode.Ellipse;
+            target.CenterX = CenterX;
+            target.CenterY = CenterY;
+            target.Z = Z;
+            target.RadiusX = RadiusX;
+            target.RadiusY = RadiusY;
+            target.RotationAngle = RotationAngle;
+            target.HoleCount = HoleCount;
+            target.StartAngleDeg = StartAngleDeg;
+            target.TotalDepth = TotalDepth;
+            target.StepDepth = StepDepth;
+            target.FeedZRapid = FeedZRapid;
+            target.FeedZWork = FeedZWork;
+            target.RetractHeight = RetractHeight;
+        }
+
         // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
         // эллипс без отверстий (HoleCount<2, RadiusX==0 или RadiusY==0) не имеет смысла.
         protected override bool IsValid() => PreviewHoles.Count > 0;
 
+        /// <summary>
+        /// Пересчитывает отверстия шаблона для предпросмотра. Расчёт выполняет
+        /// ядро (<see cref="DrillPatternBuilder"/>), поэтому диалог и сохранённая
+        /// операция описывают одни и те же отверстия.
+        /// </summary>
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (HoleCount < 2 || RadiusX == 0 || RadiusY == 0)
-                return;
 
-            var startRad = StartAngleDeg * Math.PI / 180.0;
-            var stepRad = 2 * Math.PI / HoleCount;
-            var rotationRad = RotationAngle * Math.PI / 180.0;
-            var cosRot = Math.Cos(rotationRad);
-            var sinRot = Math.Sin(rotationRad);
-
-            for (int i = 0; i < HoleCount; i++)
-            {
-                var angle = startRad + stepRad * i;
-                // Parametric equation of ellipse
-                var xEllipse = RadiusX * Math.Cos(angle);
-                var yEllipse = RadiusY * Math.Sin(angle);
-                
-                // Apply rotation
-                var x = CenterX + xEllipse * cosRot - yEllipse * sinRot;
-                var y = CenterY + xEllipse * sinRot + yEllipse * cosRot;
-
-                var hole = new DrillHole
-                {
-                    X = x,
-                    Y = y,
-                    Z = Z,
-                    TotalDepth = TotalDepth,
-                    StepDepth = StepDepth,
-                    FeedZRapid = FeedZRapid,
-                    FeedZWork = FeedZWork,
-                    RetractHeight = RetractHeight
-                };
+            var pattern = new DrillPointsOperation();
+            ApplyPatternParameters(pattern);
+            foreach (var hole in DrillPatternBuilder.Build(pattern))
                 PreviewHoles.Add(hole);
-            }
         }
     }
 }

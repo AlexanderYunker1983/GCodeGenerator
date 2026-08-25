@@ -252,25 +252,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         protected override void ApplyToOperation()
         {
-            // Save common parameters to operation.
-            Operation.FeedXYRapid = FeedXYRapid;
-            Operation.FeedXYWork = FeedXYWork;
-            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            Operation.Decimals = Decimals;
-
-            // Save operation-specific parameters to typed properties (пункт 3.3).
-            Operation.DrillMode = DrillMode.Line;
-            Operation.StartX = StartX;
-            Operation.StartY = StartY;
-            Operation.StartZ = StartZ;
-            Operation.Distance = Distance;
-            Operation.HoleCount = HoleCount;
-            Operation.AngleDeg = AngleDeg;
-            Operation.TotalDepth = TotalDepth;
-            Operation.StepDepth = StepDepth;
-            Operation.FeedZRapid = FeedZRapid;
-            Operation.FeedZWork = FeedZWork;
-            Operation.RetractHeight = RetractHeight;
+            ApplyPatternParameters(Operation);
 
             // Save generated holes.
             Operation.Holes.Clear();
@@ -278,35 +260,51 @@ namespace GCodeGenerator.ViewModels.Drill
                 Operation.Holes.Add(hole);
         }
 
+        /// <summary>
+        /// Переносит параметры шаблона из диалога в операцию. Используется и при
+        /// сохранении, и при предварительном расчёте отверстий, поэтому диалог
+        /// и файл проекта описывают шаблон одинаково.
+        /// </summary>
+        private void ApplyPatternParameters(DrillPointsOperation target)
+        {
+            // Save common parameters to operation.
+            target.FeedXYRapid = FeedXYRapid;
+            target.FeedXYWork = FeedXYWork;
+            target.SafeZBetweenHoles = SafeZBetweenHoles;
+            target.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            target.DrillMode = DrillMode.Line;
+            target.StartX = StartX;
+            target.StartY = StartY;
+            target.StartZ = StartZ;
+            target.Distance = Distance;
+            target.HoleCount = HoleCount;
+            target.AngleDeg = AngleDeg;
+            target.TotalDepth = TotalDepth;
+            target.StepDepth = StepDepth;
+            target.FeedZRapid = FeedZRapid;
+            target.FeedZWork = FeedZWork;
+            target.RetractHeight = RetractHeight;
+        }
+
         // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
         // линия без отверстий (HoleCount<=0 или Distance==0) не имеет смысла.
         protected override bool IsValid() => PreviewHoles.Count > 0;
 
+        /// <summary>
+        /// Пересчитывает отверстия шаблона для предпросмотра. Расчёт выполняет
+        /// ядро (<see cref="DrillPatternBuilder"/>), поэтому диалог и сохранённая
+        /// операция описывают одни и те же отверстия.
+        /// </summary>
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (HoleCount <= 0 || Distance == 0)
-                return;
 
-            var angleRad = AngleDeg * Math.PI / 180.0;
-            var dx = Distance * Math.Cos(angleRad);
-            var dy = Distance * Math.Sin(angleRad);
-
-            for (int i = 0; i < HoleCount; i++)
-            {
-                var hole = new DrillHole
-                {
-                    X = StartX + dx * i,
-                    Y = StartY + dy * i,
-                    Z = StartZ,
-                    TotalDepth = TotalDepth,
-                    StepDepth = StepDepth,
-                    FeedZRapid = FeedZRapid,
-                    FeedZWork = FeedZWork,
-                    RetractHeight = RetractHeight
-                };
+            var pattern = new DrillPointsOperation();
+            ApplyPatternParameters(pattern);
+            foreach (var hole in DrillPatternBuilder.Build(pattern))
                 PreviewHoles.Add(hole);
-            }
         }
     }
 }

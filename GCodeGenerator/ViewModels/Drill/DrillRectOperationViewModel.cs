@@ -280,76 +280,61 @@ namespace GCodeGenerator.ViewModels.Drill
 
         protected override void ApplyToOperation()
         {
-            Operation.FeedXYRapid = FeedXYRapid;
-            Operation.FeedXYWork = FeedXYWork;
-            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            Operation.Decimals = Decimals;
-
-            // Save operation-specific parameters to typed properties (пункт 3.3).
-            // Ранее Rect-диалог не сохранял параметры паттерна (только Holes) —
-            // теперь паттерн переживает сохранение, как и остальные режимы.
-            Operation.DrillMode = DrillMode.Rect;
-            Operation.StartX = StartX;
-            Operation.StartY = StartY;
-            Operation.StartZ = StartZ;
-            Operation.Distance = Distance;
-            Operation.HoleCount = HoleCount;
-            Operation.AngleDeg = AngleDeg;
-            Operation.RowPitch = RowPitch;
-            Operation.RowCount = RowCount;
-            Operation.TotalDepth = TotalDepth;
-            Operation.StepDepth = StepDepth;
-            Operation.FeedZRapid = FeedZRapid;
-            Operation.FeedZWork = FeedZWork;
-            Operation.RetractHeight = RetractHeight;
+            ApplyPatternParameters(Operation);
 
             Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 Operation.Holes.Add(hole);
         }
 
+        /// <summary>
+        /// Переносит параметры шаблона из диалога в операцию. Используется и при
+        /// сохранении, и при предварительном расчёте отверстий, поэтому диалог
+        /// и файл проекта описывают шаблон одинаково.
+        /// </summary>
+        private void ApplyPatternParameters(DrillPointsOperation target)
+        {
+            target.FeedXYRapid = FeedXYRapid;
+            target.FeedXYWork = FeedXYWork;
+            target.SafeZBetweenHoles = SafeZBetweenHoles;
+            target.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            // Ранее Rect-диалог не сохранял параметры паттерна (только Holes) —
+            // теперь паттерн переживает сохранение, как и остальные режимы.
+            target.DrillMode = DrillMode.Rect;
+            target.StartX = StartX;
+            target.StartY = StartY;
+            target.StartZ = StartZ;
+            target.Distance = Distance;
+            target.HoleCount = HoleCount;
+            target.AngleDeg = AngleDeg;
+            target.RowPitch = RowPitch;
+            target.RowCount = RowCount;
+            target.TotalDepth = TotalDepth;
+            target.StepDepth = StepDepth;
+            target.FeedZRapid = FeedZRapid;
+            target.FeedZWork = FeedZWork;
+            target.RetractHeight = RetractHeight;
+        }
+
         // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
         // контур прямоугольника без отверстий (HoleCount<=1, Distance==0 или RowCount<=1) не имеет смысла.
         protected override bool IsValid() => PreviewHoles.Count > 0;
 
+        /// <summary>
+        /// Пересчитывает отверстия шаблона для предпросмотра. Расчёт выполняет
+        /// ядро (<see cref="DrillPatternBuilder"/>), поэтому диалог и сохранённая
+        /// операция описывают одни и те же отверстия.
+        /// </summary>
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (HoleCount <= 1 || Distance == 0 || RowCount <= 1)
-                return;
 
-            var angleRad = AngleDeg * Math.PI / 180.0;
-            var dx = Distance * Math.Cos(angleRad);
-            var dy = Distance * Math.Sin(angleRad);
-
-            // Perpendicular direction for rows (90 degrees counter-clockwise)
-            var px = -Math.Sin(angleRad) * RowPitch;
-            var py =  Math.Cos(angleRad) * RowPitch;
-
-            for (int row = 0; row < RowCount; row++)
-            {
-                for (int col = 0; col < HoleCount; col++)
-                {
-                    // Skip interior points; keep only outer rectangle contour.
-                    var isBorderRow = row == 0 || row == RowCount - 1;
-                    var isBorderCol = col == 0 || col == HoleCount - 1;
-                    if (!(isBorderRow || isBorderCol))
-                        continue;
-
-                    var hole = new DrillHole
-                    {
-                        X = StartX + dx * col + px * row,
-                        Y = StartY + dy * col + py * row,
-                        Z = StartZ,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
+            var pattern = new DrillPointsOperation();
+            ApplyPatternParameters(pattern);
+            foreach (var hole in DrillPatternBuilder.Build(pattern))
+                PreviewHoles.Add(hole);
         }
     }
 }

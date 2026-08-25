@@ -266,89 +266,58 @@ namespace GCodeGenerator.ViewModels.Drill
 
         protected override void ApplyToOperation()
         {
-            Operation.FeedXYRapid = FeedXYRapid;
-            Operation.FeedXYWork = FeedXYWork;
-            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            Operation.Decimals = Decimals;
-
-            // Save operation-specific parameters to typed properties (пункт 3.3).
-            Operation.DrillMode = DrillMode.Polygon;
-            Operation.CenterX = CenterX;
-            Operation.CenterY = CenterY;
-            Operation.Z = Z;
-            Operation.Radius = Radius;
-            Operation.NumberOfSides = NumberOfSides;
-            Operation.HolesPerSide = HolesPerSide;
-            Operation.RotationAngle = RotationAngle;
-            Operation.TotalDepth = TotalDepth;
-            Operation.StepDepth = StepDepth;
-            Operation.FeedZRapid = FeedZRapid;
-            Operation.FeedZWork = FeedZWork;
-            Operation.RetractHeight = RetractHeight;
+            ApplyPatternParameters(Operation);
 
             Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 Operation.Holes.Add(hole);
         }
 
+        /// <summary>
+        /// Переносит параметры шаблона из диалога в операцию. Используется и при
+        /// сохранении, и при предварительном расчёте отверстий, поэтому диалог
+        /// и файл проекта описывают шаблон одинаково.
+        /// </summary>
+        private void ApplyPatternParameters(DrillPointsOperation target)
+        {
+            target.FeedXYRapid = FeedXYRapid;
+            target.FeedXYWork = FeedXYWork;
+            target.SafeZBetweenHoles = SafeZBetweenHoles;
+            target.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            target.DrillMode = DrillMode.Polygon;
+            target.CenterX = CenterX;
+            target.CenterY = CenterY;
+            target.Z = Z;
+            target.Radius = Radius;
+            target.NumberOfSides = NumberOfSides;
+            target.HolesPerSide = HolesPerSide;
+            target.RotationAngle = RotationAngle;
+            target.TotalDepth = TotalDepth;
+            target.StepDepth = StepDepth;
+            target.FeedZRapid = FeedZRapid;
+            target.FeedZWork = FeedZWork;
+            target.RetractHeight = RetractHeight;
+        }
+
         // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):
         // многоугольник без отверстий (NumberOfSides<3, Radius==0 или HolesPerSide<1) не имеет смысла.
         protected override bool IsValid() => PreviewHoles.Count > 0;
 
+        /// <summary>
+        /// Пересчитывает отверстия шаблона для предпросмотра. Расчёт выполняет
+        /// ядро (<see cref="DrillPatternBuilder"/>), поэтому диалог и сохранённая
+        /// операция описывают одни и те же отверстия.
+        /// </summary>
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (NumberOfSides < 3 || Radius == 0 || HolesPerSide < 1)
-                return;
 
-            var rotationRad = RotationAngle * Math.PI / 180.0;
-            var angleStep = 2 * Math.PI / NumberOfSides;
-            
-            // Calculate vertices of the polygon
-            var vertices = new System.Collections.Generic.List<(double x, double y)>();
-            for (int i = 0; i < NumberOfSides; i++)
-            {
-                var angle = i * angleStep + rotationRad;
-                var x = CenterX + Radius * Math.Cos(angle);
-                var y = CenterY + Radius * Math.Sin(angle);
-                vertices.Add((x, y));
-            }
-
-            // Distribute holes evenly along each side
-            for (int side = 0; side < NumberOfSides; side++)
-            {
-                var startVertex = vertices[side];
-                var endVertex = vertices[(side + 1) % NumberOfSides];
-                
-                // Calculate step along the side
-                var dx = endVertex.x - startVertex.x;
-                var dy = endVertex.y - startVertex.y;
-                
-                // First hole is exactly at the polygon vertex (startVertex).
-                // Remaining holes are distributed evenly along the side, excluding the end vertex
-                // to avoid duplicates when moving to the next side.
-                var stepX = HolesPerSide > 1 ? dx / HolesPerSide : 0;
-                var stepY = HolesPerSide > 1 ? dy / HolesPerSide : 0;
-                
-                for (int holeIndex = 0; holeIndex < HolesPerSide; holeIndex++)
-                {
-                    var x = startVertex.x + stepX * holeIndex;
-                    var y = startVertex.y + stepY * holeIndex;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
+            var pattern = new DrillPointsOperation();
+            ApplyPatternParameters(pattern);
+            foreach (var hole in DrillPatternBuilder.Build(pattern))
+                PreviewHoles.Add(hole);
         }
     }
 }

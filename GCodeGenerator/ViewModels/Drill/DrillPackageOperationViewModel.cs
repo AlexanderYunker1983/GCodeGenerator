@@ -1,4 +1,3 @@
-using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using GCodeGenerator.Models;
@@ -18,38 +17,11 @@ namespace GCodeGenerator.ViewModels.Drill
             DisplayName = _localizationManager?.GetString("AddDrillPackage") ?? "AddDrillPackage";
 
             PreviewHoles = new ObservableCollection<DrillHole>();
-            Packages = new ObservableCollection<PackageDefinition>();
 
-            // Инициализация стандартных корпусов
-            InitializePackages();
-
-            // По умолчанию выбран DIP8
-            SelectedPackage = Packages.FirstOrDefault(p => p.Name == "DIP8");
-        }
-
-        private void InitializePackages()
-        {
-            // DIP корпуса: шаг между выводами 2.54 мм, расстояние между рядами 7.62 мм (300 mil)
-            Packages.Add(new PackageDefinition("DIP8", 4, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP14", 7, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP16", 8, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP18", 9, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP20", 10, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP24", 12, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP28", 14, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP32", 16, 2.54, 7.62));
-            Packages.Add(new PackageDefinition("DIP40", 20, 2.54, 7.62));
-
-            // TO-220: 3 вывода в один ряд, шаг 2.54 мм
-            Packages.Add(new PackageDefinition("TO-220", 3, 2.54, 0));
-
-            // TO-92: 3 вывода в один ряд, шаг 2.54 мм
-            Packages.Add(new PackageDefinition("TO-92", 3, 2.54, 0));
-
-            // SOIC корпуса: шаг 1.27 мм, расстояние между рядами 5.3 мм (для SOIC-8)
-            Packages.Add(new PackageDefinition("SOIC-8", 4, 1.27, 5.3));
-            Packages.Add(new PackageDefinition("SOIC-14", 7, 1.27, 5.3));
-            Packages.Add(new PackageDefinition("SOIC-16", 8, 1.27, 5.3));
+            // Перечень корпусов принадлежит ядру: по имени корпуса, сохранённому
+            // в проекте, отверстия должны пересчитываться и без открытого диалога.
+            Packages = new ObservableCollection<PackageDefinition>(PackageCatalog.All);
+            SelectedPackage = PackageCatalog.FindOrDefault(PackageCatalog.DefaultPackageName);
         }
 
         protected override void LoadFromOperation(DrillPointsOperation operation)
@@ -277,121 +249,54 @@ namespace GCodeGenerator.ViewModels.Drill
             }
         }
 
+        /// <summary>
+        /// Пересчитывает отверстия шаблона для предпросмотра. Расчёт выполняет
+        /// ядро (<see cref="DrillPatternBuilder"/>), поэтому диалог и сохранённая
+        /// операция описывают одни и те же отверстия.
+        /// </summary>
         private void RebuildHoles()
         {
             PreviewHoles.Clear();
-            if (SelectedPackage == null) return;
 
-            var angleRad = RotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(angleRad);
-            var sin = Math.Sin(angleRad);
-
-            if (SelectedPackage.RowSpacing > 0)
-            {
-                // Двухрядный корпус (DIP, SOIC)
-                var halfRowSpacing = SelectedPackage.RowSpacing / 2.0;
-                var totalPinLength = (SelectedPackage.PinsPerRow - 1) * SelectedPackage.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-
-                // Левый ряд (от вывода 1 до N/2)
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = -halfRowSpacing;
-                    var localY = -halfPinLength + i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-
-                // Правый ряд (от вывода N/2+1 до N)
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = halfRowSpacing;
-                    var localY = halfPinLength - i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
-            else
-            {
-                // Однорядный корпус (TO-220, TO-92)
-                var totalPinLength = (SelectedPackage.PinsPerRow - 1) * SelectedPackage.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-
-                for (int i = 0; i < SelectedPackage.PinsPerRow; i++)
-                {
-                    var localX = 0.0;
-                    var localY = -halfPinLength + i * SelectedPackage.PinPitch;
-
-                    var x = CenterX + localX * cos - localY * sin;
-                    var y = CenterY + localX * sin + localY * cos;
-
-                    var hole = new DrillHole
-                    {
-                        X = x,
-                        Y = y,
-                        Z = Z,
-                        TotalDepth = TotalDepth,
-                        StepDepth = StepDepth,
-                        FeedZRapid = FeedZRapid,
-                        FeedZWork = FeedZWork,
-                        RetractHeight = RetractHeight
-                    };
-                    PreviewHoles.Add(hole);
-                }
-            }
+            var pattern = new DrillPointsOperation();
+            ApplyPatternParameters(pattern);
+            foreach (var hole in DrillPatternBuilder.Build(pattern))
+                PreviewHoles.Add(hole);
         }
 
         protected override void ApplyToOperation()
         {
-            Operation.FeedXYRapid = FeedXYRapid;
-            Operation.FeedXYWork = FeedXYWork;
-            Operation.SafeZBetweenHoles = SafeZBetweenHoles;
-            Operation.Decimals = Decimals;
-
-            // Save operation-specific parameters to typed properties (пункт 3.3).
-            Operation.DrillMode = DrillMode.Package;
-            Operation.CenterX = CenterX;
-            Operation.CenterY = CenterY;
-            Operation.Z = Z;
-            Operation.RotationAngle = RotationAngle;
-            Operation.TotalDepth = TotalDepth;
-            Operation.StepDepth = StepDepth;
-            Operation.FeedZRapid = FeedZRapid;
-            Operation.FeedZWork = FeedZWork;
-            Operation.RetractHeight = RetractHeight;
-            Operation.PackageName = SelectedPackage?.Name ?? string.Empty;
+            ApplyPatternParameters(Operation);
 
             Operation.Holes.Clear();
             foreach (var hole in PreviewHoles)
                 Operation.Holes.Add(hole);
+        }
+
+        /// <summary>
+        /// Переносит параметры шаблона из диалога в операцию. Используется и при
+        /// сохранении, и при предварительном расчёте отверстий, поэтому диалог
+        /// и файл проекта описывают шаблон одинаково.
+        /// </summary>
+        private void ApplyPatternParameters(DrillPointsOperation target)
+        {
+            target.FeedXYRapid = FeedXYRapid;
+            target.FeedXYWork = FeedXYWork;
+            target.SafeZBetweenHoles = SafeZBetweenHoles;
+            target.Decimals = Decimals;
+
+            // Save operation-specific parameters to typed properties (пункт 3.3).
+            target.DrillMode = DrillMode.Package;
+            target.CenterX = CenterX;
+            target.CenterY = CenterY;
+            target.Z = Z;
+            target.RotationAngle = RotationAngle;
+            target.TotalDepth = TotalDepth;
+            target.StepDepth = StepDepth;
+            target.FeedZRapid = FeedZRapid;
+            target.FeedZWork = FeedZWork;
+            target.RetractHeight = RetractHeight;
+            target.PackageName = SelectedPackage?.Name ?? string.Empty;
         }
 
         // Удаление операции при невалидных параметрах (legacy «remove if invalid», пункт 7.3):

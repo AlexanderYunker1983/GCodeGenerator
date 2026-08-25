@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Tests.Fixtures
@@ -51,7 +49,19 @@ namespace GCodeGenerator.Tests.Fixtures
 
         // ---------------------------------------------------------------------
         // Сверление: 9 видов
+        //
+        // Отверстия строит DrillPatternBuilder ядра: фикстура задаёт только
+        // параметры шаблона. Прежде формулы здесь повторялись, то есть тест
+        // сверял продукт с собственной копией вычислений.
         // ---------------------------------------------------------------------
+
+        /// <summary>Достраивает отверстия шаблона по заданным параметрам операции.</summary>
+        private static DrillPointsOperation WithPatternHoles(DrillPointsOperation op)
+        {
+            foreach (var hole in DrillPatternBuilder.Build(op))
+                op.Holes.Add(hole);
+            return op;
+        }
 
         /// <summary>Точки вручную: 3 отверстия.</summary>
         public static DrillPointsOperation DrillPoints()
@@ -60,299 +70,153 @@ namespace GCodeGenerator.Tests.Fixtures
             op.Holes.Add(Hole(10.0, 20.0));
             op.Holes.Add(Hole(30.0, 20.0));
             op.Holes.Add(Hole(20.0, 40.0));
+            SetCommonDrillZParams(op);
             return op;
         }
 
         /// <summary>Линия: 5 отверстий с шагом 5 мм вдоль X.</summary>
         public static DrillPointsOperation DrillLine()
         {
-            const double startX = 10.0, startY = 10.0, startZ = 0.0;
-            const double distance = 5.0, angleDeg = 0.0;
-            const int holeCount = 5;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Line };
-            var angleRad = angleDeg * Math.PI / 180.0;
-            var dx = distance * Math.Cos(angleRad);
-            var dy = distance * Math.Sin(angleRad);
-            for (int i = 0; i < holeCount; i++)
-                op.Holes.Add(Hole(startX + dx * i, startY + dy * i, startZ));
-
-            op.StartX = startX;
-            op.StartY = startY;
-            op.StartZ = startZ;
-            op.Distance = distance;
-            op.HoleCount = holeCount;
-            op.AngleDeg = angleDeg;
+            var op = new DrillPointsOperation
+            {
+                DrillMode = DrillMode.Line,
+                StartX = 10.0,
+                StartY = 10.0,
+                StartZ = 0.0,
+                Distance = 5.0,
+                HoleCount = 5,
+                AngleDeg = 0.0
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
         /// <summary>Массив: 4×3 = 12 отверстий (шаг 5 мм, шаг ряда 5 мм).</summary>
         public static DrillPointsOperation DrillArray()
         {
-            const double startX = 10.0, startY = 10.0, startZ = 0.0;
-            const double distance = 5.0, angleDeg = 0.0;
-            const int holeCount = 4;
-            const double rowPitch = 5.0;
-            const int rowCount = 3;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Array };
-            var angleRad = angleDeg * Math.PI / 180.0;
-            var dx = distance * Math.Cos(angleRad);
-            var dy = distance * Math.Sin(angleRad);
-            var px = -Math.Sin(angleRad) * rowPitch;
-            var py = Math.Cos(angleRad) * rowPitch;
-            for (int row = 0; row < rowCount; row++)
+            var op = new DrillPointsOperation
             {
-                for (int col = 0; col < holeCount; col++)
-                    op.Holes.Add(Hole(startX + dx * col + px * row, startY + dy * col + py * row, startZ));
-            }
-
-            op.StartX = startX;
-            op.StartY = startY;
-            op.StartZ = startZ;
-            op.Distance = distance;
-            op.HoleCount = holeCount;
-            op.AngleDeg = angleDeg;
-            op.RowPitch = rowPitch;
-            op.RowCount = rowCount;
+                DrillMode = DrillMode.Array,
+                StartX = 10.0,
+                StartY = 10.0,
+                StartZ = 0.0,
+                Distance = 5.0,
+                HoleCount = 4,
+                AngleDeg = 0.0,
+                RowPitch = 5.0,
+                RowCount = 3
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
-        /// <summary>Контур прямоугольника: 4×3 с внутренними точками — 10 отверстий.</summary>
+        /// <summary>Прямоугольник: периметр сетки 4×3 — 10 отверстий.</summary>
         public static DrillPointsOperation DrillRect()
         {
-            const double startX = 10.0, startY = 10.0, startZ = 0.0;
-            const double distance = 5.0, angleDeg = 0.0;
-            const int holeCount = 4;
-            const double rowPitch = 5.0;
-            const int rowCount = 3;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Rect };
-            var angleRad = angleDeg * Math.PI / 180.0;
-            var dx = distance * Math.Cos(angleRad);
-            var dy = distance * Math.Sin(angleRad);
-            var px = -Math.Sin(angleRad) * rowPitch;
-            var py = Math.Cos(angleRad) * rowPitch;
-            for (int row = 0; row < rowCount; row++)
+            var op = new DrillPointsOperation
             {
-                for (int col = 0; col < holeCount; col++)
-                {
-                    var isBorderRow = row == 0 || row == rowCount - 1;
-                    var isBorderCol = col == 0 || col == holeCount - 1;
-                    if (!(isBorderRow || isBorderCol))
-                        continue;
-                    op.Holes.Add(Hole(startX + dx * col + px * row, startY + dy * col + py * row, startZ));
-                }
-            }
-
-            op.StartX = startX;
-            op.StartY = startY;
-            op.StartZ = startZ;
-            op.Distance = distance;
-            op.HoleCount = holeCount;
-            op.AngleDeg = angleDeg;
-            op.RowPitch = rowPitch;
-            op.RowCount = rowCount;
+                DrillMode = DrillMode.Rect,
+                StartX = 10.0,
+                StartY = 10.0,
+                StartZ = 0.0,
+                Distance = 5.0,
+                HoleCount = 4,
+                AngleDeg = 0.0,
+                RowPitch = 5.0,
+                RowCount = 3
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
         /// <summary>Окружность: 6 отверстий на R20.</summary>
         public static DrillPointsOperation DrillCircle()
         {
-            const double centerX = 0.0, centerY = 0.0, z = 0.0;
-            const double radius = 20.0;
-            const int holeCount = 6;
-            const double startAngleDeg = 0.0;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Circle };
-            var startRad = startAngleDeg * Math.PI / 180.0;
-            var stepRad = 2 * Math.PI / holeCount;
-            for (int i = 0; i < holeCount; i++)
+            var op = new DrillPointsOperation
             {
-                var angle = startRad + stepRad * i;
-                op.Holes.Add(Hole(centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle), z));
-            }
-
-            op.CenterX = centerX;
-            op.CenterY = centerY;
-            op.Z = z;
-            op.Radius = radius;
-            op.HoleCount = holeCount;
-            op.StartAngleDeg = startAngleDeg;
+                DrillMode = DrillMode.Circle,
+                CenterX = 0.0,
+                CenterY = 0.0,
+                Z = 0.0,
+                Radius = 20.0,
+                HoleCount = 6,
+                StartAngleDeg = 0.0
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
         /// <summary>Дуга: 5 отверстий от 0° до 180° на R20.</summary>
         public static DrillPointsOperation DrillArc()
         {
-            const double centerX = 0.0, centerY = 0.0, z = 0.0;
-            const double radius = 20.0;
-            const int holeCount = 5;
-            const double startAngleDeg = 0.0, endAngleDeg = 180.0;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Arc };
-            var startRad = startAngleDeg * Math.PI / 180.0;
-            var endRad = endAngleDeg * Math.PI / 180.0;
-            var arcSpan = endRad - startRad;
-            while (arcSpan < 0) arcSpan += 2 * Math.PI;
-            while (arcSpan > 2 * Math.PI) arcSpan -= 2 * Math.PI;
-            if (arcSpan < 0.001)
-                arcSpan = 2 * Math.PI;
-            var stepRad = holeCount > 1 ? arcSpan / (holeCount - 1) : 0;
-            for (int i = 0; i < holeCount; i++)
+            var op = new DrillPointsOperation
             {
-                var angle = startRad + stepRad * i;
-                op.Holes.Add(Hole(centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle), z));
-            }
-
-            op.CenterX = centerX;
-            op.CenterY = centerY;
-            op.Z = z;
-            op.Radius = radius;
-            op.HoleCount = holeCount;
-            op.StartAngleDeg = startAngleDeg;
-            op.EndAngleDeg = endAngleDeg;
+                DrillMode = DrillMode.Arc,
+                CenterX = 0.0,
+                CenterY = 0.0,
+                Z = 0.0,
+                Radius = 20.0,
+                HoleCount = 5,
+                StartAngleDeg = 0.0,
+                EndAngleDeg = 180.0
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
-        /// <summary>Полигон: квадрат R20, 3 отверстия на сторону — 12 отверстий.</summary>
+        /// <summary>Многоугольник: квадрат R20, по 3 отверстия на сторону — 12 отверстий.</summary>
         public static DrillPointsOperation DrillPolygon()
         {
-            const double centerX = 0.0, centerY = 0.0, z = 0.0;
-            const double radius = 20.0;
-            const int numberOfSides = 4;
-            const int holesPerSide = 3;
-            const double rotationAngle = 0.0;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Polygon };
-            var rotationRad = rotationAngle * Math.PI / 180.0;
-            var angleStep = 2 * Math.PI / numberOfSides;
-
-            var vertices = new List<(double x, double y)>();
-            for (int i = 0; i < numberOfSides; i++)
+            var op = new DrillPointsOperation
             {
-                var angle = i * angleStep + rotationRad;
-                vertices.Add((centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle)));
-            }
-
-            for (int side = 0; side < numberOfSides; side++)
-            {
-                var startVertex = vertices[side];
-                var endVertex = vertices[(side + 1) % numberOfSides];
-                var dx = endVertex.x - startVertex.x;
-                var dy = endVertex.y - startVertex.y;
-                var stepX = holesPerSide > 1 ? dx / holesPerSide : 0;
-                var stepY = holesPerSide > 1 ? dy / holesPerSide : 0;
-                for (int holeIndex = 0; holeIndex < holesPerSide; holeIndex++)
-                    op.Holes.Add(Hole(startVertex.x + stepX * holeIndex, startVertex.y + stepY * holeIndex, z));
-            }
-
-            op.CenterX = centerX;
-            op.CenterY = centerY;
-            op.Z = z;
-            op.Radius = radius;
-            op.NumberOfSides = numberOfSides;
-            op.HolesPerSide = holesPerSide;
-            op.RotationAngle = rotationAngle;
+                DrillMode = DrillMode.Polygon,
+                CenterX = 0.0,
+                CenterY = 0.0,
+                Z = 0.0,
+                Radius = 20.0,
+                NumberOfSides = 4,
+                HolesPerSide = 3,
+                RotationAngle = 0.0
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
         /// <summary>Эллипс: 8 отверстий на эллипсе 25×15.</summary>
         public static DrillPointsOperation DrillEllipse()
         {
-            const double centerX = 0.0, centerY = 0.0, z = 0.0;
-            const double radiusX = 25.0, radiusY = 15.0;
-            const double rotationAngle = 0.0;
-            const int holeCount = 8;
-            const double startAngleDeg = 0.0;
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Ellipse };
-            var startRad = startAngleDeg * Math.PI / 180.0;
-            var stepRad = 2 * Math.PI / holeCount;
-            var rotationRad = rotationAngle * Math.PI / 180.0;
-            var cosRot = Math.Cos(rotationRad);
-            var sinRot = Math.Sin(rotationRad);
-            for (int i = 0; i < holeCount; i++)
+            var op = new DrillPointsOperation
             {
-                var angle = startRad + stepRad * i;
-                var xEllipse = radiusX * Math.Cos(angle);
-                var yEllipse = radiusY * Math.Sin(angle);
-                op.Holes.Add(Hole(
-                    centerX + xEllipse * cosRot - yEllipse * sinRot,
-                    centerY + xEllipse * sinRot + yEllipse * cosRot, z));
-            }
-
-            op.CenterX = centerX;
-            op.CenterY = centerY;
-            op.Z = z;
-            op.RadiusX = radiusX;
-            op.RadiusY = radiusY;
-            op.RotationAngle = rotationAngle;
-            op.HoleCount = holeCount;
-            op.StartAngleDeg = startAngleDeg;
+                DrillMode = DrillMode.Ellipse,
+                CenterX = 0.0,
+                CenterY = 0.0,
+                Z = 0.0,
+                RadiusX = 25.0,
+                RadiusY = 15.0,
+                RotationAngle = 0.0,
+                HoleCount = 8,
+                StartAngleDeg = 0.0
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
         /// <summary>Корпус SOIC-8: 2 ряда по 4 вывода — 8 отверстий.</summary>
         public static DrillPointsOperation DrillPackage()
         {
-            const double centerX = 0.0, centerY = 0.0, z = 0.0;
-            const double rotationAngle = 0.0;
-            var package = new PackageDefinition("SOIC-8", 4, 1.27, 5.0);
-
-            var op = new DrillPointsOperation { DrillMode = DrillMode.Package };
-            var angleRad = rotationAngle * Math.PI / 180.0;
-            var cos = Math.Cos(angleRad);
-            var sin = Math.Sin(angleRad);
-
-            if (package.RowSpacing > 0)
+            var op = new DrillPointsOperation
             {
-                var halfRowSpacing = package.RowSpacing / 2.0;
-                var totalPinLength = (package.PinsPerRow - 1) * package.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-
-                for (int i = 0; i < package.PinsPerRow; i++)
-                {
-                    var localX = -halfRowSpacing;
-                    var localY = -halfPinLength + i * package.PinPitch;
-                    op.Holes.Add(Hole(centerX + localX * cos - localY * sin, centerY + localX * sin + localY * cos, z));
-                }
-                for (int i = 0; i < package.PinsPerRow; i++)
-                {
-                    var localX = halfRowSpacing;
-                    var localY = halfPinLength - i * package.PinPitch;
-                    op.Holes.Add(Hole(centerX + localX * cos - localY * sin, centerY + localX * sin + localY * cos, z));
-                }
-            }
-            else
-            {
-                var totalPinLength = (package.PinsPerRow - 1) * package.PinPitch;
-                var halfPinLength = totalPinLength / 2.0;
-                for (int i = 0; i < package.PinsPerRow; i++)
-                {
-                    var localX = 0.0;
-                    var localY = -halfPinLength + i * package.PinPitch;
-                    op.Holes.Add(Hole(centerX + localX * cos - localY * sin, centerY + localX * sin + localY * cos, z));
-                }
-            }
-
-            op.CenterX = centerX;
-            op.CenterY = centerY;
-            op.Z = z;
-            op.RotationAngle = rotationAngle;
-            op.PackageName = package.Name;
+                DrillMode = DrillMode.Package,
+                CenterX = 0.0,
+                CenterY = 0.0,
+                Z = 0.0,
+                RotationAngle = 0.0,
+                PackageName = "SOIC-8"
+            };
             SetCommonDrillZParams(op);
-            return op;
+            return WithPatternHoles(op);
         }
 
-        // ---------------------------------------------------------------------
         // Профили: 6 видов
         // ---------------------------------------------------------------------
 
