@@ -6,7 +6,6 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -180,10 +179,13 @@ namespace GCodeGenerator.ViewModels
                 }
 
                 GeneratedToolPath = toolPath;
-                var text = new StringBuilder();
-                foreach (var line in program.Lines)
-                    text.AppendLine(line);
-                GCodePreview = text.ToString();
+
+                // Текст собирается сразу нужного размера. Прежде строки
+                // добавлялись в растущий буфер, и на пике в памяти лежали
+                // и он, и готовая строка — для программы в сотню тысяч
+                // строк это лишние мегабайты сверх той копии, которую
+                // всё равно заведёт поле ввода.
+                GCodePreview = string.Join(Environment.NewLine, program.Lines) + Environment.NewLine;
                 generationCompleted = true;
                 _logger.Info($"G-code generated: {operations.Count} operation(s), {program.Lines.Count} line(s)");
             }

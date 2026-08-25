@@ -840,4 +840,7 @@
   <data name="SystemLanguage" xml:space="preserve">
     <value>Same as system</value>
   </data>
+  <data name="BuildingPreview" xml:space="preserve">
+    <value>Building preview…</value>
+  </data>
 </root>

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
+        xmlns:loc="clr-namespace:GCodeGenerator.Localization"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:PreviewViewModel}"
         Title="{Binding DisplayName}"
@@ -42,6 +43,15 @@
                 </ModelVisual3D.Content>
             </ModelVisual3D>
         </Viewport3D>
+
+        <!-- Пока сцена строится, окно уже открыто: без этой надписи оно
+             выглядело бы пустым и неотзывчивым. -->
+        <TextBlock Text="{loc:Loc BuildingPreview}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   FontSize="16"
+                   Opacity="0.7"
+                   Visibility="{Binding IsBuilding, Converter={StaticResource BoolToVis}}"/>
     </Grid>
 </Window>
 

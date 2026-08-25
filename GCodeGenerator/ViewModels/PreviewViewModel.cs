@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Trajectory;
 
@@ -15,6 +16,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager _localizationManager;
         private Toolpath.ToolPath _toolPath;
         private TrajectoryScene _scene;
+        private bool _isBuilding;
 
         public PreviewViewModel(ILocalizationManager localizationManager)
         {
@@ -41,7 +43,60 @@ namespace GCodeGenerator.ViewModels
                 if (ReferenceEquals(value, _toolPath)) return;
                 _toolPath = value;
                 OnPropertyChanged();
-                Scene = value != null ? ToolPathSceneBuilder.Build(value) : TrajectoryScene.Empty;
+                _ = RebuildSceneAsync(value);
+            }
+        }
+
+        /// <summary>
+        /// Идёт построение сцены. Окно показывает это ожиданием: на большой
+        /// программе построение занимает заметное время.
+        /// </summary>
+        public bool IsBuilding
+        {
+            get => _isBuilding;
+            private set
+            {
+                if (value == _isBuilding) return;
+                _isBuilding = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Собирает сцену в фоне и показывает её, если траектория за это
+        /// время не сменилась.
+        ///
+        /// Прежде сцена строилась прямо в присваивании траектории, то есть
+        /// на потоке интерфейса: окно замирало на всё время обхода
+        /// перемещений и разбиения дуг. Генерация в фон вынесена давно,
+        /// а построение предпросмотра для той же программы оставалось
+        /// синхронным.
+        /// </summary>
+        /// <param name="toolPath">Траектория, для которой строится сцена.</param>
+        private async Task RebuildSceneAsync(Toolpath.ToolPath toolPath)
+        {
+            if (toolPath == null)
+            {
+                Scene = TrajectoryScene.Empty;
+                return;
+            }
+
+            IsBuilding = true;
+            try
+            {
+                var scene = await Task.Run(() => ToolPathSceneBuilder.Build(toolPath));
+
+                // Пока строили, могли показать другую траекторию: её сцену
+                // затирать нельзя.
+                if (!ReferenceEquals(toolPath, _toolPath))
+                    return;
+
+                Scene = scene;
+            }
+            finally
+            {
+                if (ReferenceEquals(toolPath, _toolPath))
+                    IsBuilding = false;
             }
         }
 
