@@ -19,7 +19,8 @@ namespace GCodeGenerator.ViewModels
         private readonly ProjectWorkflowViewModel _projectWorkflow;
         private readonly ISettingsStore _settingsStore;
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly Func<SettingsViewModel> _createSettings;
+        private readonly IDialogHost _dialogHost;
         private readonly IProgramInfo _programInfo;
         private readonly string _programTitle;
         private IDisposable _documentBatch;
@@ -27,7 +28,8 @@ namespace GCodeGenerator.ViewModels
 
         public MainViewModel(
             ILocalizationManager localizationManager,
-            IDialogService dialogService,
+            Func<SettingsViewModel> createSettings,
+            IDialogHost dialogHost,
             IGCodeWorkflowFactory gCodeWorkflowFactory,
             IProjectWorkflowFactory projectWorkflowFactory,
             OperationsWorkspaceViewModel operationsWorkspace,
@@ -35,7 +37,8 @@ namespace GCodeGenerator.ViewModels
             ISettingsStore settingsStore)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _createSettings = createSettings ?? throw new ArgumentNullException(nameof(createSettings));
+            _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _settingsStore.SettingsChanged += OnSettingsChanged;
@@ -231,8 +234,7 @@ namespace GCodeGenerator.ViewModels
 
         private void OpenSettings()
         {
-            var viewModel = _dialogService.CreateViewModel<SettingsViewModel>();
-            _dialogService.ShowDialog(viewModel);
+            _dialogHost.ShowDialog(_createSettings());
         }
     }
 }

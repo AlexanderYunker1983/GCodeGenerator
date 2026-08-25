@@ -1,5 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
+using Autofac.Features.Indexed;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
 
@@ -40,11 +41,21 @@ namespace GCodeGenerator.Services
     /// </summary>
     public class OperationEditorFactory : IOperationEditorFactory
     {
-        private readonly IDialogService _dialogService;
+        private readonly IIndex<Type, IOperationEditorViewModel> _editors;
+        private readonly IDialogHost _dialogHost;
 
-        public OperationEditorFactory(IDialogService dialogService)
+        /// <param name="editors">
+        /// Диалоги операций по типу view-модели. Раньше вместо этого сюда
+        /// передавался контейнер целиком под видом сервиса диалогов: фабрика
+        /// могла создать любой объект приложения, а из подписи это не следовало.
+        /// </param>
+        /// <param name="dialogHost">Показ диалога модальным окном.</param>
+        public OperationEditorFactory(
+            IIndex<Type, IOperationEditorViewModel> editors,
+            IDialogHost dialogHost)
         {
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _editors = editors ?? throw new ArgumentNullException(nameof(editors));
+            _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
         }
 
         public Type GetViewModelType(OperationBase operation)
@@ -85,13 +96,12 @@ namespace GCodeGenerator.Services
             var vmType = GetViewModelType(operation);
             if (vmType == null) return false;
 
-            var vm = _dialogService.CreateViewModel(vmType);
-            if (!(vm is IOperationEditorViewModel editor))
+            if (!_editors.TryGetValue(vmType, out var editor))
                 throw new InvalidOperationException(
-                    $"View-модель {vmType.Name} не реализует {nameof(IOperationEditorViewModel)}.");
+                    $"Диалог {vmType.Name} не зарегистрирован в контейнере.");
 
             editor.SetOperation(operation);
-            _dialogService.ShowDialog(vmType, vm);
+            _dialogHost.ShowDialog(editor);
             return editor.IsAccepted;
         }
     }

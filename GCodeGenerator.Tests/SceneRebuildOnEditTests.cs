@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Import;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
-using GCodeGenerator.Services;
 using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.Pocket;
@@ -25,22 +24,6 @@ namespace GCodeGenerator.Tests
     public class SceneRebuildOnEditTests
     {
         /// <summary>Заглушка IDialogService: «выбирает» DXF-файл для импорта (без окон).</summary>
-        private sealed class StubDialogService : IDialogService
-        {
-            public string OpenDialogResult { get; set; }
-
-            public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "") { }
-            public bool ShowConfirm(string message, string title = "") => true;
-            public SaveConfirmation ShowSaveConfirmation(string message, string title = "") => SaveConfirmation.Discard;
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => OpenDialogResult;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
-            public TViewModel CreateViewModel<TViewModel>() where TViewModel : class => throw new NotSupportedException();
-            public object CreateViewModel(Type viewModelType) => throw new NotSupportedException();
-            public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class => throw new NotSupportedException();
-            public void ShowDialog(Type viewModelType, object viewModel) => throw new NotSupportedException();
-        }
-
         [TestMethod]
         public void DialogOk_DrillOperation_SceneRebuilt()
         {
@@ -96,11 +79,11 @@ namespace GCodeGenerator.Tests
             var sceneBefore = main.OperationsPreview.Scene;
             Assert.AreEqual(0, sceneBefore.Shapes.Count, "У нового DXF-профиля ещё нет контуров");
 
-            var dialogService = new StubDialogService
+            var dialogs = new FakeDialogs
             {
                 OpenDialogResult = DxfFixtureLoader.GetAssetPath("profile_sample.dxf")
             };
-            var vm = new ProfileDxfOperationViewModel(null, dialogService, new DxfImportService());
+            var vm = new ProfileDxfOperationViewModel(null, dialogs, dialogs, new DxfImportService());
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
@@ -120,11 +103,11 @@ namespace GCodeGenerator.Tests
             var sceneBefore = main.OperationsPreview.Scene;
             Assert.AreEqual(0, sceneBefore.Shapes.Count, "У нового DXF-кармана ещё нет контуров");
 
-            var dialogService = new StubDialogService
+            var dialogs = new FakeDialogs
             {
                 OpenDialogResult = DxfFixtureLoader.GetAssetPath("pocket_sample.dxf")
             };
-            var vm = new PocketDxfOperationViewModel(null, dialogService, new DxfImportService());
+            var vm = new PocketDxfOperationViewModel(null, dialogs, dialogs, new DxfImportService());
             vm.Operation = op;
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 

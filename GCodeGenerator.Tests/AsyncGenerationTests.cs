@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Import;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels.PocketMill;
 using netDxf;
 using netDxf.Header;
@@ -55,22 +55,6 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>Заглушка IDialogService: «выбирает» файл для импорта (без окон).</summary>
-        private sealed class StubDialogService : IDialogService
-        {
-            public string OpenDialogResult { get; set; }
-
-            public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "") { }
-            public bool ShowConfirm(string message, string title = "") => true;
-            public SaveConfirmation ShowSaveConfirmation(string message, string title = "") => SaveConfirmation.Discard;
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => OpenDialogResult;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
-            public TViewModel CreateViewModel<TViewModel>() where TViewModel : class => throw new NotSupportedException();
-            public object CreateViewModel(Type viewModelType) => throw new NotSupportedException();
-            public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class => throw new NotSupportedException();
-            public void ShowDialog(Type viewModelType, object viewModel) => throw new NotSupportedException();
-        }
-
         private static DrillPointsOperation CreateDrillOperation(string name)
         {
             return new DrillPointsOperation
@@ -133,8 +117,8 @@ namespace GCodeGenerator.Tests
             {
                 WriteBigDxf(path, lineCount);
 
-                var dialogService = new StubDialogService { OpenDialogResult = path };
-                var vm = new ProfileDxfOperationViewModel(null, dialogService, new DxfImportService());
+                var dialogs = new FakeDialogs { OpenDialogResult = path };
+                var vm = new ProfileDxfOperationViewModel(null, dialogs, dialogs, new DxfImportService());
 
                 var stopwatch = Stopwatch.StartNew();
                 var task = ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);

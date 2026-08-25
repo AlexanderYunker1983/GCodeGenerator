@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Pocket;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -26,13 +27,13 @@ namespace GCodeGenerator.Tests
         public void Cancel_LeavesDocumentEmpty()
         {
             var operations = new ObservableCollection<OperationBase>();
-            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService
+            var editors = new FakeEditorIndex { Factory = _ => new PocketCircleOperationViewModel(null) };
+            var dialogs = new FakeDialogs
             {
-                ViewModelFactory = _ => new PocketCircleOperationViewModel(null),
                 DialogAction = vm => ((PocketCircleOperationViewModel)vm).CancelCommand.Execute(null),
             };
 
-            var added = new OperationEditorFactory(dialogs)
+            var added = new OperationEditorFactory(editors, dialogs)
                 .CreateOperation(new PocketCircleOperation(), operations);
 
             Assert.IsFalse(added, "Отменённая операция не считается добавленной");
@@ -43,9 +44,9 @@ namespace GCodeGenerator.Tests
         public void Ok_AddsOperationWithEnteredValues()
         {
             var operations = new ObservableCollection<OperationBase>();
-            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService
+            var editors = new FakeEditorIndex { Factory = _ => new PocketCircleOperationViewModel(null) };
+            var dialogs = new FakeDialogs
             {
-                ViewModelFactory = _ => new PocketCircleOperationViewModel(null),
                 DialogAction = vm =>
                 {
                     var editor = (PocketCircleOperationViewModel)vm;
@@ -55,7 +56,7 @@ namespace GCodeGenerator.Tests
             };
 
             var operation = new PocketCircleOperation();
-            var added = new OperationEditorFactory(dialogs).CreateOperation(operation, operations);
+            var added = new OperationEditorFactory(editors, dialogs).CreateOperation(operation, operations);
 
             Assert.IsTrue(added, "Подтверждённая операция добавлена");
             Assert.AreEqual(1, operations.Count, "Операция в документе одна");
@@ -72,9 +73,9 @@ namespace GCodeGenerator.Tests
         public void InvalidParameters_LeaveDocumentEmpty()
         {
             var operations = new ObservableCollection<OperationBase>();
-            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService
+            var editors = new FakeEditorIndex { Factory = _ => new PocketCircleOperationViewModel(null) };
+            var dialogs = new FakeDialogs
             {
-                ViewModelFactory = _ => new PocketCircleOperationViewModel(null),
                 DialogAction = vm =>
                 {
                     var editor = (PocketCircleOperationViewModel)vm;
@@ -84,7 +85,7 @@ namespace GCodeGenerator.Tests
                 },
             };
 
-            var added = new OperationEditorFactory(dialogs)
+            var added = new OperationEditorFactory(editors, dialogs)
                 .CreateOperation(new PocketCircleOperation(), operations);
 
             Assert.IsFalse(added, "Непринятая операция не добавляется");
@@ -98,8 +99,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void CategoryTab_AddCommand_RespectsCancel()
         {
-            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            dialogs.ViewModelFactory = _ => new PocketCircleOperationViewModel(null);
+            var editors = new FakeEditorIndex { Factory = _ => new PocketCircleOperationViewModel(null) };
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain(editors: editors);
             dialogs.DialogAction = vm => ((PocketCircleOperationViewModel)vm).CancelCommand.Execute(null);
 
             FindAddCommand(main).Execute(null);
@@ -111,8 +112,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void CategoryTab_AddCommand_SelectsAcceptedOperation()
         {
-            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
-            dialogs.ViewModelFactory = _ => new PocketCircleOperationViewModel(null);
+            var editors = new FakeEditorIndex { Factory = _ => new PocketCircleOperationViewModel(null) };
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain(editors: editors);
             dialogs.DialogAction = vm => ((PocketCircleOperationViewModel)vm).OkCommand.Execute(null);
 
             FindAddCommand(main).Execute(null);

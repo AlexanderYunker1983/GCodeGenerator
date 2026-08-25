@@ -21,7 +21,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
         : ProfileOperationEditorViewModelBase<ProfileDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IMessageService _messageService;
+        private readonly IFileDialogService _fileDialogService;
         private readonly IDxfImportService _dxfImportService;
         private readonly IAppLogger _logger;
 
@@ -38,12 +39,14 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         public ProfileDxfOperationViewModel(
             ILocalizationManager localizationManager,
-            IDialogService dialogService,
+            IMessageService messageService,
+            IFileDialogService fileDialogService,
             IDxfImportService dxfImportService,
             IAppLogger logger = null)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _messageService = messageService;
+            _fileDialogService = fileDialogService;
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
             _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.4 плана: импорт DXF — async: разбор файла выполняется в пуле,
@@ -82,7 +85,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         private async Task ImportDxfFileAsync()
         {
             var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
-            var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
+            var fileName = _fileDialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
             if (fileName == null)
                 return;
 
@@ -93,7 +96,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
                 {
                     _logger.Warning($"DXF import found no profile geometry: {fileName}");
                     var msg = _localizationManager?.GetString("DxfImportNoLines") ?? "DxfImportNoLines";
-                    _dialogService?.ShowInfo(msg, title);
+                    _messageService?.ShowInfo(msg, title);
                     return;
                 }
 
@@ -112,7 +115,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             {
                 _logger.Error($"DXF import failed: {fileName}", ex);
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
-                _dialogService?.ShowError($"{msg} {ex.Message}", title);
+                _messageService?.ShowError($"{msg} {ex.Message}", title);
             }
         }
     }

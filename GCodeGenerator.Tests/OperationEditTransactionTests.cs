@@ -3,6 +3,8 @@ using System.Collections.ObjectModel;
 using GCodeGenerator.Import;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
+using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -21,7 +23,7 @@ namespace GCodeGenerator.Tests
                 Holes = { new DrillHole { X = 10, Y = 20, TotalDepth = 2, StepDepth = 1 } },
             };
             var operations = new ObservableCollection<OperationBase> { operation };
-            var dialogs = CreateDialogs(
+            var editorFactory = CreateEditor(
                 _ => new DrillPointsOperationViewModel(null),
                 vm =>
                 {
@@ -31,7 +33,7 @@ namespace GCodeGenerator.Tests
                     editor.CancelCommand.Execute(null);
                 });
 
-            new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
+            editorFactory.ShowEditor(operation, operations);
 
             Assert.AreEqual(1000, operation.FeedXYRapid);
             Assert.AreEqual(10, operation.Holes[0].X);
@@ -48,8 +50,8 @@ namespace GCodeGenerator.Tests
                 Polylines = { originalPolyline },
             };
             var operations = new ObservableCollection<OperationBase> { operation };
-            var dialogs = CreateDialogs(
-                _ => new ProfileDxfOperationViewModel(null, null, new DxfImportService()),
+            var editorFactory = CreateEditor(
+                _ => new ProfileDxfOperationViewModel(null, null, null, new DxfImportService()),
                 vm =>
                 {
                     var editor = (ProfileDxfOperationViewModel)vm;
@@ -62,7 +64,7 @@ namespace GCodeGenerator.Tests
                     editor.CancelCommand.Execute(null);
                 });
 
-            new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
+            editorFactory.ShowEditor(operation, operations);
 
             Assert.AreEqual(3, operation.ToolDiameter);
             Assert.AreEqual("original.dxf", operation.DxfFilePath);
@@ -76,7 +78,7 @@ namespace GCodeGenerator.Tests
             var operations = new ObservableCollection<OperationBase> { operation };
             int notifications = 0;
             operation.PropertyChanged += (_, _) => notifications++;
-            var dialogs = CreateDialogs(
+            var editorFactory = CreateEditor(
                 _ => new ProfileCircleOperationViewModel(null),
                 vm =>
                 {
@@ -85,7 +87,7 @@ namespace GCodeGenerator.Tests
                     editor.OkCommand.Execute(null);
                 });
 
-            new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
+            editorFactory.ShowEditor(operation, operations);
 
             Assert.AreSame(operation, operations[0]);
             Assert.AreEqual(25, operation.Radius);
@@ -97,11 +99,11 @@ namespace GCodeGenerator.Tests
         {
             var operation = new ProfileCircleOperation { Radius = 10 };
             var operations = new ObservableCollection<OperationBase> { operation };
-            var dialogs = CreateDialogs(
+            var editorFactory = CreateEditor(
                 _ => new ProfileCircleOperationViewModel(null),
                 vm => ((ProfileCircleOperationViewModel)vm).Operation.Radius = 99);
 
-            new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
+            editorFactory.ShowEditor(operation, operations);
 
             Assert.AreEqual(10, operation.Radius);
         }
@@ -119,7 +121,7 @@ namespace GCodeGenerator.Tests
                 Holes = { new DrillHole { X = 1, Y = 2, TotalDepth = 2, StepDepth = 1 } },
             };
             var operations = new ObservableCollection<OperationBase> { operation };
-            var dialogs = CreateDialogs(
+            var editorFactory = CreateEditor(
                 _ => new DrillPointsOperationViewModel(null),
                 vm =>
                 {
@@ -128,22 +130,25 @@ namespace GCodeGenerator.Tests
                     editor.OkCommand.Execute(null);
                 });
 
-            new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
+            editorFactory.ShowEditor(operation, operations);
 
             Assert.AreEqual(1, operations.Count, "операция остаётся в списке");
             Assert.AreSame(operation, operations[0], "остаётся именно исходная операция");
             Assert.AreEqual(1, operation.Holes.Count, "отверстия исходной операции не тронуты");
         }
 
-        private static MainViewModelOperationEditTests.RecordingDialogService CreateDialogs(
-            Func<Type, object> factory,
+        /// <summary>
+        /// Диалог операции, который «пользователь» правит указанным образом:
+        /// какой класс окна открывается, задаёт первый параметр, что в нём
+        /// делают — второй.
+        /// </summary>
+        private static OperationEditorFactory CreateEditor(
+            Func<Type, IOperationEditorViewModel> editor,
             Action<object> action)
         {
-            return new MainViewModelOperationEditTests.RecordingDialogService
-            {
-                ViewModelFactory = factory,
-                DialogAction = action,
-            };
+            return new OperationEditorFactory(
+                new FakeEditorIndex { Factory = editor },
+                new FakeDialogs { DialogAction = action });
         }
 
         private static Polyline2D Poly(params (double x, double y)[] points)

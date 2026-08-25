@@ -24,7 +24,10 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeGenerator _generator;
         private readonly IPostProcessor _postProcessor;
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IMessageService _messageService;
+        private readonly IFileDialogService _fileDialogService;
+        private readonly Func<PreviewViewModel> _createPreview;
+        private readonly IDialogHost _dialogHost;
         private readonly IGCodeFileService _gCodeFileService;
         private readonly IAppLogger _logger;
         private Toolpath.ToolPath _generatedToolPath;
@@ -39,7 +42,10 @@ namespace GCodeGenerator.ViewModels
             IGCodeGenerator generator,
             IPostProcessor postProcessor,
             ILocalizationManager localizationManager,
-            IDialogService dialogService,
+            IMessageService messageService,
+            IFileDialogService fileDialogService,
+            Func<PreviewViewModel> createPreview,
+            IDialogHost dialogHost,
             IGCodeFileService gCodeFileService,
             IAppLogger logger = null)
         {
@@ -48,7 +54,10 @@ namespace GCodeGenerator.ViewModels
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
             _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
             _localizationManager = localizationManager;
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
+            _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
+            _createPreview = createPreview ?? throw new ArgumentNullException(nameof(createPreview));
+            _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
             _gCodeFileService = gCodeFileService ?? throw new ArgumentNullException(nameof(gCodeFileService));
             _logger = logger ?? NullAppLogger.Instance;
 
@@ -176,7 +185,7 @@ namespace GCodeGenerator.ViewModels
                 _logger.Error("G-code generation failed", ex);
                 var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
+                _messageService.ShowError($"{message}\n{ex.Message}", errorTitle);
             }
             finally
             {
@@ -191,7 +200,7 @@ namespace GCodeGenerator.ViewModels
             if (string.IsNullOrEmpty(GCodePreview))
                 return;
 
-            var fileName = _dialogService.ShowSaveDialog(
+            var fileName = _fileDialogService.ShowSaveDialog(
                 "",
                 "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
                 "nc",
@@ -209,7 +218,7 @@ namespace GCodeGenerator.ViewModels
                 _logger.Error($"Saving G-code failed: {fileName}", ex);
                 var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _dialogService.ShowError($"{message}\n{ex.Message}", errorTitle);
+                _messageService.ShowError($"{message}\n{ex.Message}", errorTitle);
             }
         }
 
@@ -218,9 +227,9 @@ namespace GCodeGenerator.ViewModels
             if (string.IsNullOrEmpty(GCodePreview))
                 return;
 
-            var viewModel = _dialogService.CreateViewModel<PreviewViewModel>();
+            var viewModel = _createPreview();
             viewModel.ToolPath = GeneratedToolPath;
-            _dialogService.ShowDialog(viewModel);
+            _dialogHost.ShowDialog(viewModel);
         }
     }
 }

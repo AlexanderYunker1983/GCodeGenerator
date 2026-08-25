@@ -1,10 +1,9 @@
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Import;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels.Pocket;
 using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -14,22 +13,6 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class DxfImportDelegationTests
     {
-        private sealed class StubDialogService : IDialogService
-        {
-            public string FilePath { get; set; }
-
-            public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "") => Assert.Fail(message);
-            public bool ShowConfirm(string message, string title = "") => true;
-            public SaveConfirmation ShowSaveConfirmation(string message, string title = "") => SaveConfirmation.Discard;
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => FilePath;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
-            public TViewModel CreateViewModel<TViewModel>() where TViewModel : class => throw new NotSupportedException();
-            public object CreateViewModel(Type viewModelType) => throw new NotSupportedException();
-            public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class => throw new NotSupportedException();
-            public void ShowDialog(Type viewModelType, object viewModel) => throw new NotSupportedException();
-        }
-
         private sealed class RecordingDxfImportService : IDxfImportService
         {
             public string ProfilePath { get; private set; }
@@ -75,9 +58,9 @@ namespace GCodeGenerator.Tests
         public async Task ProfileViewModel_DelegatesImportToService()
         {
             const string path = "virtual-profile.dxf";
-            var dialog = new StubDialogService { FilePath = path };
+            var dialog = new FakeDialogs { OpenDialogResult = path, OnError = Assert.Fail };
             var importer = new RecordingDxfImportService();
-            var vm = new ProfileDxfOperationViewModel(null, dialog, importer);
+            var vm = new ProfileDxfOperationViewModel(null, dialog, dialog, importer);
 
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
@@ -90,9 +73,9 @@ namespace GCodeGenerator.Tests
         public async Task PocketViewModel_DelegatesImportToService()
         {
             const string path = "virtual-pocket.dxf";
-            var dialog = new StubDialogService { FilePath = path };
+            var dialog = new FakeDialogs { OpenDialogResult = path, OnError = Assert.Fail };
             var importer = new RecordingDxfImportService();
-            var vm = new PocketDxfOperationViewModel(null, dialog, importer);
+            var vm = new PocketDxfOperationViewModel(null, dialog, dialog, importer);
 
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 

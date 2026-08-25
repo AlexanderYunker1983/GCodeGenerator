@@ -1,6 +1,7 @@
 using System;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
+using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -22,10 +23,10 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void SelectionAndContentChanges_HaveSeparateSignalsAndSynchronizedCommands()
         {
-            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService();
+            var dialogs = new FakeDialogs();
             var workspace = new OperationsWorkspaceViewModel(
                 null,
-                new OperationEditorFactory(dialogs),
+                new OperationEditorFactory(new FakeEditorIndex(), dialogs),
                 new StubThemeService());
             var first = new ProfileCircleOperation { Name = "First" };
             var second = new ProfileCircleOperation { Name = "Second" };
@@ -65,10 +66,10 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Clear_DetachesRemovedOperationsAndClearsSelection()
         {
-            var dialogs = new MainViewModelOperationEditTests.RecordingDialogService();
+            var dialogs = new FakeDialogs();
             var workspace = new OperationsWorkspaceViewModel(
                 null,
-                new OperationEditorFactory(dialogs),
+                new OperationEditorFactory(new FakeEditorIndex(), dialogs),
                 new StubThemeService());
             var operation = new ProfileCircleOperation();
             workspace.AllOperations.Add(operation);

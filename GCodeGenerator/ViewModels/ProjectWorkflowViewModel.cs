@@ -25,7 +25,8 @@ namespace GCodeGenerator.ViewModels
         private readonly ObservableCollection<OperationBase> _operations;
         private readonly GCodeWorkflowViewModel _gCodeWorkflow;
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IMessageService _messageService;
+        private readonly IFileDialogService _fileDialogService;
         private readonly ISettingsStore _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
@@ -43,7 +44,8 @@ namespace GCodeGenerator.ViewModels
             ObservableCollection<OperationBase> operations,
             GCodeWorkflowViewModel gCodeWorkflow,
             ILocalizationManager localizationManager,
-            IDialogService dialogService,
+            IMessageService messageService,
+            IFileDialogService fileDialogService,
             ISettingsStore settingsStore,
             IProjectFileService projectFileService,
             IAppLogger logger = null)
@@ -51,7 +53,8 @@ namespace GCodeGenerator.ViewModels
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _gCodeWorkflow = gCodeWorkflow ?? throw new ArgumentNullException(nameof(gCodeWorkflow));
             _localizationManager = localizationManager;
-            _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+            _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
+            _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
             _logger = logger ?? NullAppLogger.Instance;
@@ -152,7 +155,7 @@ namespace GCodeGenerator.ViewModels
             if (!IsDirty)
                 return true;
 
-            var answer = _dialogService.ShowSaveConfirmation(
+            var answer = _messageService.ShowSaveConfirmation(
                 Localize("ConfirmSaveChangesMessage"),
                 Localize("ConfirmSaveChangesTitle"));
 
@@ -205,7 +208,7 @@ namespace GCodeGenerator.ViewModels
             var filter = Localize("ProjectFileFilter");
             var title = Localize("SaveProjectTitle");
             var suggested = string.IsNullOrEmpty(CurrentFileName) ? "project.ygc" : CurrentFileName;
-            return _dialogService.ShowSaveDialog(title, filter, "ygc", suggested);
+            return _fileDialogService.ShowSaveDialog(title, filter, "ygc", suggested);
         }
 
         /// <summary>
@@ -229,7 +232,7 @@ namespace GCodeGenerator.ViewModels
             {
                 _logger.Error($"Saving project failed: {fileName}", ex);
                 var message = Localize("ErrorSavingProject");
-                _dialogService.ShowError($"{message}\n{ex.Message}", Localize("SaveProjectTitle"));
+                _messageService.ShowError($"{message}\n{ex.Message}", Localize("SaveProjectTitle"));
                 return false;
             }
         }
@@ -241,7 +244,7 @@ namespace GCodeGenerator.ViewModels
 
             var filter = Localize("ProjectFileFilter");
             var title = Localize("OpenProjectTitle");
-            var fileName = _dialogService.ShowOpenDialog(title, filter, "ygc");
+            var fileName = _fileDialogService.ShowOpenDialog(title, filter, "ygc");
             if (fileName == null)
                 return;
 
@@ -254,7 +257,7 @@ namespace GCodeGenerator.ViewModels
                 if (data?.Operations == null)
                 {
                     _logger.Warning($"Project file has no operations section: {fileName}");
-                    _dialogService.ShowError(Localize("InvalidProjectFile"), title);
+                    _messageService.ShowError(Localize("InvalidProjectFile"), title);
                     return;
                 }
 
@@ -272,7 +275,7 @@ namespace GCodeGenerator.ViewModels
             {
                 _logger.Error($"Opening project failed: {fileName}", ex);
                 var message = Localize("ErrorOpeningProject");
-                _dialogService.ShowError($"{message}\n{ex.Message}", title);
+                _messageService.ShowError($"{message}\n{ex.Message}", title);
             }
         }
 

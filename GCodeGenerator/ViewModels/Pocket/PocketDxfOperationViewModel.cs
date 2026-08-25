@@ -20,7 +20,8 @@ namespace GCodeGenerator.ViewModels.Pocket
         : PocketOperationEditorViewModelBase<PocketDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
-        private readonly IDialogService _dialogService;
+        private readonly IMessageService _messageService;
+        private readonly IFileDialogService _fileDialogService;
         private readonly IDxfImportService _dxfImportService;
         private readonly IAppLogger _logger;
 
@@ -37,12 +38,14 @@ namespace GCodeGenerator.ViewModels.Pocket
 
         public PocketDxfOperationViewModel(
             ILocalizationManager localizationManager,
-            IDialogService dialogService,
+            IMessageService messageService,
+            IFileDialogService fileDialogService,
             IDxfImportService dxfImportService,
             IAppLogger logger = null)
         {
             _localizationManager = localizationManager;
-            _dialogService = dialogService;
+            _messageService = messageService;
+            _fileDialogService = fileDialogService;
             _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
             _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.4 плана: импорт DXF — async: разбор файла выполняется в пуле,
@@ -79,7 +82,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         private async Task ImportDxfFileAsync()
         {
             var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
-            var fileName = _dialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
+            var fileName = _fileDialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
             if (fileName == null)
                 return;
 
@@ -90,7 +93,7 @@ namespace GCodeGenerator.ViewModels.Pocket
                 {
                     _logger.Warning($"DXF import found no closed contours: {fileName}");
                     var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "DxfImportNoClosedContours";
-                    _dialogService?.ShowInfo(msg, title);
+                    _messageService?.ShowInfo(msg, title);
                     return;
                 }
 
@@ -109,7 +112,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             {
                 _logger.Error($"DXF import failed: {fileName}", ex);
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
-                _dialogService?.ShowError($"{msg} {ex.Message}", title);
+                _messageService?.ShowError($"{msg} {ex.Message}", title);
             }
         }
 

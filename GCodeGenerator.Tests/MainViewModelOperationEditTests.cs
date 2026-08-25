@@ -25,84 +25,18 @@ namespace GCodeGenerator.Tests
     public class MainViewModelOperationEditTests
     {
         /// <summary>Заглушка диалоговой VM: фиксирует операцию и коллекцию, переданные в диалог.</summary>
-        private sealed class StubEditorViewModel : IOperationEditorViewModel
-        {
-            public OperationBase EditedOperation { get; private set; }
-
-            public bool IsAccepted => false;
-
-            public void SetOperation(OperationBase operation) => EditedOperation = operation;
-        }
-
-        /// <summary>Фиксирует вызовы IDialogService без показа окон.</summary>
-        /// Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.
-        internal sealed class RecordingDialogService : IDialogService
-        {
-            public Type CreatedType { get; private set; }
-            public Type ShownType { get; private set; }
-            public object ShownVm { get; private set; }
-            public string LastErrorMessage { get; private set; }
-            public string LastErrorTitle { get; private set; }
-            public Func<Type, object> ViewModelFactory { get; set; }
-            public Action<object> DialogAction { get; set; }
-
-            public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "")
-            {
-                LastErrorMessage = message;
-                LastErrorTitle = title;
-            }
-            public bool ShowConfirm(string message, string title = "") => true;
-
-            /// <summary>Ответ на вопрос о несохранённых изменениях и число таких вопросов.</summary>
-            public SaveConfirmation SaveConfirmationResult { get; set; } = SaveConfirmation.Discard;
-
-            public int SaveConfirmationCount { get; private set; }
-
-            public SaveConfirmation ShowSaveConfirmation(string message, string title = "")
-            {
-                SaveConfirmationCount++;
-                return SaveConfirmationResult;
-            }
-
-            /// <summary>Пункт 8.2: путь, который «выбирает» диалог открытия (null — отмена).</summary>
-            public string OpenDialogResult { get; set; }
-            public string SaveDialogResult { get; set; }
-
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => OpenDialogResult;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => SaveDialogResult;
-
-            public TViewModel CreateViewModel<TViewModel>() where TViewModel : class
-                => throw new NotSupportedException("в тесте используется CreateViewModel(Type)");
-
-            public object CreateViewModel(Type viewModelType)
-            {
-                CreatedType = viewModelType;
-                return ViewModelFactory?.Invoke(viewModelType) ?? new StubEditorViewModel();
-            }
-
-            public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class
-                => throw new NotSupportedException("в тесте используется ShowDialog(Type, object)");
-
-            public void ShowDialog(Type viewModelType, object viewModel)
-            {
-                ShownType = viewModelType;
-                ShownVm = viewModel;
-                DialogAction?.Invoke(viewModel);
-            }
-        }
-
         /// <summary>
         /// Пункт 8.4: internal + опциональный генератор — переиспользуется в
         /// AsyncGenerationTests (медленный фикс-генератор для проверки async).
         /// </summary>
-        internal static (MainViewModel Main, OperationEditorFactory Factory, RecordingDialogService DialogService, FakeSettingsStore SettingsStore) CreateMain(
+        internal static (MainViewModel Main, OperationEditorFactory Factory, FakeDialogs Dialogs, FakeSettingsStore SettingsStore) CreateMain(
             IGCodeGenerator generator = null,
             IGCodeFileService gCodeFileService = null,
-            IProjectFileService projectFileService = null)
+            IProjectFileService projectFileService = null,
+            FakeEditorIndex editors = null)
         {
-            var dialogService = new RecordingDialogService();
-            var factory = new OperationEditorFactory(dialogService);
+            var dialogs = new FakeDialogs();
+            var factory = new OperationEditorFactory(editors ?? new FakeEditorIndex(), dialogs);
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var settingsStore = new FakeSettingsStore();
@@ -110,20 +44,25 @@ namespace GCodeGenerator.Tests
                 generator ?? new SimpleGCodeGenerator(),
                 new GenericPostProcessor(),
                 null,
-                dialogService,
+                dialogs,
+                dialogs,
+                () => new PreviewViewModel(null),
+                dialogs,
                 gCodeFileService ?? new GCodeFileService());
             var projectWorkflowFactory = new ProjectWorkflowFactory(
                 null,
-                dialogService,
+                dialogs,
+                dialogs,
                 settingsStore,
                 projectFileService ?? new ProjectFileService());
             var operationsWorkspace = new OperationsWorkspaceViewModel(
                 null,
                 factory,
                 new FakeThemeService());
-            var main = new MainViewModel(null, dialogService, gCodeWorkflowFactory, projectWorkflowFactory,
+            var main = new MainViewModel(null, () => new SettingsViewModel(null, settingsStore, new FakeThemeService()),
+                dialogs, gCodeWorkflowFactory, projectWorkflowFactory,
                 operationsWorkspace, new ProgramInfo("1.0"), settingsStore);
-            return (main, factory, dialogService, settingsStore);
+            return (main, factory, dialogs, settingsStore);
         }
 
         /// <summary>
@@ -267,7 +206,8 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void EditSelectedOperation_RenamedOperation_OpensDialogByMode()
         {
-            var (main, _, dialogService, _) = CreateMain();
+            var editors = new FakeEditorIndex();
+            var (main, _, dialogs, _) = CreateMain(editors: editors);
 
             var op = new DrillPointsOperation
             {
@@ -279,10 +219,11 @@ namespace GCodeGenerator.Tests
 
             main.EditOperationCommand.Execute(null);
 
-            Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.CreatedType,
+            Assert.AreEqual(typeof(DrillArcOperationViewModel), editors.RequestedType,
                 "Диалог выбирается по DrillMode, а не по имени");
-            Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.ShownType);
-            var shown = (StubEditorViewModel)dialogService.ShownVm;
+            var shown = (StubEditorViewModel)dialogs.ShownViewModel;
+            Assert.AreSame(editors.Created(typeof(DrillArcOperationViewModel)), shown,
+                "Показывается именно созданный диалог");
             Assert.AreNotSame(op, shown.EditedOperation,
                 "Диалог должен получать изолированную рабочую копию");
             Assert.AreEqual(op.DrillMode, ((DrillPointsOperation)shown.EditedOperation).DrillMode);
@@ -308,14 +249,15 @@ namespace GCodeGenerator.Tests
 
             foreach (var (mode, expectedType) in cases)
             {
-                var (main, _, dialogService, _) = CreateMain();
+                var editors = new FakeEditorIndex();
+                var (main, _, _, _) = CreateMain(editors: editors);
                 var op = new DrillPointsOperation { DrillMode = mode, Name = "Имя" };
                 main.AllOperations.Add(op);
                 main.SelectedOperation = op;
 
                 main.EditOperationCommand.Execute(null);
 
-                Assert.AreEqual(expectedType, dialogService.CreatedType, $"mode={mode}");
+                Assert.AreEqual(expectedType, editors.RequestedType, $"mode={mode}");
             }
         }
 
@@ -330,7 +272,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void OpenProject_FileWithSections_AllGenerationSettingsReplacedAndUiPreserved()
         {
-            var (main, _, dialogService, store) = CreateMain();
+            var (main, _, dialogs, store) = CreateMain();
 
             var settings = new GCodeSettings();
             settings.Format.UseLineNumbers = false;
@@ -347,7 +289,7 @@ namespace GCodeGenerator.Tests
             {
                 new ProjectFileService().Save(filePath,
                     new List<OperationBase> { OperationFixtures.DrillPoints() }, settings);
-                dialogService.OpenDialogResult = filePath;
+                dialogs.OpenDialogResult = filePath;
 
                 main.OpenProjectCommand.Execute(null);
 
@@ -374,7 +316,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void OpenProject_OldFileWithoutSections_SessionRestoredToGlobal()
         {
-            var (main, _, dialogService, store) = CreateMain();
+            var (main, _, dialogs, store) = CreateMain();
 
             // Сессия «изменена ранее открытым проектом».
             store.Current.Spindle.SpindleSpeedRpm = 9999;
@@ -385,7 +327,7 @@ namespace GCodeGenerator.Tests
 
             var legacyPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference", "legacy_project_v1.ygc");
             Assert.IsTrue(File.Exists(legacyPath), "Нет эталонного легаси-файла");
-            dialogService.OpenDialogResult = legacyPath;
+            dialogs.OpenDialogResult = legacyPath;
 
             main.OpenProjectCommand.Execute(null);
 
@@ -401,7 +343,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void OpenProject_UnsupportedVersion_PreservesCurrentProject()
         {
-            var (main, _, dialogService, _) = CreateMain();
+            var (main, _, dialogs, _) = CreateMain();
             var existingOperation = OperationFixtures.DrillPoints();
             main.AllOperations.Add(existingOperation);
 
@@ -409,14 +351,14 @@ namespace GCodeGenerator.Tests
             try
             {
                 File.WriteAllText(path, "{\"version\":5,\"operations\":[]}");
-                dialogService.OpenDialogResult = path;
+                dialogs.OpenDialogResult = path;
 
                 main.OpenProjectCommand.Execute(null);
 
                 Assert.AreEqual(1, main.AllOperations.Count);
                 Assert.AreSame(existingOperation, main.AllOperations[0],
                     "Неподдерживаемый файл не должен частично заменять текущий проект");
-                Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage));
+                Assert.IsFalse(string.IsNullOrEmpty(dialogs.LastErrorMessage));
             }
             finally
             {

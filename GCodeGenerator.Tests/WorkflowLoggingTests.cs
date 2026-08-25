@@ -10,6 +10,8 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using GCodeGenerator.Persistence;
+using GCodeGenerator.Tests.Fixtures;
+using GCodeGenerator.ViewModels;
 
 namespace GCodeGenerator.Tests
 {
@@ -43,23 +45,6 @@ namespace GCodeGenerator.Tests
                 => throw new InvalidOperationException("generator failure");
         }
 
-        private sealed class SilentDialogService : IDialogService
-        {
-            public string SaveDialogResult { get; set; }
-
-            public void ShowInfo(string message, string title = "") { }
-            public void ShowError(string message, string title = "") { }
-            public bool ShowConfirm(string message, string title = "") => true;
-            public SaveConfirmation ShowSaveConfirmation(string message, string title = "") => SaveConfirmation.Discard;
-            public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => null;
-            public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "")
-                => SaveDialogResult;
-            public TViewModel CreateViewModel<TViewModel>() where TViewModel : class => throw new NotSupportedException();
-            public object CreateViewModel(Type viewModelType) => throw new NotSupportedException();
-            public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class => throw new NotSupportedException();
-            public void ShowDialog(Type viewModelType, object viewModel) => throw new NotSupportedException();
-        }
-
         private static ObservableCollection<OperationBase> OneDrillOperation()
             => new ObservableCollection<OperationBase>
             {
@@ -79,7 +64,10 @@ namespace GCodeGenerator.Tests
                 new SimpleGCodeGenerator(),
                 new GenericPostProcessor(),
                 null,
-                new SilentDialogService(),
+                new FakeDialogs(),
+                new FakeDialogs(),
+                () => new PreviewViewModel(null),
+                new FakeDialogs(),
                 new GCodeFileService(),
                 logger);
             var workflow = factory.Create(OneDrillOperation(), new GCodeSettings());
@@ -98,7 +86,10 @@ namespace GCodeGenerator.Tests
                 new ThrowingGenerator(),
                 new GenericPostProcessor(),
                 null,
-                new SilentDialogService(),
+                new FakeDialogs(),
+                new FakeDialogs(),
+                () => new PreviewViewModel(null),
+                new FakeDialogs(),
                 new GCodeFileService(),
                 logger);
             var workflow = factory.Create(OneDrillOperation(), new GCodeSettings());
@@ -118,10 +109,11 @@ namespace GCodeGenerator.Tests
             // Путь с недопустимым для файловой системы именем: сохранение падает
             // на уровне службы файлов проекта.
             var invalidPath = "?:\\<>|\\project.ygc";
-            var dialogService = new SilentDialogService { SaveDialogResult = invalidPath };
+            var dialogs = new FakeDialogs { SaveDialogResult = invalidPath };
             var factory = new ProjectWorkflowFactory(
                 null,
-                dialogService,
+                dialogs,
+                dialogs,
                 new DefaultSettingsStore(),
                 new ProjectFileService(),
                 logger);
@@ -129,7 +121,10 @@ namespace GCodeGenerator.Tests
                 new SimpleGCodeGenerator(),
                 new GenericPostProcessor(),
                 null,
-                dialogService,
+                dialogs,
+                dialogs,
+                () => new PreviewViewModel(null),
+                dialogs,
                 new GCodeFileService(),
                 logger);
             var operations = OneDrillOperation();
