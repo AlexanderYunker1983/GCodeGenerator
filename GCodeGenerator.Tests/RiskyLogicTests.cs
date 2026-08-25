@@ -482,6 +482,31 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Кеш эквидистанты хранит только последнее смещение: при чередовании
+        /// смещений каждый вызов обязан возвращать контур своего смещения,
+        /// а повторный вызов с прежним смещением — тот же результат.
+        /// Квадрат 20×20: площадь эквидистанты равна (20-2o)².
+        /// </summary>
+        [TestMethod]
+        public void DxfGeometry_OffsetCache_AlternatingOffsets_ReturnsOwnContour()
+        {
+            var op = new PocketDxfOperation { ToolDiameter = 3 };
+            var geo = new DxfPocketGeometry(op, Poly((0, 0), (20, 0), (20, 20), (0, 20), (0, 0)));
+
+            foreach (var o in new[] { 2.0, 5.0, 2.0, 5.0, 2.0 })
+            {
+                var area = geo.GetContour(0, o).GetArea();
+                var expected = (20.0 - 2 * o) * (20.0 - 2 * o);
+                Assert.AreEqual(expected, area, 1e-6, $"Площадь эквидистанты при o={o}");
+            }
+
+            // Точка (3, 10) лежит внутри контура при o=2 и снаружи при o=5.
+            Assert.IsTrue(geo.IsPointInside(3, 10, 0, 2.0));
+            Assert.IsFalse(geo.IsPointInside(3, 10, 0, 5.0));
+            Assert.IsTrue(geo.IsPointInside(3, 10, 0, 2.0), "Повторный вызов с прежним смещением");
+        }
+
+        /// <summary>
         /// Повернутый узкий прямоугольник имеет большой осевой bounding box,
         /// но его истинная минимальная ширина 2 мм. Фреза D3 не помещается.
         /// </summary>

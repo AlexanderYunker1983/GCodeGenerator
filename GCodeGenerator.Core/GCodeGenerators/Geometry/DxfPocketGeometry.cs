@@ -14,18 +14,60 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         private readonly PocketDxfOperation _operation;
         private readonly DxfPolyline _primaryContour;
 
+        // Кеш последнего построенного эквидистантного контура и центра исходного
+        // контура. В пределах одного слоя смещение одинаково для всех вызовов
+        // (GetContour, IsContourTooSmall, HasWindingDirectionChanged,
+        // HasVectorDirectionChanged и IsPointInside на каждую точку траектории
+        // стратегии), а построение эквидистанты линейно по числу вершин —
+        // без кеша спираль по контуру из N вершин стоила O(точек спирали x N).
+        // Экземпляр геометрии живёт в пределах одного слоя одного контура,
+        // а точки контура за это время не меняются, поэтому кешируется только
+        // последнее значение смещения; при смене смещения контур строится заново.
+        private bool _hasCachedOffsetContour;
+        private double _cachedOffset;
+        private DxfPolyline _cachedOffsetContour;
+        private bool _hasCachedCenter;
+        private (double x, double y) _cachedCenter;
+        private bool _hasCachedHullWidth;
+        private double _cachedHullWidth;
+
         public DxfPocketGeometry(PocketDxfOperation operation, DxfPolyline primaryContour = null)
         {
             _operation = operation ?? throw new ArgumentNullException(nameof(operation));
-            
+
             // Используем первый контур как основной, если не указан явно
-            _primaryContour = primaryContour ?? 
-                (operation.ClosedContours != null && operation.ClosedContours.Count > 0 
-                    ? operation.ClosedContours[0] 
+            _primaryContour = primaryContour ??
+                (operation.ClosedContours != null && operation.ClosedContours.Count > 0
+                    ? operation.ClosedContours[0]
                     : null);
         }
 
+        /// <summary>
+        /// Строит эквидистанту исходного контура, повторно используя результат
+        /// предыдущего вызова с тем же смещением (см. описание полей кеша).
+        /// </summary>
+        private DxfPolyline GetOffsetContour(double offset)
+        {
+            if (_hasCachedOffsetContour && _cachedOffset.Equals(offset))
+                return _cachedOffsetContour;
+
+            _cachedOffsetContour = OffsetContour(_primaryContour, offset);
+            _cachedOffset = offset;
+            _hasCachedOffsetContour = true;
+            return _cachedOffsetContour;
+        }
+
         public (double x, double y) GetCenter()
+        {
+            if (_hasCachedCenter)
+                return _cachedCenter;
+
+            _cachedCenter = CalculateCenter();
+            _hasCachedCenter = true;
+            return _cachedCenter;
+        }
+
+        private (double x, double y) CalculateCenter()
         {
             if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count == 0)
                 return (0, 0);
@@ -83,7 +125,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double effectiveToolRadius = toolRadius + taperOffset;
             
             // Смещаем контур внутрь на effectiveToolRadius
-            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            var offsetContour = GetOffsetContour(-effectiveToolRadius);
             if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
                 return new EmptyContour();
 
@@ -96,7 +138,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 return false;
 
             double effectiveToolRadius = toolRadius + taperOffset;
-            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            var offsetContour = GetOffsetContour(-effectiveToolRadius);
             if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
                 return false;
 
@@ -117,13 +159,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             // вернуть bowtie или маленький инвертированный многоугольник с ненулевой
             // shoelace-площадью, и последующие эвристики ошибочно считают его валидным.
             if (effectiveToolRadius > 0
-                && GetMinimumConvexHullWidth(_primaryContour) + 1e-6 < 2.0 * effectiveToolRadius)
+                && GetMinimumConvexHullWidth() + 1e-6 < 2.0 * effectiveToolRadius)
             {
                 return true;
             }
             
             // Смещаем контур внутрь на effectiveToolRadius
-            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            var offsetContour = GetOffsetContour(-effectiveToolRadius);
             if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
                 return true;
 
@@ -219,12 +261,26 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
 
         /// <summary>
+        /// Минимальная ширина выпуклой оболочки исходного контура. Не зависит от
+        /// смещения, поэтому вычисляется один раз на экземпляр геометрии.
+        /// </summary>
+        private double GetMinimumConvexHullWidth()
+        {
+            if (_hasCachedHullWidth)
+                return _cachedHullWidth;
+
+            _cachedHullWidth = CalculateMinimumConvexHullWidth(_primaryContour);
+            _hasCachedHullWidth = true;
+            return _cachedHullWidth;
+        }
+
+        /// <summary>
         /// Возвращает минимальную ширину выпуклой оболочки контура.
         /// Это безопасная необходимая проверка вместимости круглого инструмента:
         /// если даже выпуклая оболочка уже диаметра фрезы, исходный контур тем более
         /// не может содержать требуемую окружность.
         /// </summary>
-        private static double GetMinimumConvexHullWidth(DxfPolyline contour)
+        private static double CalculateMinimumConvexHullWidth(DxfPolyline contour)
         {
             var points = contour.Points
                 .Where(point => point != null && double.IsFinite(point.X) && double.IsFinite(point.Y))
@@ -320,7 +376,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             
             // Смещаем контур внутрь на effectiveToolRadius
             double effectiveToolRadius = toolRadius + taperOffset;
-            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            var offsetContour = GetOffsetContour(-effectiveToolRadius);
             if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
                 return false;
 
@@ -345,7 +401,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double effectiveToolRadius = toolRadius + taperOffset;
             
             // Смещаем контур внутрь на effectiveToolRadius
-            var offsetContour = OffsetContour(_primaryContour, -effectiveToolRadius);
+            var offsetContour = GetOffsetContour(-effectiveToolRadius);
             if (offsetContour == null || offsetContour.Points == null || offsetContour.Points.Count < 3)
                 return false;
 
