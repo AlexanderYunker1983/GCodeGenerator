@@ -14,7 +14,7 @@ namespace GCodeGenerator.Models
     /// parameters below (plan item 3.1); <see cref="Holes"/> always holds the
     /// concrete hole list that the generator drills.
     /// </summary>
-    public partial class DrillPointsOperation : OperationBase, IValidatable
+    public partial class DrillPointsOperation : CuttingOperationBase, IValidatable
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
         {
@@ -98,28 +98,10 @@ namespace GCodeGenerator.Models
             => OnPropertyChanged(nameof(Holes));
 
         /// <summary>
-        /// Rapid feed in XY plane (G0).
-        /// </summary>
-        [ObservableProperty]
-        private double _feedXYRapid = 1000.0;
-
-        /// <summary>
-        /// Working feed in XY plane (G1).
-        /// </summary>
-        [ObservableProperty]
-        private double _feedXYWork = 300.0;
-
-        /// <summary>
         /// Safe Z height for moves between holes.
         /// </summary>
         [ObservableProperty]
         private double _safeZBetweenHoles = 1.0;
-
-        /// <summary>
-        /// Number of decimal places for coordinates.
-        /// </summary>
-        [ObservableProperty]
-        private int _decimals = 3;
 
         // ------------------------------------------------------------------
         // Pattern parameters (plan item 3.1; previously stored in Metadata).
@@ -216,27 +198,6 @@ namespace GCodeGenerator.Models
         [ObservableProperty]
         private string _packageName = string.Empty;
 
-        // --- Common Z parameters (applied to every generated hole) --------
-
-        /// <summary>Total cutting depth for the pattern holes.</summary>
-        [ObservableProperty]
-        private double _totalDepth = 2.0;
-
-        /// <summary>Depth per pass for the pattern holes.</summary>
-        [ObservableProperty]
-        private double _stepDepth = 1.0;
-
-        /// <summary>Rapid feed for Z for the pattern holes.</summary>
-        [ObservableProperty]
-        private double _feedZRapid = 500.0;
-
-        /// <summary>Working feed for Z for the pattern holes.</summary>
-        [ObservableProperty]
-        private double _feedZWork = 200.0;
-
-        /// <summary>Retract height for the pattern holes.</summary>
-        [ObservableProperty]
-        private double _retractHeight = 0.3;
 
         /// <summary>
         /// Creates a fresh operation for the given drill mode with the default
@@ -267,11 +228,10 @@ namespace GCodeGenerator.Models
         {
             var issues = new List<ValidationIssue>();
 
-            // Подачи и точность вывода нужны в любом режиме: между отверстиями
-            // инструмент идёт на быстрой подаче, вглубь — на рабочей.
-            OperationValidation.AddIfNotPositive(issues, nameof(FeedXYRapid), FeedXYRapid);
+            // Подачи, отвод и точность вывода нужны в любом режиме: между
+            // отверстиями инструмент идёт на быстрой подаче, вглубь — на рабочей.
+            OperationValidation.AddCuttingIssues(issues, this);
             OperationValidation.AddIfNotFinite(issues, nameof(SafeZBetweenHoles), SafeZBetweenHoles);
-            OperationValidation.AddIfOutOfRange(issues, nameof(Decimals), Decimals, 0, OperationValidation.MaxDecimals);
 
             // The generator drills exactly this list in every mode.
             if (Holes == null || Holes.Count == 0)

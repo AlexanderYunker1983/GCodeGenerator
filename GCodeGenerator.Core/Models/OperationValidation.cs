@@ -111,29 +111,41 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>
-        /// Полный набор проверок фрезерной операции: параметры резания,
-        /// подачи, высоты и точность вывода.
+        /// Проверки, общие для любой операции резания: подачи, отвод и
+        /// точность вывода координат.
         ///
         /// Нулевая рабочая подача — не мелочь: <c>F0</c> означает, что
         /// инструмент никуда не поедет, а стойка при этом либо остановится
-        /// с ошибкой, либо будет ждать бесконечно.
+        /// с ошибкой, либо будет ждать бесконечно. Раньше это правило жило
+        /// отдельно для фрезеровки и отдельно для сверления, и добавленное
+        /// в одном месте до другого не доходило: у сверления, например, так
+        /// и не проверялись рабочая подача в плоскости и высота отвода.
         /// </summary>
-        public static void AddMillingIssues(IList<ValidationIssue> issues, MillingOperationBase operation)
+        public static void AddCuttingIssues(IList<ValidationIssue> issues, CuttingOperationBase operation)
         {
-            AddCommonMillingIssues(issues, operation.TotalDepth, operation.StepDepth, operation.ToolDiameter);
-
             AddIfNotPositive(issues, nameof(operation.FeedXYWork), operation.FeedXYWork);
             AddIfNotPositive(issues, nameof(operation.FeedZWork), operation.FeedZWork);
             AddIfNotPositive(issues, nameof(operation.FeedXYRapid), operation.FeedXYRapid);
             AddIfNotPositive(issues, nameof(operation.FeedZRapid), operation.FeedZRapid);
 
+            AddIfNegative(issues, nameof(operation.RetractHeight), operation.RetractHeight);
+
+            AddIfOutOfRange(issues, nameof(operation.Decimals), operation.Decimals, 0, MaxDecimals);
+        }
+
+        /// <summary>
+        /// Полный набор проверок фрезерной операции: параметры резания,
+        /// подачи, высоты и точность вывода.
+        /// </summary>
+        public static void AddMillingIssues(IList<ValidationIssue> issues, MillingOperationBase operation)
+        {
+            AddCommonMillingIssues(issues, operation.TotalDepth, operation.StepDepth, operation.ToolDiameter);
+            AddCuttingIssues(issues, operation);
+
             EnumValidation.AddIfUndefined(issues, nameof(operation.Direction), operation.Direction);
 
             AddIfNotFinite(issues, nameof(operation.ContourHeight), operation.ContourHeight);
             AddIfNotFinite(issues, nameof(operation.SafeZHeight), operation.SafeZHeight);
-            AddIfNegative(issues, nameof(operation.RetractHeight), operation.RetractHeight);
-
-            AddIfOutOfRange(issues, nameof(operation.Decimals), operation.Decimals, 0, MaxDecimals);
         }
 
         /// <summary>

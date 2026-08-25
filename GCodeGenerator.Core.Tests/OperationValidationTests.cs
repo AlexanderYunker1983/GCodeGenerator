@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Models;
@@ -208,6 +209,33 @@ namespace GCodeGenerator.Tests
             var op = OperationFixtures.DrillEllipse();
             op.RadiusY = -1;
             AssertSingleIssue(op, nameof(DrillPointsOperation.RadiusY));
+        }
+
+        /// <summary>
+        /// Подачи и высота отвода проверяются у сверления так же, как у
+        /// фрезеровки: правила резания общие, и раньше половина из них до
+        /// сверления не доходила — рабочая подача в плоскости, обе подачи по
+        /// оси и отрицательный отвод принимались молча.
+        /// </summary>
+        [TestMethod]
+        public void Drill_CuttingParameters_AreValidatedLikeMilling()
+        {
+            AssertSingleIssue(WithFeed(op => op.FeedXYWork = 0), nameof(DrillPointsOperation.FeedXYWork));
+            AssertSingleIssue(WithFeed(op => op.FeedZWork = 0), nameof(DrillPointsOperation.FeedZWork));
+            AssertSingleIssue(WithFeed(op => op.FeedZRapid = -1), nameof(DrillPointsOperation.FeedZRapid));
+            AssertSingleIssue(WithFeed(op => op.RetractHeight = -0.5), nameof(DrillPointsOperation.RetractHeight));
+        }
+
+        /// <summary>
+        /// Сверление по шаблону с изменённым параметром резания: отверстия
+        /// строит шаблон, поэтому их собственные значения остаются верными
+        /// и в список проблем попадает ровно одно — то, что изменено.
+        /// </summary>
+        private static DrillPointsOperation WithFeed(Action<DrillPointsOperation> change)
+        {
+            var operation = OperationFixtures.DrillLine();
+            change(operation);
+            return operation;
         }
 
         [TestMethod]

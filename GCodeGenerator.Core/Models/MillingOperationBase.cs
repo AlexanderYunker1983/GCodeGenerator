@@ -15,8 +15,13 @@ namespace GCodeGenerator.Models
     /// а наружу выходили плоскими свойствами-обёртками. Группами так никто и
     /// не пользовался — ни диалоги, ни файл проекта, ни генераторы, — поэтому
     /// осталось одно представление вместо двух.
+    ///
+    /// Подачи, глубина слоя и точность вывода общие у фрезеровки и сверления
+    /// и живут в <see cref="CuttingOperationBase"/>; здесь остаётся то, чем
+    /// фрезеровка отличается: инструмент, направление обхода и высоты,
+    /// от которых считается траектория вокруг контура.
     /// </summary>
-    public abstract partial class MillingOperationBase : OperationBase
+    public abstract partial class MillingOperationBase : CuttingOperationBase
     {
         protected MillingOperationBase(OperationType type, OperationCategory category, string name)
             : base(type, category, name)
@@ -31,48 +36,14 @@ namespace GCodeGenerator.Models
         [ObservableProperty]
         private double _toolDiameter = 3.0;
 
-        /// <summary>Количество знаков после запятой для координат.</summary>
-        [ObservableProperty]
-        private int _decimals = 3;
-
-        // --- Подачи, мм/мин --------------------------------------------------
-
-        /// <summary>Быстрое перемещение в плоскости XY.</summary>
-        [ObservableProperty]
-        private double _feedXYRapid = 1000.0;
-
-        /// <summary>Рабочая подача в плоскости XY.</summary>
-        [ObservableProperty]
-        private double _feedXYWork = 300.0;
-
-        /// <summary>Быстрое перемещение по оси Z.</summary>
-        [ObservableProperty]
-        private double _feedZRapid = 500.0;
-
-        /// <summary>Рабочая подача по оси Z.</summary>
-        [ObservableProperty]
-        private double _feedZWork = 200.0;
-
         // --- Глубина и высоты, мм --------------------------------------------
 
         /// <summary>Высота контура — Z, с которой начинается обработка.</summary>
         [ObservableProperty]
         private double _contourHeight;
 
-        /// <summary>Полная глубина обработки.</summary>
-        [ObservableProperty]
-        private double _totalDepth = 2.0;
-
-        /// <summary>Глубина за один проход.</summary>
-        [ObservableProperty]
-        private double _stepDepth = 1.0;
-
         /// <summary>Безопасная высота для перемещений над заготовкой.</summary>
         [ObservableProperty]
         private double _safeZHeight = 1.0;
-
-        /// <summary>Высота отвода между проходами.</summary>
-        [ObservableProperty]
-        private double _retractHeight = 0.3;
     }
 }
