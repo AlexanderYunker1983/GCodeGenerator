@@ -2,10 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Versioning;
-using System.Threading;
 using System.Windows;
 using GCodeGenerator.ViewModels;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using GCodeGenerator.Tests.Fixtures;
 
 namespace GCodeGenerator.Tests
 {
@@ -28,10 +28,8 @@ namespace GCodeGenerator.Tests
             var problems = new List<string>();
             var created = 0;
 
-            RunOnUiThread(() =>
+            TestApplication.Run(() =>
             {
-                EnsureApplication();
-
                 foreach (var windowType in WindowTypes())
                 {
                     try
@@ -58,47 +56,5 @@ namespace GCodeGenerator.Tests
                 .Where(t => !t.IsAbstract && typeof(Window).IsAssignableFrom(t))
                 .Where(t => t.GetConstructor(Type.EmptyTypes) != null)
                 .OrderBy(t => t.Name, StringComparer.Ordinal);
-
-        /// <summary>
-        /// Приложение с загруженными словарями ресурсов: без него разметка не
-        /// найдёт ни стилей темы, ни преобразователей. Запуск (<c>Run</c>) не
-        /// нужен — окна создаются, но не показываются.
-        /// </summary>
-        private static void EnsureApplication()
-        {
-            if (Application.Current != null)
-                return;
-
-            var app = new GCodeGenerator.App();
-            app.InitializeComponent();
-        }
-
-        /// <summary>
-        /// Выполняет действие в потоке с однопоточной моделью: окна WPF
-        /// создаются только там.
-        /// </summary>
-        [SupportedOSPlatform("windows")]
-        private static void RunOnUiThread(Action action)
-        {
-            Exception failure = null;
-            var thread = new Thread(() =>
-            {
-                try
-                {
-                    action();
-                }
-                catch (Exception exception)
-                {
-                    failure = exception;
-                }
-            });
-
-            thread.SetApartmentState(ApartmentState.STA);
-            thread.Start();
-            thread.Join();
-
-            if (failure != null)
-                throw new InvalidOperationException("Не удалось создать окна приложения", failure);
-        }
     }
 }
