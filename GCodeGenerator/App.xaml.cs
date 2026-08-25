@@ -11,6 +11,7 @@ using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.Views;
+using GCodeGenerator.Persistence;
 
 namespace GCodeGenerator
 {

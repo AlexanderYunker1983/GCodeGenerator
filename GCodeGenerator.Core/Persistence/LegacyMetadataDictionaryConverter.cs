@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Persistence
 {
     /// <summary>
     /// Read-only adapter for the primitive dictionaries written by legacy

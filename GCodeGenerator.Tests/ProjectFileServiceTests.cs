@@ -8,9 +8,9 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using GCodeGenerator.Models;
-using GCodeGenerator.Services;
 using GCodeGenerator.Tests.Fixtures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using GCodeGenerator.Persistence;
 
 namespace GCodeGenerator.Tests
 {
@@ -43,6 +43,23 @@ namespace GCodeGenerator.Tests
         }
 
         private static ProjectFileService Service { get; } = new ProjectFileService();
+
+        /// <summary>
+        /// Чтение и запись проекта принадлежат ядру, а не приложению: формат
+        /// описывает доменные операции, и открыть проект нужно уметь без
+        /// интерфейсной сборки — для консольных сценариев и при смене
+        /// интерфейсного стека.
+        /// </summary>
+        [TestMethod]
+        public void ProjectFile_LivesInCoreAssembly()
+        {
+            var coreAssembly = typeof(OperationBase).Assembly;
+
+            Assert.AreEqual(coreAssembly, typeof(ProjectFileService).Assembly);
+            Assert.AreEqual(coreAssembly, typeof(IProjectFileService).Assembly);
+            Assert.AreEqual(coreAssembly, typeof(ProjectFileData).Assembly);
+            Assert.AreEqual(coreAssembly, typeof(OperationTypeNames).Assembly);
+        }
 
         /// <summary>Эталонные файлы в каталоге сборки тестов (копия из исходников).</summary>
         private static string ReferenceOutputDirectory =>

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Persistence
 {
     /// <summary>
     /// Результат чтения файла проекта .ygc: операции и необязательные секции

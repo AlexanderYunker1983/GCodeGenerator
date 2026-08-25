@@ -6,7 +6,7 @@ using System.Text.Json;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Persistence
 {
     /// <summary>
     /// Служба сохранения/загрузки файлов проекта .ygc (пункты 0.6, 1.2 и 8.2 плана).

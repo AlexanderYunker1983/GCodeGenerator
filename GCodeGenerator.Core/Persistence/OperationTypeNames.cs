@@ -1,7 +1,7 @@
 using System;
 using GCodeGenerator.Models;
 
-namespace GCodeGenerator.Services
+namespace GCodeGenerator.Persistence
 {
     /// <summary>
     /// Имена типов операций в файле проекта.

@@ -10,11 +10,15 @@
     - Неймспейсы сохранены (GCodeGenerator.Models, GCodeGenerator.GCodeGenerators.*,
       GCodeGenerator.Localization) — код приложения и тестов не меняется;
       переименование неймспейсов — отдельный шаг (в данный пункт не входит).
-    - Пакетов NuGet нет: используются только BCL (System.Collections.Generic,
-      System.ComponentModel, System.Globalization, System.Linq, System.Reflection,
-      System.Resources).
-    - InternalsVisibleTo не требуется: в перенесённых файлах нет internal-членов
-      (internal-парсеры DXF находятся в VM приложения и остаются в App).
+    - Зависимости: BCL (в том числе System.Text.Json — файл проекта и
+      копирование операций) и Clipper2 — построение эквидистант контуров.
+      Собственная реализация смещения не удаляла петли самопересечения,
+      и её результат приходилось распознавать эвристиками.
+    - Чтение и запись файла проекта (.ygc) живут здесь же (Persistence):
+      формат описывает доменные операции, поэтому открыть проект можно
+      без сборки приложения — это условие и для консольных сценариев,
+      и для смены интерфейсного стека.
+    - InternalsVisibleTo не требуется: в перенесённых файлах нет internal-членов.
     - AppSettingsStore (Properties.Settings) остаётся в App — это инфраструктура
       пользовательских настроек, а не доменная модель.
     - GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:

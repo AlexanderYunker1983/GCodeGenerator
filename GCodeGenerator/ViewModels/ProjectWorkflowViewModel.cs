@@ -6,6 +6,7 @@ using GCodeGenerator.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using GCodeGenerator.Persistence;
 
 namespace GCodeGenerator.ViewModels
 {

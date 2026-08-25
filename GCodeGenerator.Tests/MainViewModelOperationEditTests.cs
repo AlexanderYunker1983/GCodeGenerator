@@ -11,6 +11,7 @@ using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.Pocket;
 using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using GCodeGenerator.Persistence;
 
 namespace GCodeGenerator.Tests
 {
