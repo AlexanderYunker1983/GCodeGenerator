@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.Pocket
             DisplayName = localizationManager?.GetString("PocketRectangleName") ?? "PocketRectangleName";
         }
 
-        protected override bool IsValid(PocketRectangleOperation operation)
-            => operation.Width > 0 && operation.Height > 0 && operation.ToolDiameter > 0 && operation.StepPercentOfTool > 0;
     }
 }

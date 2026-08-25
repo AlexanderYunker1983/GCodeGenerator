@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileEllipseName") ?? "ProfileEllipseName";
         }
 
-        protected override bool IsValid(ProfileEllipseOperation operation)
-            => operation.RadiusX > 0 && operation.RadiusY > 0 && operation.ToolDiameter > 0;
     }
 }

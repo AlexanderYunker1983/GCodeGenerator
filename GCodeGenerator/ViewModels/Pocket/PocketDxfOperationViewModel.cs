@@ -122,8 +122,5 @@ namespace GCodeGenerator.ViewModels.Pocket
             }
         }
 
-        protected override bool IsValid(PocketDxfOperation operation)
-            => operation.ToolDiameter > 0 && operation.StepPercentOfTool > 0
-               && operation.ClosedContours != null && operation.ClosedContours.Count > 0;
     }
 }

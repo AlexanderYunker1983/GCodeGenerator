@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfilePolygonName") ?? "ProfilePolygonName";
         }
 
-        protected override bool IsValid(ProfilePolygonOperation operation)
-            => operation.NumberOfSides >= 3 && operation.Radius > 0 && operation.ToolDiameter > 0;
     }
 }

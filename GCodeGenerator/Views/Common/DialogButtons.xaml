@@ -1,4 +1,4 @@
-﻿<UserControl x:Class="GCodeGenerator.Views.Common.DialogButtons"
+<UserControl x:Class="GCodeGenerator.Views.Common.DialogButtons"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:loc="clr-namespace:GCodeGenerator.Localization">
@@ -13,11 +13,18 @@
         <!-- Цвет подобран так, чтобы читаться и на светлой, и на тёмной теме:
              кисти тем MahApps для сообщений об ошибке различаются между версиями,
              а строка обязана быть заметной в обеих. -->
-        <TextBlock Text="{loc:Loc OperationParametersInvalid}"
-                   Foreground="#E05252"
+        <TextBlock Foreground="#E05252"
                    TextWrapping="Wrap"
                    VerticalAlignment="Center"
                    Margin="0,0,12,0"
-                   Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}"/>
+                   ToolTip="{Binding ValidationSummary}"
+                   Visibility="{Binding HasValidationError, Converter={StaticResource BoolToVis}}">
+            <Run Text="{loc:Loc OperationParametersInvalid}"/>
+            <LineBreak/>
+            <!-- Перечень проблем: какое поле и что с ним не так. Прежде
+                 окно сообщало лишь о самом факте, и виновное поле
+                 приходилось искать самому. -->
+            <Run Text="{Binding ValidationSummary, Mode=OneWay}"/>
+        </TextBlock>
     </DockPanel>
 </UserControl>

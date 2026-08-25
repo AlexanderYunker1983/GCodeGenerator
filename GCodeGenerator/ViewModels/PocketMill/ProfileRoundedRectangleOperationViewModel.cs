@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileRoundedRectangleName") ?? "ProfileRoundedRectangleName";
         }
 
-        protected override bool IsValid(ProfileRoundedRectangleOperation operation)
-            => operation.Width > 0 && operation.Height > 0 && operation.ToolDiameter > 0;
     }
 }

@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.Pocket
             DisplayName = localizationManager?.GetString("PocketCircleName") ?? "PocketCircleName";
         }
 
-        protected override bool IsValid(PocketCircleOperation operation)
-            => operation.Radius > 0 && operation.ToolDiameter > 0 && operation.StepPercentOfTool > 0;
     }
 }

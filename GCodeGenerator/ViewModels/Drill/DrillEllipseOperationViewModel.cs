@@ -16,7 +16,5 @@ namespace GCodeGenerator.ViewModels.Drill
 
         protected override DrillMode Mode => DrillMode.Ellipse;
 
-        /// <summary>Шаблон без отверстий не имеет смысла.</summary>
-        protected override bool IsValid(DrillPointsOperation operation) => PreviewHoles.Count > 0;
     }
 }

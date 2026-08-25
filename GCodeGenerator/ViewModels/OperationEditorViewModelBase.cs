@@ -1,4 +1,7 @@
 #nullable enable
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
@@ -54,6 +57,7 @@ namespace GCodeGenerator.ViewModels
     {
         private TOperation? _operation;
         private bool _hasValidationError;
+        private string _validationSummary = string.Empty;
 
         /// <inheritdoc />
         void IOperationEditorViewModel.SetOperation(OperationBase operation)
@@ -99,9 +103,23 @@ namespace GCodeGenerator.ViewModels
         /// Годятся ли введённые параметры. Операция передаётся сюда, а не
         /// берётся из поля: к моменту проверки она заведомо есть, и окну
         /// не приходится проверять это второй раз.
+        ///
+        /// По умолчанию окно спрашивает саму операцию — ту же проверку
+        /// выполняет генерация. Прежде окно проверяло два-три поля, поэтому
+        /// принимало параметры, на которых генерация потом отказывалась
+        /// строить программу: пользователь узнавал об ошибке не там, где её
+        /// допустил, и не понимал, какое окно открывать заново.
         /// </summary>
         /// <param name="operation">Правимая операция.</param>
-        protected virtual bool IsValid(TOperation operation) => true;
+        protected virtual bool IsValid(TOperation operation)
+            => Problems(operation).Count == 0;
+
+        /// <summary>Проблемы операции; пустой список — параметры годятся.</summary>
+        /// <param name="operation">Правимая операция.</param>
+        private static IReadOnlyList<ValidationIssue> Problems(TOperation operation)
+            => operation is IValidatable validatable
+                ? validatable.Validate()
+                : System.Array.Empty<ValidationIssue>();
 
         /// <summary>OK: проверка параметров и закрытие.</summary>
         public ICommand OkCommand { get; }
@@ -128,6 +146,30 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        /// <summary>
+        /// Что именно не так с параметрами: перечень проблем, по одной в
+        /// строке. Прежде окно сообщало лишь о самом факте — «параметры
+        /// неверны», — и пользователю приходилось искать виновное поле
+        /// самому.
+        /// </summary>
+        public string ValidationSummary
+        {
+            get => _validationSummary;
+            private set
+            {
+                if (value == _validationSummary) return;
+                _validationSummary = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Проблемы одной строкой на каждую, на языке интерфейса.</summary>
+        /// <param name="problems">Найденные проблемы параметров.</param>
+        private static string Describe(IReadOnlyList<ValidationIssue> problems)
+            => string.Join(
+                Environment.NewLine,
+                problems.Select(problem => $"{problem.Property}: {ValidationMessages.Describe(problem)}"));
+
         protected OperationEditorViewModelBase()
         {
             OkCommand = new RelayCommand(OnOk);
@@ -139,13 +181,15 @@ namespace GCodeGenerator.ViewModels
             if (_operation == null) return;
             if (!IsValid(_operation))
             {
-                // Окно остаётся открытым: пользователь видит, что параметры
-                // неверны, и правит их. Операция не трогается.
+                // Окно остаётся открытым: пользователь видит, что именно
+                // неверно, и правит. Операция не трогается.
+                ValidationSummary = Describe(Problems(_operation));
                 HasValidationError = true;
                 return;
             }
 
             HasValidationError = false;
+            ValidationSummary = string.Empty;
             BeforeAccept(_operation);
             IsAccepted = true;
             RequestClose();

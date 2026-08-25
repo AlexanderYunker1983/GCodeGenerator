@@ -75,9 +75,19 @@ namespace GCodeGenerator.Models
             set => SetProperty(ref _isFinishingEnabled, value);
         }
 
-        /// <summary>Припуск на обработку, мм: по контуру и по глубине.</summary>
+        /// <summary>
+        /// Припуск на обработку, мм: по контуру и по глубине.
+        ///
+        /// Значение по умолчанию ненулевое: чистовой проход снимает именно
+        /// припуск, и включить его при нулевом было нельзя — операция сразу
+        /// становилась негодной. Пока ни черновой, ни чистовой проход не
+        /// включён, припуск в расчёт не идёт и на программу не влияет.
+        /// </summary>
         [ObservableProperty]
-        private double _finishAllowance = 0.0;
+        private double _finishAllowance = DefaultFinishAllowance;
+
+        /// <summary>Припуск по умолчанию, мм.</summary>
+        public const double DefaultFinishAllowance = 0.2;
 
         /// <summary>Что снимает чистовой проход: стенки, дно или всё.</summary>
         [ObservableProperty]

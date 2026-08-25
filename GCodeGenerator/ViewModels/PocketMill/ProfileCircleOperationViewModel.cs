@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileCircleName") ?? "ProfileCircleName";
         }
 
-        protected override bool IsValid(ProfileCircleOperation operation)
-            => operation.Radius > 0 && operation.ToolDiameter > 0;
     }
 }

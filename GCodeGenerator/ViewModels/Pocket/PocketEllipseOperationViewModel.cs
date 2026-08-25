@@ -19,7 +19,5 @@ namespace GCodeGenerator.ViewModels.Pocket
             DisplayName = localizationManager?.GetString("PocketEllipseName") ?? "PocketEllipseName";
         }
 
-        protected override bool IsValid(PocketEllipseOperation operation)
-            => operation.RadiusX > 0 && operation.RadiusY > 0 && operation.ToolDiameter > 0 && operation.StepPercentOfTool > 0;
     }
 }

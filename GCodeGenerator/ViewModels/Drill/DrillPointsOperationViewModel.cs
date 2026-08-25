@@ -61,8 +61,6 @@ namespace GCodeGenerator.ViewModels.Drill
             SelectedHole = operation.Holes.FirstOrDefault();
         }
 
-        /// <summary>Сверление без отверстий не имеет смысла.</summary>
-        protected override bool IsValid(DrillPointsOperation operation) => operation.Holes.Count > 0;
 
         private static DrillHole DefaultHole()
             => new DrillHole
