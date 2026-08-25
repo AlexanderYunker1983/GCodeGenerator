@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
@@ -112,6 +114,39 @@ namespace GCodeGenerator.Tests
 
             Assert.IsTrue(preview.Scene.Shapes.All(s => s.Kind == OperationShapeKind.Contour),
                 "Без траектории показываются контуры");
+        }
+
+        /// <summary>
+        /// Траектория строится по слепку документа — клонам операций, — но
+        /// фигуры сцены обязаны вести к операциям самого документа. Прежде
+        /// клик по траектории выбирал клон, которого нет в списке: выделение
+        /// списка снималось, перестановка гасла, «удалить» молча ничего
+        /// не удаляла, а правки по двойному щелчку уходили в отсоединённый
+        /// клон и пропадали. Тест идёт через настоящую генерацию — путь,
+        /// который прежние тесты предпросмотра обходили, строя траекторию
+        /// прямо из живых операций.
+        /// </summary>
+        [TestMethod]
+        public async Task ToolPathScene_AfterRealGeneration_LeadsToDocumentOperations()
+        {
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
+            var pocket = OperationFixtures.PocketCircle();
+            main.OperationsWorkspace.AllOperations.Add(pocket);
+
+            await ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
+            Assert.IsNotNull(main.GCodeWorkflow.GeneratedToolPath, "генерация должна была пройти");
+
+            var preview = main.OperationsWorkspace.OperationsPreview;
+            preview.ShowToolPath = true;
+
+            Assert.IsTrue(preview.Scene.Shapes.Count > 0, "сцена траектории не пуста");
+            Assert.IsTrue(preview.Scene.Shapes.All(s => ReferenceEquals(s.Operation, pocket)),
+                "фигуры траектории ведут к операции документа, а не к её клону из слепка");
+
+            // Клик по траектории выбирает операцию документа: команды списка —
+            // перестановка, удаление, правка — снова получают знакомый объект.
+            preview.SelectedOperation = preview.Scene.Shapes[0].Operation;
+            Assert.AreSame(pocket, main.OperationsWorkspace.SelectedOperation);
         }
 
         [TestMethod]

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
@@ -24,6 +25,7 @@ namespace GCodeGenerator.ViewModels
         private OperationScene? _scene;
         private OperationBase? _selectedOperation;
         private Toolpath.ToolPath? _toolPath;
+        private IReadOnlyDictionary<OperationBase, OperationBase>? _toolPathSources;
         private bool _showToolPath;
 
         public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService? themeService)
@@ -117,12 +119,56 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Есть ли что показывать в режиме траектории.</summary>
         public bool HasToolPath => _toolPath != null && !_toolPath.IsEmpty;
 
+        /// <summary>
+        /// Соответствие «операция слепка → операция документа» для траектории
+        /// (задаётся вместе с <see cref="ToolPath"/>). Генерация работает
+        /// с клонами слепка, и фигуры траектории помечены ими; сцена же
+        /// обязана вести к операциям документа — иначе клик по траектории
+        /// выбирал бы объект, которого нет в списке: выделение списка
+        /// снималось, перестановка гасла, удаление молча не удаляло,
+        /// а правки по двойному щелчку уходили в отсоединённый клон.
+        /// </summary>
+        public IReadOnlyDictionary<OperationBase, OperationBase>? ToolPathSources
+        {
+            get => _toolPathSources;
+            set
+            {
+                if (ReferenceEquals(value, _toolPathSources)) return;
+                _toolPathSources = value;
+                if (ShowToolPath)
+                    RebuildScene();
+            }
+        }
+
         /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
         public void RebuildScene()
         {
             Scene = ShowToolPath && _toolPath != null
-                ? ToolPathSceneProjection.Build(_toolPath)
+                ? ResolveToDocumentOperations(ToolPathSceneProjection.Build(_toolPath))
                 : OperationSceneBuilder.Build(_operations);
+        }
+
+        /// <summary>
+        /// Заменяет в фигурах сцены клоны слепка на операции документа.
+        /// Замена делается один раз при сборке сцены: дальше подсветка,
+        /// выбор кликом и правка по двойному щелчку работают с операциями
+        /// документа сами собой, без разрешения на каждом событии мыши.
+        /// </summary>
+        private OperationScene ResolveToDocumentOperations(OperationScene scene)
+        {
+            var sources = _toolPathSources;
+            if (sources == null || scene.IsEmpty)
+                return scene;
+
+            var shapes = new List<OperationShape>(scene.Shapes.Count);
+            foreach (var shape in scene.Shapes)
+            {
+                shapes.Add(sources.TryGetValue(shape.Operation, out var document)
+                    ? new OperationShape(document, shape.Kind, shape.Points, shape.IsClosed, shape.IsFilled)
+                    : shape);
+            }
+
+            return new OperationScene(shapes);
         }
 
         /// <summary>Запрос редактирования выбранной операции (вызывается из view по двойному клику).</summary>

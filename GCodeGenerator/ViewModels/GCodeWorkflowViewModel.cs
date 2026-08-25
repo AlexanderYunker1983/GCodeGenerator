@@ -124,6 +124,15 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        /// <summary>
+        /// Соответствие «операция слепка → операция документа» для траектории
+        /// последней генерации. Генерация работает с клонами слепка, и
+        /// траектория помечена ими; выбор и правка в интерфейсе имеют смысл
+        /// только на операциях документа, поэтому предпросмотру нужен путь
+        /// обратно. Живёт и умирает вместе с <see cref="GeneratedToolPath"/>.
+        /// </summary>
+        public IReadOnlyDictionary<OperationBase, OperationBase>? GeneratedOperationSources { get; private set; }
+
         public ICommand GenerateGCodeCommand { get; }
 
         public ICommand SaveGCodeCommand { get; }
@@ -134,6 +143,7 @@ namespace GCodeGenerator.ViewModels
         {
             Interlocked.Increment(ref _documentRevision);
             _generationCancellation?.Cancel();
+            GeneratedOperationSources = null;
             GeneratedToolPath = null;
             GCodePreview = string.Empty;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
@@ -146,6 +156,7 @@ namespace GCodeGenerator.ViewModels
 
             IsGenerating = true;
             ProgressPercent = 0;
+            GeneratedOperationSources = null;
             GeneratedToolPath = null;
             GCodePreview = string.Empty;
             var generationRevision = Volatile.Read(ref _documentRevision);
@@ -184,6 +195,19 @@ namespace GCodeGenerator.ViewModels
                     return;
                 }
 
+                // Соответствие «клон слепка → операция документа». Ревизия
+                // не менялась с момента слепка — документ совпадает с ним
+                // по составу и порядку, поэтому пары строятся по индексам.
+                // Словарь сравнивает ссылки: своих Equals у операций нет.
+                var sources = new Dictionary<OperationBase, OperationBase>();
+                for (var i = 0; i < snapshot.Operations.Count && i < _operations.Count; i++)
+                {
+                    var clone = snapshot.Operations[i];
+                    if (clone != null)
+                        sources[clone] = _operations[i];
+                }
+
+                GeneratedOperationSources = sources;
                 GeneratedToolPath = toolPath;
 
                 // Текст собирается сразу нужного размера. Прежде строки
@@ -204,6 +228,7 @@ namespace GCodeGenerator.ViewModels
             }
             catch (Exception ex)
             {
+                GeneratedOperationSources = null;
                 GeneratedToolPath = null;
                 GCodePreview = string.Empty;
                 ProgressPercent = 0;
