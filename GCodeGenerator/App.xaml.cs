@@ -5,13 +5,11 @@ using System.Windows;
 using System.Windows.Threading;
 using Autofac;
 using GCodeGenerator.Diagnostics;
-using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.Views;
-using GCodeGenerator.Persistence;
 
 namespace GCodeGenerator
 {
@@ -22,11 +20,23 @@ namespace GCodeGenerator
     {
         private IAppLogger _logger = NullAppLogger.Instance;
         private ILocalizationManager _localizationManager;
+        private IContainer _container;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
             StartupCore();
+        }
+
+        /// <summary>
+        /// Освобождает контейнер при выходе: службы, которым есть что закрыть,
+        /// должны об этом узнать.
+        /// </summary>
+        protected override void OnExit(ExitEventArgs e)
+        {
+            _container?.Dispose();
+            _container = null;
+            base.OnExit(e);
         }
 
         /// <summary>
@@ -52,11 +62,14 @@ namespace GCodeGenerator
             // окна: перевод подставляется здесь, один раз на запуск.
             Models.ValidationMessages.Formatter = issue => DescribeValidationIssue(localizationManager, issue);
 
-            // Autofac: регистрация сервисов и view-моделей.
+            // Autofac: регистрации разнесены по модулям — службы отдельно,
+            // интерфейс отдельно; здесь остаётся только то, что существует
+            // в единственном экземпляре и создаётся до контейнера.
             var builder = new ContainerBuilder();
             builder.RegisterInstance(logger).As<IAppLogger>().SingleInstance();
             builder.RegisterInstance(localizationManager).As<ILocalizationManager>();
-            builder.RegisterType<WpfDialogService>().As<IDialogService>().SingleInstance();
+            builder.RegisterModule<Infrastructure.CoreServicesModule>();
+            builder.RegisterModule<Infrastructure.PresentationModule>();
 
             // Пункт 7.5 плана: версия программы через IoC (ранее статика PlatformVariables).
             // Версионирование из git-тега: InformationalVersion = тег (например
@@ -68,64 +81,20 @@ namespace GCodeGenerator
                 ?? "0.1.0-alpha";
             builder.RegisterInstance(new ProgramInfo(versionString)).As<IProgramInfo>().SingleInstance();
 
-            // Хранилище пользовательских настроек принадлежит IoC-контейнеру;
-            // статический compatibility-фасад удалён после переходного релиза.
-            builder.RegisterType<AppSettingsStore>().As<ISettingsStore>().SingleInstance();
-
-            // Пункт 7.5 плана: сервис темы через IoC (ранее статика ThemeHelper).
-            builder.RegisterType<WpfThemeService>().As<IThemeService>().SingleInstance();
-
-            // Пункт 7.6 плана: служба файлов проекта через IoC (new из VM удалён).
-            builder.RegisterType<ProjectFileService>().As<IProjectFileService>().SingleInstance();
-            builder.RegisterType<GCodeFileService>().As<IGCodeFileService>().SingleInstance();
-
-            // DXF-парсинг и геометрическое восстановление контуров не являются
-            // обязанностью диалоговых ViewModel и доступны через отдельный сервис.
-            builder.RegisterType<DxfImportService>().As<IDxfImportService>().SingleInstance();
-
-            // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
-            // Type операции → VM диалога; сверление — по DrillMode).
-            builder.RegisterType<OperationEditorFactory>()
-                .As<IOperationEditorFactory>()
-                .SingleInstance();
-
-            // Пункт 4.5 плана: явная регистрация генераторов G-кода.
-            // OperationGeneratorRegistry — явный маппинг Type → IOperationGenerator
-            // (name-based рефлексия удалена); SimpleGCodeGenerator резолвит
-            // реестр через конструктор и попадает в MainViewModel.
-            builder.RegisterType<OperationGeneratorRegistry>()
-                .As<IOperationGeneratorRegistry>()
-                .SingleInstance();
-            builder.RegisterType<SimpleGCodeGenerator>()
-                .As<IGCodeGenerator>()
-                .SingleInstance();
-            // Всё, что зависит от станка, а не от детали: модальные состояния
-            // в начале программы, вид команд шпинделя и охлаждения, единица
-            // аргумента паузы, завершение программы.
-            builder.RegisterType<GenericPostProcessor>()
-                .As<IPostProcessor>()
-                .SingleInstance();
-            builder.RegisterType<GCodeWorkflowFactory>()
-                .As<IGCodeWorkflowFactory>()
-                .SingleInstance();
-            builder.RegisterType<ProjectWorkflowFactory>()
-                .As<IProjectWorkflowFactory>()
-                .SingleInstance();
-
-            builder.RegisterAssemblyTypes(typeof(MainViewModel).Assembly)
-                .AssignableTo<ViewModelBase>()
-                .InstancePerDependency();
-            var scope = builder.Build();
+            // Контейнер живёт столько же, сколько приложение, и освобождается
+            // при выходе: прежде он оставался безымянной переменной, поэтому
+            // службы, которым есть что закрыть, об этом не узнавали.
+            _container = builder.Build();
 
             logger.Info($"Запуск GCodeGenerator {versionString}");
 
             // Главное окно (ранее — MvvmApplication.GetStartViewModelType + ShowAsync).
-            var mainViewModel = scope.Resolve<MainViewModel>();
-            var mainWindow = new MainView { DataContext = mainViewModel };
+            var mainWindow = new MainView { DataContext = _container.Resolve<MainViewModel>() };
             MainWindow = mainWindow;
             mainWindow.Show();
 
-            scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
+            _container.Resolve<IThemeService>()
+                .ApplyTheme(_container.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
         }
 
         /// <summary>
