@@ -5,7 +5,6 @@ using Autofac;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
-using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.Views;
@@ -50,9 +49,9 @@ namespace GCodeGenerator
                 ?? "0.1.0-alpha";
             builder.RegisterInstance(new ProgramInfo(versionString)).As<IProgramInfo>().SingleInstance();
 
-            // Пункт 7.5 плана: хранилище настроек через IoC (статический фасад
-            // GCodeSettingsStore делегирует тому же экземпляру).
-            builder.RegisterInstance(GCodeSettingsStore.Instance).As<ISettingsStore>().SingleInstance();
+            // Хранилище пользовательских настроек принадлежит IoC-контейнеру;
+            // статический compatibility-фасад удалён после переходного релиза.
+            builder.RegisterType<AppSettingsStore>().As<ISettingsStore>().SingleInstance();
 
             // Пункт 7.5 плана: сервис темы через IoC (ранее статика ThemeHelper).
             builder.RegisterType<WpfThemeService>().As<IThemeService>().SingleInstance();

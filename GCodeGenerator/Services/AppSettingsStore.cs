@@ -5,11 +5,9 @@ using GCodeGenerator.Properties;
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Shared settings storage with simple persistence layer (Properties.Settings).
-    /// Пункт 7.5 плана: экземпляр через IoC (статический фасад <c>GCodeSettingsStore</c>
-    /// остаётся [Obsolete] на один релиз). Пункт 8.1 плана: загрузка/сохранение —
-    /// по одной таблице маппинга (<see cref="SettingsMapping"/>, ранее — ручная копия
-    /// всех 28 свойств ×2).
+    /// Shared settings storage with a Properties.Settings persistence layer.
+    /// The instance is owned by IoC; loading and saving use one mapping table
+    /// (<see cref="SettingsMapping"/>) instead of duplicating every property.
     /// </summary>
     public sealed class AppSettingsStore : ISettingsStore
     {

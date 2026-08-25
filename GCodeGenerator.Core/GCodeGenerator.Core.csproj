@@ -15,8 +15,8 @@
       System.Resources).
     - InternalsVisibleTo не требуется: в перенесённых файлах нет internal-членов
       (internal-парсеры DXF находятся в VM приложения и остаются в App).
-    - GCodeSettingsStore (Properties.Settings) намеренно остаётся в App —
-      это инфраструктура пользовательских настроек, а не доменная модель.
+    - AppSettingsStore (Properties.Settings) остаётся в App — это инфраструктура
+      пользовательских настроек, а не доменная модель.
     - GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:
       SDK для net10.0-windows по умолчанию генерирует
       [assembly: SupportedOSPlatform("Windows7.0")], а в App/Tests (ручной

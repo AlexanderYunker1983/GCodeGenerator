@@ -17,8 +17,7 @@ namespace GCodeGenerator.ViewModels
 
         public SettingsViewModel(ILocalizationManager localizationManager, ISettingsStore settingsStore, IThemeService themeService)
         {
-            // Пункт 7.5 плана: настройки и тема — через IoC (ранее статика
-            // GCodeSettingsStore/ThemeHelper). Безаргументный конструктор —
+            // Настройки и тема поступают через IoC. Безаргументный конструктор —
             // для XAML-дизайнера: фолбэк на настройки по умолчанию.
             _settings = settingsStore?.Current ?? new GCodeSettings();
             _settingsStore = settingsStore;

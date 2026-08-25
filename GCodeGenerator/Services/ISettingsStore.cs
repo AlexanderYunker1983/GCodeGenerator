@@ -4,8 +4,7 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Пункт 7.5 плана: хранилище настроек через IoC (ранее статика
-    /// <c>GCodeSettingsStore.Current</c>).
+    /// Хранилище настроек генерации и UI, получаемое через IoC.
     /// </summary>
     public interface ISettingsStore
     {
