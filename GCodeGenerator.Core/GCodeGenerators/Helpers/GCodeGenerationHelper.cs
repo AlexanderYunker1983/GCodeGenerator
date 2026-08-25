@@ -56,10 +56,13 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             if (toolDiameter <= 0)
                 throw new ArgumentOutOfRangeException(nameof(toolDiameter), toolDiameter,
                     "Tool diameter must be greater than zero (a zero step would make the spiral loop run forever).");
-            double stepPercent = (stepPercentOfTool <= 0) ? 40 : stepPercentOfTool;
-            double step = toolDiameter * (stepPercent / 100.0);
-            if (step < 1e-6) step = toolDiameter * 0.4;
-            return step;
+            // Неположительный процент — отказ, а не «разумное» значение
+            // вместо заданного: шаг определяет всю траекторию выборки.
+            if (!(stepPercentOfTool > 0))
+                throw new ArgumentOutOfRangeException(nameof(stepPercentOfTool), stepPercentOfTool,
+                    "Step percent of tool diameter must be greater than zero.");
+
+            return toolDiameter * (stepPercentOfTool / 100.0);
         }
 
         /// <summary>

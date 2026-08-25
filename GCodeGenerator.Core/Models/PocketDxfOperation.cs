@@ -37,7 +37,7 @@ namespace GCodeGenerator.Models
         public IReadOnlyList<ValidationIssue> Validate()
         {
             var issues = new List<ValidationIssue>();
-            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddPocketIssues(issues, this);
 
             if (ClosedContours == null || ClosedContours.Count == 0)
             {

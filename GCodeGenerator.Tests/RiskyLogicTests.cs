@@ -401,26 +401,28 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// S2: StepPercentOfTool = 0 → fallback на 40% (в GenerateInternal:
-        /// `stepPercent = (op.StepPercentOfTool &lt;= 0) ? 40 : op.StepPercentOfTool`).
-        /// Вывод байт-в-байт идентичен выводу при StepPercentOfTool = 40.
+        /// S2: нулевой шаг выборки отклоняется, а не подменяется сорока
+        /// процентами. Прежде генератор молча подставлял «разумное» значение,
+        /// и карман выбирался с шагом, которого пользователь не задавал.
         /// </summary>
         [TestMethod]
-        public void Spiral_StepPercentZero_IsEquivalentTo40()
+        public void Spiral_StepPercentZero_IsRejected()
         {
-            var op0 = new PocketCircleOperation
+            var operation = new PocketCircleOperation
             {
                 CenterX = 0, CenterY = 0, Radius = 10,
                 ToolDiameter = 3, TotalDepth = 1, StepDepth = 1, StepPercentOfTool = 0
             };
-            var op40 = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 10,
-                ToolDiameter = 3, TotalDepth = 1, StepDepth = 1, StepPercentOfTool = 40
-            };
-            var lines0 = RunPocket(op0);
-            var lines40 = RunPocket(op40);
-            Assert.IsTrue(lines0.SequenceEqual(lines40), "Вывод при step=0 должен совпадать с выводом при step=40");
+
+            // Через полный генератор пользователь получает названную причину…
+            var error = Assert.ThrowsException<GCodeGenerationValidationException>(
+                () => new SimpleGCodeGenerator().Generate(
+                    new List<OperationBase> { operation }, new GCodeSettings()));
+            Assert.IsTrue(error.Failures.Any(f => f.Issues.Any(i => i.Property == "StepPercentOfTool")),
+                "Названа причина: шаг выборки");
+
+            // …а расчёт шага не подставляет ничего и сам по себе.
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => RunPocket(operation));
         }
 
         /// <summary>
@@ -550,10 +552,14 @@ namespace GCodeGenerator.Tests
         public void Helpers_CalculateStep_Values()
         {
             Assert.AreEqual(1.2, GCodeGenerationHelper.CalculateStep(3, 40), 1e-9);
-            Assert.AreEqual(1.2, GCodeGenerationHelper.CalculateStep(3, 0), 1e-9, "Fallback: stepPercent=0 → 40%");
             Assert.AreEqual(0.3, GCodeGenerationHelper.CalculateStep(3, 10), 1e-9);
             Assert.AreEqual(4e-08, GCodeGenerationHelper.CalculateStep(1e-7, 40), 1e-12,
-                "Guard step<1e-6 — no-op (переприсваивает то же значение)");
+                "Шаг считается и для крошечных диаметров");
+
+            // Неположительный процент — отказ, а не «разумное» значение
+            // вместо заданного: шаг определяет всю траекторию выборки.
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, 0));
+            Assert.ThrowsException<ArgumentOutOfRangeException>(() => GCodeGenerationHelper.CalculateStep(3, -5));
         }
 
         /// <summary>

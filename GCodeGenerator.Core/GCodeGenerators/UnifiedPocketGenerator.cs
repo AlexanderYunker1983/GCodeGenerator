@@ -31,8 +31,10 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <summary>
         /// Выбор стратегии обработки по <c>op.PocketStrategy</c> (пункт 5.1 плана).
-        /// Все значения перечисления зарегистрированы (фаза 5);
-        /// неизвестные значения (защита от старых .ygc) обрабатываются спиралью.
+        /// Все значения перечисления зарегистрированы (фаза 5). Значение вне
+        /// перечисления — отказ: файл проекта, принесший неизвестную стратегию,
+        /// не должен молча обрабатываться спиралью, потому что траектория
+        /// получится не той, что записана в проекте.
         /// </summary>
         private static IPocketPocketingStrategy GetStrategy(PocketStrategy strategy)
         {
@@ -47,8 +49,10 @@ namespace GCodeGenerator.GCodeGenerators
                 case PocketStrategy.Lines:
                     return new LinesPocketingStrategy();
                 case PocketStrategy.Spiral:
-                default:
                     return new SpiralPocketingStrategy();
+                default:
+                    throw new NotSupportedException(
+                        $"Стратегия обработки кармана {(int)strategy} не поддерживается.");
             }
         }
 
@@ -98,8 +102,9 @@ namespace GCodeGenerator.GCodeGenerators
             double? taperOriginZ = null)
         {
             double toolRadius = op.ToolDiameter / 2.0;
-            double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
-            double step = GCodeGenerationHelper.CalculateStep(op.ToolDiameter, stepPercent);
+            // Шаг проверен предполётным разбором: подставлять «разумное»
+            // значение вместо заданного — значит выдать не ту траекторию.
+            double step = GCodeGenerationHelper.CalculateStep(op.ToolDiameter, op.StepPercentOfTool);
 
             // Генерируем цикл по слоям
             _helper.GenerateLayerLoop(
@@ -207,8 +212,7 @@ namespace GCodeGenerator.GCodeGenerators
             double taperOriginZ)
         {
             double toolRadius = wallOp.ToolDiameter / 2.0;
-            double stepPercent = (wallOp.StepPercentOfTool <= 0) ? 40 : wallOp.StepPercentOfTool;
-            double step = GCodeGenerationHelper.CalculateStep(wallOp.ToolDiameter, stepPercent);
+            double step = GCodeGenerationHelper.CalculateStep(wallOp.ToolDiameter, wallOp.StepPercentOfTool);
 
             var geometry = CreateGeometry(wallOp);
 

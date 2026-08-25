@@ -267,10 +267,16 @@ namespace GCodeGenerator.Models
         {
             var issues = new List<ValidationIssue>();
 
+            // Подачи и точность вывода нужны в любом режиме: между отверстиями
+            // инструмент идёт на быстрой подаче, вглубь — на рабочей.
+            OperationValidation.AddIfNotPositive(issues, nameof(FeedXYRapid), FeedXYRapid);
+            OperationValidation.AddIfNotFinite(issues, nameof(SafeZBetweenHoles), SafeZBetweenHoles);
+            OperationValidation.AddIfOutOfRange(issues, nameof(Decimals), Decimals, 0, OperationValidation.MaxDecimals);
+
             // The generator drills exactly this list in every mode.
             if (Holes == null || Holes.Count == 0)
             {
-                issues.Add(new ValidationIssue(nameof(Holes), "no holes to drill"));
+                issues.Add(new ValidationIssue(nameof(Holes), ValidationCode.Empty, "no holes to drill"));
             }
             else
             {
@@ -279,11 +285,16 @@ namespace GCodeGenerator.Models
                     var hole = Holes[i];
                     if (hole == null)
                     {
-                        issues.Add(new ValidationIssue($"Holes[{i}]", "hole is null"));
+                        issues.Add(new ValidationIssue($"Holes[{i}]", ValidationCode.Empty, "hole is null"));
                         continue;
                     }
                     OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
                     OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
+                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZWork", hole.FeedZWork);
+                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZRapid", hole.FeedZRapid);
+                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].X", hole.X);
+                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Y", hole.Y);
+                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Z", hole.Z);
                 }
             }
 

@@ -47,7 +47,7 @@ namespace GCodeGenerator.Models
         public IReadOnlyList<ValidationIssue> Validate()
         {
             var issues = new List<ValidationIssue>();
-            OperationValidation.AddCommonMillingIssues(issues, TotalDepth, StepDepth, ToolDiameter);
+            OperationValidation.AddPocketIssues(issues, this);
             OperationValidation.AddIfNotPositive(issues, nameof(Width), Width);
             OperationValidation.AddIfNotPositive(issues, nameof(Height), Height);
             return issues;
