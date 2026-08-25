@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
@@ -9,6 +9,7 @@ using System.Windows.Shapes;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.ViewModels;
+using GCodeGenerator.Views.Scene;
 
 namespace GCodeGenerator.Views
 {
@@ -28,6 +29,12 @@ namespace GCodeGenerator.Views
         private const double GridStepMm = 10.0;
         private const double FitPadding = 0.75; // 75% of available size
         private OperationBase _hoverOp;
+
+        /// <summary>
+        /// Цвета схемы для действующей темы. Пересобираются при её смене:
+        /// на тёмном фоне линии светлее, иначе они с ним сливаются.
+        /// </summary>
+        private OperationPreviewPalette _palette = OperationPreviewPalette.ForCurrentTheme();
 
         public OperationsPreviewView()
         {
@@ -90,25 +97,6 @@ namespace GCodeGenerator.Views
         private void OnShowAllRequested(object sender, EventArgs e)
         {
             FitAll();
-        }
-
-        /// <summary>
-        /// Цвет фигуры по её роли: отверстия, контуры, рабочие ходы и
-        /// холостые переходы должны различаться с одного взгляда.
-        /// </summary>
-        private static Brush StrokeFor(OperationShapeKind kind)
-        {
-            switch (kind)
-            {
-                case OperationShapeKind.Point:
-                    return Brushes.SteelBlue;
-                case OperationShapeKind.CuttingMove:
-                    return Brushes.DarkGreen;
-                case OperationShapeKind.RapidMove:
-                    return Brushes.SlateGray;
-                default:
-                    return Brushes.DarkGreen;
-            }
         }
 
         private OperationBase GetOperationFromSource(object source)
@@ -242,6 +230,7 @@ namespace GCodeGenerator.Views
 
         private void OnThemeChanged(object sender, EventArgs e)
         {
+            _palette = OperationPreviewPalette.ForCurrentTheme();
             Redraw();
         }
 
@@ -270,11 +259,11 @@ namespace GCodeGenerator.Views
 
                 Brush stroke;
                 if (ReferenceEquals(op, selected))
-                    stroke = Brushes.Red;
+                    stroke = _palette.Selected;
                 else if (ReferenceEquals(op, hover))
-                    stroke = Brushes.Orange;
+                    stroke = _palette.Hovered;
                 else
-                    stroke = StrokeFor(shape.Kind);
+                    stroke = _palette.ForShape(shape.Kind);
 
                 if (shape.Kind == OperationShapeKind.Point)
                 {
@@ -299,8 +288,7 @@ namespace GCodeGenerator.Views
             var startX = Math.Floor(minX / GridStepMm) * GridStepMm;
             var startY = Math.Floor(minY / GridStepMm) * GridStepMm;
 
-            var gridBrushBase = TryFindResource("TextBrush") as Brush ?? Brushes.Gray;
-            var gridBrush = gridBrushBase.CloneCurrentValue();
+            var gridBrush = _palette.Grid;
 
             for (double x = startX; x <= maxX; x += GridStepMm)
             {
@@ -340,7 +328,8 @@ namespace GCodeGenerator.Views
 
             // axes
             var origin = WorldToScreen(new Point(0, 0));
-            var axisBrush = gridBrushBase.CloneCurrentValue();
+            // Оси заметнее сетки: та же кисть, но менее прозрачная.
+            var axisBrush = gridBrush.CloneCurrentValue();
             axisBrush.Opacity = 0.8;
 
             var axisX = new Line
