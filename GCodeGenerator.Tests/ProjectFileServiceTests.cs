@@ -266,12 +266,6 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(210.0, pocket.FeedZWork, 1e-9);
             Assert.AreEqual(4.0, pocket.ToolDiameter, 1e-9);
             Assert.AreEqual(4, pocket.Decimals);
-
-            // Те же значения доступны и сгруппированными.
-            Assert.AreEqual(1100.0, pocket.Feeds.XYRapid, 1e-9);
-            Assert.AreEqual(210.0, pocket.Feeds.ZWork, 1e-9);
-            Assert.AreEqual(7.0, pocket.Depth.TotalDepth, 1e-9);
-            Assert.AreEqual(2.0, pocket.Depth.SafeZHeight, 1e-9);
         }
 
         [TestMethod]

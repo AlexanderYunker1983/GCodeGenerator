@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for rectangle contour.
     /// </summary>
-    public class ProfileRectangleOperation : ProfileOperationBase, IValidatable
+    public partial class ProfileRectangleOperation : ProfileOperationBase, IValidatable
     {
         public ProfileRectangleOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Rectangle")
         {
@@ -14,32 +16,38 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Rectangle width.
         /// </summary>
-        public double Width { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _width = 10.0;
 
         /// <summary>
         /// Rectangle height.
         /// </summary>
-        public double Height { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _height = 10.0;
 
         /// <summary>
         /// Rotation angle in degrees.
         /// </summary>
-        public double RotationAngle { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _rotationAngle = 0.0;
 
         /// <summary>
         /// Reference point X coordinate.
         /// </summary>
-        public double ReferencePointX { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _referencePointX = 0.0;
 
         /// <summary>
         /// Reference point Y coordinate.
         /// </summary>
-        public double ReferencePointY { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _referencePointY = 0.0;
 
         /// <summary>
         /// Reference point type (center, corner, etc.).
         /// </summary>
-        public ReferencePointType ReferencePointType { get; set; } = ReferencePointType.Center;
+        [ObservableProperty]
+        private ReferencePointType _referencePointType = ReferencePointType.Center;
 
         public override string GetDescription()
         {

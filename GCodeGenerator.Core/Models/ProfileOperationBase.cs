@@ -1,5 +1,7 @@
 using GCodeGenerator.GCodeGenerators.Interfaces;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
@@ -13,7 +15,7 @@ namespace GCodeGenerator.Models
     /// пропущено у операции по чертежу — диалог показывал поле, значение
     /// которого некуда было сохранить.
     /// </summary>
-    public abstract class ProfileOperationBase : MillingOperationBase, IProfileOperation
+    public abstract partial class ProfileOperationBase : MillingOperationBase, IProfileOperation
     {
         protected ProfileOperationBase(OperationType type, OperationCategory category, string name)
             : base(type, category, name)
@@ -21,13 +23,16 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>С какой стороны контура идёт инструмент.</summary>
-        public ToolPathMode ToolPathMode { get; set; } = ToolPathMode.OnLine;
+        [ObservableProperty]
+        private ToolPathMode _toolPathMode = ToolPathMode.OnLine;
 
         /// <summary>Врезание вертикально или по наклонной.</summary>
-        public EntryMode EntryMode { get; set; } = EntryMode.Vertical;
+        [ObservableProperty]
+        private EntryMode _entryMode = EntryMode.Vertical;
 
         /// <summary>Угол наклонного врезания, градусы.</summary>
-        public double EntryAngle { get; set; } = 5.0;
+        [ObservableProperty]
+        private double _entryAngle = 5.0;
 
         /// <summary>
         /// Безопасное расстояние между проходами при наклонном врезании, мм:
@@ -35,12 +40,14 @@ namespace GCodeGenerator.Models
         /// к началу контура между витками рампы и перед рабочим проходом.
         /// Ноль означает возврат через безопасную высоту.
         /// </summary>
-        public double SafeDistanceBetweenPasses { get; set; } = 1.0;
+        [ObservableProperty]
+        private double _safeDistanceBetweenPasses = 1.0;
 
         /// <summary>
         /// Наибольшая длина отрезка при замене дуги ломаной, мм. Задаёт
         /// точность контура, когда вывод дуг отключён в настройках.
         /// </summary>
-        public double MaxSegmentLength { get; set; } = 0.5;
+        [ObservableProperty]
+        private double _maxSegmentLength = 0.5;
     }
 }

@@ -1,25 +1,37 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation for elliptical pocket.
     /// </summary>
-    public class PocketEllipseOperation : PocketOperationBase, IValidatable
+    public partial class PocketEllipseOperation : PocketOperationBase, IValidatable
     {
         public PocketEllipseOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Ellipse")
         {
         }
 
-        public double CenterX { get; set; } = 0.0;
+        [ObservableProperty]
 
-        public double CenterY { get; set; } = 0.0;
+        private double _centerX = 0.0;
 
-        public double RadiusX { get; set; } = 10.0;
+        [ObservableProperty]
 
-        public double RadiusY { get; set; } = 10.0;
+        private double _centerY = 0.0;
 
-        public double RotationAngle { get; set; } = 0.0;
+        [ObservableProperty]
+
+        private double _radiusX = 10.0;
+
+        [ObservableProperty]
+
+        private double _radiusY = 10.0;
+
+        [ObservableProperty]
+
+        private double _rotationAngle = 0.0;
 
         public override string GetDescription()
         {

@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
@@ -10,7 +12,7 @@ namespace GCodeGenerator.Models
     /// parameters below (plan item 3.1); <see cref="Holes"/> always holds the
     /// concrete hole list that the generator drills.
     /// </summary>
-    public class DrillPointsOperation : OperationBase, IValidatable
+    public partial class DrillPointsOperation : OperationBase, IValidatable
     {
         public DrillPointsOperation() : base(OperationType.DrillPoints, OperationCategory.Drill, "Drill points")
         {
@@ -21,33 +23,39 @@ namespace GCodeGenerator.Models
         /// so that legacy files without this field (and manually created operations)
         /// keep the previous "individual holes" behavior.
         /// </summary>
-        public DrillMode DrillMode { get; set; } = DrillMode.Points;
+        [ObservableProperty]
+        private DrillMode _drillMode = DrillMode.Points;
 
         /// <summary>
         /// Holes with full coordinates and Z parameters.
         /// Setter is needed for JSON deserialization of saved projects.
         /// </summary>
-        public List<DrillHole> Holes { get; set; } = new List<DrillHole>();
+        [ObservableProperty]
+        private List<DrillHole> _holes = new List<DrillHole>();
 
         /// <summary>
         /// Rapid feed in XY plane (G0).
         /// </summary>
-        public double FeedXYRapid { get; set; } = 1000.0;
+        [ObservableProperty]
+        private double _feedXYRapid = 1000.0;
 
         /// <summary>
         /// Working feed in XY plane (G1).
         /// </summary>
-        public double FeedXYWork { get; set; } = 300.0;
+        [ObservableProperty]
+        private double _feedXYWork = 300.0;
 
         /// <summary>
         /// Safe Z height for moves between holes.
         /// </summary>
-        public double SafeZBetweenHoles { get; set; } = 1.0;
+        [ObservableProperty]
+        private double _safeZBetweenHoles = 1.0;
 
         /// <summary>
         /// Number of decimal places for coordinates.
         /// </summary>
-        public int Decimals { get; set; } = 3;
+        [ObservableProperty]
+        private int _decimals = 3;
 
         // ------------------------------------------------------------------
         // Pattern parameters (plan item 3.1; previously stored in Metadata).
@@ -58,63 +66,82 @@ namespace GCodeGenerator.Models
         // --- Line / Array / Rect pattern ---------------------------------
 
         /// <summary>Start point X of the line/grid pattern.</summary>
-        public double StartX { get; set; }
+        [ObservableProperty]
+        private double _startX;
 
         /// <summary>Start point Y of the line/grid pattern.</summary>
-        public double StartY { get; set; }
+        [ObservableProperty]
+        private double _startY;
 
         /// <summary>Start point Z of the line/grid pattern.</summary>
-        public double StartZ { get; set; }
+        [ObservableProperty]
+        private double _startZ;
 
         /// <summary>Distance between neighboring holes in the pattern.</summary>
-        public double Distance { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _distance = 10.0;
 
         /// <summary>Number of holes per line (line mode) or per row (array/rect mode).</summary>
-        public int HoleCount { get; set; } = 3;
+        [ObservableProperty]
+        private int _holeCount = 3;
 
         /// <summary>Pattern direction angle in degrees (0 = along X axis).</summary>
-        public double AngleDeg { get; set; }
+        [ObservableProperty]
+        private double _angleDeg;
 
         /// <summary>Distance between rows (array/rect mode).</summary>
-        public double RowPitch { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _rowPitch = 10.0;
 
         /// <summary>Number of rows (array/rect mode).</summary>
-        public int RowCount { get; set; } = 2;
+        [ObservableProperty]
+        private int _rowCount = 2;
 
         // --- Circle / Arc / Polygon / Ellipse pattern ---------------------
 
         /// <summary>Center X of the circular pattern.</summary>
-        public double CenterX { get; set; }
+        [ObservableProperty]
+        private double _centerX;
 
         /// <summary>Center Y of the circular pattern.</summary>
-        public double CenterY { get; set; }
+        [ObservableProperty]
+        private double _centerY;
 
         /// <summary>Contour height (Z) of the circular pattern.</summary>
-        public double Z { get; set; }
+        [ObservableProperty]
+        private double _z;
 
         /// <summary>Radius of the circle/arc/polygon pattern.</summary>
-        public double Radius { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radius = 10.0;
 
         /// <summary>Start angle of the circle/arc/ellipse pattern in degrees.</summary>
-        public double StartAngleDeg { get; set; }
+        [ObservableProperty]
+        private double _startAngleDeg;
 
         /// <summary>End angle of the arc pattern in degrees.</summary>
-        public double EndAngleDeg { get; set; } = 90.0;
+        [ObservableProperty]
+        private double _endAngleDeg = 90.0;
 
         /// <summary>Rotation angle of the polygon/ellipse pattern in degrees.</summary>
-        public double RotationAngle { get; set; }
+        [ObservableProperty]
+        private double _rotationAngle;
 
         /// <summary>Number of sides of the polygon pattern.</summary>
-        public int NumberOfSides { get; set; } = 6;
+        [ObservableProperty]
+        private int _numberOfSides = 6;
 
         /// <summary>Number of holes per side of the polygon pattern.</summary>
-        public int HolesPerSide { get; set; } = 2;
+        [ObservableProperty]
+        private int _holesPerSide = 2;
 
         /// <summary>Horizontal radius of the ellipse pattern.</summary>
-        public double RadiusX { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radiusX = 10.0;
 
         /// <summary>Vertical radius of the ellipse pattern.</summary>
-        public double RadiusY { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radiusY = 10.0;
 
         // --- Package pattern ----------------------------------------------
 
@@ -122,24 +149,30 @@ namespace GCodeGenerator.Models
         /// Name of the package template (DIP8, SOIC-8, ...). Empty for a fresh
         /// operation: the dialog falls back to its default template (DIP8).
         /// </summary>
-        public string PackageName { get; set; } = string.Empty;
+        [ObservableProperty]
+        private string _packageName = string.Empty;
 
         // --- Common Z parameters (applied to every generated hole) --------
 
         /// <summary>Total cutting depth for the pattern holes.</summary>
-        public double TotalDepth { get; set; } = 2.0;
+        [ObservableProperty]
+        private double _totalDepth = 2.0;
 
         /// <summary>Depth per pass for the pattern holes.</summary>
-        public double StepDepth { get; set; } = 1.0;
+        [ObservableProperty]
+        private double _stepDepth = 1.0;
 
         /// <summary>Rapid feed for Z for the pattern holes.</summary>
-        public double FeedZRapid { get; set; } = 500.0;
+        [ObservableProperty]
+        private double _feedZRapid = 500.0;
 
         /// <summary>Working feed for Z for the pattern holes.</summary>
-        public double FeedZWork { get; set; } = 200.0;
+        [ObservableProperty]
+        private double _feedZWork = 200.0;
 
         /// <summary>Retract height for the pattern holes.</summary>
-        public double RetractHeight { get; set; } = 0.3;
+        [ObservableProperty]
+        private double _retractHeight = 0.3;
 
         /// <summary>
         /// Creates a fresh operation for the given drill mode with the default

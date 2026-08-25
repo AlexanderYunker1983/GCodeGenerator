@@ -41,11 +41,11 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Плоское свойство и сгруппированное — один и тот же параметр,
-        /// а не две копии значения.
+        /// Параметры резания хранятся в одном экземпляре: записанное значение
+        /// читается обратно тем же свойством.
         /// </summary>
         [TestMethod]
-        public void FlatProperties_AndGroups_ShareSameValues()
+        public void CuttingParameters_KeepAssignedValues()
         {
             var operation = new PocketCircleOperation();
 
@@ -53,16 +53,12 @@ namespace GCodeGenerator.Tests
             operation.FeedZWork = 55;
             operation.TotalDepth = 9;
             operation.SafeZHeight = 3;
+            operation.StepDepth = 0.25;
 
-            Assert.AreEqual(1234.0, operation.Feeds.XYRapid);
-            Assert.AreEqual(55.0, operation.Feeds.ZWork);
-            Assert.AreEqual(9.0, operation.Depth.TotalDepth);
-            Assert.AreEqual(3.0, operation.Depth.SafeZHeight);
-
-            operation.Feeds.XYWork = 321;
-            operation.Depth.StepDepth = 0.25;
-
-            Assert.AreEqual(321.0, operation.FeedXYWork);
+            Assert.AreEqual(1234.0, operation.FeedXYRapid);
+            Assert.AreEqual(55.0, operation.FeedZWork);
+            Assert.AreEqual(9.0, operation.TotalDepth);
+            Assert.AreEqual(3.0, operation.SafeZHeight);
             Assert.AreEqual(0.25, operation.StepDepth);
         }
 
@@ -100,29 +96,27 @@ namespace GCodeGenerator.Tests
             var second = new PocketCircleOperation();
 
             first.FeedXYWork = 999;
+            first.TotalDepth = 7;
 
-            Assert.AreEqual(300.0, second.FeedXYWork);
-            Assert.AreNotSame(first.Feeds, second.Feeds);
-            Assert.AreNotSame(first.Depth, second.Depth);
+            Assert.AreEqual(300.0, second.FeedXYWork, "Операции не делят значения подач");
+            Assert.AreEqual(2.0, second.TotalDepth, "Операции не делят раскладку по глубине");
         }
 
         /// <summary>
-        /// Копия операции получает собственные группы параметров: правка копии
-        /// (например, припуск чернового прохода) не должна менять оригинал.
+        /// Копия операции независима: правка копии (например, припуск
+        /// чернового прохода) не должна менять оригинал.
         /// </summary>
         [TestMethod]
-        public void Clone_GetsIndependentParameterObjects()
+        public void Clone_IsIndependentFromOriginal()
         {
             var operation = new PocketCircleOperation { FeedXYWork = 250, TotalDepth = 4 };
 
             var clone = (PocketCircleOperation)OperationCloner.Clone(operation);
-            clone.Feeds.XYWork = 100;
-            clone.Depth.TotalDepth = 1;
+            clone.FeedXYWork = 100;
+            clone.TotalDepth = 1;
 
             Assert.AreEqual(250.0, operation.FeedXYWork);
             Assert.AreEqual(4.0, operation.TotalDepth);
-            Assert.AreNotSame(operation.Feeds, clone.Feeds);
-            Assert.AreNotSame(operation.Depth, clone.Depth);
         }
     }
 }

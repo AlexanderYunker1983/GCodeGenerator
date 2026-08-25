@@ -1,19 +1,25 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation imported from DXF closed contours.
     /// </summary>
-    public class PocketDxfOperation : PocketOperationBase, IValidatable
+    public partial class PocketDxfOperation : PocketOperationBase, IValidatable
     {
         public PocketDxfOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket DXF")
         {
         }
 
-        public List<DxfPolyline> ClosedContours { get; set; } = new List<DxfPolyline>();
+        [ObservableProperty]
 
-        public string DxfFilePath { get; set; }
+        private List<DxfPolyline> _closedContours = new List<DxfPolyline>();
+
+        [ObservableProperty]
+
+        private string _dxfFilePath;
 
         public override string GetDescription()
         {

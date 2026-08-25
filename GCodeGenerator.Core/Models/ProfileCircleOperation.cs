@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for circle contour.
     /// </summary>
-    public class ProfileCircleOperation : ProfileOperationBase, IValidatable
+    public partial class ProfileCircleOperation : ProfileOperationBase, IValidatable
     {
         public ProfileCircleOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Circle")
         {
@@ -14,17 +16,20 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Circle center X coordinate.
         /// </summary>
-        public double CenterX { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerX = 0.0;
 
         /// <summary>
         /// Circle center Y coordinate.
         /// </summary>
-        public double CenterY { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerY = 0.0;
 
         /// <summary>
         /// Circle radius.
         /// </summary>
-        public double Radius { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radius = 10.0;
 
         public override string GetDescription()
         {

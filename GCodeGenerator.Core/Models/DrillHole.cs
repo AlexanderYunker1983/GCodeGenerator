@@ -1,39 +1,49 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
-    public class DrillHole
+    public partial class DrillHole : ObservableObject
     {
-        public double X { get; set; }
-        public double Y { get; set; }
+        [ObservableProperty]
+        private double _x;
+        [ObservableProperty]
+        private double _y;
 
         /// <summary>
         /// Start Z coordinate (entry point).
         /// </summary>
-        public double Z { get; set; }
+        [ObservableProperty]
+        private double _z;
 
         /// <summary>
         /// Total drilling depth (relative).
         /// </summary>
-        public double TotalDepth { get; set; }
+        [ObservableProperty]
+        private double _totalDepth;
 
         /// <summary>
         /// Depth per pass.
         /// </summary>
-        public double StepDepth { get; set; }
+        [ObservableProperty]
+        private double _stepDepth;
 
         /// <summary>
         /// Rapid move feed for Z (G0 equivalent, if controller uses feed).
         /// </summary>
-        public double FeedZRapid { get; set; }
+        [ObservableProperty]
+        private double _feedZRapid;
 
         /// <summary>
         /// Working feed for Z (G1).
         /// </summary>
-        public double FeedZWork { get; set; }
+        [ObservableProperty]
+        private double _feedZWork;
 
         /// <summary>
         /// Retract height for drill after completing a hole.
         /// </summary>
-        public double RetractHeight { get; set; }
+        [ObservableProperty]
+        private double _retractHeight;
     }
 }
 

@@ -1,26 +1,39 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Pocket milling operation for rectangular pocket.
     /// </summary>
-    public class PocketRectangleOperation : PocketOperationBase, IValidatable
+    public partial class PocketRectangleOperation : PocketOperationBase, IValidatable
     {
         public PocketRectangleOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket Rectangle")
         {
         }
-        public double Width { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _width = 10.0;
 
-        public double Height { get; set; } = 10.0;
+        [ObservableProperty]
 
-        public double RotationAngle { get; set; } = 0.0;
+        private double _height = 10.0;
 
-        public double ReferencePointX { get; set; } = 0.0;
+        [ObservableProperty]
 
-        public double ReferencePointY { get; set; } = 0.0;
+        private double _rotationAngle = 0.0;
 
-        public ReferencePointType ReferencePointType { get; set; } = ReferencePointType.Center;
+        [ObservableProperty]
+
+        private double _referencePointX = 0.0;
+
+        [ObservableProperty]
+
+        private double _referencePointY = 0.0;
+
+        [ObservableProperty]
+
+        private ReferencePointType _referencePointType = ReferencePointType.Center;
 
         public override string GetDescription()
         {

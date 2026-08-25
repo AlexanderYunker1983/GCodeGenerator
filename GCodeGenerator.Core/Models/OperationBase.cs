@@ -1,24 +1,20 @@
 using System;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Base class for all operations.
     ///
-    /// INotifyPropertyChanged is implemented here directly (status quo,
-    /// plan item 3.9): the operation list UI binds to the model itself
-    /// (MainView.xaml binds <c>IsEnabled</c>/<c>Name</c> on the operation)
-    /// and MainViewModel listens to the operation's PropertyChanged to
-    /// refresh the preview when the enabled flag is toggled. Extracting a
-    /// separate IEnabledOperation interface would not remove this dependency
-    /// — concrete operation instances are what the UI consumes — and would
-    /// only split the contract. If a non-UI consumer ever needs operations
-    /// without INPC, the interface can be extracted at that point.
+    /// Операция сама сообщает об изменении своих параметров: на этом держатся
+    /// перерисовка предпросмотра и признак несохранённого проекта. Раньше
+    /// уведомляли только имя и признак «включена», а геометрия была обычными
+    /// свойствами, поэтому каждое место, меняющее операцию, обязано было
+    /// вручную позвать «содержимое изменилось» — забытый вызов проявлялся
+    /// не ошибкой, а неперерисованным предпросмотром.
     /// </summary>
-    public abstract class OperationBase : INotifyPropertyChanged
+    public abstract class OperationBase : ObservableObject
     {
         private string _name;
         private bool _isEnabled = true;
@@ -46,12 +42,7 @@ namespace GCodeGenerator.Models
         public string Name
         {
             get => _name;
-            set
-            {
-                if (Equals(value, _name)) return;
-                _name = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _name, value);
         }
 
         /// <summary>
@@ -63,12 +54,7 @@ namespace GCodeGenerator.Models
         public bool IsEnabled
         {
             get => _isEnabled;
-            set
-            {
-                if (value == _isEnabled) return;
-                _isEnabled = value;
-                OnPropertyChanged();
-            }
+            set => SetProperty(ref _isEnabled, value);
         }
 
         /// <summary>
@@ -76,24 +62,11 @@ namespace GCodeGenerator.Models
         /// </summary>
         public abstract string GetDescription();
 
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
         /// <summary>
-        /// Явное уведомление «содержимое изменилось» (пункт 7.2 плана).
-        /// Геометрические параметры производных классов — авто-свойства
-        /// (без PropertyChanged), поэтому диалоги редактора (после
-        /// ApplyToOperation) и импорт DXF вызывают этот метод после
-        /// изменения операции: подписчики PropertyChanged (пересборка сцены
-        /// 2D-превью) получают обновление сразу, а не при следующем изменении
-        /// коллекции операций.
+        /// Явное уведомление «изменилось всё сразу». Нужно там, где параметры
+        /// операции заменяются скопом и слушателя интересует только сам факт:
+        /// импорт чертежа заполняет операцию целиком.
         /// </summary>
-        public void NotifyContentChanged() => OnPropertyChanged(null);
+        public void NotifyContentChanged() => OnPropertyChanged(string.Empty);
     }
 }
-
-

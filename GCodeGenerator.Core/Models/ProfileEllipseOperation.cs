@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for ellipse contour.
     /// </summary>
-    public class ProfileEllipseOperation : ProfileOperationBase, IValidatable
+    public partial class ProfileEllipseOperation : ProfileOperationBase, IValidatable
     {
         public ProfileEllipseOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Ellipse")
         {
@@ -14,27 +16,32 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Ellipse center X coordinate.
         /// </summary>
-        public double CenterX { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerX = 0.0;
 
         /// <summary>
         /// Ellipse center Y coordinate.
         /// </summary>
-        public double CenterY { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerY = 0.0;
 
         /// <summary>
         /// Ellipse radius along X axis.
         /// </summary>
-        public double RadiusX { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radiusX = 10.0;
 
         /// <summary>
         /// Ellipse radius along Y axis.
         /// </summary>
-        public double RadiusY { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radiusY = 10.0;
 
         /// <summary>
         /// Rotation angle of the ellipse in degrees.
         /// </summary>
-        public double RotationAngle { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _rotationAngle = 0.0;
 
         public override string GetDescription()
         {

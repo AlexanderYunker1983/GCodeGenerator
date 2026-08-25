@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 
+using CommunityToolkit.Mvvm.ComponentModel;
+
 namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Profile milling operation for regular polygon contour.
     /// </summary>
-    public class ProfilePolygonOperation : ProfileOperationBase, IValidatable
+    public partial class ProfilePolygonOperation : ProfileOperationBase, IValidatable
     {
         public ProfilePolygonOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile Polygon")
         {
@@ -14,27 +16,32 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Polygon center X coordinate.
         /// </summary>
-        public double CenterX { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerX = 0.0;
 
         /// <summary>
         /// Polygon center Y coordinate.
         /// </summary>
-        public double CenterY { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _centerY = 0.0;
 
         /// <summary>
         /// Number of sides (minimum 3).
         /// </summary>
-        public int NumberOfSides { get; set; } = 6;
+        [ObservableProperty]
+        private int _numberOfSides = 6;
 
         /// <summary>
         /// Radius of the circumscribed circle.
         /// </summary>
-        public double Radius { get; set; } = 10.0;
+        [ObservableProperty]
+        private double _radius = 10.0;
 
         /// <summary>
         /// Rotation angle of the polygon in degrees.
         /// </summary>
-        public double RotationAngle { get; set; } = 0.0;
+        [ObservableProperty]
+        private double _rotationAngle = 0.0;
 
         public override string GetDescription()
         {
