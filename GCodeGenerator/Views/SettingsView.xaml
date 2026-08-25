@@ -13,192 +13,200 @@
         ResizeMode="NoResize"
         Width="640"
         Height="480">
-    <mah:MetroTabControl Margin="8">
-        <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->
-        <mah:MetroTabItem Header="{loc:Loc CodeGenerationSettingsTab}">
-            <StackPanel Margin="8">
-                <CheckBox
-                    Content="{loc:Loc UseLineNumbers}"
-                    IsChecked="{Binding UseLineNumbers}"/>
+    <DockPanel>
+        <!-- Явные OK/Cancel: сохраняет OK, отмена и крестик оставляют настройки прежними. -->
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,0,8,8">
+            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
+            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
+        </StackPanel>
 
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Label Content="{loc:Loc LineNumberStart}" Width="180" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
+        <mah:MetroTabControl Margin="8">
+            <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->
+            <mah:MetroTabItem Header="{loc:Loc CodeGenerationSettingsTab}">
+                <StackPanel Margin="8">
+                    <CheckBox
+                        Content="{loc:Loc UseLineNumbers}"
+                        IsChecked="{Binding UseLineNumbers}"/>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Label Content="{loc:Loc LineNumberStart}" Width="180" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                        <Label Content="{loc:Loc LineNumberStep}" Width="180" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <CheckBox Margin="0,8,0,0"
+                              Content="{loc:Loc GenerateComments}"
+                              IsChecked="{Binding UseComments}"/>
+
+                    <CheckBox Margin="0,8,0,0"
+                              Content="{loc:Loc AllowArcs}"
+                              IsChecked="{Binding AllowArcs}"/>
+
+                    <CheckBox Margin="0,8,0,0"
+                              Content="{loc:Loc UsePaddedGCodes}"
+                              IsChecked="{Binding UsePaddedGCodes}"/>
+
+                    <Separator Margin="0,12,0,8"/>
+
+                    <!-- Рабочая система координат (G54-G59) -->
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc SetWorkCoordinateSystem}"
+                              IsChecked="{Binding SetWorkCoordinateSystem}"/>
+                    <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                                IsEnabled="{Binding SetWorkCoordinateSystem}">
+                        <Label Content="{loc:Loc WorkCoordinateSystem}" Width="180" VerticalAlignment="Center"/>
+                        <ComboBox Width="100"
+                                  SelectedValuePath="Content"
+                                  SelectedValue="{Binding WorkCoordinateSystem}"
+                                  Style="{StaticResource MahApps.Styles.ComboBox}">
+                            <ComboBoxItem Content="G54"/>
+                            <ComboBoxItem Content="G55"/>
+                            <ComboBoxItem Content="G56"/>
+                            <ComboBoxItem Content="G57"/>
+                            <ComboBoxItem Content="G58"/>
+                            <ComboBoxItem Content="G59"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <Separator Margin="0,12,0,8"/>
+
+                    <!-- Начальная позиция (G92) -->
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc AddStartPosition}"
+                              IsChecked="{Binding AddStartPosition}"/>
+                    <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                                IsEnabled="{Binding AddStartPosition}">
+                        <Label Content="{loc:Loc StartPositionX}" Width="60" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Label Content="{loc:Loc StartPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Label Content="{loc:Loc StartPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <!-- Конечная позиция (G0) -->
+                    <CheckBox Margin="0,8,0,4"
+                              Content="{loc:Loc AddEndPosition}"
+                              IsChecked="{Binding AddEndPosition}"/>
+                    <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
+                                IsEnabled="{Binding AddEndPosition}">
+                        <Label Content="{loc:Loc EndPositionX}" Width="60" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Label Content="{loc:Loc EndPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged}"/>
+                        <Label Content="{loc:Loc EndPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                        <TextBox Width="80"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
                 </StackPanel>
+            </mah:MetroTabItem>
 
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <Label Content="{loc:Loc LineNumberStep}" Width="180" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
+            <mah:MetroTabItem Header="{loc:Loc SpindleSettingsTab}">
+                <StackPanel Margin="8">
+                    <CheckBox
+                        Content="{loc:Loc SpindleControlEnabled}"
+                        IsChecked="{Binding SpindleControlEnabled}"/>
+
+                    <Separator Margin="0,8,0,8"/>
+
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc SpindleSpeedEnabled}"
+                              IsChecked="{Binding SpindleSpeedEnabled}"
+                              IsEnabled="{Binding SpindleControlEnabled}"/>
+                    <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
+                                IsEnabled="{Binding SpindleControlEnabled}">
+                        <Label Content="{loc:Loc SpindleSpeedRpm}" Width="200" VerticalAlignment="Center"/>
+                        <TextBox Width="100"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
+
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc SpindleStartEnabled}"
+                              IsChecked="{Binding SpindleStartEnabled}"
+                              IsEnabled="{Binding SpindleControlEnabled}"/>
+                    <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
+                                IsEnabled="{Binding SpindleControlEnabled}">
+                        <Label Content="{loc:Loc SpindleStartCommand}" Width="200" VerticalAlignment="Center"/>
+                        <ComboBox Width="100"
+                                  SelectedValuePath="Content"
+                                  SelectedValue="{Binding SpindleStartCommand}"
+                                  Style="{StaticResource MahApps.Styles.ComboBox}">
+                            <ComboBoxItem Content="M3"/>
+                            <ComboBoxItem Content="M4"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc SpindleStopEnabled}"
+                              IsChecked="{Binding SpindleStopEnabled}"
+                              IsEnabled="{Binding SpindleControlEnabled}"/>
+
+                    <CheckBox Margin="12,8,0,4"
+                              Content="{loc:Loc SpindleDelayEnabled}"
+                              IsChecked="{Binding SpindleDelayEnabled}"
+                              IsEnabled="{Binding SpindleControlEnabled}"/>
+                    <StackPanel Orientation="Horizontal" Margin="36,0,0,0"
+                                IsEnabled="{Binding SpindleControlEnabled}">
+                        <Label Content="{loc:Loc SpindleDelaySeconds}" Width="200" VerticalAlignment="Center"/>
+                        <TextBox Width="100"
+                                 Style="{StaticResource MahApps.Styles.TextBox}"
+                                 Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                    </StackPanel>
                 </StackPanel>
+            </mah:MetroTabItem>
 
-                <CheckBox Margin="0,8,0,0"
-                          Content="{loc:Loc GenerateComments}"
-                          IsChecked="{Binding UseComments}"/>
+            <mah:MetroTabItem Header="{loc:Loc CoolantSettingsTab}">
+                <StackPanel Margin="8">
+                    <CheckBox
+                        Content="{loc:Loc CoolantControlEnabled}"
+                        IsChecked="{Binding CoolantControlEnabled}"/>
 
-                <CheckBox Margin="0,8,0,0"
-                          Content="{loc:Loc AllowArcs}"
-                          IsChecked="{Binding AllowArcs}"/>
+                    <Separator Margin="0,8,0,8"/>
 
-                <CheckBox Margin="0,8,0,0"
-                          Content="{loc:Loc UsePaddedGCodes}"
-                          IsChecked="{Binding UsePaddedGCodes}"/>
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc CoolantStartEnabled}"
+                              IsChecked="{Binding CoolantStartEnabled}"
+                              IsEnabled="{Binding CoolantControlEnabled}"/>
 
-                <Separator Margin="0,12,0,8"/>
-
-                <!-- Рабочая система координат (G54-G59) -->
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc SetWorkCoordinateSystem}"
-                          IsChecked="{Binding SetWorkCoordinateSystem}"/>
-                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
-                            IsEnabled="{Binding SetWorkCoordinateSystem}">
-                    <Label Content="{loc:Loc WorkCoordinateSystem}" Width="180" VerticalAlignment="Center"/>
-                    <ComboBox Width="100"
-                              SelectedValuePath="Content"
-                              SelectedValue="{Binding WorkCoordinateSystem}"
-                              Style="{StaticResource MahApps.Styles.ComboBox}">
-                        <ComboBoxItem Content="G54"/>
-                        <ComboBoxItem Content="G55"/>
-                        <ComboBoxItem Content="G56"/>
-                        <ComboBoxItem Content="G57"/>
-                        <ComboBoxItem Content="G58"/>
-                        <ComboBoxItem Content="G59"/>
-                    </ComboBox>
+                    <CheckBox Margin="0,0,0,4"
+                              Content="{loc:Loc CoolantStopEnabled}"
+                              IsChecked="{Binding CoolantStopEnabled}"
+                              IsEnabled="{Binding CoolantControlEnabled}"/>
                 </StackPanel>
+            </mah:MetroTabItem>
 
-                <Separator Margin="0,12,0,8"/>
-
-                <!-- Начальная позиция (G92) -->
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc AddStartPosition}"
-                          IsChecked="{Binding AddStartPosition}"/>
-                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
-                            IsEnabled="{Binding AddStartPosition}">
-                    <Label Content="{loc:Loc StartPositionX}" Width="60" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Label Content="{loc:Loc StartPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Label Content="{loc:Loc StartPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
+            <mah:MetroTabItem Header="{loc:Loc InterfaceSettingsTab}">
+                <StackPanel Margin="8">
+                    <!-- MahApps 2.x: OnLabel/OffLabel → OnContent/OffContent, IsChecked → IsOn (two-way). -->
+                    <mah:ToggleSwitch
+                        Header="{loc:Loc DarkTheme}"
+                        OnContent="{loc:Loc ToggleOn}"
+                        OffContent="{loc:Loc ToggleOff}"
+                        IsOn="{Binding UseDarkTheme}"/>
                 </StackPanel>
-
-                <!-- Конечная позиция (G0) -->
-                <CheckBox Margin="0,8,0,4"
-                          Content="{loc:Loc AddEndPosition}"
-                          IsChecked="{Binding AddEndPosition}"/>
-                <StackPanel Orientation="Horizontal" Margin="24,0,0,0"
-                            IsEnabled="{Binding AddEndPosition}">
-                    <Label Content="{loc:Loc EndPositionX}" Width="60" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Label Content="{loc:Loc EndPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged}"/>
-                    <Label Content="{loc:Loc EndPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
-                    <TextBox Width="80"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-            </StackPanel>
-        </mah:MetroTabItem>
-
-        <mah:MetroTabItem Header="{loc:Loc SpindleSettingsTab}">
-            <StackPanel Margin="8">
-                <CheckBox
-                    Content="{loc:Loc SpindleControlEnabled}"
-                    IsChecked="{Binding SpindleControlEnabled}"/>
-
-                <Separator Margin="0,8,0,8"/>
-
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc SpindleSpeedEnabled}"
-                          IsChecked="{Binding SpindleSpeedEnabled}"
-                          IsEnabled="{Binding SpindleControlEnabled}"/>
-                <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
-                            IsEnabled="{Binding SpindleControlEnabled}">
-                    <Label Content="{loc:Loc SpindleSpeedRpm}" Width="200" VerticalAlignment="Center"/>
-                    <TextBox Width="100"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc SpindleStartEnabled}"
-                          IsChecked="{Binding SpindleStartEnabled}"
-                          IsEnabled="{Binding SpindleControlEnabled}"/>
-                <StackPanel Orientation="Horizontal" Margin="24,0,0,8"
-                            IsEnabled="{Binding SpindleControlEnabled}">
-                    <Label Content="{loc:Loc SpindleStartCommand}" Width="200" VerticalAlignment="Center"/>
-                    <ComboBox Width="100"
-                              SelectedValuePath="Content"
-                              SelectedValue="{Binding SpindleStartCommand}"
-                              Style="{StaticResource MahApps.Styles.ComboBox}">
-                        <ComboBoxItem Content="M3"/>
-                        <ComboBoxItem Content="M4"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc SpindleStopEnabled}"
-                          IsChecked="{Binding SpindleStopEnabled}"
-                          IsEnabled="{Binding SpindleControlEnabled}"/>
-
-                <CheckBox Margin="12,8,0,4"
-                          Content="{loc:Loc SpindleDelayEnabled}"
-                          IsChecked="{Binding SpindleDelayEnabled}"
-                          IsEnabled="{Binding SpindleControlEnabled}"/>
-                <StackPanel Orientation="Horizontal" Margin="36,0,0,0"
-                            IsEnabled="{Binding SpindleControlEnabled}">
-                    <Label Content="{loc:Loc SpindleDelaySeconds}" Width="200" VerticalAlignment="Center"/>
-                    <TextBox Width="100"
-                             Style="{StaticResource MahApps.Styles.TextBox}"
-                             Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-            </StackPanel>
-        </mah:MetroTabItem>
-
-        <mah:MetroTabItem Header="{loc:Loc CoolantSettingsTab}">
-            <StackPanel Margin="8">
-                <CheckBox
-                    Content="{loc:Loc CoolantControlEnabled}"
-                    IsChecked="{Binding CoolantControlEnabled}"/>
-
-                <Separator Margin="0,8,0,8"/>
-
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc CoolantStartEnabled}"
-                          IsChecked="{Binding CoolantStartEnabled}"
-                          IsEnabled="{Binding CoolantControlEnabled}"/>
-
-                <CheckBox Margin="0,0,0,4"
-                          Content="{loc:Loc CoolantStopEnabled}"
-                          IsChecked="{Binding CoolantStopEnabled}"
-                          IsEnabled="{Binding CoolantControlEnabled}"/>
-            </StackPanel>
-        </mah:MetroTabItem>
-
-        <mah:MetroTabItem Header="{loc:Loc InterfaceSettingsTab}">
-            <StackPanel Margin="8">
-                <!-- MahApps 2.x: OnLabel/OffLabel → OnContent/OffContent, IsChecked → IsOn (two-way). -->
-                <mah:ToggleSwitch
-                    Header="{loc:Loc DarkTheme}"
-                    OnContent="{loc:Loc ToggleOn}"
-                    OffContent="{loc:Loc ToggleOff}"
-                    IsOn="{Binding UseDarkTheme}"/>
-            </StackPanel>
-        </mah:MetroTabItem>
-    </mah:MetroTabControl>
+            </mah:MetroTabItem>
+        </mah:MetroTabControl>
+    </DockPanel>
 </Window>
 
 

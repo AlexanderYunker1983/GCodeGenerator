@@ -1,14 +1,38 @@
-using GCodeGenerator.Models;
+using System.Reflection;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels
 {
-    public class SettingsViewModel : CloseableViewModel, IHasDisplayName
+    /// <summary>
+    /// Диалог настроек генерации и интерфейса.
+    ///
+    /// Значения переносятся между настройками и окном по таблице
+    /// <see cref="SettingsMapping"/> — той же, по которой они пишутся в
+    /// постоянное хранилище. Раньше все 28 параметров перечислялись здесь
+    /// дважды вручную, поэтому забытая строка означала настройку, которую
+    /// окно показывает, но не сохраняет.
+    ///
+    /// Закрытие окна больше не сохраняет: сохраняет OK, а отмена и крестик
+    /// оставляют настройки нетронутыми — как в диалогах операций.
+    /// </summary>
+    public partial class SettingsViewModel : CloseableViewModel, IHasDisplayName
     {
+        /// <summary>Система координат по умолчанию: пустое значение равнозначно G54.</summary>
+        private const string DefaultWorkCoordinateSystem = "G54";
+
         private readonly GCodeSettings _settings;
         private readonly ISettingsStore _settingsStore;
         private readonly IThemeService _themeService;
+
+        /// <summary>Тема на момент открытия окна — к ней возвращает отмена.</summary>
+        private readonly bool _initialDarkTheme;
+
+        private bool _isAccepted;
 
         public SettingsViewModel()
             : this(null, null, null)
@@ -27,442 +51,167 @@ namespace GCodeGenerator.ViewModels
             // вернёт «?Key?» (лог — в LocalizationManager).
             DisplayName = localizationManager?.GetString("GCodeSettingsTitle") ?? "GCodeSettingsTitle";
 
-            // Initialize from shared settings
-            // Пункт 8.1: тематические группы настроек.
-            var format = _settings.Format;
-            var ui = _settings.Ui;
-            var spindle = _settings.Spindle;
-            var coolant = _settings.Coolant;
-            var workCoordinate = _settings.WorkCoordinate;
-            UseLineNumbers = format.UseLineNumbers;
-            LineNumberStart = format.LineNumberStart;
-            LineNumberStep = format.LineNumberStep;
-            UseComments = format.UseComments;
-            AllowArcs = format.AllowArcs;
-            UsePaddedGCodes = format.UsePaddedGCodes;
-            UseDarkTheme = ui.UseDarkTheme;
-            SpindleControlEnabled = spindle.SpindleControlEnabled;
-            SpindleSpeedEnabled = spindle.SpindleSpeedEnabled;
-            SpindleSpeedRpm = spindle.SpindleSpeedRpm;
-            SpindleStartEnabled = spindle.SpindleStartEnabled;
-            SpindleStartCommand = spindle.SpindleStartCommand;
-            SpindleStopEnabled = spindle.SpindleStopEnabled;
-            SpindleDelayEnabled = spindle.SpindleDelayEnabled;
-            SpindleDelaySeconds = spindle.SpindleDelaySeconds;
-            CoolantControlEnabled = coolant.CoolantControlEnabled;
-            CoolantStartEnabled = coolant.CoolantStartEnabled;
-            CoolantStopEnabled = coolant.CoolantStopEnabled;
-            AddStartPosition = workCoordinate.AddStartPosition;
-            StartX = workCoordinate.StartX;
-            StartY = workCoordinate.StartY;
-            StartZ = workCoordinate.StartZ;
-            AddEndPosition = workCoordinate.AddEndPosition;
-            EndX = workCoordinate.EndX;
-            EndY = workCoordinate.EndY;
-            EndZ = workCoordinate.EndZ;
-            SetWorkCoordinateSystem = workCoordinate.SetWorkCoordinateSystem;
-            WorkCoordinateSystem = workCoordinate.WorkCoordinateSystem ?? "G54";
+            OkCommand = new RelayCommand(OnOk);
+            CancelCommand = new RelayCommand(RequestClose);
+
+            LoadFromSettings(_settings);
+            _initialDarkTheme = UseDarkTheme;
         }
 
+        [ObservableProperty]
         private string _displayName;
 
-        public string DisplayName
-        {
-            get => _displayName;
-            set
-            {
-                if (Equals(value, _displayName)) return;
-                _displayName = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private bool _useLineNumbers;
 
-        public bool UseLineNumbers
-        {
-            get => _useLineNumbers;
-            set
-            {
-                if (value == _useLineNumbers) return;
-                _useLineNumbers = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private int _lineNumberStart;
 
-        public int LineNumberStart
-        {
-            get => _lineNumberStart;
-            set
-            {
-                if (value == _lineNumberStart) return;
-                _lineNumberStart = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private int _lineNumberStep;
 
-        public int LineNumberStep
-        {
-            get => _lineNumberStep;
-            set
-            {
-                if (value == _lineNumberStep) return;
-                _lineNumberStep = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private bool _useComments;
 
-        public bool UseComments
-        {
-            get => _useComments;
-            set
-            {
-                if (value == _useComments) return;
-                _useComments = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private bool _allowArcs;
 
-        public bool AllowArcs
-        {
-            get => _allowArcs;
-            set
-            {
-                if (value == _allowArcs) return;
-                _allowArcs = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private bool _usePaddedGCodes;
 
-        public bool UsePaddedGCodes
-        {
-            get => _usePaddedGCodes;
-            set
-            {
-                if (value == _usePaddedGCodes) return;
-                _usePaddedGCodes = value;
-                OnPropertyChanged();
-            }
-        }
-
+        [ObservableProperty]
         private bool _useDarkTheme;
 
-        public bool UseDarkTheme
-        {
-            get => _useDarkTheme;
-            set
-            {
-                if (value == _useDarkTheme) return;
-                _useDarkTheme = value;
-                OnPropertyChanged();
-                _themeService?.ApplyTheme(value);
-            }
-        }
-
+        [ObservableProperty]
         private bool _spindleControlEnabled;
-        public bool SpindleControlEnabled
-        {
-            get => _spindleControlEnabled;
-            set
-            {
-                if (value == _spindleControlEnabled) return;
-                _spindleControlEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _spindleSpeedEnabled;
-        public bool SpindleSpeedEnabled
-        {
-            get => _spindleSpeedEnabled;
-            set
-            {
-                if (value == _spindleSpeedEnabled) return;
-                _spindleSpeedEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private int _spindleSpeedRpm;
-        public int SpindleSpeedRpm
-        {
-            get => _spindleSpeedRpm;
-            set
-            {
-                if (value == _spindleSpeedRpm) return;
-                _spindleSpeedRpm = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _spindleStartEnabled;
-        public bool SpindleStartEnabled
-        {
-            get => _spindleStartEnabled;
-            set
-            {
-                if (value == _spindleStartEnabled) return;
-                _spindleStartEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private string _spindleStartCommand;
-        public string SpindleStartCommand
-        {
-            get => _spindleStartCommand;
-            set
-            {
-                if (value == _spindleStartCommand) return;
-                _spindleStartCommand = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _spindleStopEnabled;
-        public bool SpindleStopEnabled
-        {
-            get => _spindleStopEnabled;
-            set
-            {
-                if (value == _spindleStopEnabled) return;
-                _spindleStopEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _spindleDelayEnabled;
-        public bool SpindleDelayEnabled
-        {
-            get => _spindleDelayEnabled;
-            set
-            {
-                if (value == _spindleDelayEnabled) return;
-                _spindleDelayEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _spindleDelaySeconds;
-        public double SpindleDelaySeconds
-        {
-            get => _spindleDelaySeconds;
-            set
-            {
-                if (value.Equals(_spindleDelaySeconds)) return;
-                _spindleDelaySeconds = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _coolantControlEnabled;
-        public bool CoolantControlEnabled
-        {
-            get => _coolantControlEnabled;
-            set
-            {
-                if (value == _coolantControlEnabled) return;
-                _coolantControlEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _coolantStartEnabled;
-        public bool CoolantStartEnabled
-        {
-            get => _coolantStartEnabled;
-            set
-            {
-                if (value == _coolantStartEnabled) return;
-                _coolantStartEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _coolantStopEnabled;
-        public bool CoolantStopEnabled
-        {
-            get => _coolantStopEnabled;
-            set
-            {
-                if (value == _coolantStopEnabled) return;
-                _coolantStopEnabled = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _addStartPosition;
-        public bool AddStartPosition
-        {
-            get => _addStartPosition;
-            set
-            {
-                if (value == _addStartPosition) return;
-                _addStartPosition = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _startX;
-        public double StartX
-        {
-            get => _startX;
-            set
-            {
-                if (value.Equals(_startX)) return;
-                _startX = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _startY;
-        public double StartY
-        {
-            get => _startY;
-            set
-            {
-                if (value.Equals(_startY)) return;
-                _startY = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _startZ;
-        public double StartZ
-        {
-            get => _startZ;
-            set
-            {
-                if (value.Equals(_startZ)) return;
-                _startZ = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private bool _addEndPosition;
-        public bool AddEndPosition
-        {
-            get => _addEndPosition;
-            set
-            {
-                if (value == _addEndPosition) return;
-                _addEndPosition = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _endX;
-        public double EndX
-        {
-            get => _endX;
-            set
-            {
-                if (value.Equals(_endX)) return;
-                _endX = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _endY;
-        public double EndY
-        {
-            get => _endY;
-            set
-            {
-                if (value.Equals(_endY)) return;
-                _endY = value;
-                OnPropertyChanged();
-            }
-        }
 
+        [ObservableProperty]
         private double _endZ;
-        public double EndZ
+
+        [ObservableProperty]
+        private bool _setWorkCoordinateSystem;
+
+        [ObservableProperty]
+        private string _workCoordinateSystem;
+
+        /// <summary>OK: сохранить настройки и закрыть окно.</summary>
+        public ICommand OkCommand { get; }
+
+        /// <summary>Отмена: закрыть окно, не меняя настроек.</summary>
+        public ICommand CancelCommand { get; }
+
+        /// <summary>
+        /// Смена темы видна сразу — окно показывает то, что получит
+        /// приложение. Если настройки не приняты, тема возвращается к
+        /// исходной при закрытии.
+        /// </summary>
+        partial void OnUseDarkThemeChanged(bool value)
         {
-            get => _endZ;
-            set
-            {
-                if (value.Equals(_endZ)) return;
-                _endZ = value;
-                OnPropertyChanged();
-            }
+            _themeService?.ApplyTheme(value);
         }
 
+        /// <summary>
+        /// Закрытие без OK (отмена, крестик, Esc) отменяет и предпросмотр
+        /// темы: настройки не сохранены, значит и вид приложения меняться
+        /// не должен.
+        /// </summary>
         public override void OnClosed()
         {
             base.OnClosed();
 
-            // Apply changes back to shared settings when window is closed
-            // Пункт 8.1: тематические группы настроек.
-            var format = _settings.Format;
-            var ui = _settings.Ui;
-            var spindle = _settings.Spindle;
-            var coolant = _settings.Coolant;
-            var workCoordinate = _settings.WorkCoordinate;
-            format.UseLineNumbers = UseLineNumbers;
-            format.LineNumberStart = LineNumberStart;
-            format.LineNumberStep = LineNumberStep;
-            format.UseComments = UseComments;
-            format.AllowArcs = AllowArcs;
-            format.UsePaddedGCodes = UsePaddedGCodes;
-            ui.UseDarkTheme = UseDarkTheme;
-            spindle.SpindleControlEnabled = SpindleControlEnabled;
-            spindle.SpindleSpeedEnabled = SpindleSpeedEnabled;
-            spindle.SpindleSpeedRpm = SpindleSpeedRpm;
-            spindle.SpindleStartEnabled = SpindleStartEnabled;
-            spindle.SpindleStartCommand = SpindleStartCommand;
-            spindle.SpindleStopEnabled = SpindleStopEnabled;
-            spindle.SpindleDelayEnabled = SpindleDelayEnabled;
-            spindle.SpindleDelaySeconds = SpindleDelaySeconds;
-            coolant.CoolantControlEnabled = CoolantControlEnabled;
-            coolant.CoolantStartEnabled = CoolantStartEnabled;
-            coolant.CoolantStopEnabled = CoolantStopEnabled;
-            workCoordinate.AddStartPosition = AddStartPosition;
-            workCoordinate.StartX = StartX;
-            workCoordinate.StartY = StartY;
-            workCoordinate.StartZ = StartZ;
-            workCoordinate.AddEndPosition = AddEndPosition;
-            workCoordinate.EndX = EndX;
-            workCoordinate.EndY = EndY;
-            workCoordinate.EndZ = EndZ;
-            workCoordinate.SetWorkCoordinateSystem = SetWorkCoordinateSystem;
-            workCoordinate.WorkCoordinateSystem = WorkCoordinateSystem ?? "G54";
+            if (!_isAccepted)
+                UseDarkTheme = _initialDarkTheme;
+        }
+
+        private void OnOk()
+        {
+            ApplyToSettings(_settings);
             _settingsStore?.Save();
+            _isAccepted = true;
+            RequestClose();
         }
 
-        private bool _setWorkCoordinateSystem;
-        public bool SetWorkCoordinateSystem
+        /// <summary>Читает настройки в свойства окна по таблице маппинга.</summary>
+        private void LoadFromSettings(GCodeSettings settings)
         {
-            get => _setWorkCoordinateSystem;
-            set
-            {
-                if (value == _setWorkCoordinateSystem) return;
-                _setWorkCoordinateSystem = value;
-                OnPropertyChanged();
-            }
+            foreach (var (path, _) in SettingsMapping.Entries)
+                EditorProperty(path).SetValue(this, SettingsMapping.GetValue(settings, path));
+
+            if (string.IsNullOrEmpty(WorkCoordinateSystem))
+                WorkCoordinateSystem = DefaultWorkCoordinateSystem;
         }
 
-        private string _workCoordinateSystem;
-        public string WorkCoordinateSystem
+        /// <summary>Сохраняет свойства окна в настройки по той же таблице.</summary>
+        private void ApplyToSettings(GCodeSettings settings)
         {
-            get => _workCoordinateSystem;
-            set
-            {
-                if (value == _workCoordinateSystem) return;
-                _workCoordinateSystem = value;
-                OnPropertyChanged();
-            }
+            foreach (var (path, _) in SettingsMapping.Entries)
+                SettingsMapping.SetValue(settings, path, EditorProperty(path).GetValue(this));
+
+            // Legacy-поведение: пустой WCS трактуется как G54.
+            if (string.IsNullOrEmpty(settings.WorkCoordinate.WorkCoordinateSystem))
+                settings.WorkCoordinate.WorkCoordinateSystem = DefaultWorkCoordinateSystem;
         }
+
+        /// <summary>
+        /// Свойство окна для записи таблицы: имя совпадает с последним звеном
+        /// пути настройки (например, «Spindle.SpindleSpeedRpm» —
+        /// <see cref="SpindleSpeedRpm"/>). Полнота соответствия проверяется
+        /// тестом, поэтому пропущенный параметр не доживёт до окна.
+        /// </summary>
+        internal static PropertyInfo EditorProperty(string path)
+            => typeof(SettingsViewModel).GetProperty(
+                path[(path.LastIndexOf('.') + 1)..],
+                BindingFlags.Public | BindingFlags.Instance);
     }
 }
-
-
