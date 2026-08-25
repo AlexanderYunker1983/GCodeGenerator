@@ -16,10 +16,6 @@
         Height="600" Width="1200"
         MinHeight="600" MinWidth="1200"
         WindowStartupLocation="CenterScreen">
-    <Window.Resources>
-        <!-- Пункт 8.4 плана: показ/скрытие полосы прогресса генерации -->
-        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-    </Window.Resources>
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
             <!-- Left: operation type selector takes all free width -->

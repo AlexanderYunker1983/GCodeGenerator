@@ -9,7 +9,6 @@ namespace GCodeGenerator.ViewModels
     public interface IOperationEditorSession
     {
         bool IsAccepted { get; }
-        bool IsRemovalRequested { get; }
     }
 
     /// <summary>
@@ -46,9 +45,12 @@ namespace GCodeGenerator.ViewModels
     ///
     /// OK (<see cref="OkCommand"/>): валидация (<see cref="IsValid"/>),
     /// сохранение VM→операция (<see cref="ApplyToOperation"/>), закрытие.
-    /// При провале валидации операция удаляется из коллекции (legacy-поведение
-    /// «remove if invalid»). Cancel (<see cref="CancelCommand"/>) и закрытие окна
-    /// крестиком — без изменений.
+    /// При провале валидации окно остаётся открытым и показывает пояснение
+    /// (<see cref="HasValidationError"/>): операция принадлежит пользователю,
+    /// и ошибка в поле — повод её исправить, а не потерять. Прежде такое
+    /// нажатие OK закрывало окно и удаляло операцию из списка
+    /// (legacy-поведение «remove if invalid»). Cancel (<see cref="CancelCommand"/>)
+    /// и закрытие окна крестиком — без изменений.
     ///
     /// <see cref="CloseableViewModel.OnClosed"/> больше не сохраняет (пункт 7.3):
     /// изменения применяются только по OK.
@@ -61,6 +63,7 @@ namespace GCodeGenerator.ViewModels
         where TOperation : OperationBase
     {
         private TOperation _operation;
+        private bool _hasValidationError;
 
         /// <summary>
         /// Единая коллекция операций (MainViewModel.AllOperations) — для удаления
@@ -84,7 +87,7 @@ namespace GCodeGenerator.ViewModels
                 if (Equals(value, _operation)) return;
                 _operation = value;
                 IsAccepted = false;
-                IsRemovalRequested = false;
+                HasValidationError = false;
                 if (_operation != null)
                     LoadFromOperation(_operation);
             }
@@ -100,8 +103,9 @@ namespace GCodeGenerator.ViewModels
         protected abstract void ApplyToOperation();
 
         /// <summary>
-        /// Валидация перед сохранением. <c>false</c> → операция удаляется из
-        /// коллекции (legacy-поведение «remove if invalid», пункт 7.3 плана).
+        /// Валидация перед сохранением. <c>false</c> → окно остаётся открытым
+        /// с пояснением (<see cref="HasValidationError"/>), изменения не
+        /// применяются, операция остаётся в списке.
         /// </summary>
         protected virtual bool IsValid() => true;
 
@@ -114,8 +118,21 @@ namespace GCodeGenerator.ViewModels
         /// <summary>True only when validation and ApplyToOperation completed successfully.</summary>
         public bool IsAccepted { get; private set; }
 
-        /// <summary>True when OK requested legacy removal of an invalid operation.</summary>
-        public bool IsRemovalRequested { get; private set; }
+        /// <summary>
+        /// Параметры операции не прошли проверку при последнем нажатии OK.
+        /// Окно показывает по этому признаку строку с пояснением рядом
+        /// с кнопками; сам текст живёт в разметке, как остальные подписи.
+        /// </summary>
+        public bool HasValidationError
+        {
+            get => _hasValidationError;
+            private set
+            {
+                if (value == _hasValidationError) return;
+                _hasValidationError = value;
+                OnPropertyChanged();
+            }
+        }
 
         protected OperationEditorViewModelBase()
         {
@@ -126,35 +143,28 @@ namespace GCodeGenerator.ViewModels
         private void OnOk()
         {
             if (_operation == null) return;
-            if (IsValid())
+            if (!IsValid())
             {
-                ApplyToOperation();
-                // Пункт 7.2 плана: сохранение из диалога перерисовывает 2D-превью.
-                // Геометрия — авто-свойства (без PropertyChanged), поэтому
-                // уведомление явное (иначе сцена обновится только при следующем
-                // изменении коллекции операций).
-                _operation.NotifyContentChanged();
-                IsAccepted = true;
+                // Окно остаётся открытым: пользователь видит, что параметры
+                // неверны, и правит их. Операция не трогается.
+                HasValidationError = true;
+                return;
             }
-            else
-            {
-                IsRemovalRequested = true;
-                RemoveOperation();
-            }
+
+            HasValidationError = false;
+            ApplyToOperation();
+            // Пункт 7.2 плана: сохранение из диалога перерисовывает 2D-превью.
+            // Геометрия — авто-свойства (без PropertyChanged), поэтому
+            // уведомление явное (иначе сцена обновится только при следующем
+            // изменении коллекции операций).
+            _operation.NotifyContentChanged();
+            IsAccepted = true;
             RequestClose();
         }
 
         private void OnCancel()
         {
             RequestClose();
-        }
-
-        /// <summary>
-        /// Удаляет операцию из единой коллекции (legacy «remove if invalid»).
-        /// </summary>
-        protected void RemoveOperation()
-        {
-            Operations?.Remove(_operation);
         }
     }
 }

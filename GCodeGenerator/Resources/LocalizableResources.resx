@@ -237,6 +237,9 @@
   <data name="Ok" xml:space="preserve">
     <value>OK</value>
   </data>
+  <data name="OperationParametersInvalid" xml:space="preserve">
+    <value>Проверьте параметры: значения должны быть положительными, а операция — содержать геометрию</value>
+  </data>
   <data name="Cancel" xml:space="preserve">
     <value>Отмена</value>
   </data>

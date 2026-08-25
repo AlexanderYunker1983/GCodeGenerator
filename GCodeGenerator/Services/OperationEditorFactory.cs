@@ -77,10 +77,11 @@ namespace GCodeGenerator.Services
             editor.SetOperation(workingCopy);
             _dialogService.ShowDialog(vmType, vm);
 
+            // Отмена и закрытие крестиком не меняют операцию: рабочая копия
+            // просто выбрасывается. Неверные параметры операцию тоже не
+            // удаляют — диалог не закроется, пока их не исправят.
             if (editor.IsAccepted)
                 OperationEditTransaction.Commit(workingCopy, operation);
-            else if (editor.IsRemovalRequested)
-                allOperations?.Remove(operation);
         }
 
         /// <summary>

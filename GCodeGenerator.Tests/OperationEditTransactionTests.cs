@@ -105,8 +105,13 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(10, operation.Radius);
         }
 
+        /// <summary>
+        /// Ошибка в параметрах не должна стоить пользователю операции:
+        /// диалог остаётся открытым, а исходная операция — в списке
+        /// со своими прежними значениями.
+        /// </summary>
         [TestMethod]
-        public void InvalidOk_RemovesOriginalOperation()
+        public void InvalidOk_KeepsOriginalOperation()
         {
             var operation = new DrillPointsOperation
             {
@@ -124,7 +129,9 @@ namespace GCodeGenerator.Tests
 
             new OperationEditorFactory(dialogs).ShowEditor(operation, operations);
 
-            Assert.AreEqual(0, operations.Count);
+            Assert.AreEqual(1, operations.Count, "операция остаётся в списке");
+            Assert.AreSame(operation, operations[0], "остаётся именно исходная операция");
+            Assert.AreEqual(1, operation.Holes.Count, "отверстия исходной операции не тронуты");
         }
 
         private static MainViewModelOperationEditTests.RecordingDialogService CreateDialogs(

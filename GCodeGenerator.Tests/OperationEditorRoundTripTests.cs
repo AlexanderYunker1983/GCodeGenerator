@@ -65,7 +65,7 @@ namespace GCodeGenerator.Tests
                     pair.Editor.SetValue(editor, entered);
                     Ok(editor);
 
-                    if (editor.IsRemovalRequested)
+                    if (!editor.IsAccepted)
                     {
                         problems.Add($"{editorType.Name}.{pair.Operation.Name}: диалог счёл операцию невалидной");
                         continue;

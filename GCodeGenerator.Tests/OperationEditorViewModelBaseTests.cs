@@ -68,17 +68,46 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(1, closeCount[0], "OK закрывает окно");
         }
 
+        /// <summary>
+        /// Неверные параметры — повод их исправить, а не потерять операцию:
+        /// окно остаётся открытым с пояснением, операция не трогается.
+        /// </summary>
         [TestMethod]
-        public void Ok_Invalid_RemovesAndCloses()
+        public void Ok_Invalid_KeepsDialogOpenAndOperationIntact()
         {
             var (vm, op, ops, closeCount) = Create();
+            vm.Radius = 999;
             vm.Valid = false;
 
             vm.OkCommand.Execute(null);
 
-            Assert.IsFalse(vm.ApplyCalled, "невалидная операция не сохраняется");
-            Assert.AreEqual(0, ops.Count, "невалидная операция удалена из коллекции");
-            Assert.AreEqual(1, closeCount[0], "OK закрывает окно");
+            Assert.IsFalse(vm.ApplyCalled, "невалидные значения не сохраняются");
+            Assert.AreEqual(10.0, op.Radius, 1e-9, "операция не изменена");
+            Assert.AreEqual(1, ops.Count, "операция остаётся в коллекции");
+            Assert.AreEqual(0, closeCount[0], "окно не закрывается");
+            Assert.IsTrue(vm.HasValidationError, "окно показывает, что параметры неверны");
+            Assert.IsFalse(vm.IsAccepted, "изменения не приняты");
+        }
+
+        /// <summary>
+        /// Исправленные параметры сохраняются обычным образом, а пояснение
+        /// об ошибке исчезает.
+        /// </summary>
+        [TestMethod]
+        public void Ok_AfterFixingParameters_SavesAndCloses()
+        {
+            var (vm, op, ops, closeCount) = Create();
+            vm.Valid = false;
+            vm.OkCommand.Execute(null);
+
+            vm.Valid = true;
+            vm.Radius = 20;
+            vm.OkCommand.Execute(null);
+
+            Assert.IsFalse(vm.HasValidationError, "пояснение об ошибке снято");
+            Assert.AreEqual(20.0, op.Radius, 1e-9, "исправленные значения сохранены");
+            Assert.AreEqual(1, ops.Count, "операция на месте");
+            Assert.AreEqual(1, closeCount[0], "окно закрывается только после исправления");
         }
 
         [TestMethod]

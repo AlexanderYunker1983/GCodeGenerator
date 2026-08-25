@@ -33,8 +33,6 @@ namespace GCodeGenerator.Tests
 
             public bool IsAccepted => false;
 
-            public bool IsRemovalRequested => false;
-
             public void SetOperation(OperationBase operation) => EditedOperation = operation;
 
             /// <summary>Коллекция, переданная диалогу (для проверок теста).</summary>
