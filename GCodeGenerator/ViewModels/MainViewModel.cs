@@ -21,6 +21,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager _localizationManager;
         private readonly IDialogService _dialogService;
         private readonly IProgramInfo _programInfo;
+        private readonly string _programTitle;
         private string _displayName;
 
         public MainViewModel(
@@ -46,6 +47,7 @@ namespace GCodeGenerator.ViewModels
             _projectWorkflow = (projectWorkflowFactory ?? throw new ArgumentNullException(nameof(projectWorkflowFactory)))
                 .Create(AllOperations, _gCodeWorkflow);
             _projectWorkflow.ProjectResetting += OnProjectResetting;
+            _projectWorkflow.PropertyChanged += OnProjectWorkflowPropertyChanged;
             _operationsWorkspace.PropertyChanged += OnOperationsWorkspacePropertyChanged;
             _operationsWorkspace.ContentChanged += OnOperationsWorkspaceContentChanged;
 
@@ -54,6 +56,7 @@ namespace GCodeGenerator.ViewModels
             PreviewGCodeCommand = _gCodeWorkflow.PreviewGCodeCommand;
             NewProgramCommand = _projectWorkflow.NewProgramCommand;
             SaveProjectCommand = _projectWorkflow.SaveProjectCommand;
+            SaveProjectAsCommand = _projectWorkflow.SaveProjectAsCommand;
             OpenProjectCommand = _projectWorkflow.OpenProjectCommand;
             ShowAllPreviewCommand = _operationsWorkspace.ShowAllPreviewCommand;
             MoveOperationUpCommand = _operationsWorkspace.MoveOperationUpCommand;
@@ -64,7 +67,8 @@ namespace GCodeGenerator.ViewModels
 
             var baseTitle = _localizationManager?.GetString("MainTitle") ?? "MainTitle";
             var version = _programInfo.Version;
-            _displayName = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
+            _programTitle = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
+            UpdateDisplayName();
         }
 
         public string DisplayName
@@ -127,11 +131,42 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand SaveProjectCommand { get; }
 
+        public ICommand SaveProjectAsCommand { get; }
+
         public ICommand OpenProjectCommand { get; }
 
         public void NotifyOperationsChanged()
         {
             _operationsWorkspace.NotifyOperationsChanged();
+        }
+
+        /// <summary>
+        /// Спрашивает о несохранённом проекте перед закрытием программы.
+        /// </summary>
+        /// <returns><c>false</c> — закрывать нельзя, пользователь передумал.</returns>
+        public bool ConfirmClose() => _projectWorkflow.ConfirmDiscardChanges();
+
+        /// <summary>
+        /// Заголовок окна: имя файла проекта, звёздочка при несохранённых
+        /// изменениях, затем название и версия программы. Пока проект не
+        /// сохранён, вместо имени файла — «без имени».
+        /// </summary>
+        private void UpdateDisplayName()
+        {
+            var fileName = string.IsNullOrEmpty(_projectWorkflow.CurrentFileName)
+                ? _localizationManager?.GetString("UntitledProject") ?? "UntitledProject"
+                : _projectWorkflow.CurrentFileName;
+            var changeMark = _projectWorkflow.IsDirty ? "*" : string.Empty;
+            DisplayName = $"{fileName}{changeMark} — {_programTitle}";
+        }
+
+        private void OnProjectWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ProjectWorkflowViewModel.CurrentPath) ||
+                e.PropertyName == nameof(ProjectWorkflowViewModel.IsDirty))
+            {
+                UpdateDisplayName();
+            }
         }
 
         private void OnGCodeWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -164,6 +199,9 @@ namespace GCodeGenerator.ViewModels
         private void OnSettingsChanged(object sender, EventArgs e)
         {
             _gCodeWorkflow.InvalidateGeneratedProgram();
+            // Настройки генерации сохраняются вместе с проектом, поэтому их
+            // правка делает проект несохранённым.
+            _projectWorkflow.MarkDirty();
         }
 
         private void OpenSettings()

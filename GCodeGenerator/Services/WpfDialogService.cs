@@ -35,6 +35,23 @@ namespace GCodeGenerator.Services
                    == MessageBoxResult.Yes;
         }
 
+        public SaveConfirmation ShowSaveConfirmation(string message, string title = "")
+        {
+            var answer = MessageBox.Show(
+                message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);
+            switch (answer)
+            {
+                case MessageBoxResult.Yes:
+                    return SaveConfirmation.Save;
+                case MessageBoxResult.No:
+                    return SaveConfirmation.Discard;
+                default:
+                    // Закрытие окна вопроса крестиком или Esc — то же, что «Отмена»:
+                    // непонятый ответ не должен стоить пользователю работы.
+                    return SaveConfirmation.Cancel;
+            }
+        }
+
         public string ShowOpenDialog(string title, string filter, string defaultExtension = "")
         {
             var dialog = new OpenFileDialog

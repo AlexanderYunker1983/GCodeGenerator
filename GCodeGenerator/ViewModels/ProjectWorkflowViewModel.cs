@@ -13,8 +13,14 @@ namespace GCodeGenerator.ViewModels
     /// <summary>
     /// Owns the user workflow for creating, opening and saving a project.
     /// The operation collection keeps its identity so all category views stay bound.
+    ///
+    /// Здесь же живёт состояние документа: файл, с которым работает
+    /// пользователь, и признак несохранённых изменений. Без них программа
+    /// не отличала сохранённый проект от изменённого: закрытие окна молча
+    /// теряло работу, а «Сохранить проект» каждый раз спрашивало имя файла
+    /// заново и предлагало перезаписать только что сохранённый.
     /// </summary>
-    public sealed class ProjectWorkflowViewModel
+    public sealed class ProjectWorkflowViewModel : ViewModelBase
     {
         private readonly ObservableCollection<OperationBase> _operations;
         private readonly GCodeWorkflowViewModel _gCodeWorkflow;
@@ -23,6 +29,15 @@ namespace GCodeGenerator.ViewModels
         private readonly ISettingsStore _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
+
+        /// <summary>
+        /// Документ меняется самой программой (создание, загрузка, сброс),
+        /// а не пользователем: такие изменения не делают проект несохранённым.
+        /// </summary>
+        private bool _isApplyingDocument;
+
+        private string _currentPath;
+        private bool _isDirty;
 
         internal ProjectWorkflowViewModel(
             ObservableCollection<OperationBase> operations,
@@ -43,6 +58,7 @@ namespace GCodeGenerator.ViewModels
 
             NewProgramCommand = new RelayCommand(CreateNewProgram);
             SaveProjectCommand = new RelayCommand(SaveProject, () => _operations.Count > 0);
+            SaveProjectAsCommand = new RelayCommand(SaveProjectAs, () => _operations.Count > 0);
             OpenProjectCommand = new RelayCommand(OpenProject);
         }
 
@@ -50,27 +66,115 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand NewProgramCommand { get; }
 
+        /// <summary>Сохраняет в текущий файл; имя спрашивается только у нового проекта.</summary>
         public ICommand SaveProjectCommand { get; }
 
+        /// <summary>Сохраняет в другой файл — имя спрашивается всегда.</summary>
+        public ICommand SaveProjectAsCommand { get; }
+
         public ICommand OpenProjectCommand { get; }
+
+        /// <summary>Файл текущего проекта или <c>null</c>, если он ещё не сохранялся.</summary>
+        public string CurrentPath
+        {
+            get => _currentPath;
+            private set
+            {
+                if (Equals(value, _currentPath)) return;
+                _currentPath = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(CurrentFileName));
+            }
+        }
+
+        /// <summary>
+        /// Имя файла проекта без пути; пусто, если проект ещё не сохранялся.
+        /// Выделяется строковой операцией, а не средствами файловой системы:
+        /// view-модели с ней не работают — это забота служб.
+        /// </summary>
+        public string CurrentFileName
+        {
+            get
+            {
+                var path = CurrentPath;
+                if (string.IsNullOrEmpty(path))
+                    return string.Empty;
+
+                var separator = path.LastIndexOfAny(new[] { '\\', '/' });
+                return separator >= 0 ? path.Substring(separator + 1) : path;
+            }
+        }
+
+        /// <summary>В проекте есть изменения, которых нет в файле.</summary>
+        public bool IsDirty
+        {
+            get => _isDirty;
+            private set
+            {
+                if (value == _isDirty) return;
+                _isDirty = value;
+                OnPropertyChanged();
+            }
+        }
 
         public void NotifyOperationsChanged()
         {
             ((RelayCommand)SaveProjectCommand).NotifyCanExecuteChanged();
+            ((RelayCommand)SaveProjectAsCommand).NotifyCanExecuteChanged();
+            MarkDirty();
+        }
+
+        /// <summary>
+        /// Отмечает документ изменённым. Изменения, которые вносит сама
+        /// программа (загрузка проекта, создание нового), не считаются.
+        /// </summary>
+        public void MarkDirty()
+        {
+            if (_isApplyingDocument)
+                return;
+            IsDirty = true;
+        }
+
+        /// <summary>
+        /// Спрашивает о несохранённых изменениях перед действием, которое их
+        /// потеряет: созданием нового проекта, открытием другого и закрытием
+        /// программы.
+        /// </summary>
+        /// <returns><c>false</c> — пользователь передумал, действие выполнять нельзя.</returns>
+        public bool ConfirmDiscardChanges()
+        {
+            if (!IsDirty)
+                return true;
+
+            var answer = _dialogService.ShowSaveConfirmation(
+                Localize("ConfirmSaveChangesMessage"),
+                Localize("ConfirmSaveChangesTitle"));
+
+            switch (answer)
+            {
+                case SaveConfirmation.Save:
+                    // Сохранение может не состояться: пользователь закрыл
+                    // диалог выбора файла или запись не удалась — тогда
+                    // исходное действие тоже отменяется.
+                    return SaveToFile(CurrentPath ?? AskFileName());
+                case SaveConfirmation.Discard:
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private void CreateNewProgram()
         {
-            if (!HasCurrentContent())
+            if (!ConfirmDiscardChanges())
                 return;
 
-            var message = Localize("ConfirmNewProjectMessage");
-            var title = Localize("ConfirmNewProjectTitle");
-            if (!_dialogService.ShowConfirm(message, title))
-                return;
-
-            ResetOperations();
-            _settingsStore.RestoreGlobalGenerationSettings();
+            ApplyDocument(() =>
+            {
+                ResetOperations();
+                _settingsStore.RestoreGlobalGenerationSettings();
+                CurrentPath = null;
+            });
         }
 
         private void SaveProject()
@@ -78,28 +182,55 @@ namespace GCodeGenerator.ViewModels
             if (_operations.Count == 0)
                 return;
 
+            SaveToFile(CurrentPath ?? AskFileName());
+        }
+
+        private void SaveProjectAs()
+        {
+            if (_operations.Count == 0)
+                return;
+
+            SaveToFile(AskFileName());
+        }
+
+        /// <summary>Спрашивает имя файла проекта; <c>null</c> — пользователь отменил.</summary>
+        private string AskFileName()
+        {
             var filter = Localize("ProjectFileFilter");
             var title = Localize("SaveProjectTitle");
-            var fileName = _dialogService.ShowSaveDialog(title, filter, "ygc", "project.ygc");
-            if (fileName == null)
-                return;
+            var suggested = string.IsNullOrEmpty(CurrentFileName) ? "project.ygc" : CurrentFileName;
+            return _dialogService.ShowSaveDialog(title, filter, "ygc", suggested);
+        }
+
+        /// <summary>
+        /// Сохраняет проект в файл и запоминает его как текущий.
+        /// </summary>
+        /// <returns><c>false</c>, если сохранение не состоялось.</returns>
+        private bool SaveToFile(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName))
+                return false;
 
             try
             {
                 _projectFileService.Save(fileName, _operations, _settingsStore.Current);
+                CurrentPath = fileName;
+                IsDirty = false;
                 _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.Error($"Saving project failed: {fileName}", ex);
                 var message = Localize("ErrorSavingProject");
-                _dialogService.ShowError($"{message}\n{ex.Message}", title);
+                _dialogService.ShowError($"{message}\n{ex.Message}", Localize("SaveProjectTitle"));
+                return false;
             }
         }
 
         private void OpenProject()
         {
-            if (!ConfirmResetIfNeeded())
+            if (!ConfirmDiscardChanges())
                 return;
 
             var filter = Localize("ProjectFileFilter");
@@ -110,6 +241,9 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
+                // Файл разбирается целиком до того, как меняется состояние
+                // программы: непригодный проект отвергается, а открытый
+                // остаётся нетронутым.
                 var data = _projectFileService.Load(fileName);
                 if (data?.Operations == null)
                 {
@@ -118,10 +252,14 @@ namespace GCodeGenerator.ViewModels
                     return;
                 }
 
-                ApplyProjectSettings(data);
-                ResetOperations();
-                foreach (var operation in data.Operations)
-                    _operations.Add(operation);
+                ApplyDocument(() =>
+                {
+                    ApplyProjectSettings(data);
+                    ResetOperations();
+                    foreach (var operation in data.Operations)
+                        _operations.Add(operation);
+                    CurrentPath = fileName;
+                });
                 _logger.Info($"Project opened: {fileName} ({data.Operations.Count} operation(s))");
             }
             catch (Exception ex)
@@ -132,18 +270,23 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private bool ConfirmResetIfNeeded()
+        /// <summary>
+        /// Выполняет замену документа: изменения, которые она вызывает, не
+        /// делают проект несохранённым, а по завершении признак сбрасывается.
+        /// </summary>
+        private void ApplyDocument(Action apply)
         {
-            if (!HasCurrentContent())
-                return true;
-
-            return _dialogService.ShowConfirm(
-                Localize("ConfirmNewProjectMessage"),
-                Localize("ConfirmNewProjectTitle"));
+            _isApplyingDocument = true;
+            try
+            {
+                apply();
+            }
+            finally
+            {
+                _isApplyingDocument = false;
+                IsDirty = false;
+            }
         }
-
-        private bool HasCurrentContent()
-            => _operations.Count > 0 || !string.IsNullOrWhiteSpace(_gCodeWorkflow.GCodePreview);
 
         private void ResetOperations()
         {

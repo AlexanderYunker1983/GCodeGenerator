@@ -20,6 +20,7 @@ namespace GCodeGenerator.Tests
             public void ShowInfo(string message, string title = "") { }
             public void ShowError(string message, string title = "") => Assert.Fail(message);
             public bool ShowConfirm(string message, string title = "") => true;
+            public SaveConfirmation ShowSaveConfirmation(string message, string title = "") => SaveConfirmation.Discard;
             public string ShowOpenDialog(string title, string filter, string defaultExtension = "") => FilePath;
             public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "") => null;
             public TViewModel CreateViewModel<TViewModel>() where TViewModel : class => throw new NotSupportedException();

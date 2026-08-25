@@ -53,6 +53,17 @@ namespace GCodeGenerator.Tests
             }
             public bool ShowConfirm(string message, string title = "") => true;
 
+            /// <summary>Ответ на вопрос о несохранённых изменениях и число таких вопросов.</summary>
+            public SaveConfirmation SaveConfirmationResult { get; set; } = SaveConfirmation.Discard;
+
+            public int SaveConfirmationCount { get; private set; }
+
+            public SaveConfirmation ShowSaveConfirmation(string message, string title = "")
+            {
+                SaveConfirmationCount++;
+                return SaveConfirmationResult;
+            }
+
             /// <summary>Пункт 8.2: путь, который «выбирает» диалог открытия (null — отмена).</summary>
             public string OpenDialogResult { get; set; }
             public string SaveDialogResult { get; set; }

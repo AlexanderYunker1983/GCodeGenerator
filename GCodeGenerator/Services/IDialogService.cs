@@ -3,6 +3,21 @@ using System;
 namespace GCodeGenerator.Services
 {
     /// <summary>
+    /// Ответ на вопрос о несохранённых изменениях.
+    /// </summary>
+    public enum SaveConfirmation
+    {
+        /// <summary>Сохранить изменения и продолжить.</summary>
+        Save,
+
+        /// <summary>Продолжить, потеряв изменения.</summary>
+        Discard,
+
+        /// <summary>Ничего не делать: действие отменено.</summary>
+        Cancel
+    }
+
+    /// <summary>
     /// Сервис диалогов (пункт 1.3 плана): заменяет в view-моделях
     /// Mugen <c>GetViewModel&lt;T&gt;()</c> + <c>ShowAsync()</c> (диалоговые окна VM)
     /// и прямые <c>MessageBox</c>/<c>OpenFileDialog</c>/<c>SaveFileDialog</c>.
@@ -18,6 +33,12 @@ namespace GCodeGenerator.Services
 
         /// <summary>Подтверждение (кнопки Да/Нет, иконка Warning). true — «Да».</summary>
         bool ShowConfirm(string message, string title = "");
+
+        /// <summary>
+        /// Вопрос о несохранённых изменениях (Да/Нет/Отмена): сохранить,
+        /// потерять изменения или отменить само действие.
+        /// </summary>
+        SaveConfirmation ShowSaveConfirmation(string message, string title = "");
 
         /// <summary>Диалог открытия файла. Возвращает путь или null, если отменено.</summary>
         string ShowOpenDialog(string title, string filter, string defaultExtension = "");

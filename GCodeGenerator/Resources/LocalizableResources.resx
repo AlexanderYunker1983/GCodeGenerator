@@ -240,6 +240,18 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Проверьте параметры: значения должны быть положительными, а операция — содержать геометрию</value>
   </data>
+  <data name="SaveProjectAs" xml:space="preserve">
+    <value>Сохранить как…</value>
+  </data>
+  <data name="UntitledProject" xml:space="preserve">
+    <value>Без имени</value>
+  </data>
+  <data name="ConfirmSaveChangesTitle" xml:space="preserve">
+    <value>Несохранённые изменения</value>
+  </data>
+  <data name="ConfirmSaveChangesMessage" xml:space="preserve">
+    <value>В проекте есть несохранённые изменения. Сохранить их?</value>
+  </data>
   <data name="Cancel" xml:space="preserve">
     <value>Отмена</value>
   </data>

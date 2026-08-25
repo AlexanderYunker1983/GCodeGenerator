@@ -240,6 +240,18 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Check the parameters: values must be positive and the operation must have geometry</value>
   </data>
+  <data name="SaveProjectAs" xml:space="preserve">
+    <value>Save as…</value>
+  </data>
+  <data name="UntitledProject" xml:space="preserve">
+    <value>Untitled</value>
+  </data>
+  <data name="ConfirmSaveChangesTitle" xml:space="preserve">
+    <value>Unsaved changes</value>
+  </data>
+  <data name="ConfirmSaveChangesMessage" xml:space="preserve">
+    <value>The project has unsaved changes. Save them?</value>
+  </data>
   <data name="Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
