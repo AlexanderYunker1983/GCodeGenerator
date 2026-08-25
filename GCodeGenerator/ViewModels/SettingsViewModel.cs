@@ -268,10 +268,12 @@ namespace GCodeGenerator.ViewModels
 
             // Отсутствие свойства — ошибка самой таблицы: она перечисляет
             // настройки вручную, и опечатка иначе дала бы отказ без указания,
-            // какая строка виновата.
+            // какая строка виновата. Текст адресован разработчику, поэтому он
+            // английский, как остальные внутренние отказы: кириллица в строках
+            // view-моделей запрещена проверкой CI.
             return typeof(SettingsViewModel).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
                 ?? throw new InvalidOperationException(
-                    $"Настройка «{path}»: у окна настроек нет свойства «{name}».");
+                    $"Settings entry '{path}': the settings window has no property named '{name}'.");
         }
     }
 }
