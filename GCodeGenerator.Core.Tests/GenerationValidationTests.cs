@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
@@ -108,22 +106,6 @@ namespace GCodeGenerator.Tests
             var issues = operation.Validate();
 
             Assert.IsTrue(ContainsIssue(issues, "Holes[0]"));
-        }
-
-        [TestMethod]
-        public async Task MainViewModel_ValidationFailure_ClearsPreviewAndShowsError()
-        {
-            var (main, _, dialogService, _) = MainViewModelOperationEditTests.CreateMain();
-            main.GCodePreview = "stale G-code";
-            main.AllOperations.Add(new ProfileCircleOperation { Radius = 0 });
-
-            await ((IAsyncRelayCommand)main.GenerateGCodeCommand).ExecuteAsync(null);
-
-            Assert.IsFalse(main.IsGenerating);
-            Assert.AreEqual(0, main.ProgressPercent);
-            Assert.AreEqual(string.Empty, main.GCodePreview);
-            Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage));
-            StringAssert.Contains(dialogService.LastErrorMessage, "Radius");
         }
 
         private static bool ContainsIssue(IReadOnlyList<ValidationIssue> issues, string property)

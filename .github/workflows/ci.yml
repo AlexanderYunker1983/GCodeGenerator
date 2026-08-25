@@ -121,5 +121,10 @@ jobs:
           }
           Write-Host 'ViewModels localization OK: no Cyrillic string literals'
 
-      - name: Run tests
+      # Тесты ядра не ссылаются на приложение и собираются под net10.0:
+      # их прохождение подтверждает, что ядро работает без WPF.
+      - name: Run core tests
+        run: dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Release --no-build
+
+      - name: Run application tests
         run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build

@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Тесты ядра: генерация программы, геометрия, модели операций, файл проекта,
+    импорт чертежей. Проект намеренно не ссылается на приложение и собирается
+    под net10.0 без привязки к платформе — так проверяется не только поведение
+    ядра, но и его независимость от интерфейса: код, случайно потянувший WPF,
+    здесь просто не соберётся.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>GCodeGenerator.Tests</RootNamespace>
+    <AssemblyName>GCodeGenerator.Core.Tests</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <!-- Классическая раскладка bin\Release (без подпапки TFM): CI ищет сборку по имени. -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GCodeGenerator.Core\GCodeGenerator.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Assets\*.dxf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Golden\*.nc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Reference\reference_project.ygc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Пункт 1.2: эталонный легаси-файл v1 (формат JavaScriptSerializer) для тестов легаси-ридера. -->
+    <None Include="Reference\legacy_project_v1.ygc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Reference\reference_project.nc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

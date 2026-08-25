@@ -59,7 +59,9 @@ jobs:
       # Релиз публикуется только при зелёных тестах (сборка тестов собирает и приложение).
       - name: Test (Release)
         if: steps.tag.outputs.skip == 'false'
-        run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release -warnaserror
+        run: |
+          dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Release -warnaserror
+          dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release -warnaserror
 
       # Inno Setup удалён из образа windows-2025 (windows-latest) — ставим
       # официальный инсталлятор с закреплённой версией (immutable GitHub release).

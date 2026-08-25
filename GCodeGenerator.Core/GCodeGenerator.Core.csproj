@@ -3,10 +3,13 @@
   <!--
     Фаза 2 плана (пункты 2.1/2.2): ядро продукта (модели + генерация G-кода +
     базовая локализация) вынесено из WPF-сборки в отдельную класс-библиотеку.
-    - TFM совпадает с приложением (net10.0-windows, D5), но без UseWPF —
-      чистая класс-библиотека. Суффикс "-windows" задаёт только целевую
-      платформу (OS-дескриптор) и НЕ подключает WPF-фреймворк — для этого
-      потребовался бы UseWPF или FrameworkReference (их здесь нет, см. 2.3).
+    - TFM: net10.0 без привязки к платформе. Прежде стоял net10.0-windows —
+      «как у приложения», хотя кода, требующего Windows, здесь нет: суффикс
+      лишь помечал сборку как windows-only и тем самым закрывал ядру дорогу
+      в консольные сценарии, на сервер и на другие системы, о которых
+      говорит README. Смена TFM не потребовала ни одной правки кода:
+      зависимости (Clipper2, netDxf, CommunityToolkit.Mvvm) собраны под
+      netstandard2.0 и от платформы не зависят.
     - Неймспейсы сохранены (GCodeGenerator.Models, GCodeGenerator.GCodeGenerators.*,
       GCodeGenerator.Localization) — код приложения и тестов не меняется;
       переименование неймспейсов — отдельный шаг (в данный пункт не входит).
@@ -30,7 +33,7 @@
       «только Windows» здесь не нужна.
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0-windows</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>GCodeGenerator.Core</RootNamespace>
     <AssemblyName>GCodeGenerator.Core</AssemblyName>
     <LangVersion>latest</LangVersion>
@@ -42,6 +45,9 @@
     <!-- Разбор чертежа состоит из шагов, каждый из которых проверяется
          отдельно: поиск замкнутых циклов, разрезание пересечений,
          соединение отрезков. Наружу они не выходят, но тестам видны. -->
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>GCodeGenerator.Core.Tests</_Parameter1>
+    </AssemblyAttribute>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
       <_Parameter1>GCodeGenerator.Tests</_Parameter1>
     </AssemblyAttribute>

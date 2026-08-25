@@ -31,27 +31,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GCodeGenerator\GCodeGenerator.csproj" />
+    <!-- Фикстуры операций и эталонные наборы объявлены в тестах ядра:
+         окна проверяются на тех же данных, что и генерация. -->
+    <ProjectReference Include="..\GCodeGenerator.Core.Tests\GCodeGenerator.Core.Tests.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Версионирование из git-тега: скрипт для VersioningTests (интеграция). -->
     <None Include="..\build\Get-GitVersion.ps1" Link="build\Get-GitVersion.ps1">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Assets\*.dxf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Golden\*.nc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Reference\reference_project.ygc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <!-- Пункт 1.2: эталонный легаси-файл v1 (формат JavaScriptSerializer) для тестов легаси-ридера. -->
-    <None Include="Reference\legacy_project_v1.ygc">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Reference\reference_project.nc">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

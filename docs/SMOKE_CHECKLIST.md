@@ -9,7 +9,7 @@
 
 1. Сборка: `msbuild GCodeGenerator.sln /p:Configuration=Release` (или IDE).
 2. Запуск: `GCodeGenerator\bin\Release\GCodeGenerator.exe`.
-3. Эталонный G-код (для пункта 5): `GCodeGenerator.Tests/Reference/reference_project.nc`
+3. Эталонный G-код (для пункта 5): `GCodeGenerator.Core.Tests/Reference/reference_project.nc`
    (эталонный набор, п. 0.7 плана; проект — `reference_project.ygc`).
    Автоматическая проверка эталона — тест `ReferenceProjectTests`
    (G-код из `.ygc` через реальный пайплайн сравнивается с `.nc` построчно).
@@ -41,7 +41,7 @@
     (Автоматизировано: golden-фикстуры `NoLineNumbers`, `PaddedGCodes`, `ArcsOff`, `SpindleCoolantOff`, `WcsG55`, `G92StartEnd`.)
 11. **Тема.** Светлая/тёмная → переключение без артефактов, 2D-превью перерисовывается.
 12. **Импорт DXF** (профиль и карман): валидный файл, файл без контуров, битый файл → корректные сообщения.
-    Образцы: `GCodeGenerator.Tests\Assets\profile_sample.dxf`, `pocket_sample.dxf`.
+    Образцы: `GCodeGenerator.Core.Tests\Assets\profile_sample.dxf`, `pocket_sample.dxf`.
 
 ## Журнал прогона
 

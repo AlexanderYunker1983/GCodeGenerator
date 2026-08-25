@@ -107,6 +107,9 @@ dotnet build GCodeGenerator.sln -c Release
 
 3. (Опционально) Запустите тесты:
 ```bash
+dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Release --no-build
+```
+```bash
 dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
 ```
 
@@ -161,14 +164,24 @@ dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-bui
 
 ```
 GCodeGenerator/
-├── GCodeGenerator/          # Основное приложение
-│   ├── Models/              # Модели данных
+├── GCodeGenerator/          # Приложение (WPF, net10.0-windows)
+│   ├── Views/               # Окна и разметка (XAML)
 │   ├── ViewModels/          # ViewModel'и (MVVM)
-│   ├── Views/               # Представления (XAML)
-│   ├── GCodeGenerators/     # Сервисы генерации G-кода
-│   ├── Localization/        # Модуль локализации
-│   └── Infrastructure/      # Вспомогательные классы
-├── GCodeGenerator.Tests/    # Тесты (MSTest)
+│   ├── Services/            # Сервисы приложения (диалоги, настройки, буфер)
+│   ├── Localization/        # Привязка локализации к разметке
+│   └── Infrastructure/      # Контейнер, преобразователи, ввод чисел
+├── GCodeGenerator.Core/     # Ядро без интерфейса (net10.0)
+│   ├── Models/              # Операции, настройки, проверка параметров
+│   ├── Toolpath/            # Траектория инструмента до выбора диалекта
+│   ├── GCodeGenerators/     # Построение траекторий и запись G-кода
+│   ├── Geometry/            # Плоская геометрия и эквидистанты
+│   ├── Import/              # Чтение чертежей DXF
+│   ├── Preview/             # Плоский предпросмотр
+│   ├── Trajectory/          # Сцена траектории 3D
+│   ├── Persistence/         # Файл проекта (.ygc)
+│   └── Localization/        # Словари и выбор языка
+├── GCodeGenerator.Core.Tests/  # Тесты ядра (MSTest, без WPF)
+├── GCodeGenerator.Tests/    # Тесты приложения (MSTest, WPF)
 ├── build/                   # Скрипты сборки (версионирование из git-тегов, инсталлятор)
 ├── install/                 # Инсталлятор (Inno Setup)
 ├── docs/                    # Документация (smoke-чек-лист)
@@ -179,7 +192,7 @@ GCodeGenerator/
 
 ## Технологии
 
-- **.NET 10 (net10.0-windows)** — платформа разработки
+- **.NET 10** — платформа разработки (ядро — `net10.0`, приложение — `net10.0-windows`)
 - **WPF** — графический интерфейс
 - **CommunityToolkit.Mvvm** — фреймворк для MVVM
 - **MahApps.Metro** — UI-темы и контролы
