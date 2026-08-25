@@ -34,7 +34,8 @@ namespace GCodeGenerator.Tests
         {
             private readonly SimpleGCodeGenerator _inner = new SimpleGCodeGenerator();
 
-            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
             {
                 Thread.Sleep(300);
                 return _inner.Generate(operations, settings, progress);
@@ -42,7 +43,8 @@ namespace GCodeGenerator.Tests
 
             /// <summary>Траектория тесту не нужна: проверяется работа с программой.</summary>
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
                 => new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
         }
 

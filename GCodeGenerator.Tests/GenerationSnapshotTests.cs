@@ -141,7 +141,8 @@ namespace GCodeGenerator.Tests
 
             public bool ObservedUseLineNumbers { get; private set; }
 
-            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
                 => new SimpleGCodeGenerator().Generate(operations, settings, progress);
 
             /// <summary>
@@ -149,7 +150,8 @@ namespace GCodeGenerator.Tests
             /// именно с этими данными работает фоновый поток.
             /// </summary>
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
             {
                 Started.Set();
                 Continue.Wait(TimeSpan.FromSeconds(5));

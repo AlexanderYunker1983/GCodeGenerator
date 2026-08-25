@@ -31,6 +31,13 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeFileService _gCodeFileService;
         private readonly IAppLogger _logger;
         private Toolpath.ToolPath _generatedToolPath;
+
+        /// <summary>
+        /// Отмена текущей генерации. Документ мог измениться, пока строилась
+        /// программа: её результат всё равно будет отброшен, поэтому работу
+        /// незачем доводить до конца.
+        /// </summary>
+        private CancellationTokenSource _generationCancellation;
         private long _documentRevision;
         private string _gCodePreview;
         private bool _isGenerating;
@@ -125,6 +132,7 @@ namespace GCodeGenerator.ViewModels
         public void InvalidateGeneratedProgram()
         {
             Interlocked.Increment(ref _documentRevision);
+            _generationCancellation?.Cancel();
             GeneratedToolPath = null;
             GCodePreview = string.Empty;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
@@ -141,6 +149,8 @@ namespace GCodeGenerator.ViewModels
             GCodePreview = string.Empty;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
+            var cancellation = new CancellationTokenSource();
+            _generationCancellation = cancellation;
             try
             {
                 // Слепок снимается на потоке интерфейса, до ухода в фон:
@@ -158,9 +168,9 @@ namespace GCodeGenerator.ViewModels
                 // программу, а трёхмерный предпросмотр показывает её саму.
                 var (toolPath, program) = await Task.Run(() =>
                 {
-                    var path = _generator.BuildToolPath(operations, settings, progress);
+                    var path = _generator.BuildToolPath(operations, settings, progress, cancellation.Token);
                     return (path, _postProcessor.Build(path, settings));
-                });
+                }, cancellation.Token);
 
                 if (generationRevision != Volatile.Read(ref _documentRevision))
                 {
@@ -176,6 +186,13 @@ namespace GCodeGenerator.ViewModels
                 GCodePreview = text.ToString();
                 generationCompleted = true;
                 _logger.Info($"G-code generated: {operations.Count} operation(s), {program.Lines.Count} line(s)");
+            }
+            catch (OperationCanceledException)
+            {
+                // Документ изменился, пока строилась программа: это не сбой,
+                // а отказ от заведомо ненужного результата.
+                ProgressPercent = 0;
+                _logger.Info("G-code generation cancelled: operations changed while generating");
             }
             catch (Exception ex)
             {

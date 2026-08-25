@@ -25,7 +25,8 @@ namespace GCodeGenerator.Tests
             public GCodeProgram Generate(
                 IList<OperationBase> operations,
                 GCodeSettings settings,
-                IProgress<int> progress = null)
+                IProgress<int> progress = null,
+                CancellationToken cancellation = default)
                 => _inner.Generate(operations, settings, progress);
 
             /// <summary>
@@ -33,7 +34,8 @@ namespace GCodeGenerator.Tests
             /// поэтому останавливаться нужно здесь.
             /// </summary>
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
             {
                 _started.Set();
                 if (!_continue.Wait(TimeSpan.FromSeconds(5)))

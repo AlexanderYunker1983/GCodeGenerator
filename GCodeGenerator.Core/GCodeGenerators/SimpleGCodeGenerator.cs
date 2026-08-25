@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Linq;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
@@ -41,14 +42,22 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <inheritdoc />
-        public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+        public GCodeProgram Generate(
+            IList<OperationBase> operations,
+            GCodeSettings settings,
+            IProgress<int> progress = null,
+            CancellationToken cancellation = default)
         {
-            var toolPath = BuildToolPath(operations, settings, progress);
+            var toolPath = BuildToolPath(operations, settings, progress, cancellation);
             return _postProcessor.Build(toolPath, settings);
         }
 
         /// <inheritdoc />
-        public ToolPath BuildToolPath(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+        public ToolPath BuildToolPath(
+            IList<OperationBase> operations,
+            GCodeSettings settings,
+            IProgress<int> progress = null,
+            CancellationToken cancellation = default)
         {
             if (operations == null)
                 throw new ArgumentNullException(nameof(operations));
@@ -66,6 +75,11 @@ namespace GCodeGenerator.GCodeGenerators
             var total = operations.Count;
             for (var index = 0; index < operations.Count; index++)
             {
+                // Отмена проверяется между операциями: внутри одной операции
+                // прервать построение нельзя, но операций в проекте много,
+                // и каждая — заметный кусок работы.
+                cancellation.ThrowIfCancellationRequested();
+
                 var operation = operations[index];
 
                 // Skip disabled operations completely when generating trajectory

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
@@ -14,9 +15,13 @@ namespace GCodeGenerator.Tests
         {
             public int Calls { get; private set; }
 
+            /// <summary>Что сделать после построения операции — например, отменить.</summary>
+            public Action AfterGenerate { get; set; }
+
             public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
             {
                 Calls++;
+                AfterGenerate?.Invoke();
             }
         }
 
@@ -80,6 +85,47 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual("OperationType", exception.Failures[0].Issues[0].Property);
             StringAssert.Contains(exception.Message, "no G-code generator is registered");
+        }
+
+        /// <summary>
+        /// Отмена прекращает построение между операциями: программа большого
+        /// проекта строится заметное время, и достраивать её незачем, если
+        /// документ уже изменился или окно закрывается.
+        /// </summary>
+        [TestMethod]
+        public void CancelledGeneration_StopsBetweenOperations()
+        {
+            var operationGenerator = new RecordingOperationGenerator();
+            var generator = new SimpleGCodeGenerator(
+                new SingleGeneratorRegistry(typeof(DrillPointsOperation), operationGenerator));
+            var operations = new List<OperationBase> { ValidDrill("1"), ValidDrill("2"), ValidDrill("3") };
+
+            using var cancellation = new CancellationTokenSource();
+            // Отмена срабатывает после первой построенной операции.
+            var progress = new Progress<int>(_ => { });
+            operationGenerator.AfterGenerate = () => cancellation.Cancel();
+
+            Assert.ThrowsExactly<OperationCanceledException>(() =>
+                generator.BuildToolPath(operations, new GCodeSettings(), progress, cancellation.Token));
+
+            Assert.AreEqual(1, operationGenerator.Calls, "Построение прекращается сразу после отмены");
+        }
+
+        /// <summary>
+        /// Без отмены токен ни на что не влияет: генерация проходит целиком.
+        /// </summary>
+        [TestMethod]
+        public void NotCancelledGeneration_BuildsEveryOperation()
+        {
+            var operationGenerator = new RecordingOperationGenerator();
+            var generator = new SimpleGCodeGenerator(
+                new SingleGeneratorRegistry(typeof(DrillPointsOperation), operationGenerator));
+            var operations = new List<OperationBase> { ValidDrill("1"), ValidDrill("2") };
+
+            using var cancellation = new CancellationTokenSource();
+            generator.BuildToolPath(operations, new GCodeSettings(), null, cancellation.Token);
+
+            Assert.AreEqual(2, operationGenerator.Calls);
         }
 
         [TestMethod]

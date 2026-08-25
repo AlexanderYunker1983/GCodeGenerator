@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
@@ -37,11 +38,13 @@ namespace GCodeGenerator.Tests
 
         private sealed class ThrowingGenerator : IGCodeGenerator
         {
-            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
                 => throw new InvalidOperationException("generator failure");
 
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                CancellationToken cancellation = default)
                 => throw new InvalidOperationException("generator failure");
         }
 
