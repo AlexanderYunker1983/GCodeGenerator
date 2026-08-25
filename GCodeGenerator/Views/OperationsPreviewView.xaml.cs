@@ -45,14 +45,18 @@ namespace GCodeGenerator.Views
 
         private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            UnhookVm();
             HookVm();
             Redraw();
         }
 
         private void HookVm()
         {
-            _vm = DataContext as OperationsPreviewViewModel;
+            var viewModel = DataContext as OperationsPreviewViewModel;
+            if (ReferenceEquals(viewModel, _vm))
+                return; // уже подписаны: разметка задаёт источник до загрузки элемента
+
+            UnhookVm();
+            _vm = viewModel;
             if (_vm != null)
             {
                 _vm.PropertyChanged += OnVmPropertyChanged;

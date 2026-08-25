@@ -64,6 +64,12 @@ namespace GCodeGenerator.ViewModels
 
         public event EventHandler ProjectResetting;
 
+        /// <summary>Документ заменяется целиком: началась загрузка или сброс.</summary>
+        public event EventHandler DocumentApplying;
+
+        /// <summary>Замена документа завершена.</summary>
+        public event EventHandler DocumentApplied;
+
         public ICommand NewProgramCommand { get; }
 
         /// <summary>Сохраняет в текущий файл; имя спрашивается только у нового проекта.</summary>
@@ -277,12 +283,17 @@ namespace GCodeGenerator.ViewModels
         private void ApplyDocument(Action apply)
         {
             _isApplyingDocument = true;
+            DocumentApplying?.Invoke(this, EventArgs.Empty);
             try
             {
                 apply();
             }
             finally
             {
+                // Сначала закрывается пакет изменений: отложенные уведомления
+                // о новом содержимом должны прийти, пока замена документа
+                // ещё считается своей, иначе они пометят проект изменённым.
+                DocumentApplied?.Invoke(this, EventArgs.Empty);
                 _isApplyingDocument = false;
                 IsDirty = false;
             }

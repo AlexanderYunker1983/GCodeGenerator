@@ -23,6 +23,8 @@ namespace GCodeGenerator.ViewModels
         private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly HashSet<OperationBase> _attachedOperations = new HashSet<OperationBase>();
         private OperationBase _selectedOperation;
+        private int _batchDepth;
+        private bool _rebuildDeferred;
 
         public OperationsWorkspaceViewModel(
             ILocalizationManager localizationManager,
@@ -100,7 +102,59 @@ namespace GCodeGenerator.ViewModels
 
         public void NotifyOperationsChanged()
         {
+            if (_batchDepth > 0)
+            {
+                _rebuildDeferred = true;
+                return;
+            }
+
             OperationsPreview.RebuildScene();
+        }
+
+        /// <summary>
+        /// Объединяет череду изменений в одно обновление предпросмотра.
+        ///
+        /// Операция сообщает о каждом своём параметре по отдельности, поэтому
+        /// сохранение диалога или загрузка проекта — это десятки уведомлений
+        /// подряд. Без объединения сцена пересобиралась бы на каждое из них,
+        /// а при открытии проекта — ещё и на каждую добавленную операцию,
+        /// то есть тем дольше, чем больше проект.
+        /// </summary>
+        public IDisposable BeginBatchUpdate() => new BatchUpdate(this);
+
+        private void EndBatchUpdate()
+        {
+            if (--_batchDepth > 0)
+                return;
+
+            if (!_rebuildDeferred)
+                return;
+
+            _rebuildDeferred = false;
+            OperationsPreview.RebuildScene();
+            ContentChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        /// <summary>Пакет изменений: пока он открыт, предпросмотр не пересобирается.</summary>
+        private sealed class BatchUpdate : IDisposable
+        {
+            private readonly OperationsWorkspaceViewModel _workspace;
+            private bool _closed;
+
+            public BatchUpdate(OperationsWorkspaceViewModel workspace)
+            {
+                _workspace = workspace;
+                _workspace._batchDepth++;
+            }
+
+            public void Dispose()
+            {
+                if (_closed)
+                    return;
+
+                _closed = true;
+                _workspace.EndBatchUpdate();
+            }
         }
 
         private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -217,7 +271,12 @@ namespace GCodeGenerator.ViewModels
 
         private void EditSelectedOperation()
         {
-            if (SelectedOperation != null)
+            if (SelectedOperation == null)
+                return;
+
+            // Сохранение диалога записывает в операцию все её параметры сразу;
+            // предпросмотр обновляется один раз, а не на каждый из них.
+            using (BeginBatchUpdate())
                 _operationEditorFactory.ShowEditor(SelectedOperation, AllOperations);
         }
 

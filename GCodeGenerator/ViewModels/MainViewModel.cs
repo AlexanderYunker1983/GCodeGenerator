@@ -22,6 +22,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IDialogService _dialogService;
         private readonly IProgramInfo _programInfo;
         private readonly string _programTitle;
+        private IDisposable _documentBatch;
         private string _displayName;
 
         public MainViewModel(
@@ -48,6 +49,10 @@ namespace GCodeGenerator.ViewModels
                 .Create(AllOperations, _gCodeWorkflow);
             _projectWorkflow.ProjectResetting += OnProjectResetting;
             _projectWorkflow.PropertyChanged += OnProjectWorkflowPropertyChanged;
+            // Загрузка проекта добавляет операции по одной; предпросмотр
+            // собирается один раз в конце, а не после каждой операции.
+            _projectWorkflow.DocumentApplying += OnDocumentApplying;
+            _projectWorkflow.DocumentApplied += OnDocumentApplied;
             _operationsWorkspace.PropertyChanged += OnOperationsWorkspacePropertyChanged;
             _operationsWorkspace.ContentChanged += OnOperationsWorkspaceContentChanged;
 
@@ -90,6 +95,9 @@ namespace GCodeGenerator.ViewModels
         public PocketOperationsViewModel PocketOperations => _operationsWorkspace.PocketOperations;
 
         public OperationsPreviewViewModel OperationsPreview => _operationsWorkspace.OperationsPreview;
+
+        /// <summary>Рабочая область операций: список, выбор и предпросмотр.</summary>
+        public OperationsWorkspaceViewModel OperationsWorkspace => _operationsWorkspace;
 
         public ObservableCollection<OperationBase> AllOperations => _operationsWorkspace.AllOperations;
 
@@ -194,6 +202,18 @@ namespace GCodeGenerator.ViewModels
         private void OnProjectResetting(object sender, EventArgs e)
         {
             SelectedOperation = null;
+        }
+
+        private void OnDocumentApplying(object sender, EventArgs e)
+        {
+            _documentBatch?.Dispose();
+            _documentBatch = _operationsWorkspace.BeginBatchUpdate();
+        }
+
+        private void OnDocumentApplied(object sender, EventArgs e)
+        {
+            _documentBatch?.Dispose();
+            _documentBatch = null;
         }
 
         private void OnSettingsChanged(object sender, EventArgs e)
