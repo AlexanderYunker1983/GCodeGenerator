@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json.Serialization;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -39,12 +38,18 @@ namespace GCodeGenerator.Services
             // Повторное клонирование отделяет сохранённую модель от VM даже если
             // ссылка на диалог по ошибке будет удерживаться после его закрытия.
             var committedCopy = CreateWorkingCopy(workingCopy);
+
+            // Переносится то, что пользователь может изменить: публичное
+            // свойство с публичным сеттером. Раньше состав дополнительно
+            // сверялся с атрибутом сериализации, то есть формат файла проекта
+            // определял и поведение редактора — две несвязанные вещи держались
+            // на одной пометке. Неизменяемые части операции (тип, категория)
+            // сеттера не имеют и отсекаются сами.
             var properties = target.GetType()
                 .GetProperties(BindingFlags.Instance | BindingFlags.Public)
                 .Where(property => property.CanRead
                     && property.SetMethod?.IsPublic == true
-                    && property.GetIndexParameters().Length == 0
-                    && property.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                    && property.GetIndexParameters().Length == 0)
                 .ToList();
 
             var values = new Dictionary<PropertyInfo, object>();
