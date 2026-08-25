@@ -119,11 +119,11 @@ namespace GCodeGenerator.GCodeGenerators
         {
             int decimals = op.Decimals;
 
-            // Для DXF-операций контуры (со смещением на радиус инструмента)
-            // строит геометрия, генератор добавляет переходы между ними.
-            if (op is ProfileDxfOperation dxfOp && geometry is DxfProfileGeometry dxfGeometry)
+            // Готовые контуры геометрия расставляет сама, генератор только
+            // добавляет переходы между ними.
+            if (geometry.ProvidesOrderedContours)
             {
-                GenerateDxfContourFromPoints(dxfOp, dxfGeometry, workingZ, builder);
+                GenerateOrderedContours(op, geometry, workingZ, builder);
                 return;
             }
 
@@ -207,21 +207,24 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
-        /// Генерирует контур из точек для DXF-операции: геометрия отдаёт готовые
-        /// смещённые контуры (полилинии, состыкованные концами, объединены в один),
-        /// а генератор добавляет переходы между ними — подъём на безопасную высоту,
+        /// Обходит готовые контуры: точки в них уже расставлены геометрией,
+        /// а генератор добавляет переходы — подъём на безопасную высоту,
         /// подход к началу следующего контура и опускание на рабочую Z.
         /// </summary>
-        private static void GenerateDxfContourFromPoints(
-            ProfileDxfOperation op,
-            DxfProfileGeometry geometry,
+        /// <param name="op">Операция профиля.</param>
+        /// <param name="geometry">Геометрия, дающая готовые контуры.</param>
+        /// <param name="workingZ">Рабочая высота слоя.</param>
+        /// <param name="builder">Построитель траектории.</param>
+        private static void GenerateOrderedContours(
+            IProfileOperation op,
+            IProfileGeometry geometry,
             double workingZ,
             ToolPathBuilder builder)
         {
             int decimals = op.Decimals;
             bool isFirstContour = true;
 
-            foreach (var contourPoints in geometry.GetOffsetContours(GeometryTolerances.Vertex))
+            foreach (var contourPoints in geometry.GetOrderedContours(GeometryTolerances.Vertex))
             {
                 if (contourPoints.Count == 0)
                     continue;

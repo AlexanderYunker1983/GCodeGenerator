@@ -141,16 +141,17 @@ namespace GCodeGenerator.GCodeGenerators
             double depthFromTop = (taperOriginZ ?? op.ContourHeight) - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
 
-            // Для DXF-операций слой состоит из областей, на которые распадается
-            // эквидистанта каждого замкнутого контура (см. DxfPocketLayerGenerator).
             // Отступ траектории от стенки: радиус фрезы и припуск, который
             // проход оставляет для чистовой обработки.
             double contourOffset = toolRadius + allowance;
 
-            if (op is PocketDxfOperation dxfOp)
+            // Смещение внутрь может разбить карман на отдельные области —
+            // тогда каждая фрезеруется как самостоятельный карман
+            // (см. DxfPocketLayerGenerator).
+            if (geometry.SplitsIntoAreas)
             {
                 return _dxfLayerGenerator.GenerateLayer(
-                    dxfOp, toolRadius, allowance, taperOffset, step,
+                    op, geometry, toolRadius, allowance, taperOffset, step,
                     currentZ, nextZ, strategy, builder, settings);
             }
 

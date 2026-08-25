@@ -10,6 +10,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class RectanglePocketGeometry : IPocketGeometry
     {
+        /// <summary>Одна фигура — одна область: перемычкам взяться неоткуда.</summary>
+        public bool SplitsIntoAreas => false;
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPocketGeometry> GetAreas(double toolRadius, double taperOffset)
+            => System.Array.Empty<IPocketGeometry>();
+
         private readonly PocketRectangleOperation _operation;
 
         public RectanglePocketGeometry(PocketRectangleOperation operation)

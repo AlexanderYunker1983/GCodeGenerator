@@ -42,7 +42,7 @@ namespace GCodeGenerator.Tests
             var op = new ProfileDxfOperation { ToolDiameter = 4, ToolPathMode = ToolPathMode.Outside };
             op.Polylines.Add(Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             Assert.AreEqual(14.0 * 14.0, PolygonArea(contours[0]), 1e-6);
@@ -54,7 +54,7 @@ namespace GCodeGenerator.Tests
             var op = new ProfileDxfOperation { ToolDiameter = 4, ToolPathMode = ToolPathMode.Inside };
             op.Polylines.Add(Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             Assert.AreEqual(6.0 * 6.0, PolygonArea(contours[0]), 1e-6);
@@ -69,7 +69,7 @@ namespace GCodeGenerator.Tests
             var op = new ProfileDxfOperation { ToolDiameter = 4, ToolPathMode = ToolPathMode.OnLine };
             op.Polylines.Add(Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             Assert.AreEqual(10.0 * 10.0, PolygonArea(contours[0]), 1e-6);
@@ -88,7 +88,7 @@ namespace GCodeGenerator.Tests
             op.Polylines.Add(Poly((10, 0), (10, 10)));
             op.Polylines.Add(Poly((10, 10), (0, 10)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             CollectionAssert.AreEqual(
@@ -107,7 +107,7 @@ namespace GCodeGenerator.Tests
             op.Polylines.Add(Poly((0, 0), (10, 0)));
             op.Polylines.Add(Poly((10, 10), (10, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             CollectionAssert.AreEqual(
@@ -126,7 +126,7 @@ namespace GCodeGenerator.Tests
             op.Polylines.Add(Poly((0, 0), (10, 0)));
             op.Polylines.Add(Poly((50, 0), (60, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(2, contours.Count);
         }
@@ -142,7 +142,7 @@ namespace GCodeGenerator.Tests
             var op = new ProfileDxfOperation { ToolDiameter = 4, ToolPathMode = ToolPathMode.Outside };
             op.Polylines.Add(Poly((0, 0), (10, 0), (20, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOffsetContours(GeometryTolerances.Vertex);
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             Assert.AreEqual(3, contours[0].Count);

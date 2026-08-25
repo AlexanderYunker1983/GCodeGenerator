@@ -11,6 +11,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class RoundedRectangleProfileGeometry : IProfileGeometry
     {
+        /// <summary>Обычная фигура: один контур, который обходит генератор.</summary>
+        public bool ProvidesOrderedContours => false;
+
+        /// <inheritdoc />
+        public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOrderedContours(double tolerance)
+            => System.Array.Empty<IReadOnlyList<(double x, double y)>>();
+
         private readonly ProfileRoundedRectangleOperation _operation;
 
         public RoundedRectangleProfileGeometry(ProfileRoundedRectangleOperation operation)

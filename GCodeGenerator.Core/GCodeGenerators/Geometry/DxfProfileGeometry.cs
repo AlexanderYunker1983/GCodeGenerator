@@ -23,6 +23,12 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class DxfProfileGeometry : IProfileGeometry
     {
+        /// <summary>
+        /// Чертёж задаёт контуры сам: смещение уже расставило точки в порядке
+        /// обхода, и таких контуров может быть несколько.
+        /// </summary>
+        public bool ProvidesOrderedContours => true;
+
         private readonly ProfileDxfOperation _operation;
 
         public DxfProfileGeometry(ProfileDxfOperation operation)
@@ -84,7 +90,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// точек на контур — переходы между контурами добавляет генератор.
         /// </summary>
         /// <param name="tolerance">Допуск стыковки концов полилиний.</param>
-        public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOffsetContours(double tolerance)
+        public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOrderedContours(double tolerance)
         {
             var result = new List<IReadOnlyList<(double x, double y)>>();
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)

@@ -18,6 +18,46 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class DxfPocketGeometry : IPocketGeometry
     {
+        /// <summary>
+        /// Чертёж может задать карман с перемычками: смещение внутрь
+        /// разбивает его на отдельные области, каждая из которых
+        /// фрезеруется как самостоятельный карман.
+        /// </summary>
+        public bool SplitsIntoAreas => true;
+
+        /// <inheritdoc />
+        public IReadOnlyList<IPocketGeometry> GetAreas(double toolRadius, double taperOffset)
+        {
+            var areas = new List<IPocketGeometry>();
+            if (_operation.ClosedContours == null)
+                return areas;
+
+            // Каждый замкнутый контур операции смещается внутрь сам по себе
+            // и может дать несколько частей: узкая перемычка исчезает раньше
+            // остального кармана.
+            foreach (var contour in _operation.ClosedContours)
+            {
+                if (contour?.Points == null || contour.Points.Count < 3)
+                    continue;
+
+                foreach (var part in new DxfPocketGeometry(_operation, contour)
+                             .GetOffsetParts(toolRadius, taperOffset))
+                {
+                    if (part.Count < 3)
+                        continue;
+
+                    areas.Add(new DxfPocketGeometry(
+                        _operation,
+                        new Polyline2D { Points = new List<Point2D>(part) }));
+                }
+            }
+
+            return areas;
+        }
+
+        /// <summary>Операция: её замкнутые контуры образуют области кармана.</summary>
+        private readonly PocketDxfOperation _operation;
+
         private readonly Polyline2D _primaryContour;
 
         // Кеш последней построенной эквидистанты и центра исходного контура.
@@ -37,6 +77,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
+
+            _operation = operation;
 
             // Используем первый контур как основной, если не указан явно
             _primaryContour = primaryContour ??

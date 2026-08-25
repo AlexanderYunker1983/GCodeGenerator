@@ -9,6 +9,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class EllipseProfileGeometry : IProfileGeometry
     {
+        /// <summary>Обычная фигура: один контур, который обходит генератор.</summary>
+        public bool ProvidesOrderedContours => false;
+
+        /// <inheritdoc />
+        public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOrderedContours(double tolerance)
+            => System.Array.Empty<IReadOnlyList<(double x, double y)>>();
+
         private readonly ProfileEllipseOperation _operation;
 
         public EllipseProfileGeometry(ProfileEllipseOperation operation)
