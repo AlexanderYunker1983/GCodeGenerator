@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
@@ -113,15 +114,44 @@ namespace GCodeGenerator.GCodeGenerators
                     builder.LinearTo(move.X, move.Y, move.Z, move.Feed, decimals);
                     break;
                 case ToolMoveKind.ArcClockwise:
-                    builder.ArcCW(move.X.Value, move.Y.Value,
-                        move.CenterOffsetX.Value, move.CenterOffsetY.Value, move.Feed.Value, decimals);
-                    break;
                 case ToolMoveKind.ArcCounterClockwise:
-                    builder.ArcCCW(move.X.Value, move.Y.Value,
-                        move.CenterOffsetX.Value, move.CenterOffsetY.Value, move.Feed.Value, decimals);
+                    WriteArc(builder, move, decimals);
                     break;
             }
         }
+
+        /// <summary>
+        /// Дуга описывается конечной точкой, смещением центра и подачей —
+        /// все пять величин обязательны, иначе кадр G2/G3 не имеет смысла.
+        /// Построитель траектории задаёт их всегда; проверка стоит здесь,
+        /// потому что траектория может прийти и из файла, и из чужого кода,
+        /// а без неё отсутствующая величина превратилась бы в исключение
+        /// без единого указания на то, какая именно и в какой операции.
+        /// </summary>
+        /// <param name="builder">Построитель программы.</param>
+        /// <param name="move">Перемещение по дуге.</param>
+        /// <param name="decimals">Число знаков после запятой в координатах.</param>
+        private static void WriteArc(ProgramBuilder builder, ToolMove move, int decimals)
+        {
+            var x = Required(move.X, nameof(move.X), move.Kind);
+            var y = Required(move.Y, nameof(move.Y), move.Kind);
+            var offsetX = Required(move.CenterOffsetX, nameof(move.CenterOffsetX), move.Kind);
+            var offsetY = Required(move.CenterOffsetY, nameof(move.CenterOffsetY), move.Kind);
+            var feed = Required(move.Feed, nameof(move.Feed), move.Kind);
+
+            if (move.Kind == ToolMoveKind.ArcClockwise)
+                builder.ArcCW(x, y, offsetX, offsetY, feed, decimals);
+            else
+                builder.ArcCCW(x, y, offsetX, offsetY, feed, decimals);
+        }
+
+        /// <summary>Величина, без которой перемещение не описывает движение.</summary>
+        /// <param name="value">Заданное значение или пустота.</param>
+        /// <param name="name">Имя величины для сообщения об ошибке.</param>
+        /// <param name="kind">Вид перемещения.</param>
+        private static double Required(double? value, string name, ToolMoveKind kind)
+            => value ?? throw new InvalidOperationException(
+                $"У перемещения {kind} не задана величина {name}.");
 
         /// <summary>
         /// Конец программы: выключение охлаждения, отход в конечную точку,

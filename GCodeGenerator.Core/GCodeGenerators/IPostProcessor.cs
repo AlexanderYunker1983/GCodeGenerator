@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
 

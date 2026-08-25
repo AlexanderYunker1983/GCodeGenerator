@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
@@ -33,7 +34,8 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         public void Comment(string text)
         {
-            _program.Blocks.Add(new GCodeBlock(null, text));
+            // Строка-комментарий: слов в ней нет, только текст в скобках.
+            _program.Blocks.Add(new GCodeBlock(System.Array.Empty<GCodeWord>(), text));
         }
 
         /// <summary>

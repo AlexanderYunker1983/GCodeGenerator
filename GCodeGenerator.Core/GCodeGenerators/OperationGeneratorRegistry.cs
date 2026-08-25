@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
@@ -50,7 +51,7 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        public bool TryGetGenerator(Type operationType, out IOperationGenerator generator)
+        public bool TryGetGenerator(Type operationType, out IOperationGenerator? generator)
         {
             return _generators.TryGetValue(operationType, out generator);
         }

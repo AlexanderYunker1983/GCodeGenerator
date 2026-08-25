@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -78,7 +79,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Newlines/control characters could otherwise create executable lines,
         /// while parentheses could close the comment early.
         /// </summary>
-        private static string SanitizeComment(string comment)
+        private static string SanitizeComment(string? comment)
         {
             if (string.IsNullOrEmpty(comment))
                 return string.Empty;

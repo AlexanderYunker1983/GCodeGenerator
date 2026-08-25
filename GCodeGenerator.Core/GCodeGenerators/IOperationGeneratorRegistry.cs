@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -16,6 +17,6 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="operationType">Exact runtime type of the operation.</param>
         /// <param name="generator">Resolved generator, or null when not registered.</param>
         /// <returns>True when the operation type has a registered generator.</returns>
-        bool TryGetGenerator(Type operationType, out IOperationGenerator generator);
+        bool TryGetGenerator(Type operationType, out IOperationGenerator? generator);
     }
 }

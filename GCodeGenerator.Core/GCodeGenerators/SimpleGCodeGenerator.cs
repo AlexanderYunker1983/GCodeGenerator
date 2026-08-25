@@ -1,3 +1,9 @@
+// Проверка ссылок на пустоту включена для генераторов вслед за моделями:
+// именно здесь пустота, пришедшая из модели или из файла проекта, дошла бы
+// до построения траектории. Директива стоит пофайлово — включение на весь
+// продукт разом дало бы около девятисот предупреждений; следующий шаг —
+// приложение.
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -45,7 +51,7 @@ namespace GCodeGenerator.GCodeGenerators
         public GCodeProgram Generate(
             IList<OperationBase> operations,
             GCodeSettings settings,
-            IProgress<int> progress = null,
+            IProgress<int>? progress = null,
             CancellationToken cancellation = default)
         {
             var toolPath = BuildToolPath(operations, settings, progress, cancellation);
@@ -56,7 +62,7 @@ namespace GCodeGenerator.GCodeGenerators
         public ToolPath BuildToolPath(
             IList<OperationBase> operations,
             GCodeSettings settings,
-            IProgress<int> progress = null,
+            IProgress<int>? progress = null,
             CancellationToken cancellation = default)
         {
             if (operations == null)
@@ -130,10 +136,12 @@ namespace GCodeGenerator.GCodeGenerators
                 var operation = operations[index];
                 if (operation == null)
                 {
+                    // Имени и описания у пустой операции нет: в отчёте она
+                    // называется только своим местом в списке.
                     failures.Add(new OperationValidationFailure(
                         index,
-                        null,
-                        null,
+                        operationName: null,
+                        operationType: null,
                         new[] { new ValidationIssue("Operation", "operation is null") }));
                     continue;
                 }

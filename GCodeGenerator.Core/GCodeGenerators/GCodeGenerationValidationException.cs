@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.GCodeGenerators
     public sealed class GCodeGenerationValidationException : InvalidOperationException
     {
         public GCodeGenerationValidationException(IEnumerable<OperationValidationFailure> failures)
-            : this(failures, null)
+            : this(failures, settingsIssues: null)
         {
         }
 
@@ -22,10 +23,12 @@ namespace GCodeGenerator.GCodeGenerators
         /// Проблемы операций и настроек, найденные до построения программы.
         /// </summary>
         /// <param name="failures">Проблемы отдельных операций.</param>
-        /// <param name="settingsIssues">Проблемы настроек генерации.</param>
+        /// <param name="settingsIssues">
+        /// Проблемы настроек генерации; пусто, если настройки в порядке.
+        /// </param>
         public GCodeGenerationValidationException(
             IEnumerable<OperationValidationFailure> failures,
-            IEnumerable<ValidationIssue> settingsIssues)
+            IEnumerable<ValidationIssue>? settingsIssues)
             : this((failures ?? throw new ArgumentNullException(nameof(failures))).ToArray(),
                    (settingsIssues ?? Enumerable.Empty<ValidationIssue>()).ToArray())
         {
@@ -68,8 +71,8 @@ namespace GCodeGenerator.GCodeGenerators
     {
         public OperationValidationFailure(
             int operationIndex,
-            string operationName,
-            string operationType,
+            string? operationName,
+            string? operationType,
             IEnumerable<ValidationIssue> issues)
         {
             if (operationIndex < 0)
@@ -96,7 +99,13 @@ namespace GCodeGenerator.GCodeGenerators
                 + string.Join("; ", Issues.Select(issue => issue.ToString()));
         }
 
-        private static string Normalize(string value, string fallback)
+        /// <summary>
+        /// Строка для сообщения: пустое значение заменяется запасным, а
+        /// переводы строк — пробелами, чтобы отчёт остался однострочным.
+        /// </summary>
+        /// <param name="value">Имя или тип операции; может отсутствовать.</param>
+        /// <param name="fallback">Чем заменить отсутствующее значение.</param>
+        private static string Normalize(string? value, string fallback)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return fallback;

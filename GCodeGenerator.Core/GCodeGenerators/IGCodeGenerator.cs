@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -15,7 +16,7 @@ namespace GCodeGenerator.GCodeGenerators
         GCodeProgram Generate(
             IList<OperationBase> operations,
             GCodeSettings settings,
-            IProgress<int> progress = null,
+            IProgress<int>? progress = null,
             CancellationToken cancellation = default);
 
         /// <summary>
@@ -35,7 +36,7 @@ namespace GCodeGenerator.GCodeGenerators
         Toolpath.ToolPath BuildToolPath(
             IList<OperationBase> operations,
             GCodeSettings settings,
-            IProgress<int> progress = null,
+            IProgress<int>? progress = null,
             CancellationToken cancellation = default);
     }
 }

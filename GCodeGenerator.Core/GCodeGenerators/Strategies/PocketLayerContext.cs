@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;

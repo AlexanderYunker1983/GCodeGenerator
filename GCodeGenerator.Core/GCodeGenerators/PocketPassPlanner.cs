@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Helpers;
@@ -46,7 +47,7 @@ namespace GCodeGenerator.GCodeGenerators
     /// </summary>
     public sealed class PocketPassPlan
     {
-        public PocketPassPlan(IReadOnlyList<PocketPass> passes, double taperOriginZ, string skipComment = null)
+        public PocketPassPlan(IReadOnlyList<PocketPass> passes, double taperOriginZ, string? skipComment = null)
         {
             Passes = passes ?? Array.Empty<PocketPass>();
             TaperOriginZ = taperOriginZ;
@@ -67,7 +68,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Причина, по которой обработка не выполняется, или <c>null</c>.
         /// Попадает в программу комментарием.
         /// </summary>
-        public string SkipComment { get; }
+        public string? SkipComment { get; }
     }
 
     /// <summary>
@@ -113,7 +114,10 @@ namespace GCodeGenerator.GCodeGenerators
             if (roughing)
             {
                 var roughingPass = PlanRoughing(operation, allowance, out var skipComment);
-                if (skipComment != null)
+
+                // Причина отказа и проход исключают друг друга: карман либо
+                // исчез под припуском, либо обрабатывается.
+                if (roughingPass == null)
                     return new PocketPassPlan(Array.Empty<PocketPass>(), taperOriginZ, skipComment);
 
                 passes.Add(roughingPass);
@@ -129,7 +133,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Черновой проход: не доходит до дна на величину припуска и идёт
         /// «толстым» инструментом, оставляя припуск и на стенке.
         /// </summary>
-        private static PocketPass PlanRoughing(IPocketOperation operation, double allowance, out string skipComment)
+        private static PocketPass? PlanRoughing(IPocketOperation operation, double allowance, out string? skipComment)
         {
             skipComment = null;
 
