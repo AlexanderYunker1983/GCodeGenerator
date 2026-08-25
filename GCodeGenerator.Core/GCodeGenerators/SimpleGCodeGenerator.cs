@@ -31,7 +31,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             // Все проверки выполняются до создания блоков программы: при любой
             // ошибке вызывающая сторона не получит частичный, внешне корректный G-code.
-            var resolvedGenerators = ValidateAndResolveGenerators(operations);
+            var resolvedGenerators = ValidateAndResolveGenerators(operations, settings);
 
             // План 4.3/4.4: программа собирается структурой (ProgramBuilder)
             // и рендерится GCodeFormatter; операционные генераторы пишут
@@ -46,16 +46,11 @@ namespace GCodeGenerator.GCodeGenerators
 
             builder.Header();
 
-            // Установка рабочей системы координат (G54-G59) в самом начале программы
-            if (workCoordinate.SetWorkCoordinateSystem && !string.IsNullOrEmpty(workCoordinate.WorkCoordinateSystem))
-            {
-                var wcs = workCoordinate.WorkCoordinateSystem.Trim().ToUpperInvariant();
-                // Проверяем, что это валидная команда G54-G59
-                if (wcs is "G54" or "G55" or "G56" or "G57" or "G58" or "G59")
-                {
-                    builder.SetWcs(wcs);
-                }
-            }
+            // Установка рабочей системы координат (G54-G59) в самом начале программы.
+            // Значение уже проверено предполётным разбором: неверное отклоняется
+            // с ошибкой, а не пропускается молча.
+            if (workCoordinate.SetWorkCoordinateSystem)
+                builder.SetWcs(workCoordinate.WorkCoordinateSystem.Trim().ToUpperInvariant());
 
             // Установка стартовых координат (G92) сразу после комментариев
             if (workCoordinate.AddStartPosition)
@@ -67,9 +62,9 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 if (spindle.SpindleStartEnabled)
                 {
-                    var cmd = (spindle.SpindleStartCommand ?? "M3").Trim().ToUpperInvariant();
-                    if (cmd != "M3" && cmd != "M4")
-                        cmd = "M3";
+                    // Команда проверена предполётным разбором: направление
+                    // вращения не подменяется тихо на «по часовой».
+                    var cmd = spindle.SpindleStartCommand.Trim().ToUpperInvariant();
                     builder.SpindleOn(cmd, spindle.SpindleSpeedEnabled ? (int?)spindle.SpindleSpeedRpm : null);
                 }
 
@@ -115,10 +110,14 @@ namespace GCodeGenerator.GCodeGenerators
             return program;
         }
 
-        private IOperationGenerator[] ValidateAndResolveGenerators(IList<OperationBase> operations)
+        private IOperationGenerator[] ValidateAndResolveGenerators(IList<OperationBase> operations, GCodeSettings settings)
         {
             var failures = new List<OperationValidationFailure>();
             var generators = new IOperationGenerator[operations.Count];
+
+            // Настройки проверяются вместе с операциями, чтобы пользователь
+            // увидел все причины отказа сразу.
+            var settingsIssues = GCodeSettingsValidation.Validate(settings);
 
             for (int index = 0; index < operations.Count; index++)
             {
@@ -177,8 +176,8 @@ namespace GCodeGenerator.GCodeGenerators
                 }
             }
 
-            if (failures.Count > 0)
-                throw new GCodeGenerationValidationException(failures);
+            if (failures.Count > 0 || settingsIssues.Count > 0)
+                throw new GCodeGenerationValidationException(failures, settingsIssues);
 
             return generators;
         }

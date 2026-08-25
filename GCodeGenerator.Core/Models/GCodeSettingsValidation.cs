@@ -1,0 +1,65 @@
+using System;
+using System.Collections.Generic;
+
+namespace GCodeGenerator.Models
+{
+    /// <summary>
+    /// Проверка настроек, влияющих на управляющую программу.
+    ///
+    /// Прежде неверные значения исправлялись молча: система координат вне
+    /// диапазона просто не выводилась, а незнакомая команда пуска шпинделя
+    /// заменялась на M3. Для кода, который поедет на станок, тихая подмена
+    /// хуже отказа — «против часовой» превращалось в «по часовой» без следа
+    /// в программе, журнале и окне.
+    /// </summary>
+    public static class GCodeSettingsValidation
+    {
+        /// <summary>Системы координат, которые понимает вывод программы.</summary>
+        private static readonly string[] WorkCoordinateSystems =
+            { "G54", "G55", "G56", "G57", "G58", "G59" };
+
+        /// <summary>Команды пуска шпинделя: по часовой и против часовой.</summary>
+        private static readonly string[] SpindleStartCommands = { "M3", "M4" };
+
+        /// <summary>
+        /// Возвращает все проблемы настроек; пустой список — программу можно
+        /// строить.
+        /// </summary>
+        /// <param name="settings">Настройки генерации.</param>
+        public static IReadOnlyList<ValidationIssue> Validate(GCodeSettings settings)
+        {
+            if (settings == null)
+                throw new ArgumentNullException(nameof(settings));
+
+            var issues = new List<ValidationIssue>();
+
+            var workCoordinate = settings.WorkCoordinate;
+            if (workCoordinate != null && workCoordinate.SetWorkCoordinateSystem)
+            {
+                var wcs = (workCoordinate.WorkCoordinateSystem ?? string.Empty).Trim().ToUpperInvariant();
+                if (Array.IndexOf(WorkCoordinateSystems, wcs) < 0)
+                {
+                    issues.Add(new ValidationIssue(
+                        nameof(WorkCoordinateSettings.WorkCoordinateSystem),
+                        $"must be one of {string.Join(", ", WorkCoordinateSystems)}, but is "
+                        + (wcs.Length == 0 ? "empty" : $"\"{wcs}\"")));
+                }
+            }
+
+            var spindle = settings.Spindle;
+            if (spindle != null && spindle.SpindleControlEnabled && spindle.SpindleStartEnabled)
+            {
+                var command = (spindle.SpindleStartCommand ?? string.Empty).Trim().ToUpperInvariant();
+                if (Array.IndexOf(SpindleStartCommands, command) < 0)
+                {
+                    issues.Add(new ValidationIssue(
+                        nameof(SpindleSettings.SpindleStartCommand),
+                        $"must be one of {string.Join(", ", SpindleStartCommands)}, but is "
+                        + (command.Length == 0 ? "empty" : $"\"{command}\"")));
+                }
+            }
+
+            return issues;
+        }
+    }
+}

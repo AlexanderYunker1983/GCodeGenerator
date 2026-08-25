@@ -90,7 +90,13 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         public void SpindleOn(string command, int? rpm = null)
         {
-            var code = string.Equals(command, "M4", System.StringComparison.OrdinalIgnoreCase) ? 4 : 3;
+            // Направление вращения не угадывается: незнакомая команда — отказ,
+            // а не тихая замена на «по часовой» (её невозможно заметить в G-code).
+            var normalized = (command ?? string.Empty).Trim().ToUpperInvariant();
+            if (normalized != "M3" && normalized != "M4")
+                throw new ArgumentException("Spindle start command must be M3 or M4.", nameof(command));
+
+            var code = normalized == "M4" ? 4 : 3;
             if (rpm.HasValue)
                 AddCode(GCodeWord.M(code), GCodeWord.S(rpm.Value));
             else

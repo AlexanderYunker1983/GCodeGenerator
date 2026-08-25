@@ -14,28 +14,52 @@ namespace GCodeGenerator.GCodeGenerators
     public sealed class GCodeGenerationValidationException : InvalidOperationException
     {
         public GCodeGenerationValidationException(IEnumerable<OperationValidationFailure> failures)
-            : this((failures ?? throw new ArgumentNullException(nameof(failures))).ToArray())
+            : this(failures, null)
         {
         }
 
-        private GCodeGenerationValidationException(OperationValidationFailure[] failures)
-            : base(BuildMessage(failures))
+        /// <summary>
+        /// Проблемы операций и настроек, найденные до построения программы.
+        /// </summary>
+        /// <param name="failures">Проблемы отдельных операций.</param>
+        /// <param name="settingsIssues">Проблемы настроек генерации.</param>
+        public GCodeGenerationValidationException(
+            IEnumerable<OperationValidationFailure> failures,
+            IEnumerable<ValidationIssue> settingsIssues)
+            : this((failures ?? throw new ArgumentNullException(nameof(failures))).ToArray(),
+                   (settingsIssues ?? Enumerable.Empty<ValidationIssue>()).ToArray())
         {
-            if (failures.Length == 0)
+        }
+
+        private GCodeGenerationValidationException(
+            OperationValidationFailure[] failures,
+            ValidationIssue[] settingsIssues)
+            : base(BuildMessage(failures, settingsIssues))
+        {
+            if (failures.Length == 0 && settingsIssues.Length == 0)
                 throw new ArgumentException("At least one validation failure is required.", nameof(failures));
 
             Failures = new ReadOnlyCollection<OperationValidationFailure>(failures);
+            SettingsIssues = new ReadOnlyCollection<ValidationIssue>(settingsIssues);
         }
 
         public IReadOnlyList<OperationValidationFailure> Failures { get; }
 
-        private static string BuildMessage(IReadOnlyList<OperationValidationFailure> failures)
+        /// <summary>Проблемы настроек генерации: система координат, шпиндель.</summary>
+        public IReadOnlyList<ValidationIssue> SettingsIssues { get; }
+
+        private static string BuildMessage(
+            IReadOnlyList<OperationValidationFailure> failures,
+            IReadOnlyList<ValidationIssue> settingsIssues)
         {
-            if (failures.Count == 0)
+            if (failures.Count == 0 && settingsIssues.Count == 0)
                 return "G-code generation validation failed.";
 
+            var lines = settingsIssues.Select(issue => $"Settings: {issue}")
+                .Concat(failures.Select(failure => failure.ToString()));
+
             return "G-code generation validation failed:" + Environment.NewLine
-                + string.Join(Environment.NewLine, failures.Select(failure => failure.ToString()));
+                + string.Join(Environment.NewLine, lines);
         }
     }
 
