@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -121,13 +122,6 @@ namespace GCodeGenerator.Services
         }
 
         private bool PointsMatch(DxfPoint p1, DxfPoint p2)
-        {
-            if (p1 == null || p2 == null)
-                return false;
-
-            var dx = p1.X - p2.X;
-            var dy = p1.Y - p2.Y;
-            return Math.Sqrt(dx * dx + dy * dy) <= _tolerance;
-        }
+            => Geometry2D.PointsMatch(p1, p2, _tolerance);
     }
 }

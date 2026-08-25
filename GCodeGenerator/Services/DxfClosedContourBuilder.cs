@@ -48,15 +48,8 @@ namespace GCodeGenerator.Services
             }
         }
 
-        private bool PointsMatch(DxfPoint p1, DxfPoint p2)
-        {
-            if (p1 == null || p2 == null)
-                return false;
-            double dx = p1.X - p2.X;
-            double dy = p1.Y - p2.Y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
-            return distance <= ClosedContourTolerance;
-        }
+        private static bool PointsMatch(DxfPoint p1, DxfPoint p2)
+            => Geometry2D.PointsMatch(p1, p2, ClosedContourTolerance);
 
         private List<DxfPolyline> FindClosedAreasFromIntersections(List<DxfPolyline> segments)
         {
@@ -88,19 +81,7 @@ namespace GCodeGenerator.Services
         }
         
         private double GetContourArea(DxfPolyline contour)
-        {
-            if (contour?.Points == null || contour.Points.Count < 3)
-                return 0;
-            
-            double area = 0;
-            for (int i = 0; i < contour.Points.Count; i++)
-            {
-                var p1 = contour.Points[i];
-                var p2 = contour.Points[(i + 1) % contour.Points.Count];
-                area += p1.X * p2.Y - p2.X * p1.Y;
-            }
-            return Math.Abs(area / 2.0);
-        }
+            => Geometry2D.Area(contour?.Points);
 
         private bool AreContoursSimilar(DxfPolyline c1, DxfPolyline c2)
         {

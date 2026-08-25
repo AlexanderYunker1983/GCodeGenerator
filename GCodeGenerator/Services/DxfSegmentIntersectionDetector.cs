@@ -54,57 +54,15 @@ namespace GCodeGenerator.Services
 
         private DxfPoint FindLineSegmentIntersection(double x1, double y1, double x2, double y2,
             double x3, double y3, double x4, double y4)
-        {
-            double dx1 = x2 - x1;
-            double dy1 = y2 - y1;
-            double dx2 = x4 - x3;
-            double dy2 = y4 - y3;
-            
-            double denom = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(denom) < GeometryTolerances.Degenerate)
-                return null; // Параллельные линии
-            
-            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
-            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
-            
-            // Используем небольшой допуск для границ отрезков
-            const double tolerance = GeometryTolerances.Vertex;
-            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
-            {
-                // Ограничиваем параметры диапазоном [0, 1]
-                t1 = Math.Max(0, Math.Min(1, t1));
-                return new DxfPoint
-                {
-                    X = x1 + t1 * dx1,
-                    Y = y1 + t1 * dy1
-                };
-            }
-            
-            return null;
-        }
+            => Geometry2D.SegmentIntersectionPoint(
+                x1, y1, x2, y2, x3, y3, x4, y4,
+                GeometryTolerances.Degenerate,
+                GeometryTolerances.Vertex);
 
         internal double DistanceToSegment(double px, double py, double x1, double y1, double x2, double y2)
-        {
-            double dx = x2 - x1;
-            double dy = y2 - y1;
-            if (Math.Abs(dx) < GeometryTolerances.Degenerate && Math.Abs(dy) < GeometryTolerances.Degenerate)
-                return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
-            
-            double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);
-            t = Math.Max(0, Math.Min(1, t));
-            double projX = x1 + t * dx;
-            double projY = y1 + t * dy;
-            return Math.Sqrt(Math.Pow(px - projX, 2) + Math.Pow(py - projY, 2));
-        }
+            => Geometry2D.DistanceToSegment(px, py, x1, y1, x2, y2, GeometryTolerances.Degenerate);
 
         private bool PointsMatch(DxfPoint p1, DxfPoint p2)
-        {
-            if (p1 == null || p2 == null)
-                return false;
-
-            var dx = p1.X - p2.X;
-            var dy = p1.Y - p2.Y;
-            return Math.Sqrt(dx * dx + dy * dy) <= _tolerance;
-        }
+            => Geometry2D.PointsMatch(p1, p2, _tolerance);
     }
 }

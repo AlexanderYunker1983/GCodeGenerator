@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -111,18 +112,9 @@ namespace GCodeGenerator.Services
             => polyline?.Points != null && polyline.Points.Count >= 2;
 
         private static double Distance(DxfPoint first, DxfPoint second)
-        {
-            var dx = second.X - first.X;
-            var dy = second.Y - first.Y;
-            return Math.Sqrt(dx * dx + dy * dy);
-        }
+            => Geometry2D.Distance(first, second);
 
         private bool PointsMatch(DxfPoint first, DxfPoint second)
-        {
-            if (first == null || second == null)
-                return false;
-
-            return Distance(first, second) <= _tolerance;
-        }
+            => Geometry2D.PointsMatch(first, second, _tolerance);
     }
 }

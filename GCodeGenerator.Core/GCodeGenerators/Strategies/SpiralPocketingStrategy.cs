@@ -568,28 +568,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double x1, double y1, double x2, double y2,
             double x3, double y3, double x4, double y4,
             double tolerance)
-        {
-            double dx1 = x2 - x1;
-            double dy1 = y2 - y1;
-            double dx2 = x4 - x3;
-            double dy2 = y4 - y3;
-
-            double denom = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(denom) < tolerance)
-                return null; // Параллельные линии
-
-            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
-            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
-
-            // Используем небольшой допуск для границ отрезков
-            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
-            {
-                // Ограничиваем параметры диапазоном [0, 1]
-                t1 = Math.Max(0, Math.Min(1, t1));
-                return (x1 + t1 * dx1, y1 + t1 * dy1);
-            }
-
-            return null;
-        }
+            => Geometry2D.SegmentIntersection(
+                x1, y1, x2, y2, x3, y3, x4, y4, tolerance, tolerance);
     }
 }

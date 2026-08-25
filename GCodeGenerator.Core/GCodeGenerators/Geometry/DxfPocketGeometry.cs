@@ -69,51 +69,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
 
         private (double x, double y) CalculateCenter()
-        {
-            if (_primaryContour == null || _primaryContour.Points == null || _primaryContour.Points.Count == 0)
-                return (0, 0);
-
-            // Вычисляем геометрический центр (центроид) многоугольника
-            // Формула: Cx = (1/6A) * Σ(xi + xi+1)(xi*yi+1 - xi+1*yi)
-            //          Cy = (1/6A) * Σ(yi + yi+1)(xi*yi+1 - xi+1*yi)
-            // где A = (1/2) * Σ(xi*yi+1 - xi+1*yi) - площадь многоугольника
-
-            double area = 0;
-            double cx = 0;
-            double cy = 0;
-
-            int pointCount = _primaryContour.Points.Count;
-            for (int i = 0; i < pointCount; i++)
-            {
-                var p1 = _primaryContour.Points[i];
-                var p2 = _primaryContour.Points[(i + 1) % pointCount];
-
-                double cross = p1.X * p2.Y - p2.X * p1.Y;
-                area += cross;
-                cx += (p1.X + p2.X) * cross;
-                cy += (p1.Y + p2.Y) * cross;
-            }
-
-            area *= 0.5;
-            // Порог площади вырожденного контура: делить на неё нельзя,
-            // центр берётся как среднее арифметическое вершин.
-            if (Math.Abs(area) > GeometryTolerances.Vertex)
-            {
-                double invArea = 1.0 / (6.0 * area);
-                return (cx * invArea, cy * invArea);
-            }
-            else
-            {
-                // Если площадь слишком мала, используем среднее арифметическое как fallback
-                double sumX = 0, sumY = 0;
-                foreach (var p in _primaryContour.Points)
-                {
-                    sumX += p.X;
-                    sumY += p.Y;
-                }
-                return (sumX / pointCount, sumY / pointCount);
-            }
-        }
+            => Geometry2D.Centroid(_primaryContour?.Points, GeometryTolerances.Vertex);
 
         public IContour GetContour(double toolRadius, double taperOffset)
         {
@@ -489,64 +445,15 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// Вычисляет знаковую площадь контура (положительная для против часовой стрелки, отрицательная для по часовой).
         /// </summary>
         private double GetSignedArea(DxfPolyline contour)
-        {
-            if (contour?.Points == null || contour.Points.Count < 3)
-                return 0;
-
-            double area = 0;
-            for (int i = 0; i < contour.Points.Count; i++)
-            {
-                var p1 = contour.Points[i];
-                var p2 = contour.Points[(i + 1) % contour.Points.Count];
-                area += p1.X * p2.Y - p2.X * p1.Y;
-            }
-            return area / 2.0; // Возвращаем знаковую площадь (без Math.Abs)
-        }
+            => Geometry2D.SignedArea(contour?.Points);
 
         /// <summary>
         /// Вычисляет центр масс (центроид) контура.
         /// </summary>
         private (double x, double y) GetContourCenter(DxfPolyline contour)
-        {
-            if (contour?.Points == null || contour.Points.Count < 3)
-                return (0, 0);
-
-            double area = 0;
-            double cx = 0;
-            double cy = 0;
-
-            int pointCount = contour.Points.Count;
-            for (int i = 0; i < pointCount; i++)
-            {
-                var p1 = contour.Points[i];
-                var p2 = contour.Points[(i + 1) % pointCount];
-
-                double cross = p1.X * p2.Y - p2.X * p1.Y;
-                area += cross;
-                cx += (p1.X + p2.X) * cross;
-                cy += (p1.Y + p2.Y) * cross;
-            }
-
-            area *= 0.5;
-            // Порог площади вырожденного контура: делить на неё нельзя,
-            // центр берётся как среднее арифметическое вершин.
-            if (Math.Abs(area) > GeometryTolerances.Vertex)
-            {
-                double invArea = 1.0 / (6.0 * area);
-                return (cx * invArea, cy * invArea);
-            }
-            else
-            {
-                // Если площадь слишком мала, используем среднее арифметическое как fallback
-                double sumX = 0, sumY = 0;
-                foreach (var p in contour.Points)
-                {
-                    sumX += p.X;
-                    sumY += p.Y;
-                }
-                return (sumX / pointCount, sumY / pointCount);
-            }
-        }
+            => contour?.Points == null || contour.Points.Count < 3
+                ? (0, 0)
+                : Geometry2D.Centroid(contour.Points, GeometryTolerances.Vertex);
 
         /// <summary>
         /// Смещает контур на заданное расстояние (положительное - наружу, отрицательное - внутрь).
@@ -732,79 +639,17 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double x1, double y1, double x2, double y2,
             double x3, double y3, double x4, double y4,
             double tolerance)
-        {
-            double dx1 = x2 - x1;
-            double dy1 = y2 - y1;
-            double dx2 = x4 - x3;
-            double dy2 = y4 - y3;
-
-            double denom = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(denom) < tolerance)
-                return null; // Параллельные линии
-
-            double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
-            double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
-
-            // Используем небольшой допуск для границ отрезков
-            if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
-            {
-                // Ограничиваем параметры диапазоном [0, 1]
-                t1 = Math.Max(0, Math.Min(1, t1));
-                return new DxfPoint
-                {
-                    X = x1 + t1 * dx1,
-                    Y = y1 + t1 * dy1
-                };
-            }
-
-            return null;
-        }
+            => Geometry2D.SegmentIntersectionPoint(
+                x1, y1, x2, y2, x3, y3, x4, y4, tolerance, tolerance);
 
         private bool PointsMatch(DxfPoint p1, DxfPoint p2)
-        {
-            if (p1 == null || p2 == null)
-                return false;
-            double dx = p1.X - p2.X;
-            double dy = p1.Y - p2.Y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
-            return distance <= GeometryTolerances.PointCoincidence;
-        }
+            => Geometry2D.PointsMatch(p1, p2, GeometryTolerances.PointCoincidence);
 
         private bool IsPointInsideContour(double x, double y, DxfPolyline contour)
-        {
-            // Ray casting algorithm для проверки, находится ли точка внутри полигона
-            if (contour?.Points == null || contour.Points.Count < 3)
-                return false;
-
-            bool inside = false;
-            for (int i = 0, j = contour.Points.Count - 1; i < contour.Points.Count; j = i++)
-            {
-                var pi = contour.Points[i];
-                var pj = contour.Points[j];
-                
-                if (((pi.Y > y) != (pj.Y > y)) &&
-                    (x < (pj.X - pi.X) * (y - pi.Y) / (pj.Y - pi.Y) + pi.X))
-                {
-                    inside = !inside;
-                }
-            }
-            return inside;
-        }
+            => Geometry2D.IsPointInsidePolygon(x, y, contour?.Points);
 
         private double GetContourArea(DxfPolyline contour)
-        {
-            if (contour?.Points == null || contour.Points.Count < 3)
-                return 0;
-
-            double area = 0;
-            for (int i = 0; i < contour.Points.Count; i++)
-            {
-                var p1 = contour.Points[i];
-                var p2 = contour.Points[(i + 1) % contour.Points.Count];
-                area += p1.X * p2.Y - p2.X * p1.Y;
-            }
-            return Math.Abs(area / 2.0);
-        }
+            => Geometry2D.Area(contour?.Points);
 
         /// <summary>
         /// Реализация контура для DXF полилинии.
