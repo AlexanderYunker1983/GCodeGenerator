@@ -70,11 +70,10 @@ namespace GCodeGenerator.Tests
         private static List<string> RunProfile(OperationBase op, GCodeSettings settings)
             => RunGenerator(new UnifiedProfileGenerator(), op, settings);
 
-        /// <summary>Запуск операционного генератора через ProgramBuilder + GCodeFormatter (план 4.4).</summary>
+        /// <summary>Запуск операционного генератора: траектория плюс постпроцессор.</summary>
         private static List<string> RunGenerator(IOperationGenerator generator, OperationBase op, GCodeSettings settings)
         {
-            var program = new GCodeProgram();
-            generator.Generate(op, new ProgramBuilder(program), settings);
+            var toolPath = Fixtures.OperationToolPath.Build(generator, op, settings);
             // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
             var renderSettings = new GCodeSettings
             {
@@ -85,8 +84,7 @@ namespace GCodeGenerator.Tests
                     UsePaddedGCodes = settings.Format.UsePaddedGCodes,
                 },
             };
-            GCodeFormatter.Format(program, renderSettings);
-            return program.Lines.ToList();
+            return new GenericPostProcessor().Build(toolPath, renderSettings).Lines.ToList();
         }
 
         private static DxfPolyline Poly(params (double x, double y)[] pts)

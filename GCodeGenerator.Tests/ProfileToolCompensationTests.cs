@@ -33,10 +33,7 @@ namespace GCodeGenerator.Tests
                     UseComments = false,
                 },
             };
-            var program = new GCodeProgram();
-
-            new UnifiedProfileGenerator().Generate(operation, new ProgramBuilder(program), settings);
-            GCodeFormatter.Format(program, settings);
+            var program = Fixtures.OperationToolPath.Program(new UnifiedProfileGenerator(), operation, settings);
 
             var contourPoints = program.Blocks
                 .Where(block => block.Words.Any(word => word.Letter == 'G' && word.Number == 1)

@@ -4,6 +4,8 @@ using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators
 {
     /// <summary>
@@ -31,7 +33,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="currentZ">Z верха слоя.</param>
         /// <param name="nextZ">Рабочая Z слоя.</param>
         /// <param name="strategy">Стратегия обработки (выбирается по <c>op.PocketStrategy</c>, пункт 5.1).</param>
-        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <returns>true, если хотя бы одна область была обработана и обработку нужно продолжить; false, если областей не осталось</returns>
         public bool GenerateLayer(
@@ -42,7 +44,7 @@ namespace GCodeGenerator.GCodeGenerators
             double currentZ,
             double nextZ,
             IPocketPocketingStrategy strategy,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             if (strategy == null)

@@ -37,6 +37,10 @@ namespace GCodeGenerator.Tests
         {
             public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
                 => throw new InvalidOperationException("generator failure");
+
+            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                => throw new InvalidOperationException("generator failure");
         }
 
         private sealed class SilentDialogService : IDialogService
@@ -64,6 +68,7 @@ namespace GCodeGenerator.Tests
                     Name = "Drill",
                     Holes = { new DrillHole { X = 1, Y = 2, Z = 0, TotalDepth = 2, StepDepth = 1 } }
                 }
+
             };
 
         [TestMethod]

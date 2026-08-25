@@ -33,6 +33,11 @@ namespace GCodeGenerator.Tests
                 return _inner.Generate(operations, settings, progress);
             }
 
+            /// <summary>Траектория тесту не нужна: проверяется работа с программой.</summary>
+            public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
+                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+                => new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
+
             public void Dispose()
             {
                 _continue.Set();

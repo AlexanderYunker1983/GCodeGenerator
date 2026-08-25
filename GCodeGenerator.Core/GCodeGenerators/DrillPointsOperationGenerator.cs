@@ -2,11 +2,13 @@ using System;
 using System.Globalization;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators
 {
     public class DrillPointsOperationGenerator : IOperationGenerator
     {
-        public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
+        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {
             if (!(operation is DrillPointsOperation drill))
                 return;

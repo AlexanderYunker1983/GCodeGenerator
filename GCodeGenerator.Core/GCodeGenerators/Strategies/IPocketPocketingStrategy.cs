@@ -3,6 +3,8 @@ using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators.Strategies
 {
     /// <summary>
@@ -29,7 +31,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// с отводами (Lines) — инструмент входит в слой на этой высоте.</param>
         /// <param name="contourPoints">Точки смещённого контура слоя (траектория центра инструмента).</param>
         /// <param name="center">Центр контура (стартовая позиция инструмента, на рабочей Z).</param>
-        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         void MillContour(
             IPocketOperation op,
@@ -40,7 +42,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double workingZ,
             List<(double x, double y)> contourPoints,
             (double x, double y) center,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings);
     }
 }

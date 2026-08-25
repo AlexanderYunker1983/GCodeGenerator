@@ -1,5 +1,7 @@
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators
 {
     /// <summary>
@@ -9,6 +11,6 @@ namespace GCodeGenerator.GCodeGenerators
     /// </summary>
     public interface IOperationGenerator
     {
-        void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings);
+        void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings);
     }
 }

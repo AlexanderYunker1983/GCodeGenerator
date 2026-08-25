@@ -5,6 +5,8 @@ using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators.Strategies
 {
     /// <summary>
@@ -24,7 +26,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double workingZ,
             List<(double x, double y)> contourPoints,
             (double x, double y) center,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             // Спираль работает на рабочей Z без отводов — workingZ не используется.
@@ -346,7 +348,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             (double x, double y) exitPoint,
             (double x, double y) reentryPoint,
             List<(double x, double y)> contourPoints,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             if (contourPoints == null || contourPoints.Count == 0)
@@ -495,7 +497,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             IPocketOperation op,
             (double x, double y) startPoint,
             List<(double x, double y)> contourPoints,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             if (contourPoints == null || contourPoints.Count == 0)
@@ -515,7 +517,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             IPocketOperation op,
             int startIndex,
             List<(double x, double y)> contourPoints,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             if (contourPoints == null || contourPoints.Count == 0 || startIndex < 0)

@@ -2,12 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Models;
+using GCodeGenerator.Toolpath;
 
 namespace GCodeGenerator.GCodeGenerators
 {
+    /// <summary>
+    /// Собирает траекторию инструмента по операциям проекта и отдаёт её
+    /// постпроцессору, который превращает движение в программу для станка.
+    ///
+    /// Раньше генератор делал и то и другое сразу: обход операций шёл
+    /// вперемешку с выводом G-слов, командами шпинделя и охлаждения, поэтому
+    /// диалект стойки был размазан по генератору, построителю программы
+    /// и всем стратегиям выборки. Теперь генератор знает только о движении
+    /// инструмента, а всё, что зависит от станка, живёт в постпроцессоре.
+    /// </summary>
     public class SimpleGCodeGenerator : IGCodeGenerator
     {
         private readonly IOperationGeneratorRegistry _registry;
+        private readonly IPostProcessor _postProcessor;
 
         /// <summary>
         /// Пункт 4.5 плана: генераторы берутся из явного реестра
@@ -18,66 +30,37 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         public SimpleGCodeGenerator(IOperationGeneratorRegistry registry)
+            : this(registry, new GenericPostProcessor())
         {
-            _registry = registry ?? throw new ArgumentNullException(nameof(registry));
         }
 
+        public SimpleGCodeGenerator(IOperationGeneratorRegistry registry, IPostProcessor postProcessor)
+        {
+            _registry = registry ?? throw new ArgumentNullException(nameof(registry));
+            _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
+        }
+
+        /// <inheritdoc />
         public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
+        {
+            var toolPath = BuildToolPath(operations, settings, progress);
+            return _postProcessor.Build(toolPath, settings);
+        }
+
+        /// <inheritdoc />
+        public ToolPath BuildToolPath(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null)
         {
             if (operations == null)
                 throw new ArgumentNullException(nameof(operations));
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            // Все проверки выполняются до создания блоков программы: при любой
-            // ошибке вызывающая сторона не получит частичный, внешне корректный G-code.
+            // Все проверки выполняются до построения траектории: при любой
+            // ошибке вызывающая сторона не получит частичный, внешне
+            // корректный результат.
             var resolvedGenerators = ValidateAndResolveGenerators(operations, settings);
 
-            // План 4.3/4.4: программа собирается структурой (ProgramBuilder)
-            // и рендерится GCodeFormatter; операционные генераторы пишут
-            // блоки через ProgramBuilder (IOperationGenerator).
-            var program = new GCodeProgram();
-            var builder = new ProgramBuilder(program);
-
-            // Пункт 8.1 плана: настройки — через тематические группы.
-            var spindle = settings.Spindle;
-            var coolant = settings.Coolant;
-            var workCoordinate = settings.WorkCoordinate;
-
-            builder.Header();
-
-            // Модальные состояния станка задаются до первого перемещения:
-            // иначе программа зависит от того, что выполнялось на стойке до неё.
-            builder.SafetyPreamble();
-
-            // Установка рабочей системы координат (G54-G59) в самом начале программы.
-            // Значение уже проверено предполётным разбором: неверное отклоняется
-            // с ошибкой, а не пропускается молча.
-            if (workCoordinate.SetWorkCoordinateSystem)
-                builder.SetWcs(workCoordinate.WorkCoordinateSystem.Trim().ToUpperInvariant());
-
-            // Установка стартовых координат (G92) сразу после комментариев
-            if (workCoordinate.AddStartPosition)
-            {
-                builder.SetStartPosition(workCoordinate.StartX, workCoordinate.StartY, workCoordinate.StartZ);
-            }
-
-            if (spindle.SpindleControlEnabled)
-            {
-                if (spindle.SpindleStartEnabled)
-                {
-                    // Команда проверена предполётным разбором: направление
-                    // вращения не подменяется тихо на «по часовой».
-                    var cmd = spindle.SpindleStartCommand.Trim().ToUpperInvariant();
-                    builder.SpindleOn(cmd, spindle.SpindleSpeedEnabled ? (int?)spindle.SpindleSpeedRpm : null);
-                }
-
-                if (coolant.CoolantControlEnabled && coolant.CoolantStartEnabled)
-                    builder.CoolantOn();
-
-                if (spindle.SpindleDelayEnabled && spindle.SpindleDelaySeconds > 0)
-                    builder.Dwell(spindle.SpindleDelaySeconds * 1000.0);
-            }
+            var toolPath = new ToolPath();
 
             // Пункт 8.4 плана: прогресс по операциям (0–100) — для async-генерации в UI.
             var total = operations.Count;
@@ -89,29 +72,34 @@ namespace GCodeGenerator.GCodeGenerators
                 if (operation == null || !operation.IsEnabled)
                     continue;
 
-                builder.Comment($"{operation.Name}: {operation.GetDescription()}");
+                var pathOperation = new ToolPathOperation(
+                    operation.Name, operation.GetDescription(), OperationDecimals(operation));
+                toolPath.Operations.Add(pathOperation);
 
-                resolvedGenerators[index].Generate(operation, builder, settings);
+                resolvedGenerators[index].Generate(operation, new ToolPathBuilder(pathOperation), settings);
 
                 if (total > 0)
                     progress?.Report((index + 1) * 100 / total);
             }
 
-            if (coolant.CoolantControlEnabled && coolant.CoolantStopEnabled)
-                builder.CoolantOff();
+            return toolPath;
+        }
 
-            if (workCoordinate.AddEndPosition)
+        /// <summary>
+        /// Точность вывода координат операции. У сверления и фрезерования она
+        /// объявлена по-разному, но означает одно и то же.
+        /// </summary>
+        private static int OperationDecimals(OperationBase operation)
+        {
+            switch (operation)
             {
-                builder.SetEndPosition(workCoordinate.EndX, workCoordinate.EndY, workCoordinate.EndZ);
+                case MillingOperationBase milling:
+                    return milling.Decimals;
+                case DrillPointsOperation drill:
+                    return drill.Decimals;
+                default:
+                    return 3;
             }
-
-            if (spindle.SpindleControlEnabled && spindle.SpindleStopEnabled)
-                builder.SpindleOff();
-
-            builder.EndProgram();
-
-            GCodeFormatter.Format(program, settings);
-            return program;
         }
 
         private IOperationGenerator[] ValidateAndResolveGenerators(IList<OperationBase> operations, GCodeSettings settings)

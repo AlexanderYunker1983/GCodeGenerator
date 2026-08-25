@@ -7,6 +7,8 @@ using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators
 {
     /// <summary>
@@ -22,7 +24,7 @@ namespace GCodeGenerator.GCodeGenerators
             _helper = new ProfileGenerationHelper();
         }
 
-        public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
+        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {
             // Проверяем, что операция является профилем
             if (!(operation is IProfileOperation profileOp))
@@ -62,7 +64,7 @@ namespace GCodeGenerator.GCodeGenerators
             double toolOffset,
             double currentZ,
             double nextZ,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             // Получаем начальную точку контура
@@ -111,7 +113,7 @@ namespace GCodeGenerator.GCodeGenerators
             double toolOffset,
             (double x, double y) currentPosition,
             double workingZ,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             int decimals = op.Decimals;
@@ -213,7 +215,7 @@ namespace GCodeGenerator.GCodeGenerators
             ProfileDxfOperation op,
             DxfProfileGeometry geometry,
             double workingZ,
-            ProgramBuilder builder)
+            ToolPathBuilder builder)
         {
             int decimals = op.Decimals;
             bool isFirstContour = true;
@@ -260,7 +262,7 @@ namespace GCodeGenerator.GCodeGenerators
             IProfileGeometry geometry,
             double toolOffset,
             System.Collections.Generic.List<IArcSegment> arcSegments,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             int decimals = op.Decimals;

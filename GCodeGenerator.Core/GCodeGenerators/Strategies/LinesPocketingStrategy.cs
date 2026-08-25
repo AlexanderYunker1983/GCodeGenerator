@@ -3,6 +3,8 @@ using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators.Strategies
 {
     /// <summary>
@@ -35,7 +37,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double workingZ,
             List<(double x, double y)> contourPoints,
             (double x, double y) center,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             int decimals = op.Decimals;

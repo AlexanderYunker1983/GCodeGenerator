@@ -8,6 +8,8 @@ using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators
 {
     /// <summary>
@@ -63,7 +65,7 @@ namespace GCodeGenerator.GCodeGenerators
         private static IPocketGeometry CreateGeometry(IPocketOperation op)
             => PocketGeometryFactory.Create((OperationBase)op);
 
-        public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
+        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {
             // Проверяем, что операция является карманом
             if (!(operation is IPocketOperation pocketOp))
@@ -90,14 +92,14 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         /// <param name="op">Операция кармана.</param>
         /// <param name="geometry">Геометрия контура операции.</param>
-        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
         private void MillPocket(
             IPocketOperation op,
             IPocketGeometry geometry,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings,
             double? taperOriginZ = null)
         {
@@ -132,7 +134,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="step">Шаг обработки.</param>
         /// <param name="currentZ">Z верха слоя.</param>
         /// <param name="nextZ">Рабочая Z слоя.</param>
-        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
         /// <param name="strategy">Стратегия обработки (null — по <c>op.PocketStrategy</c>).</param>
@@ -144,7 +146,7 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double currentZ,
             double nextZ,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings,
             double? taperOriginZ = null,
             IPocketPocketingStrategy strategy = null)
@@ -207,7 +209,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         private void MillWallsFinishing(
             IPocketOperation wallOp,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings,
             double taperOriginZ)
         {
@@ -251,7 +253,7 @@ namespace GCodeGenerator.GCodeGenerators
                 double workingZ,
                 List<(double x, double y)> contourPoints,
                 (double x, double y) center,
-                ProgramBuilder builder,
+                ToolPathBuilder builder,
                 GCodeSettings settings)
             {
                 // Стратегия работает на рабочей Z без отводов — workingZ не используется.

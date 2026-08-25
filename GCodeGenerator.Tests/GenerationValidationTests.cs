@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
+using GCodeGenerator.Toolpath;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -15,7 +16,7 @@ namespace GCodeGenerator.Tests
         {
             public int Calls { get; private set; }
 
-            public void Generate(OperationBase operation, ProgramBuilder builder, GCodeSettings settings)
+            public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
             {
                 Calls++;
             }

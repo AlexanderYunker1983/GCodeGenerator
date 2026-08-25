@@ -3,12 +3,14 @@ using System.Globalization;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators.Helpers
 {
     /// <summary>
     /// Класс-помощник для генерации G-кода профилей.
     /// Содержит общую логику обработки по слоям и входа в материал.
-    /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
+    /// Пункт 4.4 плана: пишет структурированные блоки через ToolPathBuilder.
     /// </summary>
     public class ProfileGenerationHelper
     {
@@ -17,12 +19,12 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// </summary>
         /// <param name="op">Операция профиля</param>
         /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber)</param>
-        /// <param name="builder">Построитель структурированной программы</param>
+        /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
             IProfileOperation op,
             Action<double, double, int> generateLayer,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл по слоям
@@ -67,7 +69,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="nextZ">Следующая высота Z (целевая глубина)</param>
         /// <param name="getPointOnContour">Делегат для получения точки на контуре по расстоянию (для рампы)</param>
         /// <param name="getPerimeter">Делегат для получения периметра контура (для расчета рампы)</param>
-        /// <param name="builder">Построитель структурированной программы</param>
+        /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateEntry(
             IProfileOperation op,
@@ -76,7 +78,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double nextZ,
             Func<double, (double x, double y)> getPointOnContour,
             Func<double> getPerimeter,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             int decimals = op.Decimals;
@@ -121,7 +123,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double nextZ,
             Func<double, (double x, double y)> getPointOnContour,
             Func<double> getPerimeter,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
@@ -169,7 +171,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double distance,
             double perimeter,
             Func<double, (double x, double y)> getPointOnContour,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             var depth = zFrom - zTo;
@@ -201,7 +203,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             IProfileOperation op,
             (double x, double y) startPoint,
             double z,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             int decimals)
         {
             var retractZ = op.SafeDistanceBetweenPasses > 0

@@ -351,11 +351,11 @@ namespace GCodeGenerator.Tests
                 pocket.FinishingMode = mode;
             }
 
-            var program = new GCodeProgram();
-            new UnifiedPocketGenerator().Generate(op, new ProgramBuilder(program),
-                new GCodeSettings { Format = new GCodeFormatSettings { UseComments = true } });
-            GCodeFormatter.Format(program, new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false, UseComments = true } });
-            return program;
+            return Fixtures.OperationToolPath.Program(
+                new UnifiedPocketGenerator(),
+                op,
+                new GCodeSettings { Format = new GCodeFormatSettings { UseComments = true } },
+                new GCodeSettings { Format = new GCodeFormatSettings { UseLineNumbers = false, UseComments = true } });
         }
     }
 }

@@ -34,12 +34,10 @@ namespace GCodeGenerator.Tests
         private static List<string> RunDrill(OperationBase op)
             => RunGenerator(new DrillPointsOperationGenerator(), op);
 
-        /// <summary>Запуск операционного генератора через ProgramBuilder + GCodeFormatter (план 4.4).</summary>
+        /// <summary>Запуск операционного генератора: траектория плюс постпроцессор.</summary>
         private static List<string> RunGenerator(IOperationGenerator generator, OperationBase op, GCodeSettings settings = null)
         {
             settings ??= new GCodeSettings();
-            var program = new GCodeProgram();
-            generator.Generate(op, new ProgramBuilder(program), settings);
             // Прямой вызов генератора (без фрейма): без линейных номеров, как до порта.
             var renderSettings = new GCodeSettings
             {
@@ -50,8 +48,10 @@ namespace GCodeGenerator.Tests
                     UsePaddedGCodes = settings.Format.UsePaddedGCodes,
                 },
             };
-            GCodeFormatter.Format(program, renderSettings);
-            return program.Lines.ToList();
+
+            return Fixtures.OperationToolPath
+                .Program(generator, op, settings, renderSettings)
+                .Lines.ToList();
         }
 
         // ------------------------------------------------------------------

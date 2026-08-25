@@ -3,6 +3,8 @@ using System.Globalization;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Toolpath;
+
 namespace GCodeGenerator.GCodeGenerators.Helpers
 {
     /// <summary>
@@ -13,16 +15,16 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
     {
         /// <summary>
         /// Генерирует цикл обработки по слоям.
-        /// Пункт 4.4 плана: пишет структурированные блоки через ProgramBuilder.
+        /// Пункт 4.4 плана: пишет структурированные блоки через ToolPathBuilder.
         /// </summary>
         /// <param name="op">Операция кармана</param>
         /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber) - возвращает false, если обработку нужно прекратить</param>
-        /// <param name="builder">Построитель структурированной программы</param>
+        /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
             IPocketOperation op,
             Func<double, double, int, bool> generateLayer,
-            ProgramBuilder builder,
+            ToolPathBuilder builder,
             GCodeSettings settings)
         {
             // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл по слоям
