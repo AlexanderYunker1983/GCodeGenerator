@@ -241,5 +241,127 @@ namespace GCodeGenerator.Geometry
                 return null;
             return new Point2D { X = intersection.Value.x, Y = intersection.Value.y };
         }
+
+        /// <summary>
+        /// Проекция точки на отрезок или <c>null</c>, если проекция выходит
+        /// за его пределы дальше допуска.
+        ///
+        /// Отрезок нулевой длины — особый случай: проекции у него нет, но
+        /// точка может совпадать с ним самим, и тогда возвращается он.
+        /// </summary>
+        /// <param name="px">X точки.</param>
+        /// <param name="py">Y точки.</param>
+        /// <param name="x1">X начала отрезка.</param>
+        /// <param name="y1">Y начала отрезка.</param>
+        /// <param name="x2">X конца отрезка.</param>
+        /// <param name="y2">Y конца отрезка.</param>
+        /// <param name="boundsTolerance">Допуск выхода параметра за пределы [0; 1].</param>
+        /// <param name="degenerateLength">Длина, ниже которой отрезок считается точкой.</param>
+        public static (double x, double y)? ProjectOntoSegment(
+            double px, double py,
+            double x1, double y1,
+            double x2, double y2,
+            double boundsTolerance,
+            double degenerateLength)
+        {
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            double lengthSquared = dx * dx + dy * dy;
+
+            if (lengthSquared < degenerateLength * degenerateLength)
+            {
+                return Distance(px, py, x1, y1) < degenerateLength ? (x1, y1) : ((double x, double y)?)null;
+            }
+
+            double t = ((px - x1) * dx + (py - y1) * dy) / lengthSquared;
+            if (t < -boundsTolerance || t > 1.0 + boundsTolerance)
+                return null;
+
+            t = Math.Max(0, Math.Min(1, t));
+            return (x1 + t * dx, y1 + t * dy);
+        }
+
+        /// <summary>
+        /// Номер вершины ломаной, ближайшей к точке; −1 для пустой ломаной.
+        /// </summary>
+        /// <param name="points">Вершины ломаной.</param>
+        /// <param name="x">X точки.</param>
+        /// <param name="y">Y точки.</param>
+        public static int ClosestVertexIndex(IReadOnlyList<(double x, double y)> points, double x, double y)
+        {
+            if (points == null || points.Count == 0)
+                return -1;
+
+            int closest = 0;
+            double minSquared = double.MaxValue;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                double dx = points[i].x - x;
+                double dy = points[i].y - y;
+                double squared = dx * dx + dy * dy;
+                if (squared < minSquared)
+                {
+                    minSquared = squared;
+                    closest = i;
+                }
+            }
+
+            return closest;
+        }
+
+        /// <summary>
+        /// Ближайшая к точке точка на замкнутой ломаной вместе с номером
+        /// стороны, на которой она лежит; <c>null</c>, если ломаной нет
+        /// или точка не проецируется ни на одну сторону.
+        ///
+        /// Нужно там, где точка вычислена как пересечение и лежит на контуре
+        /// лишь с точностью до погрешности: обход контура должен начинаться
+        /// с настоящей точки контура, а не рядом с ним.
+        /// </summary>
+        /// <param name="points">Вершины замкнутой ломаной.</param>
+        /// <param name="x">X точки.</param>
+        /// <param name="y">Y точки.</param>
+        /// <param name="boundsTolerance">Допуск выхода проекции за пределы стороны.</param>
+        /// <param name="degenerateLength">Длина, ниже которой сторона считается точкой.</param>
+        public static ((double x, double y) point, int segmentIndex)? ClosestPointOnClosedPolyline(
+            IReadOnlyList<(double x, double y)> points,
+            double x, double y,
+            double boundsTolerance,
+            double degenerateLength)
+        {
+            if (points == null || points.Count < 2)
+                return null;
+
+            double minSquared = double.MaxValue;
+            (double x, double y) closest = default;
+            int closestSegment = -1;
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                var start = points[i];
+                var end = points[(i + 1) % points.Count];
+
+                var projection = ProjectOntoSegment(
+                    x, y, start.x, start.y, end.x, end.y, boundsTolerance, degenerateLength);
+                if (!projection.HasValue)
+                    continue;
+
+                double dx = projection.Value.x - x;
+                double dy = projection.Value.y - y;
+                double squared = dx * dx + dy * dy;
+                if (squared < minSquared)
+                {
+                    minSquared = squared;
+                    closest = projection.Value;
+                    closestSegment = i;
+                }
+            }
+
+            if (closestSegment < 0)
+                return null;
+
+            return (closest, closestSegment);
+        }
     }
 }

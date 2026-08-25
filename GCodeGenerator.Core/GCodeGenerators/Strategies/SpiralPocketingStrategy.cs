@@ -17,6 +17,13 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// </summary>
     public sealed class SpiralPocketingStrategy : IPocketPocketingStrategy
     {
+        /// <summary>
+        /// На сколько проекция точки может выходить за пределы стороны
+        /// контура и всё ещё считаться лежащей на ней: точка приходит из
+        /// пересечения и несёт погрешность вычисления.
+        /// </summary>
+        private const double BoundsTolerance = 0.01;
+
         public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
             var op = layer.Operation;
@@ -168,7 +175,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (!finished && wasInside && exitPoint == null)
             {
                 // Находим ближайшую точку контура к текущей позиции
-                int closestIndex = FindClosestContourPoint(currentPos, layer.ContourPoints);
+                int closestIndex = Geometry2D.ClosestVertexIndex(
+                    layer.ContourPoints, currentPos.x, currentPos.y);
                 FollowContourFromPoint(
                     op, closestIndex, layer.ContourPoints, builder, decimals);
                 // Возвращаемся в центр без подъема инструмента
@@ -197,10 +205,10 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 var p1 = contourPoints[i];
                 var p2 = contourPoints[(i + 1) % contourPoints.Count];
 
-                var intersection = FindLineSegmentIntersection(
+                var intersection = Geometry2D.SegmentIntersection(
                     start.x, start.y, end.x, end.y,
                     p1.x, p1.y, p2.x, p2.y,
-                    tolerance);
+                    tolerance, tolerance);
 
                 if (intersection.HasValue)
                 {
@@ -242,10 +250,10 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 var p1 = contourPoints[i];
                 var p2 = contourPoints[(i + 1) % contourPoints.Count];
 
-                var intersection = FindLineSegmentIntersection(
+                var intersection = Geometry2D.SegmentIntersection(
                     start.x, start.y, end.x, end.y,
                     p1.x, p1.y, p2.x, p2.y,
-                    tolerance);
+                    tolerance, tolerance);
 
                 if (intersection.HasValue)
                 {
@@ -403,83 +411,19 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         }
 
         /// <summary>
-        /// Находит сегмент контура, на котором находится заданная точка, и возвращает точку на этом сегменте.
+        /// Сторона контура, на которой лежит точка, и сама точка на ней.
+        ///
+        /// Точка приходит из пересечения спирали с контуром, поэтому лежит
+        /// на нём лишь с точностью до погрешности: обход контура должен
+        /// начинаться с настоящей его точки, а не рядом.
         /// </summary>
-        private ((double x, double y) pointOnContour, int segmentIndex)? FindContourSegment(
+        private static ((double x, double y) pointOnContour, int segmentIndex)? FindContourSegment(
             (double x, double y) point,
             List<(double x, double y)> contourPoints,
             double tolerance)
-        {
-            if (contourPoints == null || contourPoints.Count < 2)
-                return null;
+            => Geometry2D.ClosestPointOnClosedPolyline(
+                contourPoints, point.x, point.y, BoundsTolerance, tolerance);
 
-            double minDist = double.MaxValue;
-            (double x, double y)? closestPoint = null;
-            int closestSegmentIndex = -1;
-
-            for (int i = 0; i < contourPoints.Count; i++)
-            {
-                var p1 = contourPoints[i];
-                var p2 = contourPoints[(i + 1) % contourPoints.Count];
-
-                // Проецируем точку на сегмент контура
-                var projection = ProjectPointToSegment(point, p1, p2);
-                if (projection.HasValue)
-                {
-                    double dx = projection.Value.x - point.x;
-                    double dy = projection.Value.y - point.y;
-                    double dist = Math.Sqrt(dx * dx + dy * dy);
-
-                    if (dist < minDist && dist < tolerance * 10) // Увеличенный допуск для поиска
-                    {
-                        minDist = dist;
-                        closestPoint = projection.Value;
-                        closestSegmentIndex = i;
-                    }
-                }
-            }
-
-            if (closestPoint.HasValue && closestSegmentIndex >= 0)
-            {
-                return (closestPoint.Value, closestSegmentIndex);
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Проецирует точку на сегмент и возвращает проекцию, если она находится на сегменте.
-        /// </summary>
-        private (double x, double y)? ProjectPointToSegment(
-            (double x, double y) point,
-            (double x, double y) segStart,
-            (double x, double y) segEnd)
-        {
-            double dx = segEnd.x - segStart.x;
-            double dy = segEnd.y - segStart.y;
-            double segLenSq = dx * dx + dy * dy;
-
-            if (segLenSq < 1e-12)
-            {
-                // Сегмент нулевой длины
-                double dist = Math.Sqrt(Math.Pow(point.x - segStart.x, 2) + Math.Pow(point.y - segStart.y, 2));
-                if (dist < GeometryTolerances.Vertex)
-                    return segStart;
-                return null;
-            }
-
-            // Параметр t для проекции: t = 0 в начале сегмента, t = 1 в конце
-            double t = ((point.x - segStart.x) * dx + (point.y - segStart.y) * dy) / segLenSq;
-
-            // Если проекция находится на сегменте (с небольшим допуском)
-            if (t >= -0.01 && t <= 1.01)
-            {
-                t = Math.Max(0, Math.Min(1, t));
-                return (segStart.x + t * dx, segStart.y + t * dy);
-            }
-
-            return null;
-        }
 
         /// <summary>
         /// Обходит контур полностью от точки выхода.
@@ -494,7 +438,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
 
-            int startIndex = FindClosestContourPoint(startPoint, contourPoints);
+            int startIndex = Geometry2D.ClosestVertexIndex(contourPoints, startPoint.x, startPoint.y);
             if (startIndex < 0)
                 return;
 
@@ -525,43 +469,5 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
             }
         }
-
-        /// <summary>
-        /// Находит ближайшую точку контура к заданной точке.
-        /// </summary>
-        private int FindClosestContourPoint(
-            (double x, double y) point,
-            List<(double x, double y)> contourPoints)
-        {
-            if (contourPoints == null || contourPoints.Count == 0)
-                return -1;
-
-            int closestIndex = 0;
-            double minDist = double.MaxValue;
-
-            for (int i = 0; i < contourPoints.Count; i++)
-            {
-                double dx = contourPoints[i].x - point.x;
-                double dy = contourPoints[i].y - point.y;
-                double dist = Math.Sqrt(dx * dx + dy * dy);
-                if (dist < minDist)
-                {
-                    minDist = dist;
-                    closestIndex = i;
-                }
-            }
-
-            return closestIndex;
-        }
-
-        /// <summary>
-        /// Находит точку пересечения двух отрезков.
-        /// </summary>
-        private (double x, double y)? FindLineSegmentIntersection(
-            double x1, double y1, double x2, double y2,
-            double x3, double y3, double x4, double y4,
-            double tolerance)
-            => Geometry2D.SegmentIntersection(
-                x1, y1, x2, y2, x3, y3, x4, y4, tolerance, tolerance);
     }
 }

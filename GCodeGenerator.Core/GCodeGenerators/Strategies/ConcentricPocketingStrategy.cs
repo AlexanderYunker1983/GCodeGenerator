@@ -51,9 +51,13 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             bool clockwise = op.Direction == MillingDirection.Clockwise;
             const double tolerance = GeometryTolerances.Degenerate;
 
-            double offset = 0.0; // дополнительное смещение от стены
-            int safetyLimit = 10000;
-            while (safetyLimit-- > 0)
+            // Смещение растёт на шаг, шаг положителен (проверен выше), а
+            // предел конечен — значит проходов не больше, чем укладывается
+            // шагов в расстояние от центра до стенки. Прежде здесь стоял
+            // счётчик на десять тысяч оборотов: он молча обрывал обработку
+            // очень большого кармана и скрывал бы ошибку, из-за которой
+            // смещение перестало расти.
+            for (double offset = 0.0; offset < maxDistance; offset += layer.Step)
             {
                 double effectiveToolRadius = layer.ContourOffset + offset;
 
@@ -86,9 +90,6 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     builder.LinearTo(x: first.x, y: first.y, feed: op.FeedXYWork, decimals: decimals);
                 }
 
-                offset += layer.Step;
-                if (offset >= maxDistance)
-                    break;
             }
         }
     }

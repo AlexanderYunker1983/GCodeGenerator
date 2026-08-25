@@ -161,5 +161,93 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(0.0, point.Y, 1e-9);
             Assert.IsNull(Geometry2D.SegmentIntersectionPoint(0, 0, 10, 0, 0, 5, 10, 5, 1e-9, 1e-6));
         }
+
+        /// <summary>
+        /// Проекция точки на отрезок: внутри отрезка — сама проекция,
+        /// за его пределами — отказ, потому что такая точка отрезку
+        /// не принадлежит.
+        /// </summary>
+        [TestMethod]
+        public void ProjectOntoSegment_InsideAndOutside()
+        {
+            var inside = Geometry2D.ProjectOntoSegment(3, 5, 0, 0, 10, 0, 0.0, 1e-9);
+
+            Assert.IsNotNull(inside);
+            Assert.AreEqual(3.0, inside.Value.x, 1e-9);
+            Assert.AreEqual(0.0, inside.Value.y, 1e-9);
+
+            Assert.IsNull(Geometry2D.ProjectOntoSegment(-5, 0, 0, 0, 10, 0, 0.0, 1e-9),
+                "Точка перед началом отрезка на него не проецируется");
+            Assert.IsNull(Geometry2D.ProjectOntoSegment(15, 0, 0, 0, 10, 0, 0.0, 1e-9),
+                "Точка за концом отрезка на него не проецируется");
+        }
+
+        /// <summary>
+        /// Допуск границ принимает точку, вышедшую за край на долю длины:
+        /// координаты приходят из вычислений и несут погрешность.
+        /// </summary>
+        [TestMethod]
+        public void ProjectOntoSegment_BoundsTolerance_AcceptsSlightOvershoot()
+        {
+            var justOutside = Geometry2D.ProjectOntoSegment(10.05, 0, 0, 0, 10, 0, 0.01, 1e-9);
+
+            Assert.IsNotNull(justOutside);
+            Assert.AreEqual(10.0, justOutside.Value.x, 1e-9, "Проекция прижимается к концу отрезка");
+        }
+
+        /// <summary>
+        /// Отрезок нулевой длины: проецировать не на что, но совпадающая
+        /// с ним точка возвращает его самого.
+        /// </summary>
+        [TestMethod]
+        public void ProjectOntoSegment_DegenerateSegment()
+        {
+            Assert.IsNotNull(Geometry2D.ProjectOntoSegment(1, 1, 1, 1, 1, 1, 0.0, 1e-6));
+            Assert.IsNull(Geometry2D.ProjectOntoSegment(5, 5, 1, 1, 1, 1, 0.0, 1e-6));
+        }
+
+        [TestMethod]
+        public void ClosestVertexIndex_FindsNearestVertex()
+        {
+            var square = new[] { (0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0) };
+
+            Assert.AreEqual(2, Geometry2D.ClosestVertexIndex(square, 9, 9));
+            Assert.AreEqual(0, Geometry2D.ClosestVertexIndex(square, -1, -1));
+            Assert.AreEqual(-1, Geometry2D.ClosestVertexIndex(new (double x, double y)[0], 0, 0));
+        }
+
+        /// <summary>
+        /// Точка рядом с контуром ложится на его сторону, и сторона названа
+        /// номером: обход контура начинается с настоящей точки контура,
+        /// а не с той, что лежит рядом с ним.
+        /// </summary>
+        [TestMethod]
+        public void ClosestPointOnClosedPolyline_SnapsToSideAndNamesIt()
+        {
+            var square = new[] { (0.0, 0.0), (10.0, 0.0), (10.0, 10.0), (0.0, 10.0) };
+
+            var onBottom = Geometry2D.ClosestPointOnClosedPolyline(square, 4, 0.001, 0.01, 1e-9);
+
+            Assert.IsNotNull(onBottom);
+            Assert.AreEqual(0, onBottom.Value.segmentIndex, "Нижняя сторона");
+            Assert.AreEqual(4.0, onBottom.Value.point.x, 1e-9);
+            Assert.AreEqual(0.0, onBottom.Value.point.y, 1e-9);
+
+            // Замыкающая сторона идёт от последней вершины к первой и тоже
+            // участвует в поиске.
+            var onClosingSide = Geometry2D.ClosestPointOnClosedPolyline(square, 0.001, 5, 0.01, 1e-9);
+
+            Assert.IsNotNull(onClosingSide);
+            Assert.AreEqual(3, onClosingSide.Value.segmentIndex);
+            Assert.AreEqual(0.0, onClosingSide.Value.point.x, 1e-9);
+            Assert.AreEqual(5.0, onClosingSide.Value.point.y, 1e-9);
+        }
+
+        [TestMethod]
+        public void ClosestPointOnClosedPolyline_TooFewPoints_IsNull()
+        {
+            Assert.IsNull(Geometry2D.ClosestPointOnClosedPolyline(new[] { (0.0, 0.0) }, 1, 1, 0.01, 1e-9));
+            Assert.IsNull(Geometry2D.ClosestPointOnClosedPolyline(null, 1, 1, 0.01, 1e-9));
+        }
     }
 }
