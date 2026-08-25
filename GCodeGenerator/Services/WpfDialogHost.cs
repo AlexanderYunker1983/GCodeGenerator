@@ -1,12 +1,14 @@
 using System;
 using System.Windows;
 using GCodeGenerator.ViewModels;
+using GCodeGenerator.Views;
 
 namespace GCodeGenerator.Services
 {
     /// <summary>
     /// WPF-реализация <see cref="IDialogHost"/>: показывает окно, найденное
-    /// по имени view-модели, и блокирует до его закрытия.
+    /// для view-модели в <see cref="DialogViewRegistry"/>, и блокирует
+    /// до его закрытия.
     /// </summary>
     public class WpfDialogHost : IDialogHost
     {
@@ -14,7 +16,7 @@ namespace GCodeGenerator.Services
         {
             if (viewModel == null) throw new ArgumentNullException(nameof(viewModel));
 
-            var window = (Window)Activator.CreateInstance(GetViewType(viewModel.GetType()));
+            var window = (Window)Activator.CreateInstance(DialogViewRegistry.ViewFor(viewModel.GetType()));
             window.DataContext = viewModel;
             window.Owner = Application.Current?.MainWindow;
 
@@ -35,26 +37,6 @@ namespace GCodeGenerator.Services
                 closeable.CloseRequested -= closeHandler;
                 closeable.OnClosed();
             }
-        }
-
-        /// <summary>
-        /// Конвенция соответствия view-модели и окна:
-        /// <c>GCodeGenerator.ViewModels[.Sub].XxxViewModel → GCodeGenerator.Views[.Sub].XxxView</c>.
-        /// </summary>
-        private static Type GetViewType(Type viewModelType)
-        {
-            var vmNamespace = viewModelType.Namespace ?? string.Empty;
-            var viewNamespace = vmNamespace.Replace(".ViewModels", ".Views");
-            const string suffix = "ViewModel";
-            var baseName = viewModelType.Name.EndsWith(suffix)
-                ? viewModelType.Name.Substring(0, viewModelType.Name.Length - suffix.Length)
-                : viewModelType.Name;
-            var viewName = baseName + "View";
-            var viewType = Type.GetType($"{viewNamespace}.{viewName}");
-            if (viewType == null)
-                throw new InvalidOperationException(
-                    $"Не найден тип окна для view-модели {viewModelType.FullName} (ожидался {viewNamespace}.{viewName}).");
-            return viewType;
         }
     }
 }
