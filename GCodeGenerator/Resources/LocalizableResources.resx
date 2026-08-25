@@ -384,6 +384,9 @@
   <data name="UnexpectedErrorMessage" xml:space="preserve">
     <value>Непредвиденная ошибка. Работа программы продолжена, сохраните проект. Подробности записаны в журнал:</value>
   </data>
+  <data name="FatalErrorMessage" xml:space="preserve">
+    <value>Непредвиденная ошибка: продолжать работу небезопасно, программа будет закрыта. Проект сохранён отдельным файлом, подробности записаны в журнал:</value>
+  </data>
   <data name="CodeGenerationSettingsTab" xml:space="preserve">
     <value>Генерация кода</value>
   </data>

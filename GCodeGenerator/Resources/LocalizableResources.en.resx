@@ -384,6 +384,9 @@
   <data name="UnexpectedErrorMessage" xml:space="preserve">
     <value>Unexpected error. The application keeps running, please save the project. Details are written to the log:</value>
   </data>
+  <data name="FatalErrorMessage" xml:space="preserve">
+    <value>Unexpected error: continuing is unsafe, the application will close. The project has been saved to a separate file, details are written to the log:</value>
+  </data>
   <data name="CodeGenerationSettingsTab" xml:space="preserve">
     <value>Code generation</value>
   </data>

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using System.Windows;
@@ -7,6 +8,7 @@ using Autofac;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Persistence;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.Views;
@@ -21,6 +23,8 @@ namespace GCodeGenerator
         private IAppLogger _logger = NullAppLogger.Instance;
         private ILocalizationManager _localizationManager;
         private IContainer _container;
+        private CrashHandler _crashHandler;
+        private MainViewModel _mainViewModel;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -88,8 +92,21 @@ namespace GCodeGenerator
 
             logger.Info($"Запуск GCodeGenerator {versionString}");
 
+            // Аварийное сохранение проекта: обработчику сбоя нужны служба
+            // файла проекта и каталог рядом с журналом.
+            _crashHandler = new CrashHandler(
+                _container.Resolve<IProjectFileService>(),
+                logger,
+                System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "GCodeGenerator",
+                    "crash"));
+
             // Главное окно (ранее — MvvmApplication.GetStartViewModelType + ShowAsync).
-            var mainWindow = new MainView { DataContext = _container.Resolve<MainViewModel>() };
+            // Ссылка на его view-модель нужна аварийному снимку: документ
+            // живёт в ней, а зарегистрирована она как создаваемая заново.
+            _mainViewModel = _container.Resolve<MainViewModel>();
+            var mainWindow = new MainView { DataContext = _mainViewModel };
             MainWindow = mainWindow;
             mainWindow.Show();
 
@@ -121,10 +138,11 @@ namespace GCodeGenerator
         /// собственных catch закрывало приложение молча, вместе с несохранённым
         /// проектом.
         ///
-        /// Исключение UI-потока журналируется и показывается пользователю, после
-        /// чего помечается обработанным: приложение продолжает работу, чтобы
-        /// проект можно было сохранить. Исключения фоновых потоков остановить
-        /// нельзя — они только журналируются.
+        /// Что делать со сбоем, решает <see cref="CrashHandler"/>: отказ
+        /// внешнего ресурса и отменённая операция гасятся, всё остальное
+        /// ведёт к аварийному снимку проекта и завершению — работа на
+        /// повреждённой модели опаснее, чем остановка. Исключения фоновых
+        /// потоков остановить нельзя, они только журналируются.
         /// </summary>
         private void HookUnhandledExceptionHandlers()
         {
@@ -137,7 +155,33 @@ namespace GCodeGenerator
         {
             _logger.Error("Необработанное исключение в потоке пользовательского интерфейса", e.Exception);
             e.Handled = true;
-            ShowUnhandledExceptionMessage(e.Exception);
+
+            if (CrashHandler.Classify(e.Exception) == CrashResponse.Continue)
+            {
+                ShowUnhandledExceptionMessage(e.Exception, null);
+                return;
+            }
+
+            var snapshotPath = SaveCrashSnapshot();
+            ShowUnhandledExceptionMessage(e.Exception, snapshotPath);
+            // Код возврата отличает аварийное завершение от обычного выхода.
+            Shutdown(1);
+        }
+
+        /// <summary>
+        /// Снимок документа на момент сбоя — в отдельный файл, а не поверх
+        /// проекта пользователя: что именно случилось с моделью, неизвестно.
+        /// </summary>
+        private string SaveCrashSnapshot()
+        {
+            var workspace = _mainViewModel?.OperationsWorkspace;
+            if (_crashHandler == null || workspace == null)
+                return null;
+
+            return _crashHandler.TrySaveSnapshot(
+                workspace.AllOperations.ToList(),
+                _container?.Resolve<ISettingsStore>()?.Current,
+                DateTime.Now);
         }
 
         private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -157,17 +201,21 @@ namespace GCodeGenerator
         /// Сообщение о сбое с путём к журналу. Само по себе не должно приводить
         /// к повторному исключению, поэтому вызов защищён.
         /// </summary>
-        private void ShowUnhandledExceptionMessage(Exception exception)
+        /// <param name="exception">Исключение, вызвавшее сбой.</param>
+        /// <param name="snapshotPath">Путь к аварийному снимку или <c>null</c>.</param>
+        private void ShowUnhandledExceptionMessage(Exception exception, string snapshotPath)
         {
             try
             {
                 var title = _localizationManager?.GetString("Error") ?? "Error";
-                var message = _localizationManager?.GetString("UnexpectedErrorMessage")
+                var message = _localizationManager?.GetString(
+                    snapshotPath == null ? "UnexpectedErrorMessage" : "FatalErrorMessage")
                     ?? "UnexpectedErrorMessage";
                 var logPath = (_logger as FileAppLogger)?.FilePath;
-                var details = string.IsNullOrEmpty(logPath)
-                    ? exception?.Message
-                    : $"{exception?.Message}\n\n{logPath}";
+                var details = string.Join(
+                    "\n\n",
+                    new[] { exception?.Message, snapshotPath, logPath }
+                        .Where(part => !string.IsNullOrEmpty(part)));
                 MessageBox.Show($"{message}\n\n{details}", title, MessageBoxButton.OK, MessageBoxImage.Error);
             }
             catch (Exception reportingFailure)
