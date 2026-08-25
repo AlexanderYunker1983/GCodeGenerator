@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace GCodeGenerator.Models
@@ -31,7 +32,7 @@ namespace GCodeGenerator.Models
         public double Number { get; }
 
         /// <summary>Raw text; non-null means the word is rendered verbatim.</summary>
-        public string Text { get; }
+        public string? Text { get; }
 
         /// <summary>
         /// Decimal places for axis/word numbers; -1 means plain

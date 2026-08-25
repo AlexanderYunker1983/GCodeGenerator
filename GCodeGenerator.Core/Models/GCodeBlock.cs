@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -10,7 +11,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public sealed class GCodeBlock
     {
-        public GCodeBlock(IReadOnlyList<GCodeWord> words, string comment = null)
+        public GCodeBlock(IReadOnlyList<GCodeWord> words, string? comment = null)
         {
             Words = words ?? (IReadOnlyList<GCodeWord>)Array.Empty<GCodeWord>();
             Comment = comment;
@@ -26,6 +27,6 @@ namespace GCodeGenerator.Models
         public IReadOnlyList<GCodeWord> Words { get; }
 
         /// <summary>Line comment text (rendered as "(...)"); null for command lines.</summary>
-        public string Comment { get; }
+        public string? Comment { get; }
     }
 }

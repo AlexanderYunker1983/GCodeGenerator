@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -26,14 +27,14 @@ namespace GCodeGenerator.Models
     {
         private static readonly JsonSerializerOptions SettingsOptions = new JsonSerializerOptions();
 
-        private GenerationSnapshot(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+        private GenerationSnapshot(IReadOnlyList<OperationBase?> operations, GCodeSettings settings)
         {
             Operations = operations;
             Settings = settings;
         }
 
         /// <summary>Копии операций в порядке обработки.</summary>
-        public IReadOnlyList<OperationBase> Operations { get; }
+        public IReadOnlyList<OperationBase?> Operations { get; }
 
         /// <summary>Копия настроек генерации.</summary>
         public GCodeSettings Settings { get; }
@@ -51,7 +52,10 @@ namespace GCodeGenerator.Models
             if (settings == null)
                 throw new ArgumentNullException(nameof(settings));
 
-            var copies = new List<OperationBase>();
+            // Пустая операция в списке возможна: файл проекта, написанный
+            // вручную, способен принести и такое — снимок сохраняет её как
+            // есть, а отклонит её проверка перед генерацией.
+            var copies = new List<OperationBase?>();
             foreach (var operation in operations)
                 copies.Add(operation == null ? null : OperationCloner.Clone(operation));
 

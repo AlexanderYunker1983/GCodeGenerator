@@ -1,3 +1,4 @@
+#nullable enable
 ﻿namespace GCodeGenerator.Models
 {
     public enum PocketStrategy

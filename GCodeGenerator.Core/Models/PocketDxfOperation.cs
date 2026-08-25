@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,7 +20,7 @@ namespace GCodeGenerator.Models
 
         [ObservableProperty]
 
-        private string _dxfFilePath;
+        private string _dxfFilePath = string.Empty;
 
         public override string GetDescription()
         {
@@ -54,7 +55,7 @@ namespace GCodeGenerator.Models
                         issues.Add(new ValidationIssue($"ClosedContours[{i}].Points", "a closed contour needs at least 3 points"));
                         continue;
                     }
-                    if (!OperationValidation.IsContourClosed(contour))
+                    if (contour != null && !OperationValidation.IsContourClosed(contour))
                         issues.Add(new ValidationIssue($"ClosedContours[{i}]", "contour is not closed (first and last points differ)"));
                 }
             }

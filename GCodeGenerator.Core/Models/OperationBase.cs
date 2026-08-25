@@ -1,3 +1,9 @@
+// Проверка ссылок на пустоту включена пофайлово, начиная с моделей:
+// компилятор отличает «здесь пусто не бывает» от «пусто возможно» и
+// требует это различие проговорить. Включать её сразу на весь продукт
+// нельзя — предупреждений около тысячи; папка моделей идёт первой,
+// потому что именно через модели пустота расходится по остальному коду.
+#nullable enable
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -20,9 +26,9 @@ namespace GCodeGenerator.Models
     /// </summary>
     public abstract class OperationBase : ObservableObject, INotifyDataErrorInfo
     {
-        private string _name;
+        private string _name = string.Empty;
         private bool _isEnabled = true;
-        private IReadOnlyList<ValidationIssue> _issues;
+        private IReadOnlyList<ValidationIssue>? _issues;
         private bool _issuesAreStale = true;
 
         protected OperationBase(OperationCategory category, string name)
@@ -79,13 +85,13 @@ namespace GCodeGenerator.Models
         /// их прямо у полей: то же правило, по которому генерация отказывается
         /// строить программу, видно пользователю до нажатия кнопки.
         /// </summary>
-        public event EventHandler<DataErrorsChangedEventArgs> ErrorsChanged;
+        public event EventHandler<DataErrorsChangedEventArgs>? ErrorsChanged;
 
         /// <inheritdoc />
         public bool HasErrors => Issues.Count > 0;
 
         /// <inheritdoc />
-        public IEnumerable GetErrors(string propertyName)
+        public IEnumerable GetErrors(string? propertyName)
         {
             if (string.IsNullOrEmpty(propertyName))
                 return Issues.Select(ValidationMessages.Describe).ToList();
@@ -104,7 +110,7 @@ namespace GCodeGenerator.Models
         {
             get
             {
-                if (!_issuesAreStale)
+                if (!_issuesAreStale && _issues != null)
                     return _issues;
 
                 _issues = this is IValidatable validatable

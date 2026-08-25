@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -84,7 +85,7 @@ namespace GCodeGenerator.Models
                 if (hole != null) hole.PropertyChanged -= OnHoleChanged;
         }
 
-        private void OnHolesCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnHolesCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             // Отверстие может быть пустым: файл проекта, написанный вручную,
             // способен принести и такое — валидация сообщит об этом отдельно.
@@ -99,7 +100,7 @@ namespace GCodeGenerator.Models
             OnPropertyChanged(nameof(Holes));
         }
 
-        private void OnHoleChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void OnHoleChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
             => OnPropertyChanged(nameof(Holes));
 
         /// <summary>

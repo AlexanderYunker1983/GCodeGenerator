@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -19,7 +20,7 @@ namespace GCodeGenerator.Models
 
         [ObservableProperty]
 
-        private string _dxfFilePath;
+        private string _dxfFilePath = string.Empty;
 
         public override string GetDescription()
         {

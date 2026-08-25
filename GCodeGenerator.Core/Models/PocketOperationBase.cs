@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.GCodeGenerators.Interfaces;
 
 using CommunityToolkit.Mvvm.ComponentModel;
