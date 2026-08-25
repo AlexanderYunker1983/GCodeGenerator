@@ -240,6 +240,9 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Check the parameters: values must be positive and the operation must have geometry</value>
   </data>
+  <data name="ShowToolPath" xml:space="preserve">
+    <value>Tool path</value>
+  </data>
   <data name="Validation.NotPositive" xml:space="preserve">
     <value>The value must be greater than zero</value>
   </data>

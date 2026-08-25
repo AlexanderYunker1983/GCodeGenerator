@@ -89,12 +89,20 @@ namespace GCodeGenerator.Toolpath
     /// </summary>
     public sealed class ToolPathOperation
     {
-        public ToolPathOperation(string name, string description, int decimals)
+        public ToolPathOperation(string name, string description, int decimals, object source = null)
         {
             Name = name ?? string.Empty;
             Description = description ?? string.Empty;
             Decimals = decimals;
+            Source = source;
         }
+
+        /// <summary>
+        /// Операция, породившая эту траекторию. Нужна предпросмотру: он
+        /// подсвечивает выбранную операцию и открывает её по двойному щелчку,
+        /// поэтому обязан знать, чей участок траектории показывает.
+        /// </summary>
+        public object Source { get; }
 
         /// <summary>Имя операции, заданное пользователем.</summary>
         public string Name { get; }

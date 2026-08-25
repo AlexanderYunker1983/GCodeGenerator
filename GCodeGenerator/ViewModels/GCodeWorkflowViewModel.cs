@@ -92,6 +92,21 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        /// <summary>
+        /// Траектория последней успешной генерации: её показывают оба
+        /// предпросмотра — трёхмерный целиком, двумерный видом сверху.
+        /// </summary>
+        public Toolpath.ToolPath GeneratedToolPath
+        {
+            get => _generatedToolPath;
+            private set
+            {
+                if (ReferenceEquals(value, _generatedToolPath)) return;
+                _generatedToolPath = value;
+                OnPropertyChanged();
+            }
+        }
+
         public ICommand GenerateGCodeCommand { get; }
 
         public ICommand SaveGCodeCommand { get; }
@@ -101,7 +116,7 @@ namespace GCodeGenerator.ViewModels
         public void InvalidateGeneratedProgram()
         {
             Interlocked.Increment(ref _documentRevision);
-            _generatedToolPath = null;
+            GeneratedToolPath = null;
             GCodePreview = string.Empty;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
         }
@@ -113,7 +128,7 @@ namespace GCodeGenerator.ViewModels
 
             IsGenerating = true;
             ProgressPercent = 0;
-            _generatedToolPath = null;
+            GeneratedToolPath = null;
             GCodePreview = string.Empty;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
@@ -145,7 +160,7 @@ namespace GCodeGenerator.ViewModels
                     return;
                 }
 
-                _generatedToolPath = toolPath;
+                GeneratedToolPath = toolPath;
                 var text = new StringBuilder();
                 foreach (var line in program.Lines)
                     text.AppendLine(line);
@@ -155,7 +170,7 @@ namespace GCodeGenerator.ViewModels
             }
             catch (Exception ex)
             {
-                _generatedToolPath = null;
+                GeneratedToolPath = null;
                 GCodePreview = string.Empty;
                 ProgressPercent = 0;
                 _logger.Error("G-code generation failed", ex);
@@ -204,7 +219,7 @@ namespace GCodeGenerator.ViewModels
                 return;
 
             var viewModel = _dialogService.CreateViewModel<PreviewViewModel>();
-            viewModel.ToolPath = _generatedToolPath;
+            viewModel.ToolPath = GeneratedToolPath;
             _dialogService.ShowDialog(viewModel);
         }
     }

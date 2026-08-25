@@ -13,7 +13,13 @@ namespace GCodeGenerator.Preview
         Point,
 
         /// <summary>A polyline / closed contour (profile or pocket).</summary>
-        Contour
+        Contour,
+
+        /// <summary>Рабочий ход инструмента — то, что снимает материал.</summary>
+        CuttingMove,
+
+        /// <summary>Холостой ход — переход между участками обработки.</summary>
+        RapidMove
     }
 
     /// <summary>

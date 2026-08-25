@@ -22,6 +22,8 @@ namespace GCodeGenerator.ViewModels
         private readonly IThemeService _themeService;
         private OperationScene _scene;
         private OperationBase _selectedOperation;
+        private Toolpath.ToolPath _toolPath;
+        private bool _showToolPath;
 
         public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService themeService)
         {
@@ -73,10 +75,53 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Raised when the application theme changed (view redraws the scene) — пункт 7.5 плана.</summary>
         public event EventHandler ThemeChanged;
 
+        /// <summary>
+        /// Показывать траекторию инструмента вместо контуров операций.
+        ///
+        /// Контуры показывают замысел — где лежит окружность, каких размеров
+        /// прямоугольник, — но не знают ни о компенсации радиуса фрезы,
+        /// ни о стратегии выборки, ни о числе проходов. Траектория показывает
+        /// то, что действительно проделает станок.
+        /// </summary>
+        public bool ShowToolPath
+        {
+            get => _showToolPath;
+            set
+            {
+                if (value == _showToolPath) return;
+                _showToolPath = value;
+                OnPropertyChanged();
+                RebuildScene();
+            }
+        }
+
+        /// <summary>
+        /// Траектория последней генерации. Пока её нет, показывать нечего,
+        /// и предпросмотр остаётся на контурах.
+        /// </summary>
+        public Toolpath.ToolPath ToolPath
+        {
+            get => _toolPath;
+            set
+            {
+                if (ReferenceEquals(value, _toolPath)) return;
+                _toolPath = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasToolPath));
+                if (ShowToolPath)
+                    RebuildScene();
+            }
+        }
+
+        /// <summary>Есть ли что показывать в режиме траектории.</summary>
+        public bool HasToolPath => _toolPath != null && !_toolPath.IsEmpty;
+
         /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
         public void RebuildScene()
         {
-            Scene = OperationSceneBuilder.Build(_operations);
+            Scene = ShowToolPath && _toolPath != null
+                ? ToolPathSceneProjection.Build(_toolPath)
+                : OperationSceneBuilder.Build(_operations);
         }
 
         /// <summary>Запрос редактирования выбранной операции (вызывается из view по двойному клику).</summary>

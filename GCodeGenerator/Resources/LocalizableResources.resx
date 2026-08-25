@@ -240,6 +240,9 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Проверьте параметры: значения должны быть положительными, а операция — содержать геометрию</value>
   </data>
+  <data name="ShowToolPath" xml:space="preserve">
+    <value>Траектория инструмента</value>
+  </data>
   <data name="Validation.NotPositive" xml:space="preserve">
     <value>Значение должно быть больше нуля</value>
   </data>

@@ -179,6 +179,11 @@ namespace GCodeGenerator.ViewModels
 
         private void OnGCodeWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            // Двумерный предпросмотр умеет показывать саму траекторию, а не
+            // только контуры операций: он получает её от той же генерации.
+            if (e.PropertyName == nameof(GCodeWorkflowViewModel.GeneratedToolPath))
+                _operationsWorkspace.OperationsPreview.ToolPath = _gCodeWorkflow.GeneratedToolPath;
+
             if (e.PropertyName == nameof(GCodeWorkflowViewModel.GCodePreview) ||
                 e.PropertyName == nameof(GCodeWorkflowViewModel.IsGenerating) ||
                 e.PropertyName == nameof(GCodeWorkflowViewModel.ProgressPercent))

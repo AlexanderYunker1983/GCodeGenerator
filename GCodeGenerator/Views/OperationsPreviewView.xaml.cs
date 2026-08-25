@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
@@ -90,6 +90,25 @@ namespace GCodeGenerator.Views
         private void OnShowAllRequested(object sender, EventArgs e)
         {
             FitAll();
+        }
+
+        /// <summary>
+        /// Цвет фигуры по её роли: отверстия, контуры, рабочие ходы и
+        /// холостые переходы должны различаться с одного взгляда.
+        /// </summary>
+        private static Brush StrokeFor(OperationShapeKind kind)
+        {
+            switch (kind)
+            {
+                case OperationShapeKind.Point:
+                    return Brushes.SteelBlue;
+                case OperationShapeKind.CuttingMove:
+                    return Brushes.DarkGreen;
+                case OperationShapeKind.RapidMove:
+                    return Brushes.SlateGray;
+                default:
+                    return Brushes.DarkGreen;
+            }
         }
 
         private OperationBase GetOperationFromSource(object source)
@@ -255,7 +274,7 @@ namespace GCodeGenerator.Views
                 else if (ReferenceEquals(op, hover))
                     stroke = Brushes.Orange;
                 else
-                    stroke = shape.Kind == OperationShapeKind.Point ? Brushes.SteelBlue : Brushes.DarkGreen;
+                    stroke = StrokeFor(shape.Kind);
 
                 if (shape.Kind == OperationShapeKind.Point)
                 {
@@ -264,7 +283,8 @@ namespace GCodeGenerator.Views
                 }
                 else
                 {
-                    DrawPolyline(shape.Points, stroke, op, shape.IsFilled);
+                    DrawPolyline(shape.Points, stroke, op, shape.IsFilled,
+                        dashed: shape.Kind == OperationShapeKind.RapidMove);
                 }
             }
         }
@@ -365,7 +385,7 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(ellipse);
         }
 
-        private void DrawPolyline(IReadOnlyList<(double X, double Y)> worldPoints, Brush stroke, OperationBase op, bool fill)
+        private void DrawPolyline(IReadOnlyList<(double X, double Y)> worldPoints, Brush stroke, OperationBase op, bool fill, bool dashed = false)
         {
             if (worldPoints == null || worldPoints.Count == 0)
                 return;
