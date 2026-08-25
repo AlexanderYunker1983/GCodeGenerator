@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 
 namespace GCodeGenerator.GCodeGenerators
 {

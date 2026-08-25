@@ -1,23 +1,21 @@
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Geometry;
-using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 
 namespace GCodeGenerator.Preview
 {
     /// <summary>
-    /// Builds an <see cref="OperationScene"/> from operations (plan item 6.3).
-    /// Contour point generation moved here from the OperationsPreviewView
-    /// code-behind:
-    /// - profiles: <see cref="ProfileGeometryFactory"/> (on-line contour,
-    ///   toolOffset 0 — the preview shows the contour, not the tool path);
-    /// - pockets: <see cref="PocketGeometryFactory"/> (contour with toolRadius
-    ///   0, taperOffset 0);
-    /// - DXF: raw polylines/contours from the operation (the geometry
-    ///   factories merge or offset them, which does not fit the preview);
-    /// - drilling: one point per hole.
+    /// Строит плоскую схему операций (<see cref="OperationScene"/>).
+    ///
+    /// Раньше построитель сам разбирал типы операций: сверление — точки,
+    /// профиль — контур из фабрики геометрии, чертёж — исходные полилинии.
+    /// Тот же разбор повторялся в фабриках геометрии и в файле проекта,
+    /// поэтому новый тип операции мог собраться, сохраниться и не появиться
+    /// на схеме. Теперь очертание операции описано в каталоге вместе с
+    /// остальными её свойствами, а здесь остаётся перевод очертания в фигуру
+    /// схемы: замкнут ли контур и чем он рисуется.
     /// </summary>
     public static class OperationSceneBuilder
     {
@@ -32,63 +30,17 @@ namespace GCodeGenerator.Preview
                 if (operation == null)
                     continue;
 
-                if (operation is DrillPointsOperation drill)
+                foreach (var outline in OperationCatalog.OutlinesOf(operation))
                 {
-                    foreach (var hole in drill.Holes)
-                        shapes.Add(new OperationShape(operation, OperationShapeKind.Point,
-                            new[] { (hole.X, hole.Y) }, false, false));
-                }
-                else if (operation is ProfileDxfOperation dxfProfile)
-                {
-                    foreach (var polyline in dxfProfile.Polylines ?? new List<Polyline2D>())
-                    {
-                        if (polyline?.Points == null || polyline.Points.Count < 2)
-                            continue;
+                    if (outline?.Points == null || outline.Points.Count == 0)
+                        continue;
 
-                        var points = new List<(double X, double Y)>(polyline.Points.Count);
-                        foreach (var p in polyline.Points)
-                            points.Add((p.X, p.Y));
+                    var kind = outline.Kind == OperationOutlineKind.Points
+                        ? OperationShapeKind.Point
+                        : OperationShapeKind.Contour;
 
-                        shapes.Add(new OperationShape(operation, OperationShapeKind.Contour,
-                            points, IsClosed(points), false));
-                    }
-                }
-                else if (operation is IProfileOperation profile)
-                {
-                    var geometry = ProfileGeometryFactory.Create(operation);
-                    var points = new List<(double X, double Y)>();
-                    foreach (var (x, y) in geometry.GetContourPoints(0, profile.Direction))
-                        points.Add((x, y));
-
-                    if (points.Count > 0)
-                        shapes.Add(new OperationShape(operation, OperationShapeKind.Contour,
-                            points, IsClosed(points), false));
-                }
-                else if (operation is PocketDxfOperation dxfPocket)
-                {
-                    foreach (var contour in dxfPocket.ClosedContours ?? new List<Polyline2D>())
-                    {
-                        if (contour?.Points == null || contour.Points.Count < 3)
-                            continue;
-
-                        var points = new List<(double X, double Y)>(contour.Points.Count);
-                        foreach (var p in contour.Points)
-                            points.Add((p.X, p.Y));
-
-                        shapes.Add(new OperationShape(operation, OperationShapeKind.Contour,
-                            points, IsClosed(points), true));
-                    }
-                }
-                else if (operation is IPocketOperation)
-                {
-                    var geometry = PocketGeometryFactory.Create(operation);
-                    var points = new List<(double X, double Y)>();
-                    foreach (var (x, y) in geometry.GetContour(0, 0).GetPoints())
-                        points.Add((x, y));
-
-                    if (points.Count >= 3)
-                        shapes.Add(new OperationShape(operation, OperationShapeKind.Contour,
-                            points, IsClosed(points), true));
+                    shapes.Add(new OperationShape(
+                        operation, kind, outline.Points, IsClosed(outline.Points), outline.IsArea));
                 }
             }
 

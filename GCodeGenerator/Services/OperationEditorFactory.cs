@@ -2,18 +2,14 @@ using System;
 using System.Collections.ObjectModel;
 using GCodeGenerator.Models;
 using GCodeGenerator.ViewModels;
-using GCodeGenerator.ViewModels.Drill;
-using GCodeGenerator.ViewModels.Pocket;
-using GCodeGenerator.ViewModels.PocketMill;
 
 namespace GCodeGenerator.Services
 {
     /// <summary>
-    /// Фабрика диалогов редактора операций (пункт 7.3 плана): реестр
-    /// «тип операции → тип диалоговой VM». Сверление диспетчеризуется по
-    /// <see cref="DrillMode"/> (пункт 3.4 плана), а не по имени операции.
-    /// Единая точка создания/показа диалогов операций: добавление
-    /// (категорийные VM) и редактирование (MainViewModel).
+    /// Фабрика диалогов редактора операций (пункт 7.3 плана): единая точка
+    /// создания и показа диалогов — и при добавлении операции с вкладки,
+    /// и при её изменении из общего списка. Какой диалог отвечает за какую
+    /// операцию, знает <see cref="OperationEditorRegistry"/>.
     /// </summary>
     public interface IOperationEditorFactory
     {
@@ -52,24 +48,7 @@ namespace GCodeGenerator.Services
         }
 
         public Type GetViewModelType(OperationBase operation)
-        {
-            switch (operation)
-            {
-                case DrillPointsOperation drill:
-                    return GetDrillViewModelType(drill.DrillMode);
-                case PocketCircleOperation: return typeof(PocketCircleOperationViewModel);
-                case PocketRectangleOperation: return typeof(PocketRectangleOperationViewModel);
-                case PocketEllipseOperation: return typeof(PocketEllipseOperationViewModel);
-                case PocketDxfOperation: return typeof(PocketDxfOperationViewModel);
-                case ProfileCircleOperation: return typeof(ProfileCircleOperationViewModel);
-                case ProfileRectangleOperation: return typeof(ProfileRectangleOperationViewModel);
-                case ProfileRoundedRectangleOperation: return typeof(ProfileRoundedRectangleOperationViewModel);
-                case ProfileEllipseOperation: return typeof(ProfileEllipseOperationViewModel);
-                case ProfilePolygonOperation: return typeof(ProfilePolygonOperationViewModel);
-                case ProfileDxfOperation: return typeof(ProfileDxfOperationViewModel);
-                default: return null;
-            }
-        }
+            => OperationEditorRegistry.ViewModelTypeFor(operation);
 
         public void ShowEditor(OperationBase operation, ObservableCollection<OperationBase> allOperations)
         {
@@ -114,27 +93,6 @@ namespace GCodeGenerator.Services
             editor.SetOperation(operation);
             _dialogService.ShowDialog(vmType, vm);
             return editor.IsAccepted;
-        }
-
-        /// <summary>
-        /// Тип диалоговой VM сверления (пункт 3.4 плана): диспетчеризация по
-        /// <see cref="DrillMode"/>, а не по имени операции. Пункт 7.3: перенесён
-        /// из MainViewModel.
-        /// </summary>
-        private static Type GetDrillViewModelType(DrillMode mode)
-        {
-            switch (mode)
-            {
-                case DrillMode.Line: return typeof(DrillLineOperationViewModel);
-                case DrillMode.Array: return typeof(DrillArrayOperationViewModel);
-                case DrillMode.Rect: return typeof(DrillRectOperationViewModel);
-                case DrillMode.Circle: return typeof(DrillCircleOperationViewModel);
-                case DrillMode.Arc: return typeof(DrillArcOperationViewModel);
-                case DrillMode.Polygon: return typeof(DrillPolygonOperationViewModel);
-                case DrillMode.Ellipse: return typeof(DrillEllipseOperationViewModel);
-                case DrillMode.Package: return typeof(DrillPackageOperationViewModel);
-                default: return typeof(DrillPointsOperationViewModel);
-            }
         }
     }
 }

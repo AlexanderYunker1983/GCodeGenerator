@@ -1,5 +1,7 @@
+using System;
 using System.Globalization;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Operations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -69,6 +71,33 @@ namespace GCodeGenerator.Tests
             manager.ChangeCulture(new CultureInfo("en"));
 
             Assert.AreEqual("?NoSuchKey?", manager.GetString("NoSuchKey"));
+        }
+
+        /// <summary>
+        /// Название новой операции берётся из словаря по ключу каталога.
+        /// Ключ живёт рядом с типом операции, а словарь — в приложении,
+        /// поэтому проверка здесь: тип, добавленный в каталог без перевода,
+        /// появлялся бы в списке операций под «?ключ?».
+        /// </summary>
+        [TestMethod]
+        public void EveryCatalogType_HasTranslatedDefaultName()
+        {
+            foreach (var culture in new[] { "ru", "en" })
+            {
+                var manager = CreateManager();
+                manager.ChangeCulture(new CultureInfo(culture));
+
+                foreach (var descriptor in OperationCatalog.All)
+                {
+                    Assert.AreEqual(descriptor.PersistentName + "Name", descriptor.NameKey);
+
+                    var name = manager.GetString(descriptor.NameKey);
+
+                    Assert.IsFalse(string.IsNullOrWhiteSpace(name), descriptor.NameKey);
+                    Assert.IsFalse(name.StartsWith("?", StringComparison.Ordinal),
+                        $"{culture}: нет перевода названия {descriptor.NameKey}");
+                }
+            }
         }
     }
 }

@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
-using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 
 namespace GCodeGenerator.GCodeGenerators
 {
@@ -180,7 +180,7 @@ namespace GCodeGenerator.GCodeGenerators
         {
             var toolRadius = operation.ToolDiameter / 2.0;
             var taperOffset = GCodeGenerationHelper.CalculateTaperOffset(operation.TotalDepth, operation.WallTaperAngleDeg);
-            return PocketGeometryFactory.Create((OperationBase)operation).IsContourTooSmall(toolRadius, taperOffset);
+            return OperationCatalog.CreatePocketGeometry((OperationBase)operation).IsContourTooSmall(toolRadius, taperOffset);
         }
     }
 }

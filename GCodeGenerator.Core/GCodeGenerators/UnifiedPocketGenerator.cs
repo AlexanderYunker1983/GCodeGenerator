@@ -8,6 +8,7 @@ using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Operations;
 using GCodeGenerator.Toolpath;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -63,7 +64,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <see cref="IPocketOperation"/> наследуются от <see cref="OperationBase"/>.
         /// </summary>
         private static IPocketGeometry CreateGeometry(IPocketOperation op)
-            => PocketGeometryFactory.Create((OperationBase)op);
+            => OperationCatalog.CreatePocketGeometry((OperationBase)op);
 
         public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {

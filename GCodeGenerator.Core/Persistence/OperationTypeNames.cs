@@ -1,5 +1,5 @@
 using System;
-using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 
 namespace GCodeGenerator.Persistence
 {

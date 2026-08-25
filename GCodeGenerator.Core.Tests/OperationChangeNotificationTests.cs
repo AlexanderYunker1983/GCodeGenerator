@@ -7,6 +7,7 @@ using System.Reflection;
 using System.Text.Json.Serialization;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using GCodeGenerator.Operations;
 
 namespace GCodeGenerator.Tests
 {

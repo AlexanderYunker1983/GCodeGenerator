@@ -1,9 +1,7 @@
-using CommunityToolkit.Mvvm.Input;
-using GCodeGenerator.Models;
-using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 
 namespace GCodeGenerator.ViewModels.Drill
@@ -13,35 +11,26 @@ namespace GCodeGenerator.ViewModels.Drill
     /// сверления в единую коллекцию MainViewModel.AllOperations и открывает
     /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции
     /// операций нет: список отображает единую коллекцию.
+    ///
+    /// Восемь из девяти кнопок отличаются только режимом расстановки
+    /// отверстий: тип операции у них общий, поэтому команда строится по
+    /// <see cref="DrillMode"/>, а не отдельным методом на каждый режим.
     /// </summary>
-    public class DrillOperationsViewModel : ViewModelBase
+    public class DrillOperationsViewModel : OperationTabViewModelBase
     {
-        private readonly ILocalizationManager _localizationManager;
-        private readonly IOperationEditorFactory _operationEditorFactory;
-        private readonly ObservableCollection<OperationBase> _allOperations;
-
         public DrillOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
+            : base(localizationManager, operationEditorFactory, allOperations)
         {
-            _localizationManager = localizationManager;
-            _operationEditorFactory = operationEditorFactory ?? throw new ArgumentNullException(nameof(operationEditorFactory));
-            _allOperations = allOperations ?? throw new ArgumentNullException(nameof(allOperations));
-
-            AddDrillPointsCommand = new RelayCommand(AddDrillPoints);
-            AddDrillLineCommand = new RelayCommand(AddDrillLine);
-            AddDrillArrayCommand = new RelayCommand(AddDrillArray);
-            AddDrillRectCommand = new RelayCommand(AddDrillRect);
-            AddDrillCircleCommand = new RelayCommand(AddDrillCircle);
-            AddDrillArcCommand = new RelayCommand(AddDrillArc);
-            AddDrillPolygonCommand = new RelayCommand(AddDrillPolygon);
-            AddDrillEllipseCommand = new RelayCommand(AddDrillEllipse);
-            AddDrillPackageCommand = new RelayCommand(AddDrillPackage);
+            AddDrillPointsCommand = AddCommand(typeof(DrillPointsOperation));
+            AddDrillLineCommand = AddDrillCommand(DrillMode.Line);
+            AddDrillArrayCommand = AddDrillCommand(DrillMode.Array);
+            AddDrillRectCommand = AddDrillCommand(DrillMode.Rect);
+            AddDrillCircleCommand = AddDrillCommand(DrillMode.Circle);
+            AddDrillArcCommand = AddDrillCommand(DrillMode.Arc);
+            AddDrillPolygonCommand = AddDrillCommand(DrillMode.Polygon);
+            AddDrillEllipseCommand = AddDrillCommand(DrillMode.Ellipse);
+            AddDrillPackageCommand = AddDrillCommand(DrillMode.Package);
         }
-
-        /// <summary>
-        /// Событие: пользователь добавил новую операцию через вкладку
-        /// (MainViewModel выбирает её в общем списке).
-        /// </summary>
-        public event Action<OperationBase> OperationAdded;
 
         public ICommand AddDrillPointsCommand { get; }
         public ICommand AddDrillLineCommand { get; }
@@ -53,103 +42,13 @@ namespace GCodeGenerator.ViewModels.Drill
         public ICommand AddDrillEllipseCommand { get; }
         public ICommand AddDrillPackageCommand { get; }
 
-        private void AddDrillPoints()
-        {
-            var op = new DrillPointsOperation();
-            var name = _localizationManager?.GetString("DrillPointsName");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillLine()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Line);
-            var name = _localizationManager?.GetString("AddDrillLine");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillArray()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Array);
-            var name = _localizationManager?.GetString("AddDrillArray");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillRect()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Rect);
-            var name = _localizationManager?.GetString("AddDrillRect");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillCircle()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Circle);
-            var name = _localizationManager?.GetString("AddDrillCircle");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillArc()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Arc);
-            var name = _localizationManager?.GetString("AddDrillArc");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillPolygon()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Polygon);
-            var name = _localizationManager?.GetString("AddDrillPolygon");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillEllipse()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Ellipse);
-            var name = _localizationManager?.GetString("AddDrillEllipse");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
-
-        private void AddDrillPackage()
-        {
-            var op = DrillPointsOperation.CreateNew(DrillMode.Package);
-            var name = _localizationManager?.GetString("AddDrillPackage");
-            if (!string.IsNullOrEmpty(name))
-                op.Name = name;
-
-            if (_operationEditorFactory.CreateOperation(op, _allOperations))
-                OperationAdded?.Invoke(op);
-        }
+        /// <summary>
+        /// Команда добавления сверления в заданном режиме. Название операции
+        /// по умолчанию совпадает с надписью кнопки — тот же ключ перевода.
+        /// </summary>
+        private ICommand AddDrillCommand(DrillMode mode)
+            => AddCommand(
+                () => DrillPointsOperation.CreateNew(mode),
+                "AddDrill" + mode.ToString());
     }
 }

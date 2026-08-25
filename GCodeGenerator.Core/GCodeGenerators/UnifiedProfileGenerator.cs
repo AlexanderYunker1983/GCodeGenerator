@@ -7,6 +7,7 @@ using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
+using GCodeGenerator.Operations;
 using GCodeGenerator.Toolpath;
 
 namespace GCodeGenerator.GCodeGenerators
@@ -31,7 +32,7 @@ namespace GCodeGenerator.GCodeGenerators
                 return;
 
             // Создаем геометрию профиля
-            var geometry = ProfileGeometryFactory.Create(operation);
+            var geometry = OperationCatalog.CreateProfileGeometry(operation);
             if (geometry == null)
                 return;
 

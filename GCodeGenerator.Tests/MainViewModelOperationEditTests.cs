@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 using GCodeGenerator.Services;
 using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.ViewModels;
@@ -210,6 +211,53 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(typeof(ProfileEllipseOperationViewModel), factory.GetViewModelType(new ProfileEllipseOperation()));
             Assert.AreEqual(typeof(ProfilePolygonOperationViewModel), factory.GetViewModelType(new ProfilePolygonOperation()));
             Assert.AreEqual(typeof(ProfileDxfOperationViewModel), factory.GetViewModelType(new ProfileDxfOperation()));
+        }
+
+        /// <summary>
+        /// Каждому типу операции из каталога ядра соответствует диалог.
+        /// Диалог — единственная грань операции, которую ядро описать не
+        /// может, поэтому таблица живёт в приложении и легко отстаёт от
+        /// каталога: новый тип операции открывался бы по «изменить» ничем.
+        /// </summary>
+        [TestMethod]
+        public void EveryCatalogType_HasEditorDialog()
+        {
+            var (_, factory, _, _) = CreateMain();
+
+            foreach (var descriptor in OperationCatalog.All)
+            {
+                var viewModelType = factory.GetViewModelType(descriptor.Create());
+
+                Assert.IsNotNull(viewModelType, $"{descriptor.PersistentName}: нет диалога");
+                Assert.IsTrue(
+                    typeof(IOperationEditorViewModel).IsAssignableFrom(viewModelType),
+                    $"{viewModelType.Name} должен реализовывать {nameof(IOperationEditorViewModel)}");
+            }
+        }
+
+        /// <summary>
+        /// У каждого режима расстановки отверстий свой диалог, и все они
+        /// различны: общий на два режима означал бы, что параметры одного
+        /// из них в окне не показываются.
+        /// </summary>
+        [TestMethod]
+        public void EveryDrillMode_HasItsOwnEditorDialog()
+        {
+            var (_, factory, _, _) = CreateMain();
+            var seen = new Dictionary<Type, DrillMode>();
+
+            foreach (DrillMode mode in Enum.GetValues(typeof(DrillMode)))
+            {
+                var viewModelType = factory.GetViewModelType(new DrillPointsOperation { DrillMode = mode });
+
+                Assert.IsNotNull(viewModelType, $"{mode}: нет диалога");
+                Assert.IsTrue(
+                    typeof(IOperationEditorViewModel).IsAssignableFrom(viewModelType),
+                    $"{viewModelType.Name} должен реализовывать {nameof(IOperationEditorViewModel)}");
+                Assert.IsFalse(seen.ContainsKey(viewModelType),
+                    $"{mode}: диалог {viewModelType.Name} уже занят режимом {(seen.TryGetValue(viewModelType, out var other) ? other : mode)}");
+                seen[viewModelType] = mode;
+            }
         }
 
         /// <summary>

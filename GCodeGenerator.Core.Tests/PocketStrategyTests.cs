@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 using GCodeGenerator.Tests.Fixtures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -204,7 +204,7 @@ namespace GCodeGenerator.Tests
         {
             var op = Configure(Circle(), strategy);
             var lines = Run(op);
-            var geometry = PocketGeometryFactory.Create(op);
+            var geometry = OperationCatalog.CreatePocketGeometry(op);
             double toolRadius = ToolDiameter / 2.0;
 
             int checked_ = 0;
@@ -227,7 +227,7 @@ namespace GCodeGenerator.Tests
             {
                 var op = Configure(Rectangle(), strategy);
                 var lines = Run(op);
-                var geometry = PocketGeometryFactory.Create(op);
+                var geometry = OperationCatalog.CreatePocketGeometry(op);
                 double toolRadius = ToolDiameter / 2.0;
 
                 foreach (var m in GCodeLineParser.LinearXyMoves(lines))

@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
+using GCodeGenerator.Operations;
 using GCodeGenerator.Preview;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using GCodeGenerator.Persistence;
@@ -119,7 +119,9 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// Для каждого профиля и кармана строится геометрия: без неё операция
-        /// не даст ни траектории, ни превью.
+        /// не даст ни траектории, ни превью. Категория и заданная грань
+        /// геометрии обязаны совпадать: карман с геометрией профиля не дошёл
+        /// бы до генератора, а профиль без геометрии — до траектории.
         /// </summary>
         [TestMethod]
         public void EveryProfileAndPocketType_HasGeometry()
@@ -131,12 +133,77 @@ namespace GCodeGenerator.Tests
                 {
                     case OperationCategory.Profile:
                         Assert.IsInstanceOfType(operation, typeof(IProfileOperation), descriptor.PersistentName);
-                        Assert.IsNotNull(ProfileGeometryFactory.Create(operation), descriptor.PersistentName);
+                        Assert.IsNotNull(OperationCatalog.CreateProfileGeometry(operation), descriptor.PersistentName);
+                        Assert.IsNull(descriptor.CreatePocketGeometry,
+                            $"{descriptor.PersistentName}: профилю задана геометрия кармана");
                         break;
                     case OperationCategory.Pocket:
                         Assert.IsInstanceOfType(operation, typeof(IPocketOperation), descriptor.PersistentName);
-                        Assert.IsNotNull(PocketGeometryFactory.Create(operation), descriptor.PersistentName);
+                        Assert.IsNotNull(OperationCatalog.CreatePocketGeometry(operation), descriptor.PersistentName);
+                        Assert.IsNull(descriptor.CreateProfileGeometry,
+                            $"{descriptor.PersistentName}: карману задана геометрия профиля");
                         break;
+                    default:
+                        Assert.IsNull(descriptor.CreateProfileGeometry, descriptor.PersistentName);
+                        Assert.IsNull(descriptor.CreatePocketGeometry, descriptor.PersistentName);
+                        break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Геометрию просят по категории операции: сверлению её не построить,
+        /// и попытка обязана назвать причину, а не вернуть пустоту, которую
+        /// вызывающий примет за отсутствие контура.
+        /// </summary>
+        [TestMethod]
+        public void Geometry_OfWrongCategory_IsRefusedWithReason()
+        {
+            var drill = new DrillPointsOperation();
+
+            var profileFailure = Assert.ThrowsException<NotSupportedException>(
+                () => OperationCatalog.CreateProfileGeometry(drill));
+            var pocketFailure = Assert.ThrowsException<NotSupportedException>(
+                () => OperationCatalog.CreatePocketGeometry(drill));
+
+            StringAssert.Contains(profileFailure.Message, nameof(DrillPointsOperation));
+            StringAssert.Contains(pocketFailure.Message, nameof(DrillPointsOperation));
+        }
+
+        /// <summary>
+        /// Очертание есть у каждого типа, и оно соответствует категории:
+        /// сверление — точки, профиль и карман — контуры, причём заливкой
+        /// рисуется только карман (выборка материала), а не линия обхода.
+        /// </summary>
+        [TestMethod]
+        public void EveryCatalogType_HasOutlineMatchingItsCategory()
+        {
+            foreach (var descriptor in OperationCatalog.All)
+            {
+                var operation = descriptor.Create();
+                PrepareForPreview(operation);
+
+                var outlines = OperationCatalog.OutlinesOf(operation).ToList();
+
+                Assert.IsTrue(outlines.Count > 0, $"{descriptor.PersistentName}: нет очертания");
+                foreach (var outline in outlines)
+                {
+                    Assert.IsTrue(outline.Points.Count > 0, descriptor.PersistentName);
+                    switch (descriptor.Category)
+                    {
+                        case OperationCategory.Drill:
+                            Assert.AreEqual(OperationOutlineKind.Points, outline.Kind, descriptor.PersistentName);
+                            Assert.IsFalse(outline.IsArea, descriptor.PersistentName);
+                            break;
+                        case OperationCategory.Profile:
+                            Assert.AreEqual(OperationOutlineKind.Contour, outline.Kind, descriptor.PersistentName);
+                            Assert.IsFalse(outline.IsArea, descriptor.PersistentName);
+                            break;
+                        case OperationCategory.Pocket:
+                            Assert.AreEqual(OperationOutlineKind.Contour, outline.Kind, descriptor.PersistentName);
+                            Assert.IsTrue(outline.IsArea, descriptor.PersistentName);
+                            break;
+                    }
                 }
             }
         }
