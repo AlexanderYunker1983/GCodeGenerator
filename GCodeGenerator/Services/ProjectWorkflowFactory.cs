@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -10,20 +11,20 @@ namespace GCodeGenerator.Services
 {
     public sealed class ProjectWorkflowFactory : IProjectWorkflowFactory
     {
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
-        private readonly ISettingsStore _settingsStore;
+        private readonly ISettingsStore? _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
 
         public ProjectWorkflowFactory(
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
-            ISettingsStore settingsStore,
+            ISettingsStore? settingsStore,
             IProjectFileService projectFileService,
-            IAppLogger logger = null)
+            IAppLogger? logger = null)
         {
             _localizationManager = localizationManager;
             _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));

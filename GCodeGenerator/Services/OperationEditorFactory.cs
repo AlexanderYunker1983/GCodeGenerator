@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.ObjectModel;
 using Autofac.Features.Indexed;
@@ -18,7 +19,7 @@ namespace GCodeGenerator.Services
         /// Тип диалоговой VM для операции (сверление — по DrillMode).
         /// <c>null</c>, если для типа нет диалога.
         /// </summary>
-        Type GetViewModelType(OperationBase operation);
+        Type? GetViewModelType(OperationBase operation);
 
         /// <summary>
         /// Показывает диалог редактора существующей операции (модально).
@@ -58,7 +59,7 @@ namespace GCodeGenerator.Services
             _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
         }
 
-        public Type GetViewModelType(OperationBase operation)
+        public Type? GetViewModelType(OperationBase operation)
             => OperationEditorRegistry.ViewModelTypeFor(operation);
 
         public void ShowEditor(OperationBase operation, ObservableCollection<OperationBase> allOperations)

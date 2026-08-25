@@ -1,3 +1,4 @@
+#nullable enable
 using System.Threading.Tasks;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Trajectory;
@@ -13,9 +14,9 @@ namespace GCodeGenerator.ViewModels
     /// </summary>
     public class PreviewViewModel : CloseableViewModel, IHasDisplayName
     {
-        private readonly ILocalizationManager _localizationManager;
-        private Toolpath.ToolPath _toolPath;
-        private TrajectoryScene _scene;
+        private readonly ILocalizationManager? _localizationManager;
+        private Toolpath.ToolPath? _toolPath;
+        private TrajectoryScene? _scene;
         private bool _isBuilding;
 
         public PreviewViewModel(ILocalizationManager localizationManager)
@@ -35,7 +36,7 @@ namespace GCodeGenerator.ViewModels
         /// восстанавливая по G-словам, чем было каждое движение. Теперь
         /// показывается ровно то, из чего программа сделана.
         /// </summary>
-        public Toolpath.ToolPath ToolPath
+        public Toolpath.ToolPath? ToolPath
         {
             get => _toolPath;
             set
@@ -73,7 +74,7 @@ namespace GCodeGenerator.ViewModels
         /// синхронным.
         /// </summary>
         /// <param name="toolPath">Траектория, для которой строится сцена.</param>
-        private async Task RebuildSceneAsync(Toolpath.ToolPath toolPath)
+        private async Task RebuildSceneAsync(Toolpath.ToolPath? toolPath)
         {
             if (toolPath == null)
             {
@@ -101,7 +102,7 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>The pure trajectory scene (Core types only).</summary>
-        public TrajectoryScene Scene
+        public TrajectoryScene? Scene
         {
             get => _scene;
             private set

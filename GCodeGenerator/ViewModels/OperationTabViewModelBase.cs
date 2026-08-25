@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -22,12 +23,12 @@ namespace GCodeGenerator.ViewModels
     /// </summary>
     public abstract class OperationTabViewModelBase : ViewModelBase
     {
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly ObservableCollection<OperationBase> _allOperations;
 
         protected OperationTabViewModelBase(
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IOperationEditorFactory operationEditorFactory,
             ObservableCollection<OperationBase> allOperations)
         {
@@ -40,7 +41,7 @@ namespace GCodeGenerator.ViewModels
         /// Событие: пользователь добавил новую операцию через вкладку
         /// (MainViewModel выбирает её в общем списке).
         /// </summary>
-        public event Action<OperationBase> OperationAdded;
+        public event Action<OperationBase>? OperationAdded;
 
         /// <summary>
         /// Команда добавления операции указанного типа: название по умолчанию

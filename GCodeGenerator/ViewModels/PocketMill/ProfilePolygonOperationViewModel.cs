@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -9,7 +10,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         : ProfileOperationEditorViewModelBase<ProfilePolygonOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public ProfilePolygonOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfilePolygonName") ?? "ProfilePolygonName";
         }
 
-        protected override bool IsValid()
-            => Operation.NumberOfSides >= 3 && Operation.Radius > 0 && Operation.ToolDiameter > 0;
+        protected override bool IsValid(ProfilePolygonOperation operation)
+            => operation.NumberOfSides >= 3 && operation.Radius > 0 && operation.ToolDiameter > 0;
     }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
@@ -24,10 +25,10 @@ namespace GCodeGenerator.ViewModels
     {
         private readonly ObservableCollection<OperationBase> _operations;
         private readonly GCodeWorkflowViewModel _gCodeWorkflow;
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
-        private readonly ISettingsStore _settingsStore;
+        private readonly ISettingsStore? _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
 
@@ -37,18 +38,18 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         private bool _isApplyingDocument;
 
-        private string _currentPath;
+        private string? _currentPath;
         private bool _isDirty;
 
         internal ProjectWorkflowViewModel(
             ObservableCollection<OperationBase> operations,
             GCodeWorkflowViewModel gCodeWorkflow,
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
-            ISettingsStore settingsStore,
+            ISettingsStore? settingsStore,
             IProjectFileService projectFileService,
-            IAppLogger logger = null)
+            IAppLogger? logger = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _gCodeWorkflow = gCodeWorkflow ?? throw new ArgumentNullException(nameof(gCodeWorkflow));
@@ -65,13 +66,13 @@ namespace GCodeGenerator.ViewModels
             OpenProjectCommand = new RelayCommand(OpenProject);
         }
 
-        public event EventHandler ProjectResetting;
+        public event EventHandler? ProjectResetting;
 
         /// <summary>Документ заменяется целиком: началась загрузка или сброс.</summary>
-        public event EventHandler DocumentApplying;
+        public event EventHandler? DocumentApplying;
 
         /// <summary>Замена документа завершена.</summary>
-        public event EventHandler DocumentApplied;
+        public event EventHandler? DocumentApplied;
 
         public ICommand NewProgramCommand { get; }
 
@@ -84,7 +85,7 @@ namespace GCodeGenerator.ViewModels
         public ICommand OpenProjectCommand { get; }
 
         /// <summary>Файл текущего проекта или <c>null</c>, если он ещё не сохранялся.</summary>
-        public string CurrentPath
+        public string? CurrentPath
         {
             get => _currentPath;
             private set
@@ -181,7 +182,7 @@ namespace GCodeGenerator.ViewModels
             ApplyDocument(() =>
             {
                 ResetOperations();
-                _settingsStore.RestoreGlobalGenerationSettings();
+                _settingsStore?.RestoreGlobalGenerationSettings();
                 CurrentPath = null;
             });
         }
@@ -203,11 +204,11 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>Спрашивает имя файла проекта; <c>null</c> — пользователь отменил.</summary>
-        private string AskFileName()
+        private string? AskFileName()
         {
             var filter = Localize("ProjectFileFilter");
             var title = Localize("SaveProjectTitle");
-            var suggested = string.IsNullOrEmpty(CurrentFileName) ? "project.ygc" : CurrentFileName;
+            var suggested = CurrentFileName is { Length: > 0 } current ? current : "project.ygc";
             return _fileDialogService.ShowSaveDialog(title, filter, "ygc", suggested);
         }
 
@@ -215,14 +216,18 @@ namespace GCodeGenerator.ViewModels
         /// Сохраняет проект в файл и запоминает его как текущий.
         /// </summary>
         /// <returns><c>false</c>, если сохранение не состоялось.</returns>
-        private bool SaveToFile(string fileName)
+        /// <param name="fileName">
+        /// Имя файла; пусто, если пользователь закрыл диалог выбора — тогда
+        /// сохранение не состоялось.
+        /// </param>
+        private bool SaveToFile(string? fileName)
         {
             if (string.IsNullOrEmpty(fileName))
                 return false;
 
             try
             {
-                _projectFileService.Save(fileName, _operations, _settingsStore.Current);
+                _projectFileService.Save(fileName, _operations, _settingsStore?.Current);
                 CurrentPath = fileName;
                 IsDirty = false;
                 _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
@@ -311,8 +316,10 @@ namespace GCodeGenerator.ViewModels
 
         private void ApplyProjectSettings(ProjectFileData data)
         {
-            _settingsStore.RestoreGlobalGenerationSettings();
-            var settings = _settingsStore.Current;
+            _settingsStore?.RestoreGlobalGenerationSettings();
+            var settings = _settingsStore?.Current;
+            if (settings == null)
+                return;
             if (data.Format != null)
                 settings.Format = data.Format;
             if (data.Spindle != null)

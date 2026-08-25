@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Globalization;
@@ -21,9 +22,9 @@ namespace GCodeGenerator.Localization
         /// <summary>Ключ подписи варианта «как в системе».</summary>
         private const string SystemLanguageKey = "SystemLanguage";
 
-        private readonly string _title;
+        private readonly string? _title;
 
-        private LanguageChoice(string code, string title)
+        private LanguageChoice(string code, string? title)
         {
             Code = code;
             _title = title;
@@ -43,7 +44,7 @@ namespace GCodeGenerator.Localization
         /// <summary>Подпись в списке.</summary>
         public string Title => _title ?? LocalizationSource.Instance[SystemLanguageKey];
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>Языки, между которыми выбирает пользователь.</summary>
         public static IReadOnlyList<LanguageChoice> All { get; } = new[]

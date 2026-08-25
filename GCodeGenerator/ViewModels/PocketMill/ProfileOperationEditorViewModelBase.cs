@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using GCodeGenerator.Models;
 
@@ -28,7 +29,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             OnPropertyChanged(nameof(IsAngledEntry));
         }
 
-        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ProfileOperationBase.EntryMode) || string.IsNullOrEmpty(e.PropertyName))
                 OnPropertyChanged(nameof(IsAngledEntry));

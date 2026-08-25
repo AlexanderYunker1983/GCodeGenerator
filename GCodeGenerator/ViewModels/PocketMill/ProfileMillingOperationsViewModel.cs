@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
     /// </summary>
     public class ProfileMillingOperationsViewModel : OperationTabViewModelBase
     {
-        public ProfileMillingOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
+        public ProfileMillingOperationsViewModel(ILocalizationManager? localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
             : base(localizationManager, operationEditorFactory, allOperations)
         {
             AddProfileRectangleCommand = AddCommand(typeof(ProfileRectangleOperation));

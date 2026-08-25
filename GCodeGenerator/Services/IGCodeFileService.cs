@@ -1,3 +1,4 @@
+#nullable enable
 namespace GCodeGenerator.Services
 {
     /// <summary>Граница сохранения готового текстового G-code на диск.</summary>

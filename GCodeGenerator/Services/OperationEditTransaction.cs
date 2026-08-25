@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +53,9 @@ namespace GCodeGenerator.Services
                     && property.GetIndexParameters().Length == 0)
                 .ToList();
 
-            var values = new Dictionary<PropertyInfo, object>();
+            // Значение свойства может отсутствовать — например, путь к
+            // чертежу у операции, в которую его ещё не загрузили.
+            var values = new Dictionary<PropertyInfo, object?>();
             foreach (var property in properties)
                 values[property] = property.GetValue(committedCopy);
 

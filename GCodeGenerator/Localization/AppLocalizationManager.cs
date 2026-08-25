@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -35,7 +36,7 @@ namespace GCodeGenerator.Localization
         public override void ChangeCulture(CultureInfo cultureInfo)
         {
             base.ChangeCulture(cultureInfo);
-            OnPropertyChanged(null);
+            OnPropertyChanged(propertyName: null);
         }
 
         /// <inheritdoc />
@@ -45,9 +46,9 @@ namespace GCodeGenerator.Localization
             _logger.Warning($"Отсутствует ключ локализации: {key}");
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        private void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

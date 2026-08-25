@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -9,7 +10,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         : ProfileOperationEditorViewModelBase<ProfileRoundedRectangleOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public ProfileRoundedRectangleOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileRoundedRectangleName") ?? "ProfileRoundedRectangleName";
         }
 
-        protected override bool IsValid()
-            => Operation.Width > 0 && Operation.Height > 0 && Operation.ToolDiameter > 0;
+        protected override bool IsValid(ProfileRoundedRectangleOperation operation)
+            => operation.Width > 0 && operation.Height > 0 && operation.ToolDiameter > 0;
     }
 }

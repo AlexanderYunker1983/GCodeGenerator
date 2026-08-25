@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -96,7 +97,7 @@ namespace GCodeGenerator.Infrastructure
         /// <param name="operations">Операции документа на момент сбоя.</param>
         /// <param name="settings">Настройки генерации на момент сбоя.</param>
         /// <param name="timestamp">Метка времени в имени файла.</param>
-        public string TrySaveSnapshot(
+        public string? TrySaveSnapshot(
             IReadOnlyList<OperationBase> operations, GCodeSettings settings, DateTime timestamp)
         {
             if (operations == null || operations.Count == 0)

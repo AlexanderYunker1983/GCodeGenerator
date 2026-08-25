@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace GCodeGenerator.Diagnostics
@@ -32,7 +33,7 @@ namespace GCodeGenerator.Diagnostics
         /// <param name="level">Уровень записи.</param>
         /// <param name="message">Текст сообщения.</param>
         /// <param name="exception">Исключение, если запись описывает сбой.</param>
-        void Log(LogLevel level, string message, Exception exception = null);
+        void Log(LogLevel level, string message, Exception? exception = null);
     }
 
     /// <summary>
@@ -49,7 +50,7 @@ namespace GCodeGenerator.Diagnostics
             => logger?.Log(LogLevel.Warning, message);
 
         /// <summary>Записывает сбой вместе с исключением.</summary>
-        public static void Error(this IAppLogger logger, string message, Exception exception = null)
+        public static void Error(this IAppLogger logger, string message, Exception? exception = null)
             => logger?.Log(LogLevel.Error, message, exception);
     }
 
@@ -68,7 +69,7 @@ namespace GCodeGenerator.Diagnostics
         }
 
         /// <inheritdoc />
-        public void Log(LogLevel level, string message, Exception exception = null)
+        public void Log(LogLevel level, string message, Exception? exception = null)
         {
         }
     }

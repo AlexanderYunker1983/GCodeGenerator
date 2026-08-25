@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.Drill
     /// </summary>
     public class DrillOperationsViewModel : OperationTabViewModelBase
     {
-        public DrillOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
+        public DrillOperationsViewModel(ILocalizationManager? localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
             : base(localizationManager, operationEditorFactory, allOperations)
         {
             AddDrillPointsCommand = AddCommand(typeof(DrillPointsOperation));

@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
@@ -12,7 +13,7 @@ namespace GCodeGenerator.Services
     {
         private readonly IGCodeGenerator _generator;
         private readonly IPostProcessor _postProcessor;
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
         private readonly Func<PreviewViewModel> _createPreview;
@@ -23,13 +24,13 @@ namespace GCodeGenerator.Services
         public GCodeWorkflowFactory(
             IGCodeGenerator generator,
             IPostProcessor postProcessor,
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
             Func<PreviewViewModel> createPreview,
             IDialogHost dialogHost,
             IGCodeFileService gCodeFileService,
-            IAppLogger logger = null)
+            IAppLogger? logger = null)
         {
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
             _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));

@@ -1,3 +1,5 @@
+#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Windows.Input;
@@ -27,9 +29,9 @@ namespace GCodeGenerator.ViewModels
         private const string DefaultWorkCoordinateSystem = "G54";
 
         private readonly GCodeSettings _settings;
-        private readonly ISettingsStore _settingsStore;
-        private readonly IThemeService _themeService;
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ISettingsStore? _settingsStore;
+        private readonly IThemeService? _themeService;
+        private readonly ILocalizationManager? _localizationManager;
 
         /// <summary>Язык на момент открытия окна — к нему возвращает отмена.</summary>
         private readonly string _initialLanguage;
@@ -51,7 +53,7 @@ namespace GCodeGenerator.ViewModels
         {
         }
 
-        public SettingsViewModel(ILocalizationManager localizationManager, ISettingsStore settingsStore, IThemeService themeService)
+        public SettingsViewModel(ILocalizationManager? localizationManager, ISettingsStore? settingsStore, IThemeService? themeService)
         {
             // Настройки и тема поступают через IoC. Безаргументный конструктор —
             // для XAML-дизайнера: фолбэк на настройки по умолчанию.
@@ -73,7 +75,7 @@ namespace GCodeGenerator.ViewModels
         }
 
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         [ObservableProperty]
         private bool _useLineNumbers;
@@ -109,7 +111,7 @@ namespace GCodeGenerator.ViewModels
         private bool _spindleStartEnabled;
 
         [ObservableProperty]
-        private string _spindleStartCommand;
+        private string _spindleStartCommand = string.Empty;
 
         [ObservableProperty]
         private bool _spindleStopEnabled;
@@ -157,11 +159,11 @@ namespace GCodeGenerator.ViewModels
         private bool _setWorkCoordinateSystem;
 
         [ObservableProperty]
-        private string _workCoordinateSystem;
+        private string _workCoordinateSystem = string.Empty;
 
         /// <summary>Код языка интерфейса; пустая строка — язык системы.</summary>
         [ObservableProperty]
-        private string _language;
+        private string _language = string.Empty;
 
         /// <summary>
         /// Языки, между которыми выбирает пользователь. Пустой код означает
@@ -261,8 +263,15 @@ namespace GCodeGenerator.ViewModels
         /// тестом, поэтому пропущенный параметр не доживёт до окна.
         /// </summary>
         internal static PropertyInfo EditorProperty(string path)
-            => typeof(SettingsViewModel).GetProperty(
-                path[(path.LastIndexOf('.') + 1)..],
-                BindingFlags.Public | BindingFlags.Instance);
+        {
+            var name = path[(path.LastIndexOf('.') + 1)..];
+
+            // Отсутствие свойства — ошибка самой таблицы: она перечисляет
+            // настройки вручную, и опечатка иначе дала бы отказ без указания,
+            // какая строка виновата.
+            return typeof(SettingsViewModel).GetProperty(name, BindingFlags.Public | BindingFlags.Instance)
+                ?? throw new InvalidOperationException(
+                    $"Настройка «{path}»: у окна настроек нет свойства «{name}».");
+        }
     }
 }

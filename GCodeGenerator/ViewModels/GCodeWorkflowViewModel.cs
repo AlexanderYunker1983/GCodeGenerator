@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
@@ -6,6 +7,7 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -22,23 +24,23 @@ namespace GCodeGenerator.ViewModels
         private readonly GCodeSettings _settings;
         private readonly IGCodeGenerator _generator;
         private readonly IPostProcessor _postProcessor;
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
         private readonly Func<PreviewViewModel> _createPreview;
         private readonly IDialogHost _dialogHost;
         private readonly IGCodeFileService _gCodeFileService;
         private readonly IAppLogger _logger;
-        private Toolpath.ToolPath _generatedToolPath;
+        private Toolpath.ToolPath? _generatedToolPath;
 
         /// <summary>
         /// Отмена текущей генерации. Документ мог измениться, пока строилась
         /// программа: её результат всё равно будет отброшен, поэтому работу
         /// незачем доводить до конца.
         /// </summary>
-        private CancellationTokenSource _generationCancellation;
+        private CancellationTokenSource? _generationCancellation;
         private long _documentRevision;
-        private string _gCodePreview;
+        private string _gCodePreview = string.Empty;
         private bool _isGenerating;
         private int _progressPercent;
 
@@ -47,13 +49,13 @@ namespace GCodeGenerator.ViewModels
             GCodeSettings settings,
             IGCodeGenerator generator,
             IPostProcessor postProcessor,
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
             Func<PreviewViewModel> createPreview,
             IDialogHost dialogHost,
             IGCodeFileService gCodeFileService,
-            IAppLogger logger = null)
+            IAppLogger? logger = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -111,7 +113,7 @@ namespace GCodeGenerator.ViewModels
         /// Траектория последней успешной генерации: её показывают оба
         /// предпросмотра — трёхмерный целиком, двумерный видом сверху.
         /// </summary>
-        public Toolpath.ToolPath GeneratedToolPath
+        public Toolpath.ToolPath? GeneratedToolPath
         {
             get => _generatedToolPath;
             private set
@@ -156,7 +158,11 @@ namespace GCodeGenerator.ViewModels
                 // операции и настройки копируются, поэтому правка документа
                 // во время генерации не смешивается с уже начатой программой.
                 var snapshot = GenerationSnapshot.Capture(_operations, _settings);
-                var operations = new List<OperationBase>(snapshot.Operations);
+
+                // Пустая операция в снимке возможна: файл проекта, написанный
+                // вручную, способен принести и такую. Отклоняет её проверка
+                // перед генерацией, поэтому список передаётся как есть.
+                var operations = snapshot.Operations.OfType<OperationBase>().ToList();
                 var settings = snapshot.Settings;
                 var progress = new Progress<int>(p =>
                 {

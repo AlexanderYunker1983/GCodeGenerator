@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -9,7 +10,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         : ProfileOperationEditorViewModelBase<ProfileEllipseOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public ProfileEllipseOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileEllipseName") ?? "ProfileEllipseName";
         }
 
-        protected override bool IsValid()
-            => Operation.RadiusX > 0 && Operation.RadiusY > 0 && Operation.ToolDiameter > 0;
+        protected override bool IsValid(ProfileEllipseOperation operation)
+            => operation.RadiusX > 0 && operation.RadiusY > 0 && operation.ToolDiameter > 0;
     }
 }

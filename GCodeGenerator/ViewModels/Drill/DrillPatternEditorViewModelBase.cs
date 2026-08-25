@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -24,7 +25,7 @@ namespace GCodeGenerator.ViewModels.Drill
         : OperationEditorViewModelBase<DrillPointsOperation>
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         protected DrillPatternEditorViewModelBase()
         {
@@ -53,7 +54,7 @@ namespace GCodeGenerator.ViewModels.Drill
         /// отверстия пересчитываются здесь, а не в каждом поле окна.
         /// Список отверстий на шаблон не влияет — он его результат.
         /// </summary>
-        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(DrillPointsOperation.Holes))
                 return;

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows.Media.Media3D;
 using GCodeGenerator.Trajectory;
 using GCodeGenerator.Views.Scene;

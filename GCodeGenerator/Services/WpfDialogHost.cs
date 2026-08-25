@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Windows;
 using GCodeGenerator.ViewModels;
@@ -16,12 +17,14 @@ namespace GCodeGenerator.Services
         {
             if (viewModel == null) throw new ArgumentNullException(nameof(viewModel));
 
-            var window = (Window)Activator.CreateInstance(DialogViewRegistry.ViewFor(viewModel.GetType()));
+            var viewType = DialogViewRegistry.ViewFor(viewModel.GetType());
+            var window = Activator.CreateInstance(viewType) as Window
+                ?? throw new InvalidOperationException($"{viewType.Name} не является окном.");
             window.DataContext = viewModel;
             window.Owner = Application.Current?.MainWindow;
 
             var closeable = viewModel as CloseableViewModel;
-            Action closeHandler = null;
+            Action? closeHandler = null;
             if (closeable != null)
             {
                 // Пункт 7.3 плана: VM может запросить закрытие окна (OK/Cancel).

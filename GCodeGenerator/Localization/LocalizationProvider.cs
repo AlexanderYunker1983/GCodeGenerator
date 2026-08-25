@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace GCodeGenerator.Localization
@@ -11,9 +12,9 @@ namespace GCodeGenerator.Localization
     /// </summary>
     public static class LocalizationProvider
     {
-        private static ILocalizationManager _instance;
+        private static ILocalizationManager? _instance;
 
-        public static ILocalizationManager Instance
+        public static ILocalizationManager? Instance
         {
             get => _instance;
             set
@@ -33,7 +34,7 @@ namespace GCodeGenerator.Localization
             }
         }
 
-        private static void OnCultureChanged(object sender, EventArgs e)
+        private static void OnCultureChanged(object? sender, EventArgs e)
             => LocalizationSource.Instance.Refresh();
     }
 }

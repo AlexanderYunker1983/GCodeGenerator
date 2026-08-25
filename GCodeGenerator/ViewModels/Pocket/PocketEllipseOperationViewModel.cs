@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -9,7 +10,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         : PocketOperationEditorViewModelBase<PocketEllipseOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public PocketEllipseOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             DisplayName = localizationManager?.GetString("PocketEllipseName") ?? "PocketEllipseName";
         }
 
-        protected override bool IsValid()
-            => Operation.RadiusX > 0 && Operation.RadiusY > 0 && Operation.ToolDiameter > 0 && Operation.StepPercentOfTool > 0;
+        protected override bool IsValid(PocketEllipseOperation operation)
+            => operation.RadiusX > 0 && operation.RadiusY > 0 && operation.ToolDiameter > 0 && operation.StepPercentOfTool > 0;
     }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using GCodeGenerator.Models;
 
@@ -32,7 +33,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             RaiseStrategyDependentProperties();
         }
 
-        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(PocketOperationBase.PocketStrategy) || string.IsNullOrEmpty(e.PropertyName))
                 RaiseStrategyDependentProperties();

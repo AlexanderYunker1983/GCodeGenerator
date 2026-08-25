@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Globalization;
 using System.Windows.Data;
@@ -35,7 +36,7 @@ namespace GCodeGenerator.Infrastructure
                 case int intValue:
                     return intValue.ToString(CultureInfo.InvariantCulture);
                 default:
-                    return System.Convert.ToString(value, CultureInfo.InvariantCulture);
+                    return System.Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
             }
         }
 

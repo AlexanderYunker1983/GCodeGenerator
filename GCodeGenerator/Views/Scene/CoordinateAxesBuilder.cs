@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows.Media.Media3D;
 
 namespace GCodeGenerator.Views.Scene

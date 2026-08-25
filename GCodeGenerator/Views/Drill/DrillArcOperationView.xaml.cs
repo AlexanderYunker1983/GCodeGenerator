@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows;
 
 namespace GCodeGenerator.Views.Drill

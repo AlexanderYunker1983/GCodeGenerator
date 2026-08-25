@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 
 namespace GCodeGenerator.Localization
@@ -40,7 +41,7 @@ namespace GCodeGenerator.Localization
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         /// <summary>Сообщает привязкам, что все строки нужно перечитать.</summary>
         public void Refresh()

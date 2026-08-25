@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
@@ -53,7 +54,7 @@ namespace GCodeGenerator.Services
         /// Тип view-модели диалога для операции; <c>null</c>, если диалога
         /// для неё не зарегистрировано.
         /// </summary>
-        public static Type ViewModelTypeFor(OperationBase operation)
+        public static Type? ViewModelTypeFor(OperationBase? operation)
         {
             if (operation == null)
                 return null;

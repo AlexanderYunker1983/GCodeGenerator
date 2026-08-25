@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Configuration;
 using GCodeGenerator.Models;
@@ -13,7 +14,7 @@ namespace GCodeGenerator.Services
     {
         private readonly IPersistedSettings _persisted;
 
-        public event EventHandler SettingsChanged;
+        public event EventHandler? SettingsChanged;
 
         public GCodeSettings Current { get; }
 
@@ -76,7 +77,13 @@ namespace GCodeGenerator.Services
             // Persist only fields that should survive restarts (та же таблица).
             var persisted = _persisted;
             foreach (var (path, setting) in SettingsMapping.Entries)
-                persisted[setting] = SettingsMapping.GetValue(Current, path);
+            {
+                // Настройка без значения хранилищу не нужна: при чтении
+                // вернётся значение по умолчанию из его описания.
+                var value = SettingsMapping.GetValue(Current, path);
+                if (value != null)
+                    persisted[setting] = value;
+            }
 
             if (string.IsNullOrEmpty(Current.WorkCoordinate.WorkCoordinateSystem))
                 persisted["WorkCoordinateSystem"] = "G54";

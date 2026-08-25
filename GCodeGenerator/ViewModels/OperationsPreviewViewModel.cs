@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.ObjectModel;
 using GCodeGenerator.Models;
@@ -19,13 +20,13 @@ namespace GCodeGenerator.ViewModels
     public class OperationsPreviewViewModel : ViewModelBase
     {
         private readonly ObservableCollection<OperationBase> _operations;
-        private readonly IThemeService _themeService;
-        private OperationScene _scene;
-        private OperationBase _selectedOperation;
-        private Toolpath.ToolPath _toolPath;
+        private readonly IThemeService? _themeService;
+        private OperationScene? _scene;
+        private OperationBase? _selectedOperation;
+        private Toolpath.ToolPath? _toolPath;
         private bool _showToolPath;
 
-        public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService themeService)
+        public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService? themeService)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             // Пункт 7.5 плана: тема через IoC (ранее code-behind подписывался
@@ -36,7 +37,7 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>The pure 2D scene of all operations (Core types only).</summary>
-        public OperationScene Scene
+        public OperationScene? Scene
         {
             get => _scene;
             private set
@@ -51,7 +52,7 @@ namespace GCodeGenerator.ViewModels
         /// Selected operation. MainViewModel пушит выбор из списка и получает
         /// изменения из 2D-превью через <see cref="SelectionChanged"/>.
         /// </summary>
-        public OperationBase SelectedOperation
+        public OperationBase? SelectedOperation
         {
             get => _selectedOperation;
             set
@@ -64,16 +65,16 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>Raised when the selection changed in the 2D preview (операция может быть null).</summary>
-        public event EventHandler<OperationBase> SelectionChanged;
+        public event EventHandler<OperationBase?>? SelectionChanged;
 
         /// <summary>Raised when the user requests editing of the selected operation (двойной клик в 2D-превью).</summary>
-        public event EventHandler EditRequested;
+        public event EventHandler? EditRequested;
 
         /// <summary>Raised when "show all" is requested (fit the view to the scene).</summary>
-        public event EventHandler ShowAllRequested;
+        public event EventHandler? ShowAllRequested;
 
         /// <summary>Raised when the application theme changed (view redraws the scene) — пункт 7.5 плана.</summary>
-        public event EventHandler ThemeChanged;
+        public event EventHandler? ThemeChanged;
 
         /// <summary>
         /// Показывать траекторию инструмента вместо контуров операций.
@@ -99,7 +100,7 @@ namespace GCodeGenerator.ViewModels
         /// Траектория последней генерации. Пока её нет, показывать нечего,
         /// и предпросмотр остаётся на контурах.
         /// </summary>
-        public Toolpath.ToolPath ToolPath
+        public Toolpath.ToolPath? ToolPath
         {
             get => _toolPath;
             set
@@ -136,7 +137,7 @@ namespace GCodeGenerator.ViewModels
             ShowAllRequested?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnThemeServiceChanged(object sender, EventArgs e)
+        private void OnThemeServiceChanged(object? sender, EventArgs e)
         {
             ThemeChanged?.Invoke(this, EventArgs.Empty);
         }

@@ -1,3 +1,9 @@
+// Проверка ссылок на пустоту включена для приложения — последнего места,
+// где её ещё не было. Здесь пустота приходит не из модели, а от человека и
+// от окружения: незаполненное поле, отменённый выбор файла, окно, которому
+// ещё не дали операцию, зависимость, которой нет в тестах и в конструкторе
+// разметки. Директива стоит пофайлово, как в ядре.
+#nullable enable
 using System;
 using System.Linq;
 using System.Reflection;
@@ -21,10 +27,10 @@ namespace GCodeGenerator
     public partial class App
     {
         private IAppLogger _logger = NullAppLogger.Instance;
-        private ILocalizationManager _localizationManager;
-        private IContainer _container;
-        private CrashHandler _crashHandler;
-        private MainViewModel _mainViewModel;
+        private ILocalizationManager? _localizationManager;
+        private IContainer? _container;
+        private CrashHandler? _crashHandler;
+        private MainViewModel? _mainViewModel;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -157,7 +163,7 @@ namespace GCodeGenerator
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         }
 
-        private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        private void OnDispatcherUnhandledException(object? sender, DispatcherUnhandledExceptionEventArgs e)
         {
             _logger.Error("Необработанное исключение в потоке пользовательского интерфейса", e.Exception);
             e.Handled = true;
@@ -178,26 +184,31 @@ namespace GCodeGenerator
         /// Снимок документа на момент сбоя — в отдельный файл, а не поверх
         /// проекта пользователя: что именно случилось с моделью, неизвестно.
         /// </summary>
-        private string SaveCrashSnapshot()
+        private string? SaveCrashSnapshot()
         {
             var workspace = _mainViewModel?.OperationsWorkspace;
             if (_crashHandler == null || workspace == null)
                 return null;
 
+            // Настроек может не быть, если сбой случился до сборки
+            // контейнера: снимок всё равно сохраняется, с настройками
+            // по умолчанию.
+            var settings = _container?.Resolve<ISettingsStore>()?.Current ?? new Models.GCodeSettings();
+
             return _crashHandler.TrySaveSnapshot(
                 workspace.AllOperations.ToList(),
-                _container?.Resolve<ISettingsStore>()?.Current,
+                settings,
                 DateTime.Now);
         }
 
-        private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        private void OnAppDomainUnhandledException(object? sender, UnhandledExceptionEventArgs e)
         {
             _logger.Error(
                 $"Необработанное исключение вне потока пользовательского интерфейса (IsTerminating={e.IsTerminating})",
                 e.ExceptionObject as Exception);
         }
 
-        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
         {
             _logger.Error("Необработанное исключение фоновой задачи", e.Exception);
             e.SetObserved();
@@ -209,7 +220,7 @@ namespace GCodeGenerator
         /// </summary>
         /// <param name="exception">Исключение, вызвавшее сбой.</param>
         /// <param name="snapshotPath">Путь к аварийному снимку или <c>null</c>.</param>
-        private void ShowUnhandledExceptionMessage(Exception exception, string snapshotPath)
+        private void ShowUnhandledExceptionMessage(Exception? exception, string? snapshotPath)
         {
             try
             {

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Linq;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,13 +19,13 @@ namespace GCodeGenerator.ViewModels.Drill
         : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(RemoveHoleCommand))]
         [NotifyCanExecuteChangedFor(nameof(MoveHoleUpCommand))]
         [NotifyCanExecuteChangedFor(nameof(MoveHoleDownCommand))]
-        private DrillHole _selectedHole;
+        private DrillHole? _selectedHole;
 
         public DrillPointsOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -61,7 +62,7 @@ namespace GCodeGenerator.ViewModels.Drill
         }
 
         /// <summary>Сверление без отверстий не имеет смысла.</summary>
-        protected override bool IsValid() => Operation.Holes.Count > 0;
+        protected override bool IsValid(DrillPointsOperation operation) => operation.Holes.Count > 0;
 
         private static DrillHole DefaultHole()
             => new DrillHole
@@ -82,6 +83,9 @@ namespace GCodeGenerator.ViewModels.Drill
         /// </summary>
         private void AddHole()
         {
+            if (Operation == null)
+                return;
+
             var last = Operation.Holes.LastOrDefault();
             var hole = last == null
                 ? DefaultHole()
@@ -103,7 +107,7 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void RemoveSelectedHole()
         {
-            if (SelectedHole == null) return;
+            if (Operation == null || SelectedHole == null) return;
             var index = Operation.Holes.IndexOf(SelectedHole);
             if (index < 0) return;
 
@@ -125,14 +129,16 @@ namespace GCodeGenerator.ViewModels.Drill
 
         private void MoveSelectedHoleUp()
         {
-            if (!CanMoveSelectedHoleUp()) return;
+            if (Operation == null || SelectedHole == null || !CanMoveSelectedHoleUp()) return;
+
             var index = Operation.Holes.IndexOf(SelectedHole);
             Operation.Holes.Move(index, index - 1);
         }
 
         private void MoveSelectedHoleDown()
         {
-            if (!CanMoveSelectedHoleDown()) return;
+            if (Operation == null || SelectedHole == null || !CanMoveSelectedHoleDown()) return;
+
             var index = Operation.Holes.IndexOf(SelectedHole);
             Operation.Holes.Move(index, index + 1);
         }

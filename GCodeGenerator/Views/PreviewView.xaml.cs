@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.ComponentModel;
 using System.Windows;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.Views
         /// <summary>Палитра сцены: фон окна и цвета траектории берутся из одной темы.</summary>
         private readonly SceneMaterials _materials = SceneMaterials.ForCurrentTheme();
 
-        private PreviewViewModel _viewModel;
+        private PreviewViewModel? _viewModel;
 
         /// <summary>
         /// Положение камеры и правила его изменения. Окно только передаёт
@@ -35,7 +36,7 @@ namespace GCodeGenerator.Views
             Closed += PreviewView_Closed;
         }
 
-        private void PreviewView_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void PreviewView_DataContextChanged(object? sender, DependencyPropertyChangedEventArgs e)
         {
             UnhookViewModel();
 
@@ -51,12 +52,12 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void PreviewView_Closed(object sender, EventArgs e)
+        private void PreviewView_Closed(object? sender, EventArgs e)
         {
             UnhookViewModel();
         }
 
-        private void OnViewModelPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(PreviewViewModel.Scene) &&
                 sender is PreviewViewModel viewModel &&
@@ -66,9 +67,11 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void RenderScene(TrajectoryScene scene)
+        private void RenderScene(TrajectoryScene? scene)
         {
-            UpdateTrajectoryModel(SceneRenderer.Render(scene, _materials));
+            // Сцены может не быть, пока траектория не построена: тогда
+            // окно показывает пустую модель, а не отказывается рисовать.
+            UpdateTrajectoryModel(SceneRenderer.Render(scene ?? TrajectoryScene.Empty, _materials));
         }
 
         private void UnhookViewModel()
@@ -107,7 +110,7 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void Viewport_MouseWheel(object sender, MouseWheelEventArgs e)
+        private void Viewport_MouseWheel(object? sender, MouseWheelEventArgs e)
         {
             if (Camera == null) return;
 
@@ -115,7 +118,7 @@ namespace GCodeGenerator.Views
             ApplyCamera();
         }
 
-        private void Viewport_MouseDown(object sender, MouseButtonEventArgs e)
+        private void Viewport_MouseDown(object? sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
@@ -146,7 +149,7 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void Viewport_MouseMove(object sender, MouseEventArgs e)
+        private void Viewport_MouseMove(object? sender, MouseEventArgs e)
         {
             if (Camera == null) return;
 
@@ -183,7 +186,7 @@ namespace GCodeGenerator.Views
             e.Handled = true;
         }
 
-        private void Viewport_MouseUp(object sender, MouseButtonEventArgs e)
+        private void Viewport_MouseUp(object? sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Released)
             {

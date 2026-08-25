@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -20,29 +21,29 @@ namespace GCodeGenerator.ViewModels.PocketMill
     public partial class ProfileDxfOperationViewModel
         : ProfileOperationEditorViewModelBase<ProfileDxfOperation>, IHasDisplayName
     {
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
         private readonly IDxfImportService _dxfImportService;
         private readonly IAppLogger _logger;
 
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         /// <summary>Путь к импортированному чертежу.</summary>
         [ObservableProperty]
-        private string _filePath;
+        private string _filePath = string.Empty;
 
         /// <summary>Итог импорта: сколько отрезков контура получено.</summary>
         [ObservableProperty]
-        private string _importInfo;
+        private string? _importInfo;
 
         public ProfileDxfOperationViewModel(
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
             IDxfImportService dxfImportService,
-            IAppLogger logger = null)
+            IAppLogger? logger = null)
         {
             _localizationManager = localizationManager;
             _messageService = messageService;
@@ -84,6 +85,11 @@ namespace GCodeGenerator.ViewModels.PocketMill
 
         private async Task ImportDxfFileAsync()
         {
+            // Импорт правит открытую в окне операцию: без неё импортировать
+            // некуда, и команда до этого места не доходит.
+            if (Operation == null)
+                return;
+
             var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
             var fileName = _fileDialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
             if (fileName == null)

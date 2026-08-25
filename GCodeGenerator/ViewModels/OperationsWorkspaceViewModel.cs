@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -22,14 +23,14 @@ namespace GCodeGenerator.ViewModels
     {
         private readonly IOperationEditorFactory _operationEditorFactory;
         private readonly HashSet<OperationBase> _attachedOperations = new HashSet<OperationBase>();
-        private OperationBase _selectedOperation;
+        private OperationBase? _selectedOperation;
         private int _batchDepth;
         private bool _rebuildDeferred;
 
         public OperationsWorkspaceViewModel(
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             IOperationEditorFactory operationEditorFactory,
-            IThemeService themeService)
+            IThemeService? themeService)
         {
             _operationEditorFactory = operationEditorFactory
                 ?? throw new ArgumentNullException(nameof(operationEditorFactory));
@@ -65,7 +66,7 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>Raised for collection or operation-content changes, never for selection only.</summary>
-        public event EventHandler ContentChanged;
+        public event EventHandler? ContentChanged;
 
         public DrillOperationsViewModel DrillOperations { get; }
 
@@ -77,7 +78,7 @@ namespace GCodeGenerator.ViewModels
 
         public ObservableCollection<OperationBase> AllOperations { get; }
 
-        public OperationBase SelectedOperation
+        public OperationBase? SelectedOperation
         {
             get => _selectedOperation;
             set
@@ -157,7 +158,7 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private void OnAllOperationsCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void OnAllOperationsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             if (e?.Action == NotifyCollectionChangedAction.Reset)
             {
@@ -212,18 +213,18 @@ namespace GCodeGenerator.ViewModels
                 operation.PropertyChanged -= OnOperationPropertyChanged;
         }
 
-        private void OnOperationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             NotifyOperationsChanged();
             ContentChanged?.Invoke(this, EventArgs.Empty);
         }
 
-        private void OnPreviewSelectionChanged(object sender, OperationBase operation)
+        private void OnPreviewSelectionChanged(object? sender, OperationBase? operation)
         {
             SelectedOperation = operation;
         }
 
-        private void OnPreviewEditRequested(object sender, EventArgs e)
+        private void OnPreviewEditRequested(object? sender, EventArgs e)
         {
             if (CanModifySelectedOperation())
                 EditSelectedOperation();
@@ -251,21 +252,23 @@ namespace GCodeGenerator.ViewModels
 
         private void MoveSelectedOperationUp()
         {
-            if (!CanMoveSelectedOperationUp()) return;
+            if (SelectedOperation == null || !CanMoveSelectedOperationUp()) return;
+
             var index = AllOperations.IndexOf(SelectedOperation);
             AllOperations.Move(index, index - 1);
         }
 
         private void MoveSelectedOperationDown()
         {
-            if (!CanMoveSelectedOperationDown()) return;
+            if (SelectedOperation == null || !CanMoveSelectedOperationDown()) return;
+
             var index = AllOperations.IndexOf(SelectedOperation);
             AllOperations.Move(index, index + 1);
         }
 
         private void RemoveSelectedOperation()
         {
-            if (CanModifySelectedOperation())
+            if (SelectedOperation != null && CanModifySelectedOperation())
                 AllOperations.Remove(SelectedOperation);
         }
 

@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 
@@ -16,6 +17,6 @@ namespace GCodeGenerator.ViewModels.Drill
         protected override DrillMode Mode => DrillMode.Array;
 
         /// <summary>Шаблон без отверстий не имеет смысла.</summary>
-        protected override bool IsValid() => PreviewHoles.Count > 0;
+        protected override bool IsValid(DrillPointsOperation operation) => PreviewHoles.Count > 0;
     }
 }

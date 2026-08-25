@@ -1,3 +1,5 @@
+#nullable enable
+using System;
 using System.Reflection;
 using GCodeGenerator.Models;
 
@@ -48,22 +50,40 @@ namespace GCodeGenerator.Services
         };
 
         /// <summary>Читает значение свойства по пути (напр. "Spindle.SpindleSpeedRpm").</summary>
-        public static object GetValue(GCodeSettings settings, string path)
+        public static object? GetValue(GCodeSettings settings, string path)
         {
-            object current = settings;
+            object? current = settings;
             foreach (var part in path.Split('.'))
-                current = current.GetType().GetProperty(part, PropertyFlags).GetValue(current);
+                current = Property(current, part, path).GetValue(current);
             return current;
         }
 
         /// <summary>Записывает значение свойства по пути (напр. "Spindle.SpindleSpeedRpm").</summary>
-        public static void SetValue(GCodeSettings settings, string path, object value)
+        public static void SetValue(GCodeSettings settings, string path, object? value)
         {
             var parts = path.Split('.');
-            object current = settings;
+            object? current = settings;
             for (var i = 0; i < parts.Length - 1; i++)
-                current = current.GetType().GetProperty(parts[i], PropertyFlags).GetValue(current);
-            current.GetType().GetProperty(parts[^1], PropertyFlags).SetValue(current, value);
+                current = Property(current, parts[i], path).GetValue(current);
+            Property(current, parts[^1], path).SetValue(current, value);
+        }
+
+        /// <summary>
+        /// Свойство по имени. Отсутствие свойства — ошибка самой таблицы,
+        /// а не данных: путь в ней написан руками, и опечатка иначе дала бы
+        /// отказ без указания, какая строка виновата.
+        /// </summary>
+        /// <param name="target">Объект, у которого ищется свойство.</param>
+        /// <param name="name">Имя свойства.</param>
+        /// <param name="path">Полный путь — для сообщения об ошибке.</param>
+        private static PropertyInfo Property(object? target, string name, string path)
+        {
+            if (target == null)
+                throw new InvalidOperationException($"Настройка «{path}»: путь обрывается на «{name}».");
+
+            return target.GetType().GetProperty(name, PropertyFlags)
+                ?? throw new InvalidOperationException(
+                    $"Настройка «{path}»: у {target.GetType().Name} нет свойства «{name}».");
         }
     }
 }

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -21,14 +22,14 @@ namespace GCodeGenerator.Views
     /// </summary>
     public partial class OperationsPreviewView : System.Windows.Controls.UserControl
     {
-        private OperationsPreviewViewModel _vm;
+        private OperationsPreviewViewModel? _vm;
         private double _zoom = 5.0; // pixels per mm
         private Point _offset;
         private bool _isPanning;
         private Point _lastMouse;
         private const double GridStepMm = 10.0;
         private const double FitPadding = 0.75; // 75% of available size
-        private OperationBase _hoverOp;
+        private OperationBase? _hoverOp;
 
         /// <summary>
         /// Цвета схемы для действующей темы. Пересобираются при её смене:
@@ -43,14 +44,14 @@ namespace GCodeGenerator.Views
             DataContextChanged += OnDataContextChanged;
         }
 
-        private void OnLoaded(object sender, RoutedEventArgs e)
+        private void OnLoaded(object? sender, RoutedEventArgs e)
         {
             _offset = new Point(PreviewCanvas.ActualWidth / 2.0, PreviewCanvas.ActualHeight / 2.0);
             HookVm();
             Redraw();
         }
 
-        private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        private void OnDataContextChanged(object? sender, DependencyPropertyChangedEventArgs e)
         {
             HookVm();
             Redraw();
@@ -84,7 +85,7 @@ namespace GCodeGenerator.Views
             _vm = null;
         }
 
-        private void OnVmPropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             // Scene rebuild or selection change → redraw.
             if (e.PropertyName == nameof(OperationsPreviewViewModel.Scene) ||
@@ -94,12 +95,12 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void OnShowAllRequested(object sender, EventArgs e)
+        private void OnShowAllRequested(object? sender, EventArgs e)
         {
             FitAll();
         }
 
-        private OperationBase GetOperationFromSource(object source)
+        private OperationBase? GetOperationFromSource(object source)
         {
             var fe = source as FrameworkElement;
             while (fe != null)
@@ -117,7 +118,7 @@ namespace GCodeGenerator.Views
             if (_vm == null || PreviewCanvas == null || PreviewCanvas.ActualWidth < 1 || PreviewCanvas.ActualHeight < 1)
                 return;
 
-            var bounds = _vm.Scene.Bounds;
+            var bounds = _vm.Scene?.Bounds;
             if (bounds == null)
                 return;
 
@@ -139,7 +140,7 @@ namespace GCodeGenerator.Views
             Redraw();
         }
 
-        private void PreviewCanvas_OnMouseWheel(object sender, MouseWheelEventArgs e)
+        private void PreviewCanvas_OnMouseWheel(object? sender, MouseWheelEventArgs e)
         {
             if (PreviewCanvas.ActualWidth < 1 || PreviewCanvas.ActualHeight < 1) return;
 
@@ -158,7 +159,7 @@ namespace GCodeGenerator.Views
             Redraw();
         }
 
-        private void PreviewCanvas_OnMouseDown(object sender, MouseButtonEventArgs e)
+        private void PreviewCanvas_OnMouseDown(object? sender, MouseButtonEventArgs e)
         {
             if (e.LeftButton == MouseButtonState.Pressed)
             {
@@ -168,7 +169,7 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void PreviewCanvas_OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void PreviewCanvas_OnMouseLeftButtonDown(object? sender, MouseButtonEventArgs e)
         {
             if (_vm == null) return;
 
@@ -185,7 +186,7 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void PreviewCanvas_OnMouseMove(object sender, MouseEventArgs e)
+        private void PreviewCanvas_OnMouseMove(object? sender, MouseEventArgs e)
         {
             if (_isPanning && e.LeftButton == MouseButtonState.Pressed)
             {
@@ -206,13 +207,13 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void PreviewCanvas_OnMouseUp(object sender, MouseButtonEventArgs e)
+        private void PreviewCanvas_OnMouseUp(object? sender, MouseButtonEventArgs e)
         {
             _isPanning = false;
             PreviewCanvas.ReleaseMouseCapture();
         }
 
-        private void PreviewCanvas_OnMouseLeave(object sender, MouseEventArgs e)
+        private void PreviewCanvas_OnMouseLeave(object? sender, MouseEventArgs e)
         {
             if (_hoverOp != null)
             {
@@ -221,14 +222,14 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void PreviewCanvas_OnSizeChanged(object sender, SizeChangedEventArgs e)
+        private void PreviewCanvas_OnSizeChanged(object? sender, SizeChangedEventArgs e)
         {
             if (double.IsNaN(_offset.X) || double.IsNaN(_offset.Y))
                 _offset = new Point(PreviewCanvas.ActualWidth / 2.0, PreviewCanvas.ActualHeight / 2.0);
             Redraw();
         }
 
-        private void OnThemeChanged(object sender, EventArgs e)
+        private void OnThemeChanged(object? sender, EventArgs e)
         {
             _palette = OperationPreviewPalette.ForCurrentTheme();
             Redraw();
@@ -253,7 +254,7 @@ namespace GCodeGenerator.Views
             var selected = _vm.SelectedOperation;
             var hover = _hoverOp;
 
-            foreach (var shape in _vm.Scene.Shapes)
+            foreach (var shape in _vm.Scene?.Shapes ?? (IReadOnlyList<OperationShape>)System.Array.Empty<OperationShape>())
             {
                 var op = shape.Operation;
 
@@ -412,7 +413,7 @@ namespace GCodeGenerator.Views
             PreviewCanvas.Children.Add(poly);
         }
 
-        private void ApplyTooltip(FrameworkElement element, OperationBase op)
+        private void ApplyTooltip(FrameworkElement element, OperationBase? op)
         {
             if (op == null) return;
             element.ToolTip = op.Name;

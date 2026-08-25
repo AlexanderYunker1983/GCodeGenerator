@@ -1,3 +1,4 @@
+#nullable enable
 namespace GCodeGenerator.Services
 {
     /// <summary>

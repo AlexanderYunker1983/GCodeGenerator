@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows.Controls;
 
 namespace GCodeGenerator.Views.Common

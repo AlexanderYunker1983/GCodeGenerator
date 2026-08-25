@@ -1,3 +1,4 @@
+#nullable enable
 using System.Configuration;
 
 namespace GCodeGenerator.Services

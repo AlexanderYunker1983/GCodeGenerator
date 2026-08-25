@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -61,7 +62,7 @@ namespace GCodeGenerator.Infrastructure
         public string FilePath => _filePath;
 
         /// <inheritdoc />
-        public void Log(LogLevel level, string message, Exception exception = null)
+        public void Log(LogLevel level, string message, Exception? exception = null)
         {
             var line = Format(level, message, exception);
             try
@@ -83,7 +84,7 @@ namespace GCodeGenerator.Infrastructure
             }
         }
 
-        private static string Format(LogLevel level, string message, Exception exception)
+        private static string Format(LogLevel level, string message, Exception? exception)
         {
             var builder = new StringBuilder();
             builder.Append(DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff", CultureInfo.InvariantCulture));

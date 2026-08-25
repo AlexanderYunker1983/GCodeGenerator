@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -13,7 +14,7 @@ namespace GCodeGenerator.ViewModels.Drill
     /// </summary>
     public partial class DrillPackageOperationViewModel : DrillPatternEditorViewModelBase
     {
-        private PackageDefinition _selectedPackage;
+        private PackageDefinition? _selectedPackage;
 
         public DrillPackageOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -33,7 +34,7 @@ namespace GCodeGenerator.ViewModels.Drill
         /// Выбранный корпус. В операцию уходит его имя — по нему отверстия
         /// пересчитываются и при следующем открытии проекта.
         /// </summary>
-        public PackageDefinition SelectedPackage
+        public PackageDefinition? SelectedPackage
         {
             get => _selectedPackage;
             set
@@ -55,6 +56,6 @@ namespace GCodeGenerator.ViewModels.Drill
         }
 
         /// <summary>Шаблон без отверстий не имеет смысла.</summary>
-        protected override bool IsValid() => PreviewHoles.Count > 0;
+        protected override bool IsValid(DrillPointsOperation operation) => PreviewHoles.Count > 0;
     }
 }

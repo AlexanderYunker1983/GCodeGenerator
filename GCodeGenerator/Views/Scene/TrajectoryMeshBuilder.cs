@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Windows.Media.Media3D;
@@ -197,7 +198,7 @@ namespace GCodeGenerator.Views.Scene
 
             foreach (var segment in scene.Segments)
             {
-                List<Point3D> interpolated = null;
+                List<Point3D>? interpolated = null;
                 if (segment.InterpolatedPoints != null)
                 {
                     interpolated = new List<Point3D>(segment.InterpolatedPoints.Count);
@@ -217,7 +218,7 @@ namespace GCodeGenerator.Views.Scene
         /// <summary>Отрезок сцены в координатах WPF — граница между ядром и представлением.</summary>
         private sealed class RenderSegment
         {
-            public RenderSegment(Point3D start, Point3D end, MoveType moveType, List<Point3D> interpolatedPoints)
+            public RenderSegment(Point3D start, Point3D end, MoveType moveType, List<Point3D>? interpolatedPoints)
             {
                 Start = start;
                 End = end;
@@ -231,7 +232,7 @@ namespace GCodeGenerator.Views.Scene
 
             public MoveType MoveType { get; }
 
-            public List<Point3D> InterpolatedPoints { get; }
+            public List<Point3D>? InterpolatedPoints { get; }
         }
     }
 }

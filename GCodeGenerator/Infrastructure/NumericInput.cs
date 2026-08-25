@@ -1,3 +1,4 @@
+#nullable enable
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -62,23 +63,27 @@ namespace GCodeGenerator.Infrastructure
         }
 
         /// <summary>Пробел не печатает символ, но разрывает число — запрещаем явно.</summary>
-        private static void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        private static void OnPreviewKeyDown(object? sender, KeyEventArgs e)
         {
             if (e.Key == Key.Space)
                 e.Handled = true;
         }
 
-        private static void OnPreviewTextInput(object sender, TextCompositionEventArgs e)
+        private static void OnPreviewTextInput(object? sender, TextCompositionEventArgs e)
         {
-            var textBox = (TextBox)sender;
+            if (sender is not TextBox textBox)
+                return;
+
             e.Handled = !IsAllowed(textBox, ResultingText(textBox, e.Text));
         }
 
-        private static void OnPaste(object sender, DataObjectPastingEventArgs e)
+        private static void OnPaste(object? sender, DataObjectPastingEventArgs e)
         {
-            var textBox = (TextBox)sender;
+            if (sender is not TextBox textBox)
+                return;
+
             var pasted = e.DataObject.GetDataPresent(DataFormats.UnicodeText)
-                ? (string)e.DataObject.GetData(DataFormats.UnicodeText)
+                ? e.DataObject.GetData(DataFormats.UnicodeText) as string
                 : null;
 
             if (pasted == null || !IsAllowed(textBox, ResultingText(textBox, pasted)))

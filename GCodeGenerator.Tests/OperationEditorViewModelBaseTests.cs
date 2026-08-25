@@ -22,7 +22,7 @@ namespace GCodeGenerator.Tests
 
             public int AcceptedCount { get; private set; }
 
-            protected override bool IsValid() => Valid;
+            protected override bool IsValid(PocketCircleOperation operation) => Valid;
 
             protected override void BeforeAccept(PocketCircleOperation operation) => AcceptedCount++;
         }

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Windows;
 using ControlzEx.Theming;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.Services
     /// </summary>
     public sealed class WpfThemeService : IThemeService
     {
-        public event EventHandler ThemeChanged;
+        public event EventHandler? ThemeChanged;
 
         public void ApplyTheme(bool useDarkTheme)
         {

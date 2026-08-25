@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows;
 using System.Windows.Media;
 using GCodeGenerator.Preview;

@@ -1,3 +1,4 @@
+#nullable enable
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels
     public interface IOperationEditorViewModel : IOperationEditorSession
     {
         /// <summary>Операция, которую редактирует диалог (рабочая копия).</summary>
-        OperationBase EditedOperation { get; }
+        OperationBase? EditedOperation { get; }
 
         /// <summary>
         /// Задаёт редактируемую операцию.
@@ -51,7 +52,7 @@ namespace GCodeGenerator.ViewModels
     public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel, IOperationEditorViewModel
         where TOperation : OperationBase
     {
-        private TOperation _operation;
+        private TOperation? _operation;
         private bool _hasValidationError;
 
         /// <inheritdoc />
@@ -59,13 +60,13 @@ namespace GCodeGenerator.ViewModels
             => Operation = (TOperation)operation;
 
         /// <inheritdoc />
-        OperationBase IOperationEditorViewModel.EditedOperation => Operation;
+        OperationBase? IOperationEditorViewModel.EditedOperation => Operation;
 
         /// <summary>
         /// Редактируемая операция — рабочая копия. Разметка окна привязана
         /// прямо к её параметрам.
         /// </summary>
-        public TOperation Operation
+        public TOperation? Operation
         {
             get => _operation;
             set
@@ -94,7 +95,13 @@ namespace GCodeGenerator.ViewModels
         /// с пояснением (<see cref="HasValidationError"/>), операция остаётся
         /// в списке.
         /// </summary>
-        protected virtual bool IsValid() => true;
+        /// <summary>
+        /// Годятся ли введённые параметры. Операция передаётся сюда, а не
+        /// берётся из поля: к моменту проверки она заведомо есть, и окну
+        /// не приходится проверять это второй раз.
+        /// </summary>
+        /// <param name="operation">Правимая операция.</param>
+        protected virtual bool IsValid(TOperation operation) => true;
 
         /// <summary>OK: проверка параметров и закрытие.</summary>
         public ICommand OkCommand { get; }
@@ -130,7 +137,7 @@ namespace GCodeGenerator.ViewModels
         private void OnOk()
         {
             if (_operation == null) return;
-            if (!IsValid())
+            if (!IsValid(_operation))
             {
                 // Окно остаётся открытым: пользователь видит, что параметры
                 // неверны, и правит их. Операция не трогается.

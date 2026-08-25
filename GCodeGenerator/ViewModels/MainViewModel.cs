@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
@@ -23,24 +24,24 @@ namespace GCodeGenerator.ViewModels
         private readonly OperationsWorkspaceViewModel _operationsWorkspace;
         private readonly GCodeWorkflowViewModel _gCodeWorkflow;
         private readonly ProjectWorkflowViewModel _projectWorkflow;
-        private readonly ISettingsStore _settingsStore;
-        private readonly ILocalizationManager _localizationManager;
+        private readonly ISettingsStore? _settingsStore;
+        private readonly ILocalizationManager? _localizationManager;
         private readonly Func<SettingsViewModel> _createSettings;
         private readonly IDialogHost _dialogHost;
         private readonly IProgramInfo _programInfo;
         private readonly string _programTitle;
-        private IDisposable _documentBatch;
-        private string _displayName;
+        private IDisposable? _documentBatch;
+        private string _displayName = string.Empty;
 
         public MainViewModel(
-            ILocalizationManager localizationManager,
+            ILocalizationManager? localizationManager,
             Func<SettingsViewModel> createSettings,
             IDialogHost dialogHost,
             IGCodeWorkflowFactory gCodeWorkflowFactory,
             IProjectWorkflowFactory projectWorkflowFactory,
             OperationsWorkspaceViewModel operationsWorkspace,
             IProgramInfo programInfo,
-            ISettingsStore settingsStore)
+            ISettingsStore? settingsStore)
         {
             _localizationManager = localizationManager;
             _createSettings = createSettings ?? throw new ArgumentNullException(nameof(createSettings));
@@ -119,7 +120,7 @@ namespace GCodeGenerator.ViewModels
             DisplayName = $"{fileName}{changeMark} — {_programTitle}";
         }
 
-        private void OnProjectWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnProjectWorkflowPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ProjectWorkflowViewModel.CurrentPath) ||
                 e.PropertyName == nameof(ProjectWorkflowViewModel.IsDirty))
@@ -128,7 +129,7 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private void OnGCodeWorkflowPropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void OnGCodeWorkflowPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             // Двумерный предпросмотр умеет показывать саму траекторию, а не
             // только контуры операций: он получает её от той же генерации.
@@ -137,30 +138,30 @@ namespace GCodeGenerator.ViewModels
 
         }
 
-        private void OnOperationsWorkspaceContentChanged(object sender, EventArgs e)
+        private void OnOperationsWorkspaceContentChanged(object? sender, EventArgs e)
         {
             _gCodeWorkflow.InvalidateGeneratedProgram();
             _projectWorkflow.NotifyOperationsChanged();
         }
 
-        private void OnProjectResetting(object sender, EventArgs e)
+        private void OnProjectResetting(object? sender, EventArgs e)
         {
             _operationsWorkspace.SelectedOperation = null;
         }
 
-        private void OnDocumentApplying(object sender, EventArgs e)
+        private void OnDocumentApplying(object? sender, EventArgs e)
         {
             _documentBatch?.Dispose();
             _documentBatch = _operationsWorkspace.BeginBatchUpdate();
         }
 
-        private void OnDocumentApplied(object sender, EventArgs e)
+        private void OnDocumentApplied(object? sender, EventArgs e)
         {
             _documentBatch?.Dispose();
             _documentBatch = null;
         }
 
-        private void OnSettingsChanged(object sender, EventArgs e)
+        private void OnSettingsChanged(object? sender, EventArgs e)
         {
             _gCodeWorkflow.InvalidateGeneratedProgram();
             // Настройки генерации сохраняются вместе с проектом, поэтому их

@@ -1,3 +1,4 @@
+#nullable enable
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
@@ -21,13 +22,13 @@ namespace GCodeGenerator.Views
         /// закрытие — крестиком, Alt+F4, завершением сеанса — молча теряло
         /// работу.
         /// </summary>
-        private void OnClosing(object sender, CancelEventArgs e)
+        private void OnClosing(object? sender, CancelEventArgs e)
         {
             if (DataContext is MainViewModel vm && !vm.ConfirmClose())
                 e.Cancel = true;
         }
 
-        private void OperationsList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        private void OperationsList_MouseDoubleClick(object? sender, MouseButtonEventArgs e)
         {
             if (DataContext is MainViewModel vm &&
                 vm.OperationsWorkspace.EditOperationCommand?.CanExecute(null) == true)

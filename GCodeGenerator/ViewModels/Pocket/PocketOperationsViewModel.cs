@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Localization;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.ViewModels.Pocket
     /// </summary>
     public class PocketOperationsViewModel : OperationTabViewModelBase
     {
-        public PocketOperationsViewModel(ILocalizationManager localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
+        public PocketOperationsViewModel(ILocalizationManager? localizationManager, IOperationEditorFactory operationEditorFactory, ObservableCollection<OperationBase> allOperations)
             : base(localizationManager, operationEditorFactory, allOperations)
         {
             AddPocketRectangleCommand = AddCommand(typeof(PocketRectangleOperation));

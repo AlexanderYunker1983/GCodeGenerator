@@ -1,3 +1,4 @@
+#nullable enable
 using CommunityToolkit.Mvvm.ComponentModel;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -9,7 +10,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
         : ProfileOperationEditorViewModelBase<ProfileCircleOperation>, IHasDisplayName
     {
         [ObservableProperty]
-        private string _displayName;
+        private string _displayName = string.Empty;
 
         public ProfileCircleOperationViewModel(ILocalizationManager localizationManager)
         {
@@ -18,7 +19,7 @@ namespace GCodeGenerator.ViewModels.PocketMill
             DisplayName = localizationManager?.GetString("ProfileCircleName") ?? "ProfileCircleName";
         }
 
-        protected override bool IsValid()
-            => Operation.Radius > 0 && Operation.ToolDiameter > 0;
+        protected override bool IsValid(ProfileCircleOperation operation)
+            => operation.Radius > 0 && operation.ToolDiameter > 0;
     }
 }

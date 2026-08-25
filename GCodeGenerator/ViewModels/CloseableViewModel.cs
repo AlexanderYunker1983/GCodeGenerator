@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 
 namespace GCodeGenerator.ViewModels
@@ -20,7 +21,7 @@ namespace GCodeGenerator.ViewModels
         /// Запрос закрытия диалогового окна из VM (кнопки OK/Cancel, пункт 7.3 плана).
         /// Подписывается <c>IDialogHost</c> при показе диалога.
         /// </summary>
-        public event Action CloseRequested;
+        public event Action? CloseRequested;
 
         /// <summary>Запрашивает закрытие диалогового окна (пункт 7.3 плана).</summary>
         public void RequestClose()
