@@ -12,6 +12,16 @@ namespace GCodeGenerator.Tests
     public class SettingsPersistenceTests
     {
         /// <summary>
+        /// Служебные настройки, не описывающие генерацию и потому отсутствующие
+        /// в <see cref="GCodeSettings"/>: признак переноса настроек из файла
+        /// предыдущей версии программы.
+        /// </summary>
+        private static readonly HashSet<string> ServiceSettings = new HashSet<string>
+        {
+            "UpgradeRequired"
+        };
+
+        /// <summary>
         /// Новое leaf-свойство в GCodeSettings нельзя незаметно забыть при
         /// загрузке/сохранении Properties.Settings: обе стороны используют
         /// SettingsMapping, а этот тест проверяет полноту и взаимно-однозначность.
@@ -33,6 +43,7 @@ namespace GCodeGenerator.Tests
             var persistentSettings = GCodeGenerator.Properties.Settings.Default.Properties
                 .Cast<SettingsProperty>()
                 .Select(property => property.Name)
+                .Where(name => !ServiceSettings.Contains(name))
                 .ToArray();
 
             CollectionAssert.AreEquivalent(expectedPaths, mappedPaths,
