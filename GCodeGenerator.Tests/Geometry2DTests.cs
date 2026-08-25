@@ -13,19 +13,19 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class Geometry2DTests
     {
-        private static List<DxfPoint> Points(params (double X, double Y)[] points)
+        private static List<Point2D> Points(params (double X, double Y)[] points)
         {
-            var result = new List<DxfPoint>(points.Length);
+            var result = new List<Point2D>(points.Length);
             foreach (var (x, y) in points)
-                result.Add(new DxfPoint { X = x, Y = y });
+                result.Add(new Point2D { X = x, Y = y });
             return result;
         }
 
         [TestMethod]
         public void PointsMatch_WithinTolerance_IsTrue()
         {
-            var a = new DxfPoint { X = 10, Y = 5 };
-            var b = new DxfPoint { X = 10.0005, Y = 5 };
+            var a = new Point2D { X = 10, Y = 5 };
+            var b = new Point2D { X = 10.0005, Y = 5 };
 
             Assert.IsTrue(Geometry2D.PointsMatch(a, b, 1e-3));
             Assert.IsFalse(Geometry2D.PointsMatch(a, b, 1e-6));
@@ -38,7 +38,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void PointsMatch_Null_IsFalse()
         {
-            var point = new DxfPoint { X = 1, Y = 1 };
+            var point = new Point2D { X = 1, Y = 1 };
 
             Assert.IsFalse(Geometry2D.PointsMatch(null, point, 1));
             Assert.IsFalse(Geometry2D.PointsMatch(point, null, 1));

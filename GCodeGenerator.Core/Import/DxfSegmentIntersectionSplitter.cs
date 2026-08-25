@@ -23,7 +23,7 @@ namespace GCodeGenerator.Import
             _subdivider = new DxfPolylineSubdivider(tolerance, detector);
         }
 
-        internal List<DxfPolyline> Split(List<DxfPolyline> segments)
+        internal List<Polyline2D> Split(List<Polyline2D> segments)
         {
             var intersections = _intersectionCollector.Collect(segments);
             return _subdivider.Subdivide(segments, intersections);

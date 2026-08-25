@@ -14,10 +14,10 @@ namespace GCodeGenerator.Import
     /// </summary>
     public sealed class DxfImportService : IDxfImportService
     {
-        public List<DxfPolyline> ReadProfilePolylines(string path)
+        public List<Polyline2D> ReadProfilePolylines(string path)
             => DxfEntityReader.Read(path);
 
-        public List<DxfPolyline> ReadPocketClosedContours(string path)
+        public List<Polyline2D> ReadPocketClosedContours(string path)
         {
             var entities = DxfEntityReader.Read(path);
             return new DxfClosedContourBuilder().Build(entities);

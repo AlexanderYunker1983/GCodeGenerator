@@ -5,24 +5,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace GCodeGenerator.Models
 {
     /// <summary>
-    /// Точка контура. Обычные свойства без уведомлений: точки не правят
-    /// поштучно — контур приходит из чертежа целиком, и об этом сообщает
-    /// сама операция.
-    /// </summary>
-    public class DxfPoint
-    {
-        public double X { get; set; }
-
-        public double Y { get; set; }
-    }
-
-    /// <summary>Ломаная контура; заполняется импортом чертежа целиком.</summary>
-    public class DxfPolyline
-    {
-        public List<DxfPoint> Points { get; set; } = new List<DxfPoint>();
-    }
-
-    /// <summary>
     /// Profile milling operation imported from DXF lines.
     /// </summary>
     public partial class ProfileDxfOperation : ProfileOperationBase, IValidatable
@@ -33,7 +15,7 @@ namespace GCodeGenerator.Models
 
         [ObservableProperty]
 
-        private List<DxfPolyline> _polylines = new List<DxfPolyline>();
+        private List<Polyline2D> _polylines = new List<Polyline2D>();
 
         [ObservableProperty]
 

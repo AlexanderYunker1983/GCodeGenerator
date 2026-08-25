@@ -137,7 +137,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// Нулевое смещение возвращает исходные точки без изменений.
         /// </summary>
         private static IReadOnlyList<List<(double x, double y)>> OffsetPolyline(
-            IReadOnlyList<DxfPoint> points,
+            IReadOnlyList<Point2D> points,
             double offset)
         {
             var single = new List<List<(double x, double y)>>();
@@ -170,7 +170,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// у прямого отрезка нормали получались противоположными, их среднее
         /// обращалось в ноль, и концы линии оставались несмещёнными.
         /// </summary>
-        private static List<(double x, double y)> OffsetOpenPolyline(IReadOnlyList<DxfPoint> points, double offset)
+        private static List<(double x, double y)> OffsetOpenPolyline(IReadOnlyList<Point2D> points, double offset)
         {
             const double tolerance = GeometryTolerances.Vertex;
             var offsetPoints = new List<(double x, double y)>(points.Count);
@@ -263,7 +263,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return points;
         }
 
-        private static bool IsClosed(IReadOnlyList<DxfPoint> points)
+        private static bool IsClosed(IReadOnlyList<Point2D> points)
             => points.Count > 2
                 && Geometry2D.PointsMatch(points[0], points[points.Count - 1], GeometryTolerances.Vertex);
 
@@ -272,9 +272,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// отрезки и дуги из DXF складываются в контуры, которые фрезеруются
         /// без отрыва инструмента.
         /// </summary>
-        private static List<List<DxfPolyline>> GroupPolylinesIntoContours(List<DxfPolyline> polylines, double tolerance)
+        private static List<List<Polyline2D>> GroupPolylinesIntoContours(List<Polyline2D> polylines, double tolerance)
         {
-            var contours = new List<List<DxfPolyline>>();
+            var contours = new List<List<Polyline2D>>();
             var used = new bool[polylines.Count];
 
             for (int i = 0; i < polylines.Count; i++)
@@ -295,13 +295,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// присоединяется концом к текущему концу цепочки, при необходимости
         /// разворачиваясь.
         /// </summary>
-        private static List<DxfPolyline> BuildContourFromPolyline(
-            List<DxfPolyline> polylines,
+        private static List<Polyline2D> BuildContourFromPolyline(
+            List<Polyline2D> polylines,
             int startIdx,
             bool[] used,
             double tolerance)
         {
-            var contour = new List<DxfPolyline> { polylines[startIdx] };
+            var contour = new List<Polyline2D> { polylines[startIdx] };
             used[startIdx] = true;
 
             var startPoint = polylines[startIdx].Points[0];
@@ -332,9 +332,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
                     if (Geometry2D.PointsMatch(currentPoint, polyEnd, tolerance))
                     {
-                        var reversedPolyline = new DxfPolyline
+                        var reversedPolyline = new Polyline2D
                         {
-                            Points = new List<DxfPoint>(polyline.Points)
+                            Points = new List<Point2D>(polyline.Points)
                         };
                         reversedPolyline.Points.Reverse();
                         contour.Add(reversedPolyline);

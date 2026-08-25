@@ -13,7 +13,7 @@ namespace GCodeGenerator.Tests
         {
             var detector = new DxfSegmentIntersectionDetector(0.001);
             var collector = new DxfPolylineIntersectionCollector(0.001, detector);
-            var polylines = new List<DxfPolyline>
+            var polylines = new List<Polyline2D>
             {
                 Segment((0, 0), (10, 0)),
                 Segment((8, -1), (8, 1)),
@@ -34,7 +34,7 @@ namespace GCodeGenerator.Tests
         {
             var detector = new DxfSegmentIntersectionDetector(0.001);
             var subdivider = new DxfPolylineSubdivider(0.001, detector);
-            var polylines = new List<DxfPolyline>
+            var polylines = new List<Polyline2D>
             {
                 Segment((0, 0), (10, 0)),
             };
@@ -42,8 +42,8 @@ namespace GCodeGenerator.Tests
             {
                 [0] = new List<DxfPolylineIntersection>
                 {
-                    new DxfPolylineIntersection(new DxfPoint { X = 3, Y = 0 }, 3),
-                    new DxfPolylineIntersection(new DxfPoint { X = 7, Y = 0 }, 7),
+                    new DxfPolylineIntersection(new Point2D { X = 3, Y = 0 }, 3),
+                    new DxfPolylineIntersection(new Point2D { X = 7, Y = 0 }, 7),
                 },
             };
 
@@ -55,19 +55,19 @@ namespace GCodeGenerator.Tests
             AssertEdge(result[2], 7, 10);
         }
 
-        private static DxfPolyline Segment(
+        private static Polyline2D Segment(
             (double x, double y) start,
             (double x, double y) end)
-            => new DxfPolyline
+            => new Polyline2D
             {
-                Points = new List<DxfPoint>
+                Points = new List<Point2D>
                 {
-                    new DxfPoint { X = start.x, Y = start.y },
-                    new DxfPoint { X = end.x, Y = end.y },
+                    new Point2D { X = start.x, Y = start.y },
+                    new Point2D { X = end.x, Y = end.y },
                 },
             };
 
-        private static void AssertEdge(DxfPolyline edge, double startX, double endX)
+        private static void AssertEdge(Polyline2D edge, double startX, double endX)
         {
             Assert.AreEqual(2, edge.Points.Count);
             Assert.AreEqual(startX, edge.Points[0].X, 1e-9);

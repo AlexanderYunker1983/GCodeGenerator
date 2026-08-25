@@ -37,11 +37,11 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(string.IsNullOrWhiteSpace(issues[0].Message));
         }
 
-        private static DxfPolyline Poly(params (double x, double y)[] pts)
+        private static Polyline2D Poly(params (double x, double y)[] pts)
         {
-            var p = new DxfPolyline();
+            var p = new Polyline2D();
             foreach (var pt in pts)
-                p.Points.Add(new DxfPoint { X = pt.x, Y = pt.y });
+                p.Points.Add(new Point2D { X = pt.x, Y = pt.y });
             return p;
         }
 
@@ -84,7 +84,7 @@ namespace GCodeGenerator.Tests
         public void ProfileDxf_OpenPolyline_IsValid()
         {
             var op = OperationFixtures.ProfileDxf();
-            op.Polylines = new List<DxfPolyline> { Poly((0, 0), (10, 0), (10, 5)) };
+            op.Polylines = new List<Polyline2D> { Poly((0, 0), (10, 0), (10, 5)) };
             AssertValid(op);
         }
 
@@ -96,7 +96,7 @@ namespace GCodeGenerator.Tests
         public void PocketDxf_ClosedWithinTolerance_IsValid()
         {
             var op = OperationFixtures.PocketDxf();
-            op.ClosedContours = new List<DxfPolyline>
+            op.ClosedContours = new List<Polyline2D>
             {
                 Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 5e-4))
             };
@@ -308,7 +308,7 @@ namespace GCodeGenerator.Tests
         public void ProfileDxf_EmptyPolylines_Invalid()
         {
             var op = OperationFixtures.ProfileDxf();
-            op.Polylines = new List<DxfPolyline>();
+            op.Polylines = new List<Polyline2D>();
             AssertSingleIssue(op, nameof(ProfileDxfOperation.Polylines));
         }
 
@@ -316,7 +316,7 @@ namespace GCodeGenerator.Tests
         public void ProfileDxf_SinglePointPolyline_Invalid()
         {
             var op = OperationFixtures.ProfileDxf();
-            op.Polylines = new List<DxfPolyline> { Poly((0, 0)) };
+            op.Polylines = new List<Polyline2D> { Poly((0, 0)) };
             AssertSingleIssue(op, "Polylines[0].Points");
         }
 
@@ -368,7 +368,7 @@ namespace GCodeGenerator.Tests
         public void PocketDxf_EmptyContours_Invalid()
         {
             var op = OperationFixtures.PocketDxf();
-            op.ClosedContours = new List<DxfPolyline>();
+            op.ClosedContours = new List<Polyline2D>();
             AssertSingleIssue(op, nameof(PocketDxfOperation.ClosedContours));
         }
 
@@ -376,7 +376,7 @@ namespace GCodeGenerator.Tests
         public void PocketDxf_TwoPointContour_Invalid()
         {
             var op = OperationFixtures.PocketDxf();
-            op.ClosedContours = new List<DxfPolyline> { Poly((0, 0), (10, 0)) };
+            op.ClosedContours = new List<Polyline2D> { Poly((0, 0), (10, 0)) };
             AssertSingleIssue(op, "ClosedContours[0].Points");
         }
 
@@ -384,7 +384,7 @@ namespace GCodeGenerator.Tests
         public void PocketDxf_OpenContour_Invalid()
         {
             var op = OperationFixtures.PocketDxf();
-            op.ClosedContours = new List<DxfPolyline>
+            op.ClosedContours = new List<Polyline2D>
             {
                 Poly((0, 0), (10, 0), (10, 10), (0, 9))
             };
@@ -395,7 +395,7 @@ namespace GCodeGenerator.Tests
         public void PocketDxf_ClosedContour_IsValid()
         {
             var op = OperationFixtures.PocketDxf();
-            op.ClosedContours = new List<DxfPolyline>
+            op.ClosedContours = new List<Polyline2D>
             {
                 Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0))
             };

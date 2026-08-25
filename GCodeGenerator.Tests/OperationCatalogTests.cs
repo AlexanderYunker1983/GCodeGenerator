@@ -197,16 +197,16 @@ namespace GCodeGenerator.Tests
             }
         }
 
-        private static DxfPolyline Square()
-            => new DxfPolyline
+        private static Polyline2D Square()
+            => new Polyline2D
             {
                 Points =
                 {
-                    new DxfPoint { X = 0, Y = 0 },
-                    new DxfPoint { X = 10, Y = 0 },
-                    new DxfPoint { X = 10, Y = 10 },
-                    new DxfPoint { X = 0, Y = 10 },
-                    new DxfPoint { X = 0, Y = 0 }
+                    new Point2D { X = 0, Y = 0 },
+                    new Point2D { X = 10, Y = 0 },
+                    new Point2D { X = 10, Y = 10 },
+                    new Point2D { X = 0, Y = 10 },
+                    new Point2D { X = 0, Y = 0 }
                 }
             };
     }

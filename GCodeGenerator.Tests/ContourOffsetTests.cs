@@ -14,10 +14,10 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class ContourOffsetTests
     {
-        private static List<DxfPoint> Points(params (double X, double Y)[] points)
-            => points.Select(p => new DxfPoint { X = p.X, Y = p.Y }).ToList();
+        private static List<Point2D> Points(params (double X, double Y)[] points)
+            => points.Select(p => new Point2D { X = p.X, Y = p.Y }).ToList();
 
-        private static double Area(IReadOnlyList<DxfPoint> contour) => Geometry2D.Area(contour);
+        private static double Area(IReadOnlyList<Point2D> contour) => Geometry2D.Area(contour);
 
         [TestMethod]
         public void Square_ShrinksByDelta()

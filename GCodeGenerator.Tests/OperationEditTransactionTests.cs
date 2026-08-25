@@ -55,7 +55,7 @@ namespace GCodeGenerator.Tests
                     var editor = (ProfileDxfOperationViewModel)vm;
                     editor.Operation.ToolDiameter = 12;
                     editor.Operation.DxfFilePath = "changed.dxf";
-                    editor.Operation.Polylines = new System.Collections.Generic.List<DxfPolyline>
+                    editor.Operation.Polylines = new System.Collections.Generic.List<Polyline2D>
                     {
                         Poly((1, 1), (2, 2)),
                     };
@@ -146,11 +146,11 @@ namespace GCodeGenerator.Tests
             };
         }
 
-        private static DxfPolyline Poly(params (double x, double y)[] points)
+        private static Polyline2D Poly(params (double x, double y)[] points)
         {
-            var polyline = new DxfPolyline();
+            var polyline = new Polyline2D();
             foreach (var point in points)
-                polyline.Points.Add(new DxfPoint { X = point.x, Y = point.y });
+                polyline.Points.Add(new Point2D { X = point.x, Y = point.y });
             return polyline;
         }
     }

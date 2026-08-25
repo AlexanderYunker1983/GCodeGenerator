@@ -22,7 +22,7 @@ namespace GCodeGenerator.Tests.Fixtures
         /// <summary>
         /// Парсит DXF профиля (открытые контуры: LINE/ARC/CIRCLE/ELLIPSE).
         /// </summary>
-        public static List<DxfPolyline> LoadProfilePolylines(string fileName)
+        public static List<Polyline2D> LoadProfilePolylines(string fileName)
         {
             return new DxfImportService().ReadProfilePolylines(GetAssetPath(fileName));
         }
@@ -30,7 +30,7 @@ namespace GCodeGenerator.Tests.Fixtures
         /// <summary>
         /// Парсит DXF кармана (только замкнутые контуры).
         /// </summary>
-        public static List<DxfPolyline> LoadPocketClosedContours(string fileName)
+        public static List<Polyline2D> LoadPocketClosedContours(string fileName)
         {
             return new DxfImportService().ReadPocketClosedContours(GetAssetPath(fileName));
         }

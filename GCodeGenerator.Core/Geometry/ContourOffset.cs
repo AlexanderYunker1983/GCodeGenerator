@@ -51,9 +51,9 @@ namespace GCodeGenerator.Geometry
         /// Пустой список означает, что при таком смещении области не остаётся:
         /// для кармана это признак «фреза не помещается».
         /// </returns>
-        public static List<List<DxfPoint>> Offset(IReadOnlyList<DxfPoint> contour, double delta)
+        public static List<List<Point2D>> Offset(IReadOnlyList<Point2D> contour, double delta)
         {
-            var result = new List<List<DxfPoint>>();
+            var result = new List<List<Point2D>>();
             var source = ToPath(contour);
             if (source.Count < 3)
                 return result;
@@ -77,9 +77,9 @@ namespace GCodeGenerator.Geometry
                 if (path.Count < 3)
                     continue;
 
-                var points = new List<DxfPoint>(path.Count);
+                var points = new List<Point2D>(path.Count);
                 foreach (var point in path)
-                    points.Add(new DxfPoint { X = point.x, Y = point.y });
+                    points.Add(new Point2D { X = point.x, Y = point.y });
                 result.Add(points);
             }
 
@@ -91,7 +91,7 @@ namespace GCodeGenerator.Geometry
         /// дубликат первой точки: для Clipper2 путь замкнут по определению,
         /// а повторная вершина даёт вырожденную сторону нулевой длины.
         /// </summary>
-        private static PathD ToPath(IReadOnlyList<DxfPoint> contour)
+        private static PathD ToPath(IReadOnlyList<Point2D> contour)
         {
             var path = new PathD();
             if (contour == null || contour.Count == 0)

@@ -10,9 +10,9 @@ namespace GCodeGenerator.Import
     public interface IDxfImportService
     {
         /// <summary>Читает геометрию профильной обработки.</summary>
-        List<DxfPolyline> ReadProfilePolylines(string path);
+        List<Polyline2D> ReadProfilePolylines(string path);
 
         /// <summary>Читает и восстанавливает замкнутые контуры кармана.</summary>
-        List<DxfPolyline> ReadPocketClosedContours(string path);
+        List<Polyline2D> ReadPocketClosedContours(string path);
     }
 }

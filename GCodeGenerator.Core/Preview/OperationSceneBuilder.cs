@@ -40,7 +40,7 @@ namespace GCodeGenerator.Preview
                 }
                 else if (operation is ProfileDxfOperation dxfProfile)
                 {
-                    foreach (var polyline in dxfProfile.Polylines ?? new List<DxfPolyline>())
+                    foreach (var polyline in dxfProfile.Polylines ?? new List<Polyline2D>())
                     {
                         if (polyline?.Points == null || polyline.Points.Count < 2)
                             continue;
@@ -66,7 +66,7 @@ namespace GCodeGenerator.Preview
                 }
                 else if (operation is PocketDxfOperation dxfPocket)
                 {
-                    foreach (var contour in dxfPocket.ClosedContours ?? new List<DxfPolyline>())
+                    foreach (var contour in dxfPocket.ClosedContours ?? new List<Polyline2D>())
                     {
                         if (contour?.Points == null || contour.Points.Count < 3)
                             continue;

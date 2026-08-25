@@ -27,7 +27,7 @@ namespace GCodeGenerator.Import
         }
 
         internal Dictionary<int, List<DxfPolylineIntersection>> Collect(
-            IReadOnlyList<DxfPolyline> polylines)
+            IReadOnlyList<Polyline2D> polylines)
         {
             var result = new Dictionary<int, List<DxfPolylineIntersection>>();
 
@@ -66,7 +66,7 @@ namespace GCodeGenerator.Import
             return result;
         }
 
-        private double DistanceAlongPolyline(DxfPolyline polyline, DxfPoint point)
+        private double DistanceAlongPolyline(Polyline2D polyline, Point2D point)
         {
             var distance = 0.0;
             for (var index = 0; index < polyline.Points.Count - 1; index++)
@@ -93,7 +93,7 @@ namespace GCodeGenerator.Import
 
         private void AddUnique(
             List<DxfPolylineIntersection> intersections,
-            DxfPoint point,
+            Point2D point,
             double distance)
         {
             if (!intersections.Any(item => PointsMatch(item.Point, point)))
@@ -108,13 +108,13 @@ namespace GCodeGenerator.Import
                 result[index] = new List<DxfPolylineIntersection>();
         }
 
-        private static bool IsValid(DxfPolyline polyline)
+        private static bool IsValid(Polyline2D polyline)
             => polyline?.Points != null && polyline.Points.Count >= 2;
 
-        private static double Distance(DxfPoint first, DxfPoint second)
+        private static double Distance(Point2D first, Point2D second)
             => Geometry2D.Distance(first, second);
 
-        private bool PointsMatch(DxfPoint first, DxfPoint second)
+        private bool PointsMatch(Point2D first, Point2D second)
             => Geometry2D.PointsMatch(first, second, _tolerance);
     }
 }

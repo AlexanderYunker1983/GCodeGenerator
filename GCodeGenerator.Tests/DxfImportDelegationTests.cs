@@ -34,37 +34,37 @@ namespace GCodeGenerator.Tests
         {
             public string ProfilePath { get; private set; }
             public string PocketPath { get; private set; }
-            public List<DxfPolyline> ProfileResult { get; } = new List<DxfPolyline>
+            public List<Polyline2D> ProfileResult { get; } = new List<Polyline2D>
             {
-                new DxfPolyline
+                new Polyline2D
                 {
-                    Points = new List<DxfPoint>
+                    Points = new List<Point2D>
                     {
-                        new DxfPoint { X = 0, Y = 0 },
-                        new DxfPoint { X = 1, Y = 0 }
+                        new Point2D { X = 0, Y = 0 },
+                        new Point2D { X = 1, Y = 0 }
                     }
                 }
             };
-            public List<DxfPolyline> PocketResult { get; } = new List<DxfPolyline>
+            public List<Polyline2D> PocketResult { get; } = new List<Polyline2D>
             {
-                new DxfPolyline
+                new Polyline2D
                 {
-                    Points = new List<DxfPoint>
+                    Points = new List<Point2D>
                     {
-                        new DxfPoint { X = 0, Y = 0 },
-                        new DxfPoint { X = 1, Y = 0 },
-                        new DxfPoint { X = 0, Y = 0 }
+                        new Point2D { X = 0, Y = 0 },
+                        new Point2D { X = 1, Y = 0 },
+                        new Point2D { X = 0, Y = 0 }
                     }
                 }
             };
 
-            public List<DxfPolyline> ReadProfilePolylines(string path)
+            public List<Polyline2D> ReadProfilePolylines(string path)
             {
                 ProfilePath = path;
                 return ProfileResult;
             }
 
-            public List<DxfPolyline> ReadPocketClosedContours(string path)
+            public List<Polyline2D> ReadPocketClosedContours(string path)
             {
                 PocketPath = path;
                 return PocketResult;

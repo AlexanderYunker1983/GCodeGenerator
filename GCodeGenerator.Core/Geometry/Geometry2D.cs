@@ -30,14 +30,14 @@ namespace GCodeGenerator.Geometry
         }
 
         /// <summary>Расстояние между двумя точками контура.</summary>
-        public static double Distance(DxfPoint first, DxfPoint second)
+        public static double Distance(Point2D first, Point2D second)
             => Distance(first.X, first.Y, second.X, second.Y);
 
         /// <summary>
         /// Точки совпадают в пределах допуска. <c>null</c> не совпадает ни с чем,
         /// включая другой <c>null</c>: отсутствующая точка не является координатой.
         /// </summary>
-        public static bool PointsMatch(DxfPoint first, DxfPoint second, double tolerance)
+        public static bool PointsMatch(Point2D first, Point2D second, double tolerance)
         {
             if (first == null || second == null)
                 return false;
@@ -49,7 +49,7 @@ namespace GCodeGenerator.Geometry
         /// Положительная — обход против часовой стрелки, отрицательная — по часовой.
         /// Контур меньше трёх точек площади не имеет.
         /// </summary>
-        public static double SignedArea(IReadOnlyList<DxfPoint> points)
+        public static double SignedArea(IReadOnlyList<Point2D> points)
         {
             if (points == null || points.Count < 3)
                 return 0;
@@ -65,7 +65,7 @@ namespace GCodeGenerator.Geometry
         }
 
         /// <summary>Площадь замкнутого контура без учёта направления обхода.</summary>
-        public static double Area(IReadOnlyList<DxfPoint> points)
+        public static double Area(IReadOnlyList<Point2D> points)
             => Math.Abs(SignedArea(points));
 
         /// <summary>
@@ -75,7 +75,7 @@ namespace GCodeGenerator.Geometry
         /// </summary>
         /// <param name="points">Вершины контура.</param>
         /// <param name="degenerateArea">Порог вырожденной площади.</param>
-        public static (double x, double y) Centroid(IReadOnlyList<DxfPoint> points, double degenerateArea)
+        public static (double x, double y) Centroid(IReadOnlyList<Point2D> points, double degenerateArea)
         {
             if (points == null || points.Count == 0)
                 return (0, 0);
@@ -117,7 +117,7 @@ namespace GCodeGenerator.Geometry
         /// Точка ровно на границе может быть отнесена к любой стороне —
         /// вызывающий код добавляет собственный допуск, если это важно.
         /// </summary>
-        public static bool IsPointInsidePolygon(double x, double y, IReadOnlyList<DxfPoint> points)
+        public static bool IsPointInsidePolygon(double x, double y, IReadOnlyList<Point2D> points)
         {
             if (points == null || points.Count < 3)
                 return false;
@@ -217,7 +217,7 @@ namespace GCodeGenerator.Geometry
         /// <summary>
         /// Пересечение двух отрезков в виде точки контура (<c>null</c>, если
         /// пересечения нет). Обёртка над <see cref="SegmentIntersection"/>
-        /// для кода, который работает с <see cref="DxfPoint"/>.
+        /// для кода, который работает с <see cref="Point2D"/>.
         /// </summary>
         /// <param name="x1">X начала первого отрезка.</param>
         /// <param name="y1">Y начала первого отрезка.</param>
@@ -229,7 +229,7 @@ namespace GCodeGenerator.Geometry
         /// <param name="y4">Y конца второго отрезка.</param>
         /// <param name="parallelTolerance">Порог определителя: ниже него отрезки считаются параллельными.</param>
         /// <param name="boundsTolerance">Допуск выхода параметра за пределы [0; 1].</param>
-        public static DxfPoint SegmentIntersectionPoint(
+        public static Point2D SegmentIntersectionPoint(
             double x1, double y1, double x2, double y2,
             double x3, double y3, double x4, double y4,
             double parallelTolerance,
@@ -239,7 +239,7 @@ namespace GCodeGenerator.Geometry
                 x1, y1, x2, y2, x3, y3, x4, y4, parallelTolerance, boundsTolerance);
             if (!intersection.HasValue)
                 return null;
-            return new DxfPoint { X = intersection.Value.x, Y = intersection.Value.y };
+            return new Point2D { X = intersection.Value.x, Y = intersection.Value.y };
         }
     }
 }

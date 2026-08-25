@@ -11,7 +11,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Connect_ReversedSquareSegment_ProducesOneClosedOrderedContour()
         {
-            var segments = new List<DxfPolyline>
+            var segments = new List<Polyline2D>
             {
                 Segment((0, 0), (10, 0)),
                 Segment((10, 10), (10, 0)),
@@ -31,19 +31,19 @@ namespace GCodeGenerator.Tests
             AssertPoint(points[4], 0, 0);
         }
 
-        private static DxfPolyline Segment(
+        private static Polyline2D Segment(
             (double x, double y) start,
             (double x, double y) end)
-            => new DxfPolyline
+            => new Polyline2D
             {
-                Points = new List<DxfPoint>
+                Points = new List<Point2D>
                 {
-                    new DxfPoint { X = start.x, Y = start.y },
-                    new DxfPoint { X = end.x, Y = end.y },
+                    new Point2D { X = start.x, Y = start.y },
+                    new Point2D { X = end.x, Y = end.y },
                 },
             };
 
-        private static void AssertPoint(DxfPoint point, double x, double y)
+        private static void AssertPoint(Point2D point, double x, double y)
         {
             Assert.AreEqual(x, point.X, 1e-9);
             Assert.AreEqual(y, point.Y, 1e-9);

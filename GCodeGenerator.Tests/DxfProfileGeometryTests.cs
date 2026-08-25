@@ -16,17 +16,17 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class DxfProfileGeometryTests
     {
-        private static DxfPolyline Poly(params (double X, double Y)[] points)
+        private static Polyline2D Poly(params (double X, double Y)[] points)
         {
-            var polyline = new DxfPolyline();
+            var polyline = new Polyline2D();
             foreach (var (x, y) in points)
-                polyline.Points.Add(new DxfPoint { X = x, Y = y });
+                polyline.Points.Add(new Point2D { X = x, Y = y });
             return polyline;
         }
 
         private static double PolygonArea(IReadOnlyList<(double x, double y)> points)
         {
-            var asPoints = points.Select(p => new DxfPoint { X = p.x, Y = p.y }).ToList();
+            var asPoints = points.Select(p => new Point2D { X = p.x, Y = p.y }).ToList();
             return Geometry2D.Area(asPoints);
         }
 

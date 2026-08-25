@@ -136,15 +136,15 @@ namespace GCodeGenerator.Tests
         {
             var operation = new PocketDxfOperation
             {
-                ClosedContours = new List<DxfPolyline>
+                ClosedContours = new List<Polyline2D>
                 {
-                    new DxfPolyline
+                    new Polyline2D
                     {
-                        Points = new List<DxfPoint>
+                        Points = new List<Point2D>
                         {
-                            new DxfPoint { X = 0, Y = 0 },
-                            new DxfPoint { X = 10, Y = 0 },
-                            new DxfPoint { X = 10, Y = 10 }
+                            new Point2D { X = 0, Y = 0 },
+                            new Point2D { X = 10, Y = 0 },
+                            new Point2D { X = 10, Y = 10 }
                         }
                     }
                 }

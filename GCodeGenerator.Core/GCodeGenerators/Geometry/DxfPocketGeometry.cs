@@ -18,7 +18,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     /// </summary>
     public class DxfPocketGeometry : IPocketGeometry
     {
-        private readonly DxfPolyline _primaryContour;
+        private readonly Polyline2D _primaryContour;
 
         // Кеш последней построенной эквидистанты и центра исходного контура.
         // В пределах одного слоя смещение одинаково для всех вызовов
@@ -29,11 +29,11 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         // время жизни экземпляра не меняются.
         private bool _hasCachedOffset;
         private double _cachedOffsetValue;
-        private List<List<DxfPoint>> _cachedOffsetParts;
+        private List<List<Point2D>> _cachedOffsetParts;
         private bool _hasCachedCenter;
         private (double x, double y) _cachedCenter;
 
-        public DxfPocketGeometry(PocketDxfOperation operation, DxfPolyline primaryContour = null)
+        public DxfPocketGeometry(PocketDxfOperation operation, Polyline2D primaryContour = null)
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
@@ -53,16 +53,16 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// </summary>
         /// <param name="toolRadius">Радиус инструмента.</param>
         /// <param name="taperOffset">Смещение из-за уклона стенок на глубине слоя.</param>
-        public IReadOnlyList<IReadOnlyList<DxfPoint>> GetOffsetParts(double toolRadius, double taperOffset)
+        public IReadOnlyList<IReadOnlyList<Point2D>> GetOffsetParts(double toolRadius, double taperOffset)
             => GetOffsetParts(-(toolRadius + taperOffset));
 
-        private List<List<DxfPoint>> GetOffsetParts(double offset)
+        private List<List<Point2D>> GetOffsetParts(double offset)
         {
             if (_hasCachedOffset && _cachedOffsetValue.Equals(offset))
                 return _cachedOffsetParts;
 
             _cachedOffsetParts = _primaryContour?.Points == null
-                ? new List<List<DxfPoint>>()
+                ? new List<List<Point2D>>()
                 : ContourOffset.Offset(_primaryContour.Points, offset);
             _cachedOffsetValue = offset;
             _hasCachedOffset = true;
@@ -130,9 +130,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// </summary>
         private class DxfContour : IContour
         {
-            private readonly IReadOnlyList<DxfPoint> _points;
+            private readonly IReadOnlyList<Point2D> _points;
 
-            public DxfContour(IReadOnlyList<DxfPoint> points)
+            public DxfContour(IReadOnlyList<Point2D> points)
             {
                 _points = points;
             }

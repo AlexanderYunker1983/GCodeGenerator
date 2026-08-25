@@ -197,7 +197,7 @@ namespace GCodeGenerator.Tests
                 "При AllowArcs=false дуги G2/G3 запрещены");
         }
 
-        private static double GetArea(DxfPolyline contour)
+        private static double GetArea(Polyline2D contour)
         {
             double area = 0;
             var points = contour.Points;

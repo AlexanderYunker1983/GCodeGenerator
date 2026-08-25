@@ -23,13 +23,13 @@ namespace GCodeGenerator.Import
             _tolerance = tolerance;
         }
 
-        internal List<DxfPolyline> FindContours(List<DxfPolyline> segments)
+        internal List<Polyline2D> FindContours(List<Polyline2D> segments)
         {
             var graph = BuildPointGraph(segments);
             if (graph.Count == 0)
-                return new List<DxfPolyline>();
+                return new List<Polyline2D>();
 
-            var contours = new List<DxfPolyline>();
+            var contours = new List<Polyline2D>();
             foreach (var cycle in FindCyclesInPointGraph(graph))
             {
                 if (cycle != null && cycle.Count >= 3)
@@ -39,9 +39,9 @@ namespace GCodeGenerator.Import
             return contours;
         }
 
-        private Dictionary<DxfPoint, List<DxfPoint>> BuildPointGraph(List<DxfPolyline> segments)
+        private Dictionary<Point2D, List<Point2D>> BuildPointGraph(List<Polyline2D> segments)
         {
-            var graph = new Dictionary<DxfPoint, List<DxfPoint>>();
+            var graph = new Dictionary<Point2D, List<Point2D>>();
             
             // Для каждого сегмента добавляем соединения между его концами
             foreach (var seg in segments)
@@ -53,8 +53,8 @@ namespace GCodeGenerator.Import
                 var end = seg.Points[seg.Points.Count - 1];
                 
                 // Находим или создаем ключи для точек
-                DxfPoint startKey = FindOrAddPoint(graph, start);
-                DxfPoint endKey = FindOrAddPoint(graph, end);
+                Point2D startKey = FindOrAddPoint(graph, start);
+                Point2D endKey = FindOrAddPoint(graph, end);
                 
                 // Добавляем соединение (двунаправленное)
                 if (!graph[startKey].Any(p => PointsMatch(p, endKey)))
@@ -66,7 +66,7 @@ namespace GCodeGenerator.Import
             return graph;
         }
 
-        private DxfPoint FindOrAddPoint(Dictionary<DxfPoint, List<DxfPoint>> graph, DxfPoint point)
+        private Point2D FindOrAddPoint(Dictionary<Point2D, List<Point2D>> graph, Point2D point)
         {
             // Ищем существующую точку в графе
             foreach (var key in graph.Keys)
@@ -76,13 +76,13 @@ namespace GCodeGenerator.Import
             }
             
             // Если не нашли, добавляем новую точку
-            graph[point] = new List<DxfPoint>();
+            graph[point] = new List<Point2D>();
             return point;
         }
 
-        private List<List<DxfPoint>> FindCyclesInPointGraph(Dictionary<DxfPoint, List<DxfPoint>> graph)
+        private List<List<Point2D>> FindCyclesInPointGraph(Dictionary<Point2D, List<Point2D>> graph)
         {
-            var cycles = new List<List<DxfPoint>>();
+            var cycles = new List<List<Point2D>>();
             var foundCycles = new HashSet<string>();
             
             // Пробуем начать поиск с каждой точки в графе
@@ -94,7 +94,7 @@ namespace GCodeGenerator.Import
                 // Начинаем поиск с каждого соседа начальной точки
                 foreach (var firstNeighbor in graph[startPoint])
                 {
-                    var path = new List<DxfPoint> { startPoint };
+                    var path = new List<Point2D> { startPoint };
                     FindCyclesFromPoint(startPoint, firstNeighbor, graph, path, cycles, foundCycles, MaxCycleLength);
                 }
             }
@@ -102,9 +102,9 @@ namespace GCodeGenerator.Import
             return cycles;
         }
 
-        private void FindCyclesFromPoint(DxfPoint startPoint, DxfPoint currentPoint, 
-            Dictionary<DxfPoint, List<DxfPoint>> graph, List<DxfPoint> path, 
-            List<List<DxfPoint>> cycles, HashSet<string> foundCycles, int maxLength)
+        private void FindCyclesFromPoint(Point2D startPoint, Point2D currentPoint, 
+            Dictionary<Point2D, List<Point2D>> graph, List<Point2D> path, 
+            List<List<Point2D>> cycles, HashSet<string> foundCycles, int maxLength)
         {
             // Ограничиваем длину пути
             if (path.Count >= maxLength)
@@ -119,7 +119,7 @@ namespace GCodeGenerator.Import
                 if (!foundCycles.Contains(cycleKey))
                 {
                     foundCycles.Add(cycleKey);
-                    cycles.Add(new List<DxfPoint>(path));
+                    cycles.Add(new List<Point2D>(path));
                 }
                 return;
             }
@@ -149,7 +149,7 @@ namespace GCodeGenerator.Import
                             if (!foundCycles.Contains(cycleKey))
                             {
                                 foundCycles.Add(cycleKey);
-                                cycles.Add(new List<DxfPoint>(path));
+                                cycles.Add(new List<Point2D>(path));
                             }
                         }
                     }
@@ -177,28 +177,28 @@ namespace GCodeGenerator.Import
             path.RemoveAt(path.Count - 1);
         }
 
-        private DxfPolyline BuildContourFromPointCycle(List<DxfPoint> cycle)
+        private Polyline2D BuildContourFromPointCycle(List<Point2D> cycle)
         {
             // Строим контур из цикла точек
-            var contourPoints = new List<DxfPoint>();
+            var contourPoints = new List<Point2D>();
             foreach (var point in cycle)
             {
                 if (contourPoints.Count == 0 || !PointsMatch(contourPoints[contourPoints.Count - 1], point))
                 {
-                    contourPoints.Add(new DxfPoint { X = point.X, Y = point.Y });
+                    contourPoints.Add(new Point2D { X = point.X, Y = point.Y });
                 }
             }
             
             // Замыкаем контур
             if (contourPoints.Count > 0 && !PointsMatch(contourPoints[0], contourPoints[contourPoints.Count - 1]))
             {
-                contourPoints.Add(new DxfPoint { X = contourPoints[0].X, Y = contourPoints[0].Y });
+                contourPoints.Add(new Point2D { X = contourPoints[0].X, Y = contourPoints[0].Y });
             }
             
-            return new DxfPolyline { Points = contourPoints };
+            return new Polyline2D { Points = contourPoints };
         }
 
-        private bool PointsMatch(DxfPoint p1, DxfPoint p2)
+        private bool PointsMatch(Point2D p1, Point2D p2)
             => Geometry2D.PointsMatch(p1, p2, _tolerance);
     }
 }

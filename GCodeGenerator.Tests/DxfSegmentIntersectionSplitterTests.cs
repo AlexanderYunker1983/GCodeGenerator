@@ -15,7 +15,7 @@ namespace GCodeGenerator.Tests
             var vertical = Polyline((5, 0), (5, 10));
 
             var result = new DxfSegmentIntersectionSplitter(0.001)
-                .Split(new List<DxfPolyline> { horizontal, vertical });
+                .Split(new List<Polyline2D> { horizontal, vertical });
 
             Assert.AreEqual(4, result.Count);
             AssertSegment(result[0], (0, 5), (5, 5));
@@ -24,16 +24,16 @@ namespace GCodeGenerator.Tests
             AssertSegment(result[3], (5, 5), (5, 10));
         }
 
-        private static DxfPolyline Polyline(params (double x, double y)[] points)
+        private static Polyline2D Polyline(params (double x, double y)[] points)
         {
-            var polyline = new DxfPolyline();
+            var polyline = new Polyline2D();
             foreach (var point in points)
-                polyline.Points.Add(new DxfPoint { X = point.x, Y = point.y });
+                polyline.Points.Add(new Point2D { X = point.x, Y = point.y });
             return polyline;
         }
 
         private static void AssertSegment(
-            DxfPolyline segment,
+            Polyline2D segment,
             (double x, double y) start,
             (double x, double y) end)
         {

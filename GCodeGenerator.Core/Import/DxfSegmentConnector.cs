@@ -21,9 +21,9 @@ namespace GCodeGenerator.Import
             _tolerance = tolerance;
         }
 
-        internal List<DxfPolyline> Connect(List<DxfPolyline> segments)
+        internal List<Polyline2D> Connect(List<Polyline2D> segments)
         {
-            var contours = new List<DxfPolyline>();
+            var contours = new List<Polyline2D>();
             var used = new bool[segments.Count];
             
             for (int i = 0; i < segments.Count; i++)
@@ -42,16 +42,16 @@ namespace GCodeGenerator.Import
             return contours;
         }
 
-        private DxfPolyline BuildContourFromSegment(List<DxfPolyline> segments, int startIdx, bool[] used)
+        private Polyline2D BuildContourFromSegment(List<Polyline2D> segments, int startIdx, bool[] used)
         {
-            var contourPoints = new List<DxfPoint>();
+            var contourPoints = new List<Point2D>();
             var startPoint = segments[startIdx].Points[0];
             var currentPoint = segments[startIdx].Points[segments[startIdx].Points.Count - 1];
             
             // Добавляем точки первого сегмента
             foreach (var p in segments[startIdx].Points)
             {
-                contourPoints.Add(new DxfPoint { X = p.X, Y = p.Y });
+                contourPoints.Add(new Point2D { X = p.X, Y = p.Y });
             }
             used[startIdx] = true;
             
@@ -95,7 +95,7 @@ namespace GCodeGenerator.Import
                     // Добавляем точки в обратном порядке
                     for (int j = nextSeg.Points.Count - 2; j >= 0; j--) // Пропускаем последнюю точку (она уже есть)
                     {
-                        contourPoints.Add(new DxfPoint { X = nextSeg.Points[j].X, Y = nextSeg.Points[j].Y });
+                        contourPoints.Add(new Point2D { X = nextSeg.Points[j].X, Y = nextSeg.Points[j].Y });
                     }
                     currentPoint = nextSeg.Points[0];
                 }
@@ -104,7 +104,7 @@ namespace GCodeGenerator.Import
                     // Добавляем точки в прямом порядке
                     for (int j = 1; j < nextSeg.Points.Count; j++) // Пропускаем первую точку (она уже есть)
                     {
-                        contourPoints.Add(new DxfPoint { X = nextSeg.Points[j].X, Y = nextSeg.Points[j].Y });
+                        contourPoints.Add(new Point2D { X = nextSeg.Points[j].X, Y = nextSeg.Points[j].Y });
                     }
                     currentPoint = nextSeg.Points[nextSeg.Points.Count - 1];
                 }
@@ -118,10 +118,10 @@ namespace GCodeGenerator.Import
                 }
             }
             
-            return new DxfPolyline { Points = contourPoints };
+            return new Polyline2D { Points = contourPoints };
         }
 
-        private bool PointsMatch(DxfPoint p1, DxfPoint p2)
+        private bool PointsMatch(Point2D p1, Point2D p2)
             => Geometry2D.PointsMatch(p1, p2, _tolerance);
     }
 }

@@ -25,11 +25,11 @@ namespace GCodeGenerator.Import
             _detector = detector ?? throw new ArgumentNullException(nameof(detector));
         }
 
-        internal List<DxfPolyline> Subdivide(
-            IReadOnlyList<DxfPolyline> polylines,
+        internal List<Polyline2D> Subdivide(
+            IReadOnlyList<Polyline2D> polylines,
             IReadOnlyDictionary<int, List<DxfPolylineIntersection>> intersectionMap)
         {
-            var result = new List<DxfPolyline>();
+            var result = new List<Polyline2D>();
 
             for (var polylineIndex = 0; polylineIndex < polylines.Count; polylineIndex++)
             {
@@ -43,15 +43,15 @@ namespace GCodeGenerator.Import
                     continue;
                 }
 
-                var points = new List<DxfPoint>(polyline.Points);
+                var points = new List<Point2D>(polyline.Points);
                 foreach (var intersection in intersections)
                     InsertIntersection(points, intersection.Point);
 
                 for (var pointIndex = 0; pointIndex < points.Count - 1; pointIndex++)
                 {
-                    result.Add(new DxfPolyline
+                    result.Add(new Polyline2D
                     {
-                        Points = new List<DxfPoint>
+                        Points = new List<Point2D>
                         {
                             points[pointIndex],
                             points[pointIndex + 1],
@@ -63,7 +63,7 @@ namespace GCodeGenerator.Import
             return result;
         }
 
-        private void InsertIntersection(List<DxfPoint> points, DxfPoint intersection)
+        private void InsertIntersection(List<Point2D> points, Point2D intersection)
         {
             var insertPosition = -1;
             var minimumDistance = double.MaxValue;
@@ -104,9 +104,9 @@ namespace GCodeGenerator.Import
         }
 
         private bool HasNearbyPoint(
-            IReadOnlyList<DxfPoint> points,
+            IReadOnlyList<Point2D> points,
             int insertPosition,
-            DxfPoint candidate)
+            Point2D candidate)
         {
             var start = Math.Max(0, insertPosition - 1);
             var end = Math.Min(points.Count, insertPosition + 2);
@@ -119,7 +119,7 @@ namespace GCodeGenerator.Import
             return false;
         }
 
-        private bool PointsMatch(DxfPoint first, DxfPoint second)
+        private bool PointsMatch(Point2D first, Point2D second)
             => Geometry2D.PointsMatch(first, second, _tolerance);
     }
 }

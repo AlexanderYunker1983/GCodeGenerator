@@ -41,7 +41,7 @@ namespace GCodeGenerator.Tests
             return document;
         }
 
-        private static double Width(System.Collections.Generic.List<GCodeGenerator.Models.DxfPolyline> polylines)
+        private static double Width(System.Collections.Generic.List<GCodeGenerator.Models.Polyline2D> polylines)
         {
             var xs = polylines.SelectMany(p => p.Points).Select(p => p.X).ToList();
             return xs.Max() - xs.Min();
@@ -203,7 +203,7 @@ namespace GCodeGenerator.Tests
         {
             private static readonly DxfImportService Service = new DxfImportService();
 
-            public static System.Collections.Generic.List<GCodeGenerator.Models.DxfPolyline> ReadProfile(string path)
+            public static System.Collections.Generic.List<GCodeGenerator.Models.Polyline2D> ReadProfile(string path)
                 => Service.ReadProfilePolylines(path);
         }
     }

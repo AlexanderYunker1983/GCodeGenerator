@@ -15,7 +15,7 @@ namespace GCodeGenerator.Models
 
         [ObservableProperty]
 
-        private List<DxfPolyline> _closedContours = new List<DxfPolyline>();
+        private List<Polyline2D> _closedContours = new List<Polyline2D>();
 
         [ObservableProperty]
 

@@ -6,6 +6,10 @@ using GCodeGenerator.Models;
 using netDxf;
 using netDxf.Entities;
 using netDxf.Units;
+// В netDxf есть собственный Polyline2D — сущность чертежа. Наша ломаная
+// описывает уже разобранную геометрию, поэтому имена разводятся явно.
+using DrawingPolyline = netDxf.Entities.Polyline2D;
+using Polyline2D = GCodeGenerator.Models.Polyline2D;
 
 namespace GCodeGenerator.Import
 {
@@ -42,7 +46,7 @@ namespace GCodeGenerator.Import
         /// </summary>
         /// <param name="path">Путь к DXF-файлу.</param>
         /// <exception cref="InvalidDataException">Файл не является DXF-документом.</exception>
-        internal static List<DxfPolyline> Read(string path)
+        internal static List<Polyline2D> Read(string path)
         {
             var document = DxfDocument.Load(path);
             if (document == null)
@@ -50,7 +54,7 @@ namespace GCodeGenerator.Import
 
             double scale = GetMillimeterScale(document.DrawingVariables.InsUnits);
 
-            var result = new List<DxfPolyline>();
+            var result = new List<Polyline2D>();
             foreach (var entity in document.Entities.All)
                 AppendEntity(entity, scale, result);
 
@@ -82,7 +86,7 @@ namespace GCodeGenerator.Import
             }
         }
 
-        private static void AppendEntity(EntityObject entity, double scale, List<DxfPolyline> result)
+        private static void AppendEntity(EntityObject entity, double scale, List<Polyline2D> result)
         {
             switch (entity)
             {
@@ -106,7 +110,7 @@ namespace GCodeGenerator.Import
                     Add(result, ApproximateEllipse(ellipse, scale));
                     break;
 
-                case Polyline2D polyline2D:
+                case DrawingPolyline polyline2D:
                     Add(result, ReadPolyline(polyline2D, scale));
                     break;
 
@@ -126,22 +130,22 @@ namespace GCodeGenerator.Import
             }
         }
 
-        private static void Add(List<DxfPolyline> result, IReadOnlyList<DxfPoint> points)
+        private static void Add(List<Polyline2D> result, IReadOnlyList<Point2D> points)
         {
             if (points == null || points.Count < 2)
                 return;
-            result.Add(new DxfPolyline { Points = new List<DxfPoint>(points) });
+            result.Add(new Polyline2D { Points = new List<Point2D>(points) });
         }
 
-        private static DxfPoint Point(double x, double y, double scale)
-            => new DxfPoint { X = x * scale, Y = y * scale };
+        private static Point2D Point(double x, double y, double scale)
+            => new Point2D { X = x * scale, Y = y * scale };
 
-        private static List<DxfPoint> ApproximateCircle(Circle circle, double scale)
+        private static List<Point2D> ApproximateCircle(Circle circle, double scale)
         {
             if (circle.Radius <= 0)
                 return null;
 
-            var points = new List<DxfPoint>(CircleSegments + 1);
+            var points = new List<Point2D>(CircleSegments + 1);
             for (int i = 0; i <= CircleSegments; i++)
             {
                 var angle = 2.0 * Math.PI * i / CircleSegments;
@@ -153,7 +157,7 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<DxfPoint> ApproximateArc(Arc arc, double scale)
+        private static List<Point2D> ApproximateArc(Arc arc, double scale)
         {
             if (arc.Radius <= 0)
                 return null;
@@ -166,7 +170,7 @@ namespace GCodeGenerator.Import
             var angleSpan = endAngle - startAngle;
             var segments = Math.Max(MinimumArcSegments, (int)(angleSpan / (Math.PI / 16.0)));
 
-            var points = new List<DxfPoint>(segments + 1);
+            var points = new List<Point2D>(segments + 1);
             for (int i = 0; i <= segments; i++)
             {
                 var angle = startAngle + angleSpan * i / segments;
@@ -178,7 +182,7 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<DxfPoint> ApproximateEllipse(Ellipse ellipse, double scale)
+        private static List<Point2D> ApproximateEllipse(Ellipse ellipse, double scale)
         {
             double majorRadius = ellipse.MajorAxis / 2.0;
             double minorRadius = ellipse.MinorAxis / 2.0;
@@ -197,7 +201,7 @@ namespace GCodeGenerator.Import
             var cosRotation = Math.Cos(rotation);
             var sinRotation = Math.Sin(rotation);
 
-            var points = new List<DxfPoint>(segments + 1);
+            var points = new List<Point2D>(segments + 1);
             for (int i = 0; i <= segments; i++)
             {
                 var parameter = startParam + paramSpan * i / segments;
@@ -219,19 +223,19 @@ namespace GCodeGenerator.Import
         /// с повторением первой вершины в конце, как её и ожидает сборка
         /// контуров.
         /// </summary>
-        private static List<DxfPoint> ReadPolyline(Polyline2D polyline, double scale)
+        private static List<Point2D> ReadPolyline(DrawingPolyline polyline, double scale)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;
 
-            var points = new List<DxfPoint>();
+            var points = new List<Point2D>();
             foreach (var segment in polyline.Explode())
             {
-                List<DxfPoint> segmentPoints;
+                List<Point2D> segmentPoints;
                 switch (segment)
                 {
                     case Line line:
-                        segmentPoints = new List<DxfPoint>
+                        segmentPoints = new List<Point2D>
                         {
                             Point(line.StartPoint.X, line.StartPoint.Y, scale),
                             Point(line.EndPoint.X, line.EndPoint.Y, scale)
@@ -261,12 +265,12 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<DxfPoint> ReadPolyline3D(Polyline3D polyline, double scale)
+        private static List<Point2D> ReadPolyline3D(Polyline3D polyline, double scale)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;
 
-            var points = new List<DxfPoint>(polyline.Vertexes.Count + 1);
+            var points = new List<Point2D>(polyline.Vertexes.Count + 1);
             foreach (var vertex in polyline.Vertexes)
                 points.Add(Point(vertex.X, vertex.Y, scale));
 

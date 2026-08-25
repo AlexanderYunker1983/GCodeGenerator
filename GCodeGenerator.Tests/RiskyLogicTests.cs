@@ -87,11 +87,11 @@ namespace GCodeGenerator.Tests
             return new GenericPostProcessor().Build(toolPath, renderSettings).Lines.ToList();
         }
 
-        private static DxfPolyline Poly(params (double x, double y)[] pts)
+        private static Polyline2D Poly(params (double x, double y)[] pts)
         {
-            var p = new DxfPolyline();
+            var p = new Polyline2D();
             foreach (var pt in pts)
-                p.Points.Add(new DxfPoint { X = pt.x, Y = pt.y });
+                p.Points.Add(new Point2D { X = pt.x, Y = pt.y });
             return p;
         }
 

@@ -32,11 +32,11 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(Math.Sqrt(41), distance, 1e-9);
         }
 
-        private static DxfPolyline Polyline(params (double x, double y)[] points)
+        private static Polyline2D Polyline(params (double x, double y)[] points)
         {
-            var result = new DxfPolyline { Points = new List<DxfPoint>() };
+            var result = new Polyline2D { Points = new List<Point2D>() };
             foreach (var point in points)
-                result.Points.Add(new DxfPoint { X = point.x, Y = point.y });
+                result.Points.Add(new Point2D { X = point.x, Y = point.y });
             return result;
         }
     }

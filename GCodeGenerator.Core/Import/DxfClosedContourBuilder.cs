@@ -20,7 +20,7 @@ namespace GCodeGenerator.Import
         private readonly DxfPointCycleFinder _pointCycleFinder =
             new DxfPointCycleFinder(ClosedContourTolerance);
 
-        internal List<DxfPolyline> Build(List<DxfPolyline> allPolylines)
+        internal List<Polyline2D> Build(List<Polyline2D> allPolylines)
         {
             // Теперь пытаемся соединить отдельные линии и дуги в замкнутые контуры
             var connectedContours = _segmentConnector.Connect(allPolylines);
@@ -28,7 +28,7 @@ namespace GCodeGenerator.Import
             // Ищем замкнутые области, образованные пересекающимися линиями
             var intersectionContours = FindClosedAreasFromIntersections(allPolylines);
             
-            var closedContours = new List<DxfPolyline>();
+            var closedContours = new List<Polyline2D>();
             AddUniqueClosedContours(closedContours, allPolylines);
             AddUniqueClosedContours(closedContours, connectedContours);
             AddUniqueClosedContours(closedContours, intersectionContours);
@@ -37,8 +37,8 @@ namespace GCodeGenerator.Import
         }
 
         private void AddUniqueClosedContours(
-            List<DxfPolyline> destination,
-            IEnumerable<DxfPolyline> candidates)
+            List<Polyline2D> destination,
+            IEnumerable<Polyline2D> candidates)
         {
             foreach (var contour in candidates)
             {
@@ -48,12 +48,12 @@ namespace GCodeGenerator.Import
             }
         }
 
-        private static bool PointsMatch(DxfPoint p1, DxfPoint p2)
+        private static bool PointsMatch(Point2D p1, Point2D p2)
             => Geometry2D.PointsMatch(p1, p2, ClosedContourTolerance);
 
-        private List<DxfPolyline> FindClosedAreasFromIntersections(List<DxfPolyline> segments)
+        private List<Polyline2D> FindClosedAreasFromIntersections(List<Polyline2D> segments)
         {
-            var contours = new List<DxfPolyline>();
+            var contours = new List<Polyline2D>();
             
             if (segments == null || segments.Count == 0)
                 return contours;
@@ -80,10 +80,10 @@ namespace GCodeGenerator.Import
             return contours;
         }
         
-        private double GetContourArea(DxfPolyline contour)
+        private double GetContourArea(Polyline2D contour)
             => Geometry2D.Area(contour?.Points);
 
-        private bool AreContoursSimilar(DxfPolyline c1, DxfPolyline c2)
+        private bool AreContoursSimilar(Polyline2D c1, Polyline2D c2)
         {
             if (c1?.Points == null || c2?.Points == null)
                 return false;
@@ -109,7 +109,7 @@ namespace GCodeGenerator.Import
             return false;
         }
 
-        private bool IsClosedContour(DxfPolyline polyline)
+        private bool IsClosedContour(Polyline2D polyline)
         {
             if (polyline?.Points == null || polyline.Points.Count < 3)
                 return false;

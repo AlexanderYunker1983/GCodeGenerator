@@ -184,7 +184,7 @@ namespace GCodeGenerator.Models
         /// True if the first and last points of the contour coincide within
         /// <see cref="ContourClosedTolerance"/>.
         /// </summary>
-        public static bool IsContourClosed(DxfPolyline contour)
+        public static bool IsContourClosed(Polyline2D contour)
         {
             if (contour?.Points == null || contour.Points.Count < 2)
                 return false;

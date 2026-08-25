@@ -74,7 +74,7 @@ namespace GCodeGenerator.GCodeGenerators
                     // стратегия получает нулевые радиус и уклон.
                     var areaGeometry = new DxfPocketGeometry(
                         op,
-                        new DxfPolyline { Points = new List<DxfPoint>(area) });
+                        new Polyline2D { Points = new List<Point2D>(area) });
 
                     var contourPoints = new List<(double x, double y)>(area.Count);
                     foreach (var point in area)
