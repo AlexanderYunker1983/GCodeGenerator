@@ -92,6 +92,12 @@ namespace GCodeGenerator
 
             logger.Info($"Запуск GCodeGenerator {versionString}");
 
+            // Язык интерфейса — из настроек; пустое значение означает язык
+            // системы. Делается до создания окон, чтобы они сразу строились
+            // на нужном языке.
+            localizationManager.ChangeCulture(
+                LanguageChoice.ToCulture(_container.Resolve<ISettingsStore>().Current.Ui.Language));
+
             // Аварийное сохранение проекта: обработчику сбоя нужны служба
             // файла проекта и каталог рядом с журналом.
             _crashHandler = new CrashHandler(
@@ -110,8 +116,8 @@ namespace GCodeGenerator
             MainWindow = mainWindow;
             mainWindow.Show();
 
-            _container.Resolve<IThemeService>()
-                .ApplyTheme(_container.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
+            var uiSettings = _container.Resolve<ISettingsStore>().Current.Ui;
+            _container.Resolve<IThemeService>().ApplyTheme(uiSettings.UseDarkTheme);
         }
 
         /// <summary>

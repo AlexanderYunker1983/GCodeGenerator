@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Data;
 using System.Windows.Markup;
 
 namespace GCodeGenerator.Localization
@@ -6,14 +7,13 @@ namespace GCodeGenerator.Localization
     /// <summary>
     /// XAML-расширение для локализации (пункт 1.3 плана): замена Mugen Binding
     /// <c>{DataBinding '$i18n.Key'}</c> на <c>{loc:Loc Key}</c>.
-    /// Возвращает локализованную строку, полученную из <see cref="LocalizationProvider"/>.
     ///
-    /// Замечание: возвращаем обычную строку, а не WPF <see cref="System.Windows.Data.Binding"/>,
-    /// потому что нативная привязка со статическим <c>Source</c> в этом приложении (на базе
-    /// Mugen) некорректно применяется при загрузке вложенных UserControls и приводит к
-    /// зависанию при старте (окно не отображается). Культура в приложении не меняется во
-    /// время выполнения (нет вызовов <c>ChangeCulture</c>), поэтому динамическое обновление
-    /// привязки не требуется — строка резолвится один раз при загрузке XAML.
+    /// Возвращает привязку к <see cref="LocalizationSource"/>, а не готовую
+    /// строку. Прежде строка подставлялась один раз при загрузке разметки —
+    /// в комментарии это объяснялось зависанием, которое вызывала нативная
+    /// привязка на прежнем интерфейсном стеке (Mugen). Стека давно нет,
+    /// а разовая подстановка мешает: язык нельзя сменить, не перезапустив
+    /// программу. Теперь надписи перечитываются, как только меняется язык.
     /// </summary>
     public class LocExtension : MarkupExtension
     {
@@ -26,10 +26,20 @@ namespace GCodeGenerator.Localization
 
         public override object ProvideValue(IServiceProvider serviceProvider)
         {
-            var manager = LocalizationProvider.Instance;
-            if (manager == null || string.IsNullOrEmpty(_key))
+            if (string.IsNullOrEmpty(_key))
                 return _key;
-            return manager.GetString(_key);
+
+            var binding = new Binding($"[{_key}]")
+            {
+                Source = LocalizationSource.Instance,
+                Mode = BindingMode.OneWay,
+            };
+
+            // Привязка годится не везде: в свойство, не являющееся свойством
+            // зависимости, WPF её не примет. ProvideValue самой привязки
+            // решает это сам — там, где привязка невозможна, возвращается
+            // готовое значение.
+            return binding.ProvideValue(serviceProvider);
         }
     }
 }

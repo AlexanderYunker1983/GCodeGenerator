@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -28,11 +29,22 @@ namespace GCodeGenerator.ViewModels
         private readonly GCodeSettings _settings;
         private readonly ISettingsStore _settingsStore;
         private readonly IThemeService _themeService;
+        private readonly ILocalizationManager _localizationManager;
+
+        /// <summary>Язык на момент открытия окна — к нему возвращает отмена.</summary>
+        private readonly string _initialLanguage;
 
         /// <summary>Тема на момент открытия окна — к ней возвращает отмена.</summary>
         private readonly bool _initialDarkTheme;
 
         private bool _isAccepted;
+
+        /// <summary>
+        /// Идёт заполнение окна сохранёнными значениями. Предпросмотр языка
+        /// и темы в это время не нужен: показывать «изменение» на то, что
+        /// уже действует, — значит менять язык при каждом открытии окна.
+        /// </summary>
+        private bool _isLoading;
 
         public SettingsViewModel()
             : this(null, null, null)
@@ -46,6 +58,7 @@ namespace GCodeGenerator.ViewModels
             _settings = settingsStore?.Current ?? new GCodeSettings();
             _settingsStore = settingsStore;
             _themeService = themeService;
+            _localizationManager = localizationManager;
 
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
@@ -56,6 +69,7 @@ namespace GCodeGenerator.ViewModels
 
             LoadFromSettings(_settings);
             _initialDarkTheme = UseDarkTheme;
+            _initialLanguage = Language;
         }
 
         [ObservableProperty]
@@ -145,6 +159,16 @@ namespace GCodeGenerator.ViewModels
         [ObservableProperty]
         private string _workCoordinateSystem;
 
+        /// <summary>Код языка интерфейса; пустая строка — язык системы.</summary>
+        [ObservableProperty]
+        private string _language;
+
+        /// <summary>
+        /// Языки, между которыми выбирает пользователь. Пустой код означает
+        /// язык системы — он и стоит по умолчанию.
+        /// </summary>
+        public IReadOnlyList<LanguageChoice> Languages { get; } = LanguageChoice.All;
+
         /// <summary>OK: сохранить настройки и закрыть окно.</summary>
         public ICommand OkCommand { get; }
 
@@ -158,7 +182,23 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         partial void OnUseDarkThemeChanged(bool value)
         {
+            if (_isLoading)
+                return;
+
             _themeService?.ApplyTheme(value);
+        }
+
+        /// <summary>
+        /// Смена языка тоже видна сразу: надписи в окнах перечитываются на
+        /// месте. Как и тема, это предпросмотр — отмена возвращает прежний
+        /// язык, чтобы вид программы не расходился с сохранёнными настройками.
+        /// </summary>
+        partial void OnLanguageChanged(string value)
+        {
+            if (_isLoading)
+                return;
+
+            _localizationManager?.ChangeCulture(LanguageChoice.ToCulture(value));
         }
 
         /// <summary>
@@ -170,8 +210,11 @@ namespace GCodeGenerator.ViewModels
         {
             base.OnClosed();
 
-            if (!_isAccepted)
-                UseDarkTheme = _initialDarkTheme;
+            if (_isAccepted)
+                return;
+
+            UseDarkTheme = _initialDarkTheme;
+            Language = _initialLanguage;
         }
 
         private void OnOk()
@@ -185,11 +228,19 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Читает настройки в свойства окна по таблице маппинга.</summary>
         private void LoadFromSettings(GCodeSettings settings)
         {
-            foreach (var (path, _) in SettingsMapping.Entries)
-                EditorProperty(path).SetValue(this, SettingsMapping.GetValue(settings, path));
+            _isLoading = true;
+            try
+            {
+                foreach (var (path, _) in SettingsMapping.Entries)
+                    EditorProperty(path).SetValue(this, SettingsMapping.GetValue(settings, path));
 
-            if (string.IsNullOrEmpty(WorkCoordinateSystem))
-                WorkCoordinateSystem = DefaultWorkCoordinateSystem;
+                if (string.IsNullOrEmpty(WorkCoordinateSystem))
+                    WorkCoordinateSystem = DefaultWorkCoordinateSystem;
+            }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
         /// <summary>Сохраняет свойства окна в настройки по той же таблице.</summary>

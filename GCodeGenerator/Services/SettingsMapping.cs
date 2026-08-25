@@ -23,6 +23,7 @@ namespace GCodeGenerator.Services
             ("Format.AllowArcs", "AllowArcs"),
             ("Format.UsePaddedGCodes", "UsePaddedGCodes"),
             ("Ui.UseDarkTheme", "UseDarkTheme"),
+            ("Ui.Language", "Language"),
             ("Spindle.SpindleControlEnabled", "SpindleControlEnabled"),
             ("Spindle.SpindleSpeedEnabled", "SpindleSpeedEnabled"),
             ("Spindle.SpindleSpeedRpm", "SpindleSpeedRpm"),

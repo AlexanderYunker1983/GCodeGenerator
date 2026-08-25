@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Resources;
 using System.Runtime.InteropServices;
 using System.Windows;
 
@@ -18,14 +19,14 @@ using System.Windows;
 // COM, set the ComVisible attribute to true on that type.
 [assembly: ComVisible(false)]
 
-//In order to begin building localizable applications, set
-//<UICulture>CultureYouAreCodingWith</UICulture> in your .csproj file
-//inside a <PropertyGroup>.  For example, if you are using US english
-//in your source files, set the <UICulture> to en-US.  Then uncomment
-//the NeutralResourceLanguage attribute below.  Update the "en-US" in
-//the line below to match the UICulture setting in the project file.
-
-//[assembly: NeutralResourcesLanguage("en-US", UltimateResourceFallbackLocation.Satellite)]
+// Язык нейтрального набора ресурсов — английский: LocalizableResources.resx
+// содержит английские строки, русские лежат в LocalizableResources.ru.resx.
+// Прежде было наоборот, и это делало русский языком по умолчанию для любой
+// системы, у которой нет своего перевода: программа, собранная для станка
+// в другой стране, показывала русский интерфейс, а английский считался
+// дополнением. Атрибут говорит среде выполнения, что для английской культуры
+// сателлит искать не нужно — строки уже в сборке.
+[assembly: NeutralResourcesLanguage("en")]
 
 
 // Доступ к internal-членам (парсеры DXF) из тестового проекта (пункт 0.3 плана).

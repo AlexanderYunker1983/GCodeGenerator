@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using GCodeGenerator.Localization;
 using System.Windows.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
@@ -151,6 +154,98 @@ namespace GCodeGenerator.Tests
 
             CollectionAssert.AreEqual(new[] { true }, theme.Applied);
             Assert.IsTrue(store.Current.Ui.UseDarkTheme);
+        }
+
+        /// <summary>
+        /// Язык виден сразу, как и тема: надписи в открытых окнах
+        /// перечитываются, поэтому выбор виден до подтверждения.
+        /// </summary>
+        [TestMethod]
+        public void LanguageSwitch_IsPreviewedImmediately()
+        {
+            var localization = new RecordingLocalizationManager();
+            var dialog = new SettingsViewModel(localization, new FakeSettingsStore(), new FakeThemeService());
+
+            dialog.Language = "en";
+
+            CollectionAssert.AreEqual(new[] { "en" }, localization.Cultures);
+        }
+
+        /// <summary>
+        /// Отмена возвращает прежний язык: иначе вид программы разошёлся бы
+        /// с сохранёнными настройками — интерфейс на одном языке, настройка
+        /// на другом.
+        /// </summary>
+        [TestMethod]
+        public void Cancel_RestoresPreviewedLanguage()
+        {
+            var localization = new RecordingLocalizationManager();
+            var store = new FakeSettingsStore();
+            store.Current.Ui.Language = "ru";
+            var dialog = new SettingsViewModel(localization, store, new FakeThemeService());
+
+            dialog.Language = "en";
+            Execute(dialog.CancelCommand);
+            dialog.OnClosed();
+
+            CollectionAssert.AreEqual(new[] { "en", "ru" }, localization.Cultures);
+            Assert.AreEqual("ru", store.Current.Ui.Language, "Настройка не изменилась");
+        }
+
+        [TestMethod]
+        public void Ok_SavesChosenLanguage()
+        {
+            var localization = new RecordingLocalizationManager();
+            var store = new FakeSettingsStore();
+            var dialog = new SettingsViewModel(localization, store, new FakeThemeService());
+
+            dialog.Language = "en";
+            Execute(dialog.OkCommand);
+            dialog.OnClosed();
+
+            CollectionAssert.AreEqual(new[] { "en" }, localization.Cultures);
+            Assert.AreEqual("en", store.Current.Ui.Language);
+        }
+
+        /// <summary>
+        /// Список языков предлагает язык системы и оба перевода; названия
+        /// языков написаны на них самих, чтобы их узнавали.
+        /// </summary>
+        [TestMethod]
+        public void Languages_OfferSystemAndBothTranslations()
+        {
+            var dialog = new SettingsViewModel(null, new FakeSettingsStore(), new FakeThemeService());
+
+            CollectionAssert.AreEqual(
+                new[] { "", "ru", "en" },
+                dialog.Languages.Select(choice => choice.Code).ToArray());
+            Assert.AreEqual("Русский", dialog.Languages[1].Title);
+            Assert.AreEqual("English", dialog.Languages[2].Title);
+        }
+
+        /// <summary>
+        /// Неизвестный код языка — например, из вручную поправленного файла
+        /// настроек — приводит к языку системы, а не к отказу запуститься.
+        /// </summary>
+        [TestMethod]
+        public void UnknownLanguageCode_FallsBackToSystemCulture()
+        {
+            Assert.AreEqual(CultureInfo.CurrentUICulture, LanguageChoice.ToCulture("не-язык"));
+            Assert.AreEqual(CultureInfo.CurrentUICulture, LanguageChoice.ToCulture(""));
+            Assert.AreEqual(CultureInfo.CurrentUICulture, LanguageChoice.ToCulture(null));
+            Assert.AreEqual("en", LanguageChoice.ToCulture("en").TwoLetterISOLanguageName);
+        }
+
+        /// <summary>Менеджер локализации, запоминающий смены языка.</summary>
+        private sealed class RecordingLocalizationManager : LocalizationManager
+        {
+            public List<string> Cultures { get; } = new List<string>();
+
+            public override void ChangeCulture(CultureInfo cultureInfo)
+            {
+                base.ChangeCulture(cultureInfo);
+                Cultures.Add(cultureInfo?.Name);
+            }
         }
 
         private static void Execute(ICommand command) => command.Execute(null);

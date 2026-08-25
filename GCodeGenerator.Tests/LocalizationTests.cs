@@ -7,8 +7,10 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Тесты локализации (пункт 8.3 плана): resx на культуру (RU — нейтральный,
-    /// EN — сателлит LocalizableResources.en.resx), «?key?» + лог при отсутствии ключа.
+    /// Тесты локализации: английский — нейтральный набор строк
+    /// (LocalizableResources.resx, лежит в самой сборке), русский — сателлит
+    /// (LocalizableResources.ru.resx); отсутствующий ключ даёт «?key?» и запись
+    /// в журнал.
     /// </summary>
     [TestClass]
     public class LocalizationTests
@@ -20,11 +22,9 @@ namespace GCodeGenerator.Tests
             return manager;
         }
 
-        /// <summary>
-        /// Нейтральный resx (RU) — значения по умолчанию для культур без сателлита.
-        /// </summary>
+        /// <summary>Русский сателлит — перевод для культуры ru.</summary>
         [TestMethod]
-        public void GetString_RuCulture_ReturnsRussianFromNeutralResx()
+        public void GetString_RuCulture_ReturnsRussianFromSatellite()
         {
             var manager = CreateManager();
             manager.ChangeCulture(new CultureInfo("ru"));
@@ -34,11 +34,11 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// EN-сателлит (LocalizableResources.en.resx) — английские значения
-        /// для культуры en.
+        /// Английский — нейтральный набор: он же достаётся любой культуре,
+        /// для которой перевода нет.
         /// </summary>
         [TestMethod]
-        public void GetString_EnCulture_ReturnsEnglishFromSatellite()
+        public void GetString_EnCulture_ReturnsEnglishFromNeutralResx()
         {
             var manager = CreateManager();
             manager.ChangeCulture(new CultureInfo("en"));
@@ -48,9 +48,7 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual("Spindle speed, RPM", manager.GetString("SpindleSpeedRpm"));
         }
 
-        /// <summary>
-        /// Форматирование параметров сохраняется и в EN-сателлите.
-        /// </summary>
+        /// <summary>Форматирование параметров работает и в нейтральном наборе.</summary>
         [TestMethod]
         public void GetString_EnCulture_FormatsParameters()
         {
@@ -71,6 +69,21 @@ namespace GCodeGenerator.Tests
             manager.ChangeCulture(new CultureInfo("en"));
 
             Assert.AreEqual("?NoSuchKey?", manager.GetString("NoSuchKey"));
+        }
+
+        /// <summary>
+        /// Культура без перевода получает английский, а не русский: набор
+        /// строк в самой сборке — нейтральный, и именно он достаётся всем,
+        /// для кого сателлита нет. Прежде нейтральным был русский, и станок
+        /// с немецкой или китайской системой показывал русский интерфейс.
+        /// </summary>
+        [TestMethod]
+        public void GetString_CultureWithoutTranslation_FallsBackToEnglish()
+        {
+            var manager = CreateManager();
+            manager.ChangeCulture(new CultureInfo("de"));
+
+            Assert.AreEqual("G-code Generator", manager.GetString("MainTitle"));
         }
 
         /// <summary>
