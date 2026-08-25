@@ -254,7 +254,7 @@ namespace GCodeGenerator.Operations
         /// <summary>Сверление: точка на каждое отверстие.</summary>
         private static IEnumerable<OperationOutline> DrillOutlines(DrillPointsOperation operation)
         {
-            foreach (var hole in operation.Holes)
+            foreach (var hole in operation.HolesToDrill)
             {
                 if (hole == null)
                     continue;

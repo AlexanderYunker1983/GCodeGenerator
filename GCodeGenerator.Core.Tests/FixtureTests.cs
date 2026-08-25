@@ -51,8 +51,8 @@ namespace GCodeGenerator.Tests
             foreach (var pair in expected)
             {
                 var op = pair.Key();
-                Assert.AreEqual(pair.Value, op.Holes.Count,
-                    $"Неверное число отверстий для {op.Name}: ожидалось {pair.Value}, фактически {op.Holes.Count}");
+                Assert.AreEqual(pair.Value, op.HolesToDrill.Count,
+                    $"Неверное число отверстий для {op.Name}: ожидалось {pair.Value}, фактически {op.HolesToDrill.Count}");
             }
         }
 

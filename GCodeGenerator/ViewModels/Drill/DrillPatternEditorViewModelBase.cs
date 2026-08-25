@@ -15,7 +15,10 @@ namespace GCodeGenerator.ViewModels.Drill
     /// этого нужно было вписать его в диалог, в чтение, в сохранение и в
     /// пересчёт по отдельности.
     ///
-    /// Сам расчёт выполняет ядро (<see cref="DrillPatternBuilder"/>).
+    /// Сам расчёт выполняет ядро: операция вычисляет расстановку по своему
+    /// шаблону, а окно её только показывает. Прежде окно считало отверстия
+    /// само и по OK записывало их в операцию, откуда они уходили в файл
+    /// проекта рядом с параметрами, из которых получены.
     /// </summary>
     public abstract partial class DrillPatternEditorViewModelBase
         : OperationEditorViewModelBase<DrillPointsOperation>
@@ -46,19 +49,6 @@ namespace GCodeGenerator.ViewModels.Drill
         }
 
         /// <summary>
-        /// По OK в операцию уходит рассчитанный список отверстий: генератор
-        /// сверлит именно его.
-        /// </summary>
-        protected override void BeforeAccept(DrillPointsOperation operation)
-        {
-            base.BeforeAccept(operation);
-
-            operation.Holes.Clear();
-            foreach (var hole in PreviewHoles)
-                operation.Holes.Add(hole);
-        }
-
-        /// <summary>
         /// Любое изменение параметра делает предпросмотр устаревшим, поэтому
         /// отверстия пересчитываются здесь, а не в каждом поле окна.
         /// Список отверстий на шаблон не влияет — он его результат.
@@ -78,7 +68,7 @@ namespace GCodeGenerator.ViewModels.Drill
             if (Operation == null)
                 return;
 
-            foreach (var hole in DrillPatternBuilder.Build(Operation))
+            foreach (var hole in Operation.HolesToDrill)
                 PreviewHoles.Add(hole);
         }
     }

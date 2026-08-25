@@ -73,12 +73,14 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Диалог сверления по шаблону пересчитывает отверстия при открытии:
-        /// список в операции обязан соответствовать её параметрам, даже если
-        /// в файле проекта он от них отстал.
+        /// Отверстия шаблона выводятся из его параметров, а не хранятся:
+        /// список, отставший от параметров, ни на что не влияет — ни на
+        /// показ в окне, ни на программу. Прежде окно пересчитывало отверстия
+        /// и записывало их в операцию, поэтому старый файл проекта мог
+        /// просверлить не то, что описывают его же параметры.
         /// </summary>
         [TestMethod]
-        public void DrillPatternDialog_RecalculatesHolesOnOpen()
+        public void DrillPatternDialog_ShowsHolesDerivedFromParameters()
         {
             var operation = new DrillPointsOperation
             {
@@ -90,15 +92,19 @@ namespace GCodeGenerator.Tests
                 TotalDepth = 2,
                 StepDepth = 1
             };
-            operation.Holes.Clear(); // список отстал от параметров
+            // Список из файла проекта, отставший от параметров.
+            operation.Holes.Add(new DrillHole { X = 999, Y = 999, TotalDepth = 2, StepDepth = 1 });
 
-            var editor = (IOperationEditorViewModel)CreateEditor(
-                typeof(GCodeGenerator.ViewModels.Drill.DrillLineOperationViewModel));
+            var dialog = CreateEditor(typeof(GCodeGenerator.ViewModels.Drill.DrillLineOperationViewModel));
+            var editor = (IOperationEditorViewModel)dialog;
             editor.SetOperation(operation);
             Ok(editor);
 
             Assert.IsTrue(editor.IsAccepted, "Заполненный шаблон принимается");
-            Assert.AreEqual(4, operation.Holes.Count, "Отверстия пересчитаны по параметрам шаблона");
+            Assert.AreEqual(4, operation.HolesToDrill.Count, "Сверлится расстановка по параметрам шаблона");
+            Assert.AreEqual(0.0, operation.HolesToDrill[0].X, 1e-9, "Отставший список не участвует");
+            Assert.AreEqual(4, ((GCodeGenerator.ViewModels.Drill.DrillLineOperationViewModel)dialog).PreviewHoles.Count,
+                "Окно показывает ту же расстановку");
         }
 
         /// <summary>Значения параметров операции до открытия диалога.</summary>

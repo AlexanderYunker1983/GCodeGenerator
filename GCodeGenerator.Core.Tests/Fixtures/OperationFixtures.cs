@@ -55,13 +55,11 @@ namespace GCodeGenerator.Tests.Fixtures
         // сверял продукт с собственной копией вычислений.
         // ---------------------------------------------------------------------
 
-        /// <summary>Достраивает отверстия шаблона по заданным параметрам операции.</summary>
-        private static DrillPointsOperation WithPatternHoles(DrillPointsOperation op)
-        {
-            foreach (var hole in DrillPatternBuilder.Build(op))
-                op.Holes.Add(hole);
-            return op;
-        }
+        /// <summary>
+        /// Операция шаблона как есть: отверстия она вычисляет сама по своим
+        /// параметрам, дозаполнять их больше не требуется.
+        /// </summary>
+        private static DrillPointsOperation WithPatternHoles(DrillPointsOperation op) => op;
 
         /// <summary>Точки вручную: 3 отверстия.</summary>
         public static DrillPointsOperation DrillPoints()

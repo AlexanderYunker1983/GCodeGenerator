@@ -4,49 +4,46 @@ using System.Collections.Generic;
 namespace GCodeGenerator.Models
 {
     /// <summary>
-    /// Строит список отверстий по параметрам шаблона сверления.
+    /// Шаблон расстановки отверстий: по нему операция сверления вычисляет,
+    /// что именно сверлить.
     ///
-    /// Раньше эти формулы жили в девяти view-моделях диалогов: ядро не могло
-    /// пересчитать отверстия по параметрам операции, а тесты вынужденно
-    /// повторяли те же вычисления вместо того, чтобы проверять их. Список
-    /// отверстий при этом хранится в операции и сохраняется в проект, то есть
-    /// параметры шаблона и его результат могли разойтись — например, если файл
-    /// проекта отредактирован вне программы.
+    /// Раньше все девять способов расстановки разбирались переключателем в
+    /// одном классе на три сотни строк, а параметры каждого способа лежали
+    /// вперемешку в самой операции. Способ, добавленный в перечисление, но
+    /// забытый в переключателе, молча давал пустой список отверстий — то есть
+    /// операцию, которая ничего не сверлит.
     ///
     /// Формулы перенесены дословно, поэтому программы для существующих
     /// проектов не меняются.
     /// </summary>
-    public static class DrillPatternBuilder
+    public abstract class DrillPattern
     {
-        /// <summary>
-        /// Отверстия шаблона операции. Для режима <see cref="DrillMode.Points"/>
-        /// шаблона нет: отверстия задаются пользователем поштучно и
-        /// возвращаются как есть.
-        /// </summary>
+        /// <summary>Способ расстановки, который описывает этот шаблон.</summary>
+        public abstract DrillMode Mode { get; }
+
+        /// <summary>Отверстия шаблона по параметрам операции.</summary>
         /// <param name="operation">Операция сверления.</param>
-        public static List<DrillHole> Build(DrillPointsOperation operation)
+        public IReadOnlyList<DrillHole> Holes(DrillPointsOperation operation)
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
 
-            switch (operation.DrillMode)
-            {
-                case DrillMode.Line: return BuildLine(operation);
-                case DrillMode.Array: return BuildArray(operation);
-                case DrillMode.Rect: return BuildRectangle(operation);
-                case DrillMode.Circle: return BuildCircle(operation);
-                case DrillMode.Arc: return BuildArc(operation);
-                case DrillMode.Polygon: return BuildPolygon(operation);
-                case DrillMode.Ellipse: return BuildEllipse(operation);
-                case DrillMode.Package: return BuildPackage(operation);
-                case DrillMode.Points:
-                default:
-                    return new List<DrillHole>(operation.Holes);
-            }
+            return Build(operation);
         }
 
-        /// <summary>Отверстие шаблона: координаты плюс общие параметры глубины и подач.</summary>
-        private static DrillHole Hole(DrillPointsOperation operation, double x, double y, double z)
+        /// <summary>Расстановка отверстий: формулы конкретного шаблона.</summary>
+        /// <param name="operation">Операция сверления.</param>
+        protected abstract List<DrillHole> Build(DrillPointsOperation operation);
+
+        /// <summary>
+        /// Отверстие шаблона: координаты плюс общие параметры глубины и подач,
+        /// одинаковые для всех отверстий операции.
+        /// </summary>
+        /// <param name="operation">Операция сверления.</param>
+        /// <param name="x">Координата X отверстия.</param>
+        /// <param name="y">Координата Y отверстия.</param>
+        /// <param name="z">Координата Z поверхности.</param>
+        protected static DrillHole Hole(DrillPointsOperation operation, double x, double y, double z)
             => new DrillHole
             {
                 X = x,
@@ -58,8 +55,27 @@ namespace GCodeGenerator.Models
                 FeedZWork = operation.FeedZWork,
                 RetractHeight = operation.RetractHeight
             };
+    }
 
-        private static List<DrillHole> BuildLine(DrillPointsOperation operation)
+    /// <summary>
+    /// Поштучный «шаблон»: отверстия задаёт пользователь, вычислять нечего.
+    /// Существует, чтобы у каждого режима был свой шаблон и вызывающему коду
+    /// не приходилось выделять этот случай отдельно.
+    /// </summary>
+    public sealed class PointsDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Points;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
+            => new List<DrillHole>(operation.Holes);
+    }
+
+    /// <summary>Отверстия по прямой линии под заданным углом.</summary>
+    public sealed class LineDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Line;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount <= 0 || operation.Distance == 0)
@@ -74,8 +90,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildArray(DrillPointsOperation operation)
+    /// <summary>Прямоугольная сетка отверстий: все узлы.</summary>
+    public sealed class ArrayDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Array;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount <= 0 || operation.Distance == 0 || operation.RowCount <= 0)
@@ -103,8 +125,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildRectangle(DrillPointsOperation operation)
+    /// <summary>Прямоугольная рамка: только узлы по периметру сетки.</summary>
+    public sealed class RectDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Rect;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount <= 1 || operation.Distance == 0 || operation.RowCount <= 1)
@@ -137,8 +165,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildCircle(DrillPointsOperation operation)
+    /// <summary>Отверстия, равномерно расставленные по окружности.</summary>
+    public sealed class CircleDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Circle;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount < 2 || operation.Radius == 0)
@@ -159,8 +193,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildArc(DrillPointsOperation operation)
+    /// <summary>Отверстия по дуге между начальным и конечным углом.</summary>
+    public sealed class ArcDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Arc;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount < 1 || operation.Radius == 0)
@@ -193,8 +233,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildPolygon(DrillPointsOperation operation)
+    /// <summary>Отверстия по сторонам правильного многоугольника.</summary>
+    public sealed class PolygonDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Polygon;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.NumberOfSides < 3 || operation.Radius == 0 || operation.HolesPerSide < 1)
@@ -238,8 +284,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildEllipse(DrillPointsOperation operation)
+    /// <summary>Отверстия по эллипсу с поворотом.</summary>
+    public sealed class EllipseDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Ellipse;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount < 2 || operation.RadiusX == 0 || operation.RadiusY == 0)
@@ -266,8 +318,14 @@ namespace GCodeGenerator.Models
 
             return holes;
         }
+    }
 
-        private static List<DrillHole> BuildPackage(DrillPointsOperation operation)
+    /// <summary>Отверстия под выводы корпуса микросхемы.</summary>
+    public sealed class PackageDrillPattern : DrillPattern
+    {
+        public override DrillMode Mode => DrillMode.Package;
+
+        protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
             var package = PackageCatalog.FindOrDefault(operation.PackageName);
@@ -310,6 +368,55 @@ namespace GCodeGenerator.Models
             }
 
             return holes;
+        }
+    }
+
+    /// <summary>
+    /// Соответствие «способ расстановки → шаблон».
+    ///
+    /// Полнота реестра относительно перечисления проверяется тестом: способ
+    /// без шаблона означал бы операцию, которая ничего не сверлит.
+    /// </summary>
+    public static class DrillPatterns
+    {
+        private static readonly Dictionary<DrillMode, DrillPattern> Registry = BuildRegistry();
+
+        private static Dictionary<DrillMode, DrillPattern> BuildRegistry()
+        {
+            var patterns = new DrillPattern[]
+            {
+                new PointsDrillPattern(),
+                new LineDrillPattern(),
+                new ArrayDrillPattern(),
+                new RectDrillPattern(),
+                new CircleDrillPattern(),
+                new ArcDrillPattern(),
+                new PolygonDrillPattern(),
+                new EllipseDrillPattern(),
+                new PackageDrillPattern(),
+            };
+
+            var registry = new Dictionary<DrillMode, DrillPattern>(patterns.Length);
+            foreach (var pattern in patterns)
+                registry[pattern.Mode] = pattern;
+            return registry;
+        }
+
+        /// <summary>Все зарегистрированные шаблоны — для проверки полноты.</summary>
+        public static IReadOnlyDictionary<DrillMode, DrillPattern> All => Registry;
+
+        /// <summary>
+        /// Шаблон для способа расстановки. Незнакомое значение — отказ:
+        /// файл проекта, принесший неизвестный режим, не должен молча
+        /// превращаться в операцию без отверстий.
+        /// </summary>
+        /// <param name="mode">Способ расстановки отверстий.</param>
+        public static DrillPattern For(DrillMode mode)
+        {
+            if (Registry.TryGetValue(mode, out var pattern))
+                return pattern;
+
+            throw new NotSupportedException($"Способ расстановки отверстий {(int)mode} не поддерживается.");
         }
     }
 }

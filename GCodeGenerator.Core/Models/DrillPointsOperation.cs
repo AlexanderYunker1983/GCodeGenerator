@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.Text.Json.Serialization;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -30,7 +31,11 @@ namespace GCodeGenerator.Models
         private DrillMode _drillMode = DrillMode.Points;
 
         /// <summary>
-        /// Holes with full coordinates and Z parameters.
+        /// Отверстия, заданные пользователем поштучно (режим
+        /// <see cref="DrillMode.Points"/>). В остальных режимах расстановку
+        /// задаёт шаблон, и этот список не используется — сверлится
+        /// <see cref="HolesToDrill"/>.
+        ///
         /// Setter is needed for JSON deserialization of saved projects.
         ///
         /// Наблюдаемая коллекция: отверстия правят прямо в таблице диалога,
@@ -96,6 +101,21 @@ namespace GCodeGenerator.Models
 
         private void OnHoleChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
             => OnPropertyChanged(nameof(Holes));
+
+        /// <summary>
+        /// Отверстия, которые будут просверлены: в поштучном режиме — список
+        /// <see cref="Holes"/>, в остальных — расстановка, вычисленная
+        /// шаблоном по параметрам операции.
+        ///
+        /// Прежде отверстия шаблона считал диалог и записывал их в операцию,
+        /// откуда они попадали в файл проекта — тысячами записей рядом с
+        /// параметрами, из которых они получены. Два описания одного и того
+        /// же могли разойтись: достаточно было поправить параметр в файле
+        /// вручную, и программа сверлила бы по старым координатам. Теперь
+        /// источник один — параметры, а отверстия из них выводятся.
+        /// </summary>
+        [JsonIgnore]
+        public IReadOnlyList<DrillHole> HolesToDrill => DrillPatterns.For(DrillMode).Holes(this);
 
         /// <summary>
         /// Safe Z height for moves between holes.
@@ -216,7 +236,41 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Drill {Holes.Count} hole(s)";
+            return $"Drill {HolesToDrill.Count} hole(s)";
+        }
+
+        /// <summary>
+        /// Проверяет расстановку: сверлится то, что вернул шаблон, — в
+        /// поштучном режиме это заданный пользователем список, в остальных
+        /// вычисленные по параметрам координаты.
+        /// </summary>
+        /// <param name="issues">Список проблем, куда добавляются найденные.</param>
+        private void AddHoleIssues(List<ValidationIssue> issues)
+        {
+            var holes = HolesToDrill;
+            if (holes == null || holes.Count == 0)
+            {
+                issues.Add(new ValidationIssue(nameof(Holes), ValidationCode.Empty, "no holes to drill"));
+                return;
+            }
+
+            for (int i = 0; i < holes.Count; i++)
+            {
+                var hole = holes[i];
+                if (hole == null)
+                {
+                    issues.Add(new ValidationIssue($"Holes[{i}]", ValidationCode.Empty, "hole is null"));
+                    continue;
+                }
+
+                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
+                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
+                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZWork", hole.FeedZWork);
+                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZRapid", hole.FeedZRapid);
+                OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].X", hole.X);
+                OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Y", hole.Y);
+                OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Z", hole.Z);
+            }
         }
 
         /// <summary>
@@ -232,31 +286,6 @@ namespace GCodeGenerator.Models
             // отверстиями инструмент идёт на быстрой подаче, вглубь — на рабочей.
             OperationValidation.AddCuttingIssues(issues, this);
             OperationValidation.AddIfNotFinite(issues, nameof(SafeZBetweenHoles), SafeZBetweenHoles);
-
-            // The generator drills exactly this list in every mode.
-            if (Holes == null || Holes.Count == 0)
-            {
-                issues.Add(new ValidationIssue(nameof(Holes), ValidationCode.Empty, "no holes to drill"));
-            }
-            else
-            {
-                for (int i = 0; i < Holes.Count; i++)
-                {
-                    var hole = Holes[i];
-                    if (hole == null)
-                    {
-                        issues.Add(new ValidationIssue($"Holes[{i}]", ValidationCode.Empty, "hole is null"));
-                        continue;
-                    }
-                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
-                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
-                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZWork", hole.FeedZWork);
-                    OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZRapid", hole.FeedZRapid);
-                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].X", hole.X);
-                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Y", hole.Y);
-                    OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Z", hole.Z);
-                }
-            }
 
             // Pattern modes share common Z parameters; Points mode keeps
             // per-hole Z parameters in Holes only.
@@ -301,6 +330,13 @@ namespace GCodeGenerator.Models
                 default:
                     break;
             }
+
+            // Расстановка проверяется последней и только если параметры
+            // шаблона верны: пустая расстановка при неверном параметре — его
+            // следствие, и называть её второй проблемой значит показать
+            // пользователю два сообщения об одной ошибке.
+            if (issues.Count == 0)
+                AddHoleIssues(issues);
 
             return issues;
         }

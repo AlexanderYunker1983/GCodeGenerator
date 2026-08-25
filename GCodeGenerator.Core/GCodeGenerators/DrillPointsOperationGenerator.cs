@@ -16,7 +16,7 @@ namespace GCodeGenerator.GCodeGenerators
             int decimals = drill.Decimals;
 
             int holeIndex = 0;
-            foreach (var hole in drill.Holes)
+            foreach (var hole in drill.HolesToDrill)
             {
                 // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл сверления
                 // превращается в бесконечный. Бросаем исключение вместо зависания.

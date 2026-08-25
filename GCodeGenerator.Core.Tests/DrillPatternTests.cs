@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -14,7 +15,7 @@ namespace GCodeGenerator.Tests
     /// геометрией шаблона, а не с другой реализацией.
     /// </summary>
     [TestClass]
-    public class DrillPatternBuilderTests
+    public class DrillPatternTests
     {
         private static DrillPointsOperation Operation(DrillMode mode)
             => new DrillPointsOperation { DrillMode = mode, TotalDepth = 2, StepDepth = 1 };
@@ -35,7 +36,7 @@ namespace GCodeGenerator.Tests
             var operation = Operation(DrillMode.Points);
             operation.Holes.Add(new DrillHole { X = 3, Y = 4, TotalDepth = 5, StepDepth = 1 });
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(1, holes.Count);
             AssertHoleAt(holes[0], 3, 4, "Отверстие пользователя");
@@ -52,7 +53,7 @@ namespace GCodeGenerator.Tests
             operation.HoleCount = 3;
             operation.AngleDeg = 90;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(3, holes.Count);
             AssertHoleAt(holes[0], 10, 5, "Первое отверстие в начальной точке");
@@ -73,7 +74,7 @@ namespace GCodeGenerator.Tests
             operation.FeedZWork = 150;
             operation.RetractHeight = 0.8;
 
-            foreach (var hole in DrillPatternBuilder.Build(operation))
+            foreach (var hole in operation.HolesToDrill)
             {
                 Assert.AreEqual(3.5, hole.TotalDepth);
                 Assert.AreEqual(0.5, hole.StepDepth);
@@ -92,7 +93,7 @@ namespace GCodeGenerator.Tests
             operation.RowPitch = 5;
             operation.RowCount = 2;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(6, holes.Count, "Сетка 3×2");
             AssertHoleAt(holes[0], 0, 0, "Начало сетки");
@@ -113,7 +114,7 @@ namespace GCodeGenerator.Tests
             operation.RowPitch = 10;
             operation.RowCount = 3;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(8, holes.Count, "Из девяти узлов сетки 3×3 остаются восемь");
             Assert.IsFalse(
@@ -131,7 +132,7 @@ namespace GCodeGenerator.Tests
             operation.HoleCount = 4;
             operation.StartAngleDeg = 0;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(4, holes.Count);
             AssertHoleAt(holes[0], 10, 0, "Начальный угол 0°");
@@ -154,7 +155,7 @@ namespace GCodeGenerator.Tests
             operation.StartAngleDeg = 0;
             operation.EndAngleDeg = 90;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(3, holes.Count);
             AssertHoleAt(holes[0], 10, 0, "Начало дуги");
@@ -171,7 +172,7 @@ namespace GCodeGenerator.Tests
             operation.StartAngleDeg = 0;
             operation.EndAngleDeg = 0;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(5, holes.Count);
             AssertHoleAt(holes[0], 10, 0, "Начало");
@@ -192,7 +193,7 @@ namespace GCodeGenerator.Tests
             operation.HolesPerSide = 2;
             operation.RotationAngle = 0;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(8, holes.Count, "Четыре стороны по два отверстия");
             AssertHoleAt(holes[0], 10, 0, "Первая вершина");
@@ -210,7 +211,7 @@ namespace GCodeGenerator.Tests
             operation.StartAngleDeg = 0;
             operation.RotationAngle = 90;
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(4, holes.Count);
             AssertHoleAt(holes[0], 0, 20, "Большая полуось повёрнута на 90°");
@@ -227,7 +228,7 @@ namespace GCodeGenerator.Tests
             var operation = Operation(DrillMode.Package);
             operation.PackageName = "DIP8";
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(8, holes.Count, "DIP8 — восемь выводов");
             AssertHoleAt(holes[0], -3.81, -3.81, "Первый вывод");
@@ -242,7 +243,7 @@ namespace GCodeGenerator.Tests
             var operation = Operation(DrillMode.Package);
             operation.PackageName = "TO-220";
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(3, holes.Count);
             AssertHoleAt(holes[0], 0, -2.54, "Первый вывод");
@@ -260,7 +261,7 @@ namespace GCodeGenerator.Tests
             var operation = Operation(DrillMode.Package);
             operation.PackageName = "НесуществующийКорпус";
 
-            var holes = DrillPatternBuilder.Build(operation);
+            var holes = operation.HolesToDrill;
 
             Assert.AreEqual(8, holes.Count, "Корпус по умолчанию — DIP8");
         }
@@ -274,23 +275,107 @@ namespace GCodeGenerator.Tests
         {
             var line = Operation(DrillMode.Line);
             line.HoleCount = 0;
-            Assert.AreEqual(0, DrillPatternBuilder.Build(line).Count, "Линия без отверстий");
+            Assert.AreEqual(0, line.HolesToDrill.Count, "Линия без отверстий");
 
             var circle = Operation(DrillMode.Circle);
             circle.Radius = 0;
             circle.HoleCount = 4;
-            Assert.AreEqual(0, DrillPatternBuilder.Build(circle).Count, "Окружность нулевого радиуса");
+            Assert.AreEqual(0, circle.HolesToDrill.Count, "Окружность нулевого радиуса");
 
             var polygon = Operation(DrillMode.Polygon);
             polygon.NumberOfSides = 2;
             polygon.Radius = 10;
-            Assert.AreEqual(0, DrillPatternBuilder.Build(polygon).Count, "Многоугольник с двумя сторонами");
+            Assert.AreEqual(0, polygon.HolesToDrill.Count, "Многоугольник с двумя сторонами");
         }
 
+        /// <summary>
+        /// Расстановка шаблона не хранится в файле проекта: её выводят из
+        /// параметров. Прежде рядом с параметрами лежали и вычисленные по ним
+        /// координаты — до тысяч записей на операцию, — а два описания одного
+        /// и того же могли разойтись.
+        /// </summary>
         [TestMethod]
-        public void Build_Null_Throws()
+        public void PatternHoles_AreNotStoredInProjectFile()
         {
-            Assert.ThrowsException<ArgumentNullException>(() => DrillPatternBuilder.Build(null));
+            var operation = Operation(DrillMode.Array);
+            operation.HoleCount = 20;
+            operation.RowCount = 20;
+
+            Assert.AreEqual(400, operation.HolesToDrill.Count, "Расстановка вычисляется");
+
+            var json = new Persistence.ProjectFileService().Serialize(
+                new List<OperationBase> { operation }, null);
+
+            StringAssert.Contains(json, "\"HoleCount\":20", "Параметры шаблона сохраняются");
+            StringAssert.Contains(json, "\"Holes\":[]", "Список отверстий остаётся пустым");
+        }
+
+        /// <summary>
+        /// Файл, сохранённый прежней сборкой, содержит и параметры, и старые
+        /// отверстия: сверлится расстановка по параметрам, а не то, что
+        /// записано в файле.
+        /// </summary>
+        [TestMethod]
+        public void PatternOperation_IgnoresStoredHolesFromOlderFiles()
+        {
+            var json = "{\"version\":4,\"operations\":[{\"type\":\"DrillPoints\",\"data\":{"
+                + "\"DrillMode\":1,\"StartX\":0,\"StartY\":0,\"Distance\":10,\"HoleCount\":3,"
+                + "\"TotalDepth\":2,\"StepDepth\":1,"
+                + "\"Holes\":[{\"X\":999,\"Y\":999,\"TotalDepth\":2,\"StepDepth\":1}]}}]}";
+
+            var loaded = (DrillPointsOperation)new Persistence.ProjectFileService()
+                .Deserialize(json).Operations[0];
+
+            Assert.AreEqual(3, loaded.HolesToDrill.Count, "Сверлится расстановка по параметрам");
+            Assert.AreEqual(0.0, loaded.HolesToDrill[0].X, 1e-9);
+            Assert.AreEqual(20.0, loaded.HolesToDrill[2].X, 1e-9);
+        }
+
+        /// <summary>
+        /// Шаблон без операции — ошибка вызывающего, а не пустой список:
+        /// иначе она проявилась бы операцией, которая ничего не сверлит.
+        /// </summary>
+        [TestMethod]
+        public void Pattern_WithoutOperation_Throws()
+        {
+            Assert.ThrowsException<ArgumentNullException>(() => DrillPatterns.For(DrillMode.Line).Holes(null));
+        }
+
+        /// <summary>
+        /// У каждого способа расстановки есть свой шаблон: способ, добавленный
+        /// в перечисление и в окно, но забытый в реестре, дал бы операцию
+        /// без отверстий.
+        /// </summary>
+        [TestMethod]
+        public void EveryDrillMode_HasItsOwnPattern()
+        {
+            var byPattern = new Dictionary<DrillPattern, DrillMode>();
+
+            foreach (DrillMode mode in Enum.GetValues(typeof(DrillMode)))
+            {
+                var pattern = DrillPatterns.For(mode);
+
+                Assert.AreEqual(mode, pattern.Mode, "Шаблон должен объявлять свой способ расстановки");
+                Assert.IsFalse(byPattern.ContainsKey(pattern), $"{mode}: шаблон уже занят другим способом");
+                byPattern[pattern] = mode;
+            }
+
+            Assert.AreEqual(Enum.GetValues(typeof(DrillMode)).Length, DrillPatterns.All.Count);
+        }
+
+        /// <summary>
+        /// Незнакомый способ расстановки — отказ с указанием значения:
+        /// файл проекта с неизвестным режимом не должен молча сверлиться
+        /// каким-то другим.
+        /// </summary>
+        [TestMethod]
+        public void UnknownDrillMode_IsRefusedWithItsValue()
+        {
+            var unknown = (DrillMode)Enum.GetValues(typeof(DrillMode)).Cast<int>().Max() + 1;
+
+            var failure = Assert.ThrowsException<NotSupportedException>(() => DrillPatterns.For(unknown));
+
+            StringAssert.Contains(failure.Message, ((int)unknown).ToString());
         }
     }
 }
