@@ -1,5 +1,4 @@
 using System.Windows;
-using GCodeGenerator.ViewModels.Drill;
 
 namespace GCodeGenerator.Views.Drill
 {

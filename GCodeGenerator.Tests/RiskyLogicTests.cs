@@ -388,7 +388,7 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// S2: StepPercentOfTool = 0 → fallback на 40% (в GenerateInternal:
-        /// `stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool`).
+        /// `stepPercent = (op.StepPercentOfTool &lt;= 0) ? 40 : op.StepPercentOfTool`).
         /// Вывод байт-в-байт идентичен выводу при StepPercentOfTool = 40.
         /// </summary>
         [TestMethod]

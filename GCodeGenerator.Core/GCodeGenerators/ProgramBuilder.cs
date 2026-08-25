@@ -10,7 +10,7 @@ namespace GCodeGenerator.GCodeGenerators
     /// presentation (line numbers, G/M padding, comment visibility) is
     /// applied by <see cref="GCodeFormatter"/> at render time.
     ///
-    /// <paramref name="decimals"/> on move methods is the number of decimal
+    /// <c>decimals</c> on move methods is the number of decimal
     /// places for the coordinates of that move (the operation's Decimals);
     /// -1 renders plain InvariantCulture values (program preamble).
     /// </summary>

@@ -4,7 +4,7 @@ namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Drilling holes operation with individual hole Z-parameters
-    /// and common XY feeds & safety settings.
+    /// and common XY feeds and safety settings.
     ///
     /// The pattern is described by <see cref="DrillMode"/> and the typed
     /// parameters below (plan item 3.1); <see cref="Holes"/> always holds the

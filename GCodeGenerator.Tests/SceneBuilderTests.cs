@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using GCodeGenerator.Models;
 using GCodeGenerator.Trajectory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

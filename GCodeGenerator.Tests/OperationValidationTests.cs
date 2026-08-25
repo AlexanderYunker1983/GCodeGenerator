@@ -90,7 +90,7 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// Замкнутый контур, замкнутый с точностью до допустимого отклонения
-        /// (5e-4 < 1e-3 — допуск импортера DXF), не помечается как открытый.
+        /// (5e-4 &lt; 1e-3 — допуск импортера DXF), не помечается как открытый.
         /// </summary>
         [TestMethod]
         public void PocketDxf_ClosedWithinTolerance_IsValid()

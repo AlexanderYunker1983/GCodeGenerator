@@ -1,6 +1,5 @@
 using System;
 using GCodeGenerator.Models;
-using GCodeGenerator.Properties;
 
 namespace GCodeGenerator.Services
 {

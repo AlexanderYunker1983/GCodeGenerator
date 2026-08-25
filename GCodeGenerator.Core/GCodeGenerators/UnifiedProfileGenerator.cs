@@ -5,7 +5,6 @@ using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
-using Geometry = GCodeGenerator.GCodeGenerators.Geometry;
 
 namespace GCodeGenerator.GCodeGenerators
 {

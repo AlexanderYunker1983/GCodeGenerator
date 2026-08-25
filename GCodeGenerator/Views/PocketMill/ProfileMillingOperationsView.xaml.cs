@@ -1,6 +1,3 @@
-using System.Windows;
-using System.Windows.Input;
-using GCodeGenerator.ViewModels;
 
 namespace GCodeGenerator.Views.PocketMill
 {

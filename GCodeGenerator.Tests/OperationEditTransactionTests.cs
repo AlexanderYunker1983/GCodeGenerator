@@ -2,7 +2,6 @@ using System;
 using System.Collections.ObjectModel;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
-using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

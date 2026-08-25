@@ -3,7 +3,6 @@ using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using GCodeGenerator.Models;
-using GCodeGenerator.ViewModels;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 
@@ -12,9 +11,8 @@ namespace GCodeGenerator.ViewModels.Pocket
     /// <summary>
     /// View-модель вкладки «Карман» (пункт 7.2 плана): добавляет операции
     /// карманов в единую коллекцию MainViewModel.AllOperations и открывает
-    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции нет —
-    /// <see cref="Operations"/> — фильтрованное представление единой коллекции
-    /// по категории.
+    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции
+    /// операций нет: список отображает единую коллекцию.
     /// </summary>
     public class PocketOperationsViewModel : ViewModelBase
     {

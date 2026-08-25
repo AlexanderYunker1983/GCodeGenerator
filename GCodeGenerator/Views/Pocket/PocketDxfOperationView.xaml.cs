@@ -1,5 +1,4 @@
 using System.Windows;
-using GCodeGenerator.ViewModels.Pocket;
 
 namespace GCodeGenerator.Views.Pocket
 {

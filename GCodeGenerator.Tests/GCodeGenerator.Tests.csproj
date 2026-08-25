@@ -17,7 +17,6 @@
     <AssemblyName>GCodeGenerator.Tests</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <LangVersion>latest</LangVersion>
-    <WarningLevel>4</WarningLevel>
     <IsPackable>false</IsPackable>
     <!-- Классическая раскладка bin\Release (без подпапки TFM): CI ищет bin\Release\GCodeGenerator.Tests.dll -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

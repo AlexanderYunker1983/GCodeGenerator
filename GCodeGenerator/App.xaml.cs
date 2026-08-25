@@ -1,9 +1,7 @@
-using System;
 using System.Reflection;
 using System.Windows;
 using Autofac;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels;

@@ -6,7 +6,7 @@ namespace GCodeGenerator.Trajectory
     /// <summary>
     /// A pure scene of a tool trajectory (plan item 6.2): segments only,
     /// no rendering types. Built by <see cref="SceneBuilder"/> from a
-    /// structured <see cref="GCodeProgram"/>; rendered to WPF by the
+    /// structured <see cref="Models.GCodeProgram"/>; rendered to WPF by the
     /// Views layer (<c>SceneRenderer</c>).
     /// </summary>
     public sealed class TrajectoryScene

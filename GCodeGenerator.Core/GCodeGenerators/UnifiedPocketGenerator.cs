@@ -100,6 +100,10 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Генерирует основную фрезеровку кармана (цикл по слоям + стратегия).
         /// </summary>
+        /// <param name="op">Операция кармана.</param>
+        /// <param name="geometry">Геометрия контура операции.</param>
+        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
         private void MillPocket(
@@ -138,6 +142,16 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Генерирует один слой кармана.
         /// </summary>
+        /// <param name="op">Операция кармана.</param>
+        /// <param name="geometry">Геометрия контура операции.</param>
+        /// <param name="toolRadius">Радиус инструмента.</param>
+        /// <param name="step">Шаг обработки.</param>
+        /// <param name="currentZ">Z верха слоя.</param>
+        /// <param name="nextZ">Рабочая Z слоя.</param>
+        /// <param name="passNumber">Номер слоя (прохода), начиная с 1.</param>
+        /// <param name="cutoff">Состояние эвристик отсечки (используется только DXF-карманами).</param>
+        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
         /// <param name="strategy">Стратегия обработки (null — по <c>op.PocketStrategy</c>).</param>
         /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>

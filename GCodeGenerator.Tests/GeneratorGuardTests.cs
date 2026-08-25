@@ -12,7 +12,7 @@ namespace GCodeGenerator.Tests
     /// <summary>
     /// Тесты защитных проверок генераторов (пункт 3.8 плана).
     ///
-    /// До 3.8 вырожденные параметры (StepDepth <= 0, ToolDiameter <= 0)
+    /// До 3.8 вырожденные параметры (StepDepth &lt;= 0, ToolDiameter &lt;= 0)
     /// приводили к бесконечным циклам в генераторах. Теперь они бросают
     /// ArgumentOutOfRangeException (производное от ArgumentException).
     /// Для валидных операций поведение не изменилось — это покрывают

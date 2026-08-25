@@ -1,6 +1,5 @@
 using System;
 using System.Linq;
-using System.Reflection;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;

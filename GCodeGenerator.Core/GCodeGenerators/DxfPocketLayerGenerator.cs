@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Strategies;
@@ -19,7 +18,17 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>
         /// Генерирует один слой для DXF кармана с несколькими контурами.
         /// </summary>
+        /// <param name="op">Операция DXF-кармана (замкнутые контуры, подачи, Decimals).</param>
+        /// <param name="toolRadius">Радиус инструмента.</param>
+        /// <param name="taperOffset">Смещение из-за уклона стенок на глубине слоя.</param>
+        /// <param name="step">Шаг обработки.</param>
+        /// <param name="currentZ">Z верха слоя.</param>
+        /// <param name="nextZ">Рабочая Z слоя.</param>
+        /// <param name="passNumber">Номер слоя (прохода), начиная с 1.</param>
+        /// <param name="cutoff">Состояние эвристик отсечки на операцию.</param>
         /// <param name="strategy">Стратегия обработки (выбирается по <c>op.PocketStrategy</c>, пункт 5.1).</param>
+        /// <param name="builder">Построитель структурированной программы.</param>
+        /// <param name="settings">Настройки генерации G-кода.</param>
         /// <returns>true, если хотя бы один контур был обработан и обработку нужно продолжить; false, если все контуры пропущены</returns>
         public bool GenerateLayer(
             PocketDxfOperation op,

@@ -6,7 +6,6 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.Services;
 using GCodeGenerator.Tests.Fixtures;
-using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.Drill;
 using GCodeGenerator.ViewModels.Pocket;
 using GCodeGenerator.ViewModels.PocketMill;

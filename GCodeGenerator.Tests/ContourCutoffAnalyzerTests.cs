@@ -1,4 +1,3 @@
-using System;
 using GCodeGenerator.GCodeGenerators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -10,7 +9,7 @@ namespace GCodeGenerator.Tests
     /// смена обхода, смена векторов, размер контура.
     ///
     /// Формула «песочных часов»: по площадям первых двух слоёв
-    /// ratio = A2/A1, номер слоя, где An = A0 * ratio^(n-1) <= 0.01 * A0:
+    /// ratio = A2/A1, номер слоя, где An = A0 * ratio^(n-1) &lt;= 0.01 * A0:
     /// n = ceil(log(0.01)/log(ratio) + 1), минимум 2.
     /// Для ratio = 0.5 → n = ceil(6.644 + 1) = 8.
     /// </summary>

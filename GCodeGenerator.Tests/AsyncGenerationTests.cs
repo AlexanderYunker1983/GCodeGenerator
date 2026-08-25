@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
-using GCodeGenerator.ViewModels;
 using GCodeGenerator.ViewModels.PocketMill;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 

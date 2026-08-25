@@ -1,8 +1,5 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Windows.Input;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 

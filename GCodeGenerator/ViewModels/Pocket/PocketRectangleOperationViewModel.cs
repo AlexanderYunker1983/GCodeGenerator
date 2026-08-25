@@ -1,5 +1,4 @@
 using System;
-using GCodeGenerator.Infrastructure;
 using GCodeGenerator.Models;
 using GCodeGenerator.Localization;
 

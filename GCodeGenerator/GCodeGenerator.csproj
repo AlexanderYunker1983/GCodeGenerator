@@ -24,7 +24,6 @@
     <RootNamespace>GCodeGenerator</RootNamespace>
     <AssemblyName>GCodeGenerator</AssemblyName>
     <LangVersion>latest</LangVersion>
-    <WarningLevel>4</WarningLevel>
     <Deterministic>true</Deterministic>
     <!-- GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:
          SDK для net10.0-windows генерирует [assembly: SupportedOSPlatform("Windows7.0")],

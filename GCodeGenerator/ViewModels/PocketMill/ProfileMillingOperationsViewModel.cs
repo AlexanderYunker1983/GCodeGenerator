@@ -1,6 +1,5 @@
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
-using GCodeGenerator.ViewModels;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -12,9 +11,8 @@ namespace GCodeGenerator.ViewModels.PocketMill
     /// <summary>
     /// View-модель вкладки «Профиль» (пункт 7.2 плана): добавляет операции
     /// профиля в единую коллекцию MainViewModel.AllOperations и открывает
-    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции нет —
-    /// <see cref="Operations"/> — фильтрованное представление единой коллекции
-    /// по категории.
+    /// диалоги операций через фабрику (пункт 7.3). Собственной коллекции
+    /// операций нет: список отображает единую коллекцию.
     /// </summary>
     public class ProfileMillingOperationsViewModel : ViewModelBase
     {

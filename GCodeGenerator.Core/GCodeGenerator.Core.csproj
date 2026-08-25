@@ -30,7 +30,6 @@
     <RootNamespace>GCodeGenerator.Core</RootNamespace>
     <AssemblyName>GCodeGenerator.Core</AssemblyName>
     <LangVersion>latest</LangVersion>
-    <WarningLevel>4</WarningLevel>
     <Deterministic>true</Deterministic>
     <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
     <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>

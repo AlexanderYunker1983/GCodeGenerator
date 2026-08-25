@@ -1,5 +1,3 @@
-using System.Windows;
-using System.Windows.Input;
 
 namespace GCodeGenerator.Views.Drill
 {
