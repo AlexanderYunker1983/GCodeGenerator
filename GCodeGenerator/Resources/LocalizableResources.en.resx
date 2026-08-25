@@ -597,6 +597,9 @@
   <data name="MaxSegmentLength" xml:space="preserve">
     <value>Max. segment length (mm):</value>
   </data>
+  <data name="ContourAccuracyHeader" xml:space="preserve">
+    <value>Contour accuracy</value>
+  </data>
   <data name="GeneralParametersHeader" xml:space="preserve">
     <value>General parameters</value>
   </data>

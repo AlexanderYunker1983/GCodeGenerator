@@ -5,131 +5,56 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.PocketMill"
+        xmlns:common="clr-namespace:GCodeGenerator.Views.Common"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:ProfileDxfOperationViewModel}"
         Title="{Binding DisplayName}"
-        Width="720" Height="520"
-        MinWidth="680" MinHeight="480"
+        Width="780" Height="560"
+        MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,8,10,10">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <Grid Margin="10">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-            </Grid.RowDefinitions>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
+        <common:DialogButtons DockPanel.Dock="Bottom"/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="10">
+                <GroupBox Header="{loc:Loc DxfImportHeader}" Margin="0,0,0,8">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Column="0" Text="{loc:Loc DxfFileLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
+                        <Button Grid.Column="2" Content="{loc:Loc DxfImportButton}" Command="{Binding ImportDxfCommand}" Width="120"/>
+                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
+                                   Text="{Binding ImportInfo}" Foreground="Gray" TextWrapping="Wrap"/>
+                    </Grid>
+                </GroupBox>
 
-            <GroupBox Header="{loc:Loc DxfImportHeader}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc DxfFileLabel}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding FilePath}" IsReadOnly="True" Margin="0,0,8,0"/>
-                    <Button Grid.Column="2" Content="{loc:Loc DxfImportButton}" Command="{Binding ImportDxfCommand}" Width="120"/>
-                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,0"
-                               Text="{Binding ImportInfo}" Foreground="Gray" TextWrapping="Wrap"/>
-                </Grid>
-            </GroupBox>
+                <common:ToolPathModeBlock/>
+                <common:MillingDirectionBlock/>
 
-            <GroupBox Header="{loc:Loc CuttingParametersHeader}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc TotalDepthLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="6" Text="{loc:Loc ToolDiameter}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-            </GroupBox>
+                <GroupBox Header="{loc:Loc ContourAccuracyHeader}" Margin="0,0,0,8">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{loc:Loc MaxSegmentLength}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding MaxSegmentLength, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                </GroupBox>
 
-            <GroupBox Header="{loc:Loc PositioningHeader}" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc ContourHeightZ}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding ContourHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc DecimalsLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-            </GroupBox>
-
-            <GroupBox Header="{loc:Loc FeedParametersHeader}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc FeedXYRapid}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc FeedXYWork}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="6" Text="{loc:Loc FeedZRapid}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="7" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="9" Text="{loc:Loc FeedZWork}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="10" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-            </GroupBox>
-
-            <GroupBox Header="{loc:Loc ZHeightsHeader}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2">
-                <Grid Margin="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc SafeZHeight}" VerticalAlignment="Top" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0" VerticalAlignment="Top"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc RetractZHeight}" VerticalAlignment="Top" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Top"/>
-                </Grid>
-            </GroupBox>
-        </Grid>
-    </ScrollViewer>
+                <common:MillingCuttingParametersBlock/>
+                <common:MillingPositioningBlock/>
+                <common:MillingFeedsBlock/>
+                <common:MillingHeightsBlock/>
+                <common:ToolEntryBlock/>
+            </StackPanel>
+        </ScrollViewer>
     </DockPanel>
 </Window>
-

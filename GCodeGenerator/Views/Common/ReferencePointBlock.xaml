@@ -1,0 +1,36 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.ReferencePointBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization"
+             xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core">
+    <GroupBox Header="{loc:Loc ReferencePoint}" Margin="0,0,0,8">
+        <Grid Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc CoordinateX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ReferencePointX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+            <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc CoordinateY}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding ReferencePointY, UpdateSourceTrigger=PropertyChanged}"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc ReferencePoint}" VerticalAlignment="Center" Margin="0,8,4,0"/>
+            <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="4"
+                      SelectedValue="{Binding ReferencePointType, Mode=TwoWay}"
+                      SelectedValuePath="Tag"
+                      Margin="0,8,0,0">
+                <ComboBoxItem Content="{loc:Loc ReferencePointCenter}" Tag="{x:Static models:ReferencePointType.Center}"/>
+                <ComboBoxItem Content="{loc:Loc ReferencePointTopLeft}" Tag="{x:Static models:ReferencePointType.TopLeft}"/>
+                <ComboBoxItem Content="{loc:Loc ReferencePointTopRight}" Tag="{x:Static models:ReferencePointType.TopRight}"/>
+                <ComboBoxItem Content="{loc:Loc ReferencePointBottomLeft}" Tag="{x:Static models:ReferencePointType.BottomLeft}"/>
+                <ComboBoxItem Content="{loc:Loc ReferencePointBottomRight}" Tag="{x:Static models:ReferencePointType.BottomRight}"/>
+            </ComboBox>
+        </Grid>
+    </GroupBox>
+</UserControl>

@@ -1,0 +1,51 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.PocketStrategyBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization"
+             xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core">
+    <GroupBox Header="{loc:Loc CuttingStrategy}" Margin="0,0,0,8">
+        <Grid Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc PocketStrategy}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
+                      SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
+                      SelectedValuePath="Tag"
+                      Margin="0,0,0,8">
+                <ComboBoxItem Content="{loc:Loc PocketStrategySpiral}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
+                <ComboBoxItem Content="{loc:Loc PocketStrategyConcentric}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
+                <ComboBoxItem Content="{loc:Loc PocketStrategyRadial}" Tag="{x:Static models:PocketStrategy.Radial}"/>
+                <ComboBoxItem Content="{loc:Loc PocketStrategyZigZag}" Tag="{x:Static models:PocketStrategy.ZigZag}"/>
+                <ComboBoxItem Content="{loc:Loc PocketStrategyLines}" Tag="{x:Static models:PocketStrategy.Lines}"/>
+            </ComboBox>
+            <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc StepPercentOfTool}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+
+            <!-- Угол строк задаётся только для строчных стратегий. -->
+            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,6,0,0">
+                <StackPanel.Style>
+                    <Style TargetType="StackPanel">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsLinesOrZigZagStrategy}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </StackPanel.Style>
+                <TextBlock Text="{loc:Loc LineAngleDegToX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBox Width="120" Text="{Binding LineAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
+            </StackPanel>
+        </Grid>
+    </GroupBox>
+</UserControl>

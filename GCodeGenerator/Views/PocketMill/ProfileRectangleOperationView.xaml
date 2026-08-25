@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.PocketMill"
-        xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core"
+        xmlns:common="clr-namespace:GCodeGenerator.Views.Common"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:ProfileRectangleOperationViewModel}"
         Title="{Binding DisplayName}"
@@ -13,210 +13,40 @@
         MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,8,10,10">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <common:DialogButtons DockPanel.Dock="Bottom"/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="10">
+                <common:ToolPathModeBlock/>
+                <common:MillingDirectionBlock/>
 
-        <!-- Движение инструмента -->
-        <GroupBox Header="{loc:Loc ToolPathModeHeader}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <RadioButton Content="{loc:Loc ToolPathModeOnLine}" GroupName="ToolPathMode"
-                            IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.OnLine}}"
-                            Margin="0,0,0,4"/>
-                <RadioButton Content="{loc:Loc ToolPathModeOutside}" GroupName="ToolPathMode"
-                            IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Outside}}"
-                            Margin="0,0,0,4"/>
-                <RadioButton Content="{loc:Loc ToolPathModeInside}" GroupName="ToolPathMode"
-                            IsChecked="{Binding ToolPathMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:ToolPathMode.Inside}}"/>
+                <GroupBox Header="{loc:Loc RectangleDimensionsHeader}" Margin="0,0,0,8">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{loc:Loc Width}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBlock Grid.Column="3" Text="{loc:Loc Height}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Grid.Column="4" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBlock Grid.Column="6" Text="{loc:Loc RotationAngleDeg}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Grid.Column="7" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
+                </GroupBox>
+
+                <common:MillingCuttingParametersBlock/>
+                <common:ReferencePointBlock/>
+                <common:MillingPositioningBlock/>
+                <common:MillingFeedsBlock/>
+                <common:MillingHeightsBlock/>
+                <common:ToolEntryBlock/>
             </StackPanel>
-        </GroupBox>
-
-        <!-- Направление обхода -->
-        <GroupBox Header="{loc:Loc DirectionHeader}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <RadioButton Content="{loc:Loc DirectionClockwise}" GroupName="Direction"
-                            IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.Clockwise}}"
-                            Margin="0,0,0,4"/>
-                <RadioButton Content="{loc:Loc DirectionCounterClockwise}" GroupName="Direction"
-                            IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.CounterClockwise}}"/>
-            </StackPanel>
-        </GroupBox>
-
-        <!-- Размеры прямоугольника -->
-        <GroupBox Header="{loc:Loc RectangleDimensionsHeader}" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc Width}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc Height}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{loc:Loc RotationAngleDeg}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Параметры резания -->
-        <GroupBox Header="{loc:Loc CuttingParametersHeader}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc TotalDepthLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{loc:Loc ToolDiameter}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Высота контура и координаты -->
-        <GroupBox Header="{loc:Loc PositioningHeader}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="150"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc ContourHeightZ}" VerticalAlignment="Center" Margin="0,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ContourHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc CoordinateX}" VerticalAlignment="Center" Margin="8,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding ReferencePointX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="6" Text="{loc:Loc CoordinateY}" VerticalAlignment="Center" Margin="8,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding ReferencePointY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc ReferencePoint}" VerticalAlignment="Center" Margin="0,4,4,0"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3" 
-                         SelectedValue="{Binding ReferencePointType, Mode=TwoWay}"
-                         SelectedValuePath="Tag"
-                         Margin="0,4,4,0">
-                    <ComboBoxItem Content="{loc:Loc ReferencePointCenter}" Tag="{x:Static models:ReferencePointType.Center}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointTopLeft}" Tag="{x:Static models:ReferencePointType.TopLeft}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointTopRight}" Tag="{x:Static models:ReferencePointType.TopRight}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointBottomLeft}" Tag="{x:Static models:ReferencePointType.BottomLeft}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointBottomRight}" Tag="{x:Static models:ReferencePointType.BottomRight}"/>
-                </ComboBox>
-            </Grid>
-        </GroupBox>
-
-        <!-- Параметры подачи -->
-        <GroupBox Header="{loc:Loc FeedParametersHeader}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc FeedXYRapid}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc FeedXYWork}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{loc:Loc FeedZRapid}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="9" Text="{loc:Loc FeedZWork}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="10" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Высоты перемещения -->
-        <GroupBox Header="{loc:Loc ZHeightsHeader}" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="100"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc SafeZHeight}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc RetractZHeight}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Подвод инструмента -->
-        <GroupBox Header="{loc:Loc ToolEntryHeader}" Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2">
-            <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <StackPanel Grid.Row="0" Margin="0,0,0,8">
-                    <RadioButton Content="{loc:Loc EntryModeVertical}" GroupName="EntryMode"
-                                IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Vertical}}"
-                                Margin="0,0,0,4"/>
-                    <RadioButton Content="{loc:Loc EntryModeAngled}" GroupName="EntryMode"
-                                IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Angled}}"/>
-                </StackPanel>
-                <Grid Grid.Row="1" IsEnabled="{Binding IsAngledEntry}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="100"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc EntryAngleDeg}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding EntryAngle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc SafeDistanceBetweenPasses}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding SafeDistanceBetweenPasses, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-            </Grid>
-        </GroupBox>
-    </Grid>
-    </ScrollViewer>
+        </ScrollViewer>
     </DockPanel>
 </Window>
-

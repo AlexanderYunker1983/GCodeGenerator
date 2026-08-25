@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Pocket"
-        xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core"
+        xmlns:common="clr-namespace:GCodeGenerator.Views.Common"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:PocketRectangleOperationViewModel}"
         Title="{Binding DisplayName}"
@@ -13,258 +13,40 @@
         MinWidth="760" MinHeight="520"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,8,10,10">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="*"/>
-        </Grid.ColumnDefinitions>
+        <common:DialogButtons DockPanel.Dock="Bottom"/>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="10">
+                <common:MillingDirectionBlock/>
 
-        <!-- Направление -->
-        <GroupBox Header="{loc:Loc DirectionHeader}" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <RadioButton Content="{loc:Loc DirectionClockwise}" GroupName="Direction"
-                            IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.Clockwise}}"
-                            Margin="0,0,0,4"/>
-                <RadioButton Content="{loc:Loc DirectionCounterClockwise}" GroupName="Direction"
-                            IsChecked="{Binding Direction, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:MillingDirection.CounterClockwise}}"/>
-            </StackPanel>
-        </GroupBox>
-
-        <!-- Размеры -->
-        <GroupBox Header="{loc:Loc RectangleDimensionsHeader}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc Width}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc Height}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="6" Text="{loc:Loc RotationAngleDeg}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="7" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Параметры резания -->
-        <GroupBox Header="{loc:Loc CuttingParametersHeader}" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <StackPanel Margin="8">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="120"/>
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" Text="{loc:Loc TotalDepthLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="3" Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                    <TextBlock Grid.Column="6" Text="{loc:Loc ToolDiameter}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                    <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
-                </Grid>
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="{loc:Loc WallTaperAngleDeg}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-
-                <!-- Черновая / чистовая обработка с припуском (фаза 5, D1) -->
-                <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
-                    <CheckBox Margin="0,0,16,0"
-                              IsChecked="{Binding IsRoughingEnabled}"
-                              Content="{loc:Loc PocketRoughing}"/>
-                    <CheckBox IsChecked="{Binding IsFinishingEnabled}"
-                              Content="{loc:Loc PocketFinishing}"/>
-                </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                    <TextBlock Text="{loc:Loc PocketFinishAllowance}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBox Width="80" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-
-                <GroupBox Header="{loc:Loc PocketFinishingModeHeader}" Margin="0,8,0,0">
-                    <GroupBox.Style>
-                        <Style TargetType="GroupBox">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsFinishingEnabled}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </GroupBox.Style>
-                    <StackPanel Margin="8">
-                        <RadioButton Content="{loc:Loc PocketFinishingWalls}"
-                                     GroupName="FinishingMode"
-                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Walls}}"
-                                     Margin="0,0,0,4"/>
-                        <RadioButton Content="{loc:Loc PocketFinishingBottom}"
-                                     GroupName="FinishingMode"
-                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.Bottom}}"
-                                     Margin="0,0,0,4"/>
-                        <RadioButton Content="{loc:Loc PocketFinishingAll}"
-                                     GroupName="FinishingMode"
-                                     IsChecked="{Binding FinishingMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketFinishingMode.All}}"/>
-                    </StackPanel>
+                <GroupBox Header="{loc:Loc RectangleDimensionsHeader}" Margin="0,0,0,8">
+                    <Grid Margin="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="120"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="{loc:Loc Width}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding Width, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBlock Grid.Column="3" Text="{loc:Loc Height}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Grid.Column="4" Text="{Binding Height, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBlock Grid.Column="6" Text="{loc:Loc RotationAngleDeg}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                        <TextBox Grid.Column="7" Text="{Binding RotationAngle, UpdateSourceTrigger=PropertyChanged}"/>
+                    </Grid>
                 </GroupBox>
+
+                <common:MillingCuttingParametersBlock/>
+                <common:ReferencePointBlock/>
+                <common:PocketStrategyBlock/>
+                <common:PocketFinishingBlock/>
+                <common:MillingPositioningBlock/>
+                <common:MillingFeedsBlock/>
+                <common:MillingHeightsBlock/>
             </StackPanel>
-        </GroupBox>
-
-        <!-- Позиционирование -->
-        <GroupBox Header="{loc:Loc PositioningHeader}" Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="180"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc ContourHeightZ}" VerticalAlignment="Center" Margin="0,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding ContourHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc CoordinateX}" VerticalAlignment="Center" Margin="8,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding ReferencePointX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-                <TextBlock Grid.Row="0" Grid.Column="6" Text="{loc:Loc CoordinateY}" VerticalAlignment="Center" Margin="8,0,4,4"/>
-                <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding ReferencePointY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,4"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc ReferencePoint}" VerticalAlignment="Center" Margin="0,4,4,0"/>
-                <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
-                         SelectedValue="{Binding ReferencePointType, Mode=TwoWay}"
-                         SelectedValuePath="Tag"
-                         Margin="0,4,4,0">
-                    <ComboBoxItem Content="{loc:Loc ReferencePointCenter}" Tag="{x:Static models:ReferencePointType.Center}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointTopLeft}" Tag="{x:Static models:ReferencePointType.TopLeft}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointTopRight}" Tag="{x:Static models:ReferencePointType.TopRight}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointBottomLeft}" Tag="{x:Static models:ReferencePointType.BottomLeft}"/>
-                    <ComboBoxItem Content="{loc:Loc ReferencePointBottomRight}" Tag="{x:Static models:ReferencePointType.BottomRight}"/>
-                </ComboBox>
-            </Grid>
-        </GroupBox>
-
-        <!-- Подачи -->
-        <GroupBox Header="{loc:Loc FeedParametersHeader}" Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc FeedXYRapid}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc FeedXYWork}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding FeedXYWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc FeedZRapid}" VerticalAlignment="Center" Margin="0,8,4,0"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,4,0"/>
-                <TextBlock Grid.Row="1" Grid.Column="3" Text="{loc:Loc FeedZWork}" VerticalAlignment="Center" Margin="8,8,4,0"/>
-                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,4,0"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Высоты -->
-        <GroupBox Header="{loc:Loc ZHeightsHeader}" Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="{loc:Loc SafeZHeight}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Column="1" Text="{Binding SafeZHeight, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
-                <TextBlock Grid.Column="3" Text="{loc:Loc RetractZHeight}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Column="4" Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- Стратегия -->
-        <GroupBox Header="{loc:Loc CuttingStrategy}" Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="120"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc PocketStrategy}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="4"
-                         SelectedValue="{Binding PocketStrategy, Mode=TwoWay}"
-                         SelectedValuePath="Tag"
-                         Margin="0,0,0,8">
-                    <ComboBoxItem Content="{loc:Loc PocketStrategySpiral}" Tag="{x:Static models:PocketStrategy.Spiral}"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyConcentric}" Tag="{x:Static models:PocketStrategy.Concentric}"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyRadial}" Tag="{x:Static models:PocketStrategy.Radial}"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyZigZag}" Tag="{x:Static models:PocketStrategy.ZigZag}"/>
-                    <ComboBoxItem Content="{loc:Loc PocketStrategyLines}" Tag="{x:Static models:PocketStrategy.Lines}"/>
-                </ComboBox>
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc StepPercentOfTool}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding StepPercentOfTool, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                <TextBlock Grid.Row="1" Grid.Column="3" Text="{loc:Loc Decimals}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center"/>
-                <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="5" Orientation="Horizontal" Margin="0,6,0,0">
-                    <StackPanel.Style>
-                        <Style TargetType="StackPanel">
-                            <Setter Property="Visibility" Value="Collapsed"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding IsLinesOrZigZagStrategy}" Value="True">
-                                    <Setter Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </StackPanel.Style>
-                    <TextBlock Text="{loc:Loc LineAngleDegToX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                    <TextBox Width="80" Text="{Binding LineAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
-    </Grid>
-    </ScrollViewer>
+        </ScrollViewer>
     </DockPanel>
 </Window>
-
-

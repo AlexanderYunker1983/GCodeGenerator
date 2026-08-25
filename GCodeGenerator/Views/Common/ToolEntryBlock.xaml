@@ -1,0 +1,36 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.ToolEntryBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization"
+             xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core">
+    <GroupBox Header="{loc:Loc ToolEntryHeader}" Margin="0,0,0,8">
+        <Grid Margin="8">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Margin="0,0,0,8">
+                <RadioButton Content="{loc:Loc EntryModeVertical}" GroupName="EntryMode"
+                             IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Vertical}}"
+                             Margin="0,0,0,4"/>
+                <RadioButton Content="{loc:Loc EntryModeAngled}" GroupName="EntryMode"
+                             IsChecked="{Binding EntryMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:EntryMode.Angled}}"/>
+            </StackPanel>
+
+            <!-- Угол и безопасное расстояние имеют смысл только для наклонного врезания. -->
+            <Grid Grid.Row="1" IsEnabled="{Binding IsAngledEntry}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="120"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="{loc:Loc EntryAngleDeg}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                <TextBox Grid.Column="1" Text="{Binding EntryAngle, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                <TextBlock Grid.Column="3" Text="{loc:Loc SafeDistanceBetweenPasses}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+                <TextBox Grid.Column="4" Text="{Binding SafeDistanceBetweenPasses, UpdateSourceTrigger=PropertyChanged}"/>
+            </Grid>
+        </Grid>
+    </GroupBox>
+</UserControl>

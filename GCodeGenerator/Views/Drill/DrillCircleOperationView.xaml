@@ -5,6 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Drill"
+        xmlns:common="clr-namespace:GCodeGenerator.Views.Common"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:DrillCircleOperationViewModel}"
         Title="{Binding DisplayName}"
@@ -12,117 +13,48 @@
         MinWidth="900" MinHeight="500"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,10">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-        </Grid.RowDefinitions>
+        <common:DialogButtons DockPanel.Dock="Bottom"/>
+        <Grid Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
 
-        <GroupBox Header="{loc:Loc CircleParametersDrillHeader}" Grid.Row="0" Margin="0,0,0,8">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="80"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="80"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+            <GroupBox Grid.Row="0" Header="{loc:Loc CircleParametersDrillHeader}" Margin="0,0,0,8">
+                <Grid Margin="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="{loc:Loc CenterXLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="3" Text="{loc:Loc CenterYLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBox Grid.Row="0" Grid.Column="4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Row="0" Grid.Column="6" Text="{loc:Loc StartZ}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                    <TextBox Grid.Row="0" Grid.Column="7" Text="{Binding Z, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="{loc:Loc Radius}" VerticalAlignment="Center" Margin="0,8,4,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Radius, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,8,0"/>
+                    <TextBlock Grid.Row="1" Grid.Column="3" Text="{loc:Loc PointsOnCircle}" VerticalAlignment="Center" Margin="0,8,4,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="4" Text="{Binding HoleCount, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,8,0"/>
+                    <TextBlock Grid.Row="1" Grid.Column="6" Text="{loc:Loc StartAngleDegToX}" VerticalAlignment="Center" Margin="0,8,4,0"/>
+                    <TextBox Grid.Row="1" Grid.Column="7" Text="{Binding StartAngleDeg, UpdateSourceTrigger=PropertyChanged}" Margin="0,8,8,0"/>
+                </Grid>
+            </GroupBox>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,4,4"
-                           Text="{loc:Loc CenterXLabel}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="1" Margin="0,0,8,4" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="0" Grid.Column="3" Margin="0,0,4,4"
-                           Text="{loc:Loc CenterYLabel}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="4" Margin="0,0,8,4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="0" Grid.Column="6" Margin="0,0,4,4"
-                           Text="{loc:Loc StartZ}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="0" Grid.Column="7" Margin="0,0,0,4" Text="{Binding Z, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,4,4,4"
-                           Text="{loc:Loc Radius}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="1" Margin="0,4,8,4" Text="{Binding Radius, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="3" Margin="0,4,4,4"
-                           Text="{loc:Loc PointsOnCircle}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="4" Margin="0,4,8,4" Text="{Binding HoleCount, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="1" Grid.Column="6" Margin="0,4,4,4"
-                           Text="{loc:Loc StartAngleDegToX}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="1" Grid.Column="7" Margin="0,4,0,4" Text="{Binding StartAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,4,4,4"
-                           Text="{loc:Loc DrillingDepth}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="2" Grid.Column="1" Margin="0,4,8,4" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}"/>
-
-                <TextBlock Grid.Row="2" Grid.Column="3" Margin="0,4,4,4"
-                           Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center"/>
-                <TextBox Grid.Row="2" Grid.Column="4" Margin="0,4,8,4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}"/>
-            </Grid>
-        </GroupBox>
-
-        <GroupBox Header="{loc:Loc FeedsAndZParametersHeader}" Grid.Row="1">
-            <Grid Margin="8">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-
-                <DataGrid Grid.Row="0" Grid.Column="0"
-                          ItemsSource="{Binding PreviewHoles}"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          IsReadOnly="True">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Loc CoordinateX}" Binding="{Binding X}" Width="*" />
-                        <DataGridTextColumn Header="{loc:Loc CoordinateY}" Binding="{Binding Y}" Width="*" />
-                        <DataGridTextColumn Header="{loc:Loc StartZ}" Binding="{Binding Z}" Width="*" />
-                        <DataGridTextColumn Header="{loc:Loc Depth}" Binding="{Binding TotalDepth}" Width="*" />
-                        <DataGridTextColumn Header="{loc:Loc Step}" Binding="{Binding StepDepth}" Width="*" />
-                    </DataGrid.Columns>
-                </DataGrid>
-
-                <StackPanel Grid.Row="0" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
-                    <TextBlock Text="{loc:Loc FeedXYRapid}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="{loc:Loc FeedZRapidLabel}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="{loc:Loc FeedZWorkLabel}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="{loc:Loc SafeZBetweenHoles}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="{loc:Loc RetractHeight}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
-
-                    <TextBlock Text="{loc:Loc Decimals}" Margin="0,0,0,4"/>
-                    <TextBox Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
-    </Grid>
+            <common:DrillDepthBlock Grid.Row="1"/>
+            <common:DrillPreviewBlock Grid.Row="2"/>
+        </Grid>
     </DockPanel>
 </Window>
-
-

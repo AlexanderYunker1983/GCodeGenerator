@@ -5,6 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels.Drill"
+        xmlns:common="clr-namespace:GCodeGenerator.Views.Common"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:DrillPointsOperationViewModel}"
         Title="{Binding DisplayName}"
@@ -12,11 +13,7 @@
         MinWidth="1200" MinHeight="600"
         WindowStartupLocation="CenterScreen">
     <DockPanel>
-        <!-- Пункт 7.3 плана: явные OK/Cancel (OK — валидация + сохранение; Cancel — без изменений) -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,10">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
+        <common:DialogButtons DockPanel.Dock="Bottom"/>
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

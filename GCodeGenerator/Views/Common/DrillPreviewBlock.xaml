@@ -1,0 +1,49 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.DrillPreviewBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization">
+    <GroupBox Header="{loc:Loc FeedsAndZParametersHeader}">
+        <Grid Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Отверстия пересчитываются при каждом изменении параметров шаблона. -->
+            <DataGrid Grid.Column="0"
+                      ItemsSource="{Binding PreviewHoles}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="{loc:Loc CoordinateX}" Binding="{Binding X}" Width="*"/>
+                    <DataGridTextColumn Header="{loc:Loc CoordinateY}" Binding="{Binding Y}" Width="*"/>
+                    <DataGridTextColumn Header="{loc:Loc StartZ}" Binding="{Binding Z}" Width="*"/>
+                    <DataGridTextColumn Header="{loc:Loc Depth}" Binding="{Binding TotalDepth}" Width="*"/>
+                    <DataGridTextColumn Header="{loc:Loc Step}" Binding="{Binding StepDepth}" Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
+                <TextBlock Text="{loc:Loc FeedXYRapid}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+
+                <TextBlock Text="{loc:Loc FeedZRapidLabel}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+
+                <TextBlock Text="{loc:Loc FeedZWorkLabel}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+
+                <TextBlock Text="{loc:Loc SafeZBetweenHoles}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+
+                <TextBlock Text="{loc:Loc RetractHeight}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+
+                <TextBlock Text="{loc:Loc Decimals}" Margin="0,0,0,4"/>
+                <TextBox Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+            </StackPanel>
+        </Grid>
+    </GroupBox>
+</UserControl>

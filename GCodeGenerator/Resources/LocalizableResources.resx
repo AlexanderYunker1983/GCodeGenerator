@@ -597,6 +597,9 @@
   <data name="MaxSegmentLength" xml:space="preserve">
     <value>Макс. длина сегмента (мм):</value>
   </data>
+  <data name="ContourAccuracyHeader" xml:space="preserve">
+    <value>Точность контура</value>
+  </data>
   <data name="GeneralParametersHeader" xml:space="preserve">
     <value>Общие параметры</value>
   </data>

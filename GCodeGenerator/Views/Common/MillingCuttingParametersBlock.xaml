@@ -1,0 +1,25 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.MillingCuttingParametersBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization">
+    <GroupBox Header="{loc:Loc CuttingParametersHeader}" Margin="0,0,0,8">
+        <Grid Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{loc:Loc TotalDepthLabel}" VerticalAlignment="Center" Margin="0,0,4,0"/>
+            <TextBox Grid.Column="1" Text="{Binding TotalDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+            <TextBlock Grid.Column="3" Text="{loc:Loc StepDepthLabel}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBox Grid.Column="4" Text="{Binding StepDepth, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+            <TextBlock Grid.Column="6" Text="{loc:Loc ToolDiameter}" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBox Grid.Column="7" Text="{Binding ToolDiameter, UpdateSourceTrigger=PropertyChanged}"/>
+        </Grid>
+    </GroupBox>
+</UserControl>
