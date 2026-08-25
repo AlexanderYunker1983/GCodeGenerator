@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace GCodeGenerator.Models
 {
@@ -407,14 +408,27 @@ namespace GCodeGenerator.Models
         public static IReadOnlyDictionary<DrillMode, DrillPattern> All => Registry;
 
         /// <summary>
+        /// Шаблон для способа расстановки, если способ известен. Неизвестное
+        /// значение приносит файл проекта: перечисление хранится числом.
+        /// Здесь достаточно ответить «шаблона нет» — о самой проблеме
+        /// сообщает проверка операции, а расстановка и описание обязаны
+        /// оставаться безопасными: их читает окно ещё до проверки.
+        /// </summary>
+        /// <param name="mode">Способ расстановки отверстий.</param>
+        /// <param name="pattern">Найденный шаблон.</param>
+        public static bool TryFor(DrillMode mode, [MaybeNullWhen(false)] out DrillPattern pattern)
+            => Registry.TryGetValue(mode, out pattern);
+
+        /// <summary>
         /// Шаблон для способа расстановки. Незнакомое значение — отказ:
-        /// файл проекта, принесший неизвестный режим, не должен молча
-        /// превращаться в операцию без отверстий.
+        /// сюда попадает уже проверенный режим, и неизвестное значение
+        /// означает ошибку кода, а не данных; для данных из файла есть
+        /// <see cref="TryFor"/> и доменная проверка операции.
         /// </summary>
         /// <param name="mode">Способ расстановки отверстий.</param>
         public static DrillPattern For(DrillMode mode)
         {
-            if (Registry.TryGetValue(mode, out var pattern))
+            if (TryFor(mode, out var pattern))
                 return pattern;
 
             throw new NotSupportedException($"Способ расстановки отверстий {(int)mode} не поддерживается.");

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -101,6 +102,76 @@ namespace GCodeGenerator.Tests
             {
                 Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 5e-4))
             };
+            AssertValid(op);
+        }
+
+        // ------------------------------------------------------------------
+        // Неизвестные значения из файла: DrillMode и PackageName
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Неизвестный способ расстановки — файл хранит перечисление числом
+        /// и может принести любое — это замечание проверки, а не исключение
+        /// из неё: прежде Validate() падал из шаблона, минуя список проблем,
+        /// который обязан вернуть по контракту IValidatable.
+        /// </summary>
+        [TestMethod]
+        public void Drill_UnknownDrillMode_ReportsIssueInsteadOfThrowing()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Points);
+            op.DrillMode = (DrillMode)99;
+
+            AssertSingleIssue(op, nameof(op.DrillMode));
+            Assert.IsTrue(op.HasErrors, "признак ошибок обязан работать, а не бросать");
+            Assert.AreEqual(0, op.HolesToDrill.Count,
+                "расстановка при неизвестном режиме безопасно пуста: её читает окно ещё до проверки");
+            StringAssert.Contains(op.GetDescription(), "0 hole",
+                "описание не должно падать — оно показывает пустую расстановку");
+        }
+
+        /// <summary>
+        /// Неизвестный режим отклоняется и генерацией — общим отчётом
+        /// об ошибках операций с именем поля, а не исключением шаблона
+        /// без указания операции.
+        /// </summary>
+        [TestMethod]
+        public void Generate_UnknownDrillMode_IsRejectedWithValidationReport()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Points);
+            op.DrillMode = (DrillMode)99;
+
+            var failure = Assert.Throws<GCodeGenerationValidationException>(
+                () => new SimpleGCodeGenerator().Generate(
+                    new List<OperationBase> { op }, SettingsFixtures.Default()));
+
+            Assert.AreEqual(1, failure.Failures.Count);
+            Assert.AreEqual(nameof(op.DrillMode), failure.Failures[0].Issues.Single().Property);
+        }
+
+        /// <summary>
+        /// Опечатка в имени корпуса — замечание на поле PackageName, а не
+        /// тихая подмена корпусом по умолчанию: «DIP9» не должен молча
+        /// сверлиться как DIP8.
+        /// </summary>
+        [TestMethod]
+        public void DrillPackage_UnknownPackageName_IsRejected()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Package);
+            op.PackageName = "DIP9";
+
+            AssertSingleIssue(op, nameof(op.PackageName));
+        }
+
+        /// <summary>
+        /// Имя корпуса сравнивается без учёта регистра — как и подстановка
+        /// шаблона: «dip8» из старого файла остаётся допустимым.
+        /// </summary>
+        [TestMethod]
+        public void DrillPackage_KnownPackageNameInDifferentCase_IsValid()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Package);
+            op.PackageName = "dip8";
+
             AssertValid(op);
         }
 

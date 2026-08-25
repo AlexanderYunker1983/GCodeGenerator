@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
@@ -116,7 +117,10 @@ namespace GCodeGenerator.Models
         /// источник один — параметры, а отверстия из них выводятся.
         /// </summary>
         [JsonIgnore]
-        public IReadOnlyList<DrillHole> HolesToDrill => DrillPatterns.For(DrillMode).Holes(this);
+        public IReadOnlyList<DrillHole> HolesToDrill =>
+            DrillPatterns.TryFor(DrillMode, out var pattern)
+                ? pattern.Holes(this)
+                : Array.Empty<DrillHole>();
 
         /// <summary>
         /// Safe Z height for moves between holes.
@@ -283,6 +287,12 @@ namespace GCodeGenerator.Models
         {
             var issues = new List<ValidationIssue>();
 
+            // Способ расстановки хранится в файле числом и может оказаться
+            // любым. Прежде неизвестный режим ронял саму проверку исключением
+            // из шаблона — мимо списка проблем, который она обязана вернуть;
+            // теперь это первая из проблем, а не отказ вместо них.
+            EnumValidation.AddIfUndefined(issues, nameof(DrillMode), DrillMode);
+
             // Подачи, отвод и точность вывода нужны в любом режиме: между
             // отверстиями инструмент идёт на быстрой подаче, вглубь — на рабочей.
             OperationValidation.AddCuttingIssues(issues, this);
@@ -325,7 +335,15 @@ namespace GCodeGenerator.Models
                     OperationValidation.AddIfNotPositive(issues, nameof(RadiusY), RadiusY);
                     break;
                 case DrillMode.Package:
-                    // PackageName may be empty: the dialog falls back to its default template.
+                    // Пустое имя допустимо: за ним стоит корпус по умолчанию,
+                    // который диалог показывает для новой операции. Непустое,
+                    // но неизвестное имя — опечатка в файле: тихая подмена
+                    // корпусом по умолчанию просверлила бы не тот корпус.
+                    if (!string.IsNullOrWhiteSpace(PackageName) && PackageCatalog.Find(PackageName) == null)
+                    {
+                        issues.Add(new ValidationIssue(nameof(PackageName), ValidationCode.NotAllowed,
+                            $"unknown package name '{PackageName}'"));
+                    }
                     break;
                 case DrillMode.Points:
                 default:

@@ -44,21 +44,29 @@ namespace GCodeGenerator.Models
         public static IReadOnlyList<PackageDefinition> All => Packages;
 
         /// <summary>
+        /// Корпус по имени или <c>null</c>, если имя пустое либо неизвестное.
+        /// Нужен проверке: в отличие от <see cref="FindOrDefault"/> он
+        /// отличает опечатку в файле от пустого имени, за которым стоит
+        /// корпус по умолчанию.
+        /// </summary>
+        public static PackageDefinition? Find(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            return Packages.FirstOrDefault(
+                package => string.Equals(package.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
         /// Корпус по имени. Пустое или неизвестное имя даёт корпус
         /// по умолчанию: операция с ещё не выбранным корпусом должна
-        /// показывать осмысленный шаблон.
+        /// показывать осмысленный шаблон. Неизвестное непустое имя до
+        /// расстановки не доживает — его отклоняет проверка операции.
         /// </summary>
         public static PackageDefinition FindOrDefault(string name)
         {
-            if (!string.IsNullOrWhiteSpace(name))
-            {
-                var found = Packages.FirstOrDefault(
-                    package => string.Equals(package.Name, name, StringComparison.OrdinalIgnoreCase));
-                if (found != null)
-                    return found;
-            }
-
-            return Packages.First(package => package.Name == DefaultPackageName);
+            return Find(name) ?? Packages.First(package => package.Name == DefaultPackageName);
         }
     }
 }
