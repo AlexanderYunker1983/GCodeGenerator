@@ -47,6 +47,21 @@ namespace GCodeGenerator.Tests.Fixtures
             return s;
         }
 
+        /// <summary>
+        /// Задержка после пуска шпинделя: единственная настройка, дающая в
+        /// программе команду G4, и до сих пор не попадавшая ни в один
+        /// golden-файл. Значение аргумента P — миллисекунды.
+        /// </summary>
+        public static GCodeSettings SpindleDelay()
+        {
+            var s = Default();
+            s.Spindle.SpindleControlEnabled = true;
+            s.Spindle.SpindleStartEnabled = true;
+            s.Spindle.SpindleDelayEnabled = true;
+            s.Spindle.SpindleDelaySeconds = 2.5;
+            return s;
+        }
+
         /// <summary>Установка рабочей системы координат G55 в начале программы.</summary>
         public static GCodeSettings WcsG55()
         {

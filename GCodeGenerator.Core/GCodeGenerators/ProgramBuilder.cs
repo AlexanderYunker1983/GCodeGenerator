@@ -78,7 +78,15 @@ namespace GCodeGenerator.GCodeGenerators
 
         // --- Dwell / spindle / coolant --------------------------------------
 
-        /// <summary>Dwell (G4 P&lt;milliseconds&gt;).</summary>
+        /// <summary>
+        /// Пауза: <c>G4 P&lt;миллисекунды&gt;</c>.
+        ///
+        /// Единица аргумента P зависит от стойки: Fanuc и совместимые понимают
+        /// миллисекунды, GRBL и LinuxCNC — секунды. Здесь выводятся
+        /// миллисекунды; выбор станет частью профиля станка (пункт R14 плана
+        /// доработок), поэтому имя параметра называет единицу явно.
+        /// </summary>
+        /// <param name="milliseconds">Длительность паузы в миллисекундах.</param>
         public void Dwell(double milliseconds)
         {
             AddCode(GCodeWord.G(4), GCodeWord.P(milliseconds));

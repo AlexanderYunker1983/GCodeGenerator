@@ -44,6 +44,15 @@ namespace GCodeGenerator.Models
 
         /// <summary>
         /// Delay duration in seconds for spindle spin-up.
+        ///
+        /// В программу выводится как <c>G4 P&lt;миллисекунды&gt;</c>: 2 секунды
+        /// дают <c>G4 P2000</c>. Так понимают аргумент P стойки Fanuc и
+        /// совместимые с ними, но не все: в GRBL и LinuxCNC P задаётся
+        /// в секундах, и та же строка означала бы паузу на полчаса. Выбор
+        /// единицы принадлежит профилю станка, которого в программе пока нет
+        /// (пункт R14 плана доработок); до его появления вывод рассчитан на
+        /// Fanuc-совместимые стойки и зафиксирован golden-файлом
+        /// <c>Drill.Points.SpindleDelay.nc</c>.
         /// </summary>
         public double SpindleDelaySeconds { get; set; } = 2.0;
     }

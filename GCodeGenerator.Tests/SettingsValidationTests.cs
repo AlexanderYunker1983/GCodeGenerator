@@ -131,6 +131,44 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Задержка после пуска шпинделя задаётся в секундах, а выводится
+        /// в миллисекундах: <c>G4 P</c> так понимают Fanuc-совместимые стойки.
+        /// В GRBL и LinuxCNC тот же аргумент означает секунды, поэтому
+        /// пересчёт зафиксирован тестом до появления профиля станка.
+        /// </summary>
+        [TestMethod]
+        public void SpindleDelay_SecondsAreEmittedAsMilliseconds()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleStartEnabled = true;
+            settings.Spindle.SpindleDelayEnabled = true;
+            settings.Spindle.SpindleDelaySeconds = 2.5;
+
+            var lines = new SimpleGCodeGenerator().Generate(OneDrill(), settings).Lines;
+
+            Assert.IsTrue(lines.Any(line => line.EndsWith("G4 P2500")),
+                "2,5 секунды выводятся как G4 P2500");
+        }
+
+        /// <summary>
+        /// Выключенная задержка команды не даёт — это состояние тоже стоит
+        /// удерживать: лишний G4 останавливает станок на ровном месте.
+        /// </summary>
+        [TestMethod]
+        public void SpindleDelay_Disabled_EmitsNoDwell()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleStartEnabled = true;
+            settings.Spindle.SpindleDelayEnabled = false;
+
+            var lines = new SimpleGCodeGenerator().Generate(OneDrill(), settings).Lines;
+
+            Assert.IsFalse(lines.Any(line => line.Contains("G4 ")), "Команды паузы в программе нет");
+        }
+
+        /// <summary>
         /// Построитель программы тоже не угадывает направление вращения:
         /// контракт один и тот же на обоих уровнях.
         /// </summary>

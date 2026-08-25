@@ -49,6 +49,7 @@ namespace GCodeGenerator.Tests.Fixtures
                 cases.Add(new FixtureCase("Drill.Points.NoLineNumbers", Ops(OperationFixtures.DrillPoints()), SettingsFixtures.NoLineNumbers()));
                 cases.Add(new FixtureCase("Drill.Points.PaddedGCodes", Ops(OperationFixtures.DrillPoints()), SettingsFixtures.PaddedGCodes()));
                 cases.Add(new FixtureCase("Drill.Points.SpindleCoolantOff", Ops(OperationFixtures.DrillPoints()), SettingsFixtures.SpindleCoolantOff()));
+                cases.Add(new FixtureCase("Drill.Points.SpindleDelay", Ops(OperationFixtures.DrillPoints()), SettingsFixtures.SpindleDelay()));
                 cases.Add(new FixtureCase("Profile.Circle.ArcsOff", Ops(OperationFixtures.ProfileCircle()), SettingsFixtures.ArcsOff()));
                 cases.Add(new FixtureCase("Profile.Dxf.ArcsOff", Ops(OperationFixtures.ProfileDxf()), SettingsFixtures.ArcsOff()));
                 cases.Add(new FixtureCase("Pocket.Circle.ArcsOff", Ops(OperationFixtures.PocketCircle()), SettingsFixtures.ArcsOff()));
