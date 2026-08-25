@@ -5,21 +5,22 @@ using GCodeGenerator.Models;
 namespace GCodeGenerator.GCodeGenerators
 {
     /// <summary>
-    /// Explicit operation type → generator map (plan item 4.5).
-    /// Replaces the name-based reflection in <c>SimpleGCodeGenerator.LoadGenerators</c>:
-    /// every operation type is listed here, so a new operation type that is
-    /// forgotten in this map fails the coverage test instead of being
-    /// silently skipped during generation.
+    /// Соответствие типа операции и генератора G-кода.
+    ///
+    /// Карта строится по <see cref="OperationCatalog"/>: генератор выбирается
+    /// категорией операции — сверление, профиль или карман. Раньше типы
+    /// перечислялись здесь заново, и новый тип операции, забытый в этом
+    /// списке, молча пропускался при генерации.
     /// </summary>
     public sealed class OperationGeneratorRegistry : IOperationGeneratorRegistry
     {
         private readonly Dictionary<Type, IOperationGenerator> _generators;
 
         /// <summary>
-        /// Default constructor with the standard explicit mapping:
-        /// drill → <see cref="DrillPointsOperationGenerator"/>,
-        /// all profile operations → <see cref="UnifiedProfileGenerator"/>,
-        /// all pocket operations → <see cref="UnifiedPocketGenerator"/>.
+        /// Стандартный набор генераторов: сверление —
+        /// <see cref="DrillPointsOperationGenerator"/>, профили —
+        /// <see cref="UnifiedProfileGenerator"/>, карманы —
+        /// <see cref="UnifiedPocketGenerator"/>.
         /// </summary>
         public OperationGeneratorRegistry()
             : this(
@@ -34,25 +35,18 @@ namespace GCodeGenerator.GCodeGenerators
             IOperationGenerator profileGenerator,
             IOperationGenerator pocketGenerator)
         {
-            _generators = new Dictionary<Type, IOperationGenerator>
+            _generators = new Dictionary<Type, IOperationGenerator>();
+            foreach (var descriptor in OperationCatalog.All)
             {
-                // Сверление (9 режимов — один тип операции)
-                [typeof(DrillPointsOperation)] = drillPointsGenerator,
-
-                // Профили (6 типов)
-                [typeof(ProfileCircleOperation)] = profileGenerator,
-                [typeof(ProfileEllipseOperation)] = profileGenerator,
-                [typeof(ProfilePolygonOperation)] = profileGenerator,
-                [typeof(ProfileRectangleOperation)] = profileGenerator,
-                [typeof(ProfileRoundedRectangleOperation)] = profileGenerator,
-                [typeof(ProfileDxfOperation)] = profileGenerator,
-
-                // Карманы (4 типа)
-                [typeof(PocketCircleOperation)] = pocketGenerator,
-                [typeof(PocketEllipseOperation)] = pocketGenerator,
-                [typeof(PocketRectangleOperation)] = pocketGenerator,
-                [typeof(PocketDxfOperation)] = pocketGenerator,
-            };
+                _generators[descriptor.OperationType] = descriptor.Category switch
+                {
+                    OperationCategory.Drill => drillPointsGenerator,
+                    OperationCategory.Profile => profileGenerator,
+                    OperationCategory.Pocket => pocketGenerator,
+                    _ => throw new NotSupportedException(
+                        $"Для категории {descriptor.Category} не задан генератор G-кода."),
+                };
+            }
         }
 
         public bool TryGetGenerator(Type operationType, out IOperationGenerator generator)
