@@ -83,17 +83,14 @@ namespace GCodeGenerator.GCodeGenerators
                 // Перемещаемся к центру области
                 builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid, decimals: decimals);
 
-                // Опускаемся на рабочую высоту (для первой области — от верха слоя,
-                // для остальных инструмент уже на безопасной высоте)
-                if (isFirstArea)
-                {
-                    builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
-                    builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
-                }
-                else
-                {
-                    builder.RapidTo(z: nextZ, feed: op.FeedZRapid, decimals: decimals);
-                }
+                // Опускаемся на рабочую высоту слоя: быстрым ходом только до
+                // его верха — выше материал сняли предыдущие слои, — дальше
+                // врезание на рабочей подаче. Схема одна для всех областей:
+                // материал слоя цел под каждой из них, на первом слое центр
+                // второй области — сплошная заготовка, и быстрый ход на
+                // рабочую глубину здесь был бы ударом инструмента в металл.
+                builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
+                builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
 
                 strategy.MillContour(
                     new PocketLayerContext(
