@@ -240,6 +240,33 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Check the parameters: values must be positive and the operation must have geometry</value>
   </data>
+  <data name="Validation.NotPositive" xml:space="preserve">
+    <value>The value must be greater than zero</value>
+  </data>
+  <data name="Validation.BelowMinimum" xml:space="preserve">
+    <value>The value must be at least {0}</value>
+  </data>
+  <data name="Validation.AboveMaximum" xml:space="preserve">
+    <value>The value must be at most {0}</value>
+  </data>
+  <data name="Validation.NotFinite" xml:space="preserve">
+    <value>A number is required</value>
+  </data>
+  <data name="Validation.Negative" xml:space="preserve">
+    <value>The value must not be negative</value>
+  </data>
+  <data name="Validation.Empty" xml:space="preserve">
+    <value>The operation has no geometry</value>
+  </data>
+  <data name="Validation.ContourNotClosed" xml:space="preserve">
+    <value>The contour is not closed</value>
+  </data>
+  <data name="Validation.NotAllowed" xml:space="preserve">
+    <value>The value is not allowed</value>
+  </data>
+  <data name="Validation.Inconsistent" xml:space="preserve">
+    <value>The value does not match the other parameters</value>
+  </data>
   <data name="SaveProjectAs" xml:space="preserve">
     <value>Save as…</value>
   </data>

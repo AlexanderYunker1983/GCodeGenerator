@@ -35,6 +35,20 @@
                 <Setter Property="infrastructure:NumericInput.Mode" Value="Decimal"/>
             </Style>
 
+            <!-- Поле с недопустимым значением: подсказка объясняет, что не так,
+                 ещё до нажатия OK. Проверяет то же правило, по которому
+                 генерация отказывается строить программу. -->
+            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Style.Triggers>
+                    <Trigger Property="Validation.HasError" Value="True">
+                        <Setter Property="ToolTip"
+                                Value="{Binding RelativeSource={RelativeSource Self},
+                                                Path=(Validation.Errors)[0].ErrorContent}"/>
+                        <Setter Property="ToolTipService.ShowOnDisabled" Value="True"/>
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- Показ/скрытие по признаку: полоса прогресса генерации в главном
                  окне и строка о неверных параметрах в диалогах операций. -->
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>

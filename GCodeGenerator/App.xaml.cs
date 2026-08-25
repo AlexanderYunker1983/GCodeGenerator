@@ -48,6 +48,10 @@ namespace GCodeGenerator
             LocalizationProvider.Instance = localizationManager;
             _localizationManager = localizationManager;
 
+            // Домен знает, что именно не так с параметром, но не знает языка
+            // окна: перевод подставляется здесь, один раз на запуск.
+            Models.ValidationMessages.Formatter = issue => DescribeValidationIssue(localizationManager, issue);
+
             // Autofac: регистрация сервисов и view-моделей.
             var builder = new ContainerBuilder();
             builder.RegisterInstance(logger).As<IAppLogger>().SingleInstance();
@@ -116,6 +120,25 @@ namespace GCodeGenerator
             mainWindow.Show();
 
             scope.Resolve<IThemeService>().ApplyTheme(scope.Resolve<ISettingsStore>().Current.Ui.UseDarkTheme);
+        }
+
+        /// <summary>
+        /// Текст проблемы параметра на языке пользователя: ключ выбирается
+        /// кодом проблемы, предел подставляется в сообщение.
+        /// </summary>
+        private static string DescribeValidationIssue(
+            Localization.ILocalizationManager localization, Models.ValidationIssue issue)
+        {
+            if (issue == null)
+                return string.Empty;
+
+            var key = $"Validation.{issue.Code}";
+            var text = localization?.GetString(key, issue.LimitText);
+            // Отсутствующий ключ менеджер возвращает как «?key?» — тогда
+            // остаётся английский текст, он понятнее.
+            return string.IsNullOrEmpty(text) || text.StartsWith("?", StringComparison.Ordinal)
+                ? issue.Message
+                : text;
         }
 
         /// <summary>

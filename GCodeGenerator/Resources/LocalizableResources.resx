@@ -240,6 +240,33 @@
   <data name="OperationParametersInvalid" xml:space="preserve">
     <value>Проверьте параметры: значения должны быть положительными, а операция — содержать геометрию</value>
   </data>
+  <data name="Validation.NotPositive" xml:space="preserve">
+    <value>Значение должно быть больше нуля</value>
+  </data>
+  <data name="Validation.BelowMinimum" xml:space="preserve">
+    <value>Значение не может быть меньше {0}</value>
+  </data>
+  <data name="Validation.AboveMaximum" xml:space="preserve">
+    <value>Значение не может быть больше {0}</value>
+  </data>
+  <data name="Validation.NotFinite" xml:space="preserve">
+    <value>Требуется число</value>
+  </data>
+  <data name="Validation.Negative" xml:space="preserve">
+    <value>Значение не может быть отрицательным</value>
+  </data>
+  <data name="Validation.Empty" xml:space="preserve">
+    <value>Не задана геометрия операции</value>
+  </data>
+  <data name="Validation.ContourNotClosed" xml:space="preserve">
+    <value>Контур не замкнут</value>
+  </data>
+  <data name="Validation.NotAllowed" xml:space="preserve">
+    <value>Недопустимое значение</value>
+  </data>
+  <data name="Validation.Inconsistent" xml:space="preserve">
+    <value>Значение не согласуется с остальными параметрами</value>
+  </data>
   <data name="SaveProjectAs" xml:space="preserve">
     <value>Сохранить как…</value>
   </data>
