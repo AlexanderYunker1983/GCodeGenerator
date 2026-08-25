@@ -44,7 +44,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (nextZ < finalZ) nextZ = finalZ;
                 passNumber++;
 
-                builder.Comment($"Pass {passNumber}, depth {GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))}");
+                builder.Comment(ProgramComments.Pass(passNumber, GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))));
 
                 generateLayer(currentZ, nextZ, passNumber);
 

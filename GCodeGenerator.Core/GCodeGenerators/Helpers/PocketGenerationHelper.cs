@@ -45,12 +45,12 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (nextZ < finalZ) nextZ = finalZ;
                 pass++;
 
-                builder.Comment($"Pass {pass}, depth {GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))}");
+                builder.Comment(ProgramComments.Pass(pass, GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))));
 
                 // Если generateLayer возвращает false, прекращаем обработку
                 if (!generateLayer(currentZ, nextZ, pass))
                 {
-                    builder.Comment("Contour too small for tool, stopping");
+                    builder.Comment(ProgramComments.ContourTooSmall);
                     break;
                 }
 

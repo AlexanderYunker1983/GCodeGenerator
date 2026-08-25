@@ -142,7 +142,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             if (IsTooSmall(roughOperation, depthAllowance))
             {
-                skipComment = "Pocket too small after roughing allowance, skipping";
+                skipComment = ProgramComments.PocketTooSmallForAllowance;
                 return null;
             }
 

@@ -85,7 +85,7 @@ namespace GCodeGenerator.GCodeGenerators
         {
             foreach (var operation in toolPath.Operations)
             {
-                builder.Comment($"{operation.Name}: {operation.Description}");
+                builder.Comment(ProgramComments.Operation(operation.Name, operation.Description));
 
                 foreach (var item in operation.Items)
                 {
