@@ -12,7 +12,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// Концентрическая стратегия обработки кармана (пункт 5.2 плана).
     /// Вложенные проходы вдоль эквидистантного контура: каждый проход —
     /// замкнутый контур, смещённый внутрь на k*step от стены
-    /// (траектория центра инструмента = <c>GetContour(toolRadius + k*step, taperOffset)</c>).
+    /// (траектория центра инструмента = <c>GetContour(ContourOffset + k*step, taperOffset)</c>,
+    /// где ContourOffset — радиус фрезы вместе с припуском).
     ///
     /// Остановка: когда смещённый контур становится «слишком маленьким»
     /// (<see cref="IPocketGeometry.IsContourTooSmall"/> — порог 5% диаметра
@@ -54,7 +55,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             int safetyLimit = 10000;
             while (safetyLimit-- > 0)
             {
-                double effectiveToolRadius = layer.ToolRadius + offset;
+                double effectiveToolRadius = layer.ContourOffset + offset;
 
                 // Контур прохода слишком маленький — прекращаем
                 if (layer.Geometry.IsContourTooSmall(effectiveToolRadius, layer.TaperOffset))

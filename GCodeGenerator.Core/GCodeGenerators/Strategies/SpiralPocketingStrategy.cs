@@ -78,7 +78,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 (double x, double y) nextPos = (nextX, nextY);
 
                 // Проверяем, находится ли следующая точка внутри контура
-                bool isInside = layer.Geometry.IsPointInside(nextX, nextY, layer.ToolRadius, layer.TaperOffset);
+                bool isInside = layer.Geometry.IsPointInside(nextX, nextY, layer.ContourOffset, layer.TaperOffset);
 
                 if (isInside && wasInside)
                 {
@@ -106,7 +106,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                         // Ищем точку повторного входа с сохранением угла
                         var reentryResult = FindReentryPointWithTheta(
                             exitPoint.Value, exitTheta, θMax, stepAngle, dirSign, layer.Center, a, b,
-                            layer.Geometry, layer.ToolRadius, layer.TaperOffset, layer.ContourPoints, tolerance);
+                            layer.Geometry, layer.ContourOffset, layer.TaperOffset, layer.ContourPoints, tolerance);
 
                         if (reentryResult.HasValue)
                         {

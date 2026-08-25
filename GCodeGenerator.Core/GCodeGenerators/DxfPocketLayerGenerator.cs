@@ -28,6 +28,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         /// <param name="op">Операция DXF-кармана (замкнутые контуры, подачи, Decimals).</param>
         /// <param name="toolRadius">Радиус инструмента.</param>
+        /// <param name="allowance">Припуск у стенки: отступ траектории внутрь.</param>
         /// <param name="taperOffset">Смещение из-за уклона стенок на глубине слоя.</param>
         /// <param name="step">Шаг обработки.</param>
         /// <param name="currentZ">Z верха слоя.</param>
@@ -39,6 +40,7 @@ namespace GCodeGenerator.GCodeGenerators
         public bool GenerateLayer(
             PocketDxfOperation op,
             double toolRadius,
+            double allowance,
             double taperOffset,
             double step,
             double currentZ,
@@ -64,14 +66,15 @@ namespace GCodeGenerator.GCodeGenerators
                     continue;
 
                 var sourceGeometry = new DxfPocketGeometry(op, contour);
-                foreach (var area in sourceGeometry.GetOffsetParts(toolRadius, taperOffset))
+                // Отступ от стенки: радиус фрезы вместе с припуском.
+                foreach (var area in sourceGeometry.GetOffsetParts(toolRadius + allowance, taperOffset))
                 {
                     if (area.Count < 3)
                         continue;
 
-                    // Область уже смещена на радиус инструмента, поэтому дальше
-                    // она обрабатывается как готовая траектория центра фрезы:
-                    // стратегия получает нулевые радиус и уклон.
+                    // Область уже смещена на радиус инструмента и припуск,
+                    // поэтому дальше она обрабатывается как готовая траектория
+                    // центра фрезы: стратегия получает нулевые отступ и уклон.
                     var areaGeometry = new DxfPocketGeometry(
                         op,
                         new Polyline2D { Points = new List<Point2D>(area) });
@@ -107,7 +110,7 @@ namespace GCodeGenerator.GCodeGenerators
                     // поэтому для неё оба смещения нулевые.
                     strategy.MillContour(
                         new PocketLayerContext(
-                            op, areaGeometry, 0, 0, step, nextZ, contourPoints, center, settings),
+                            op, areaGeometry, 0, 0, 0, step, nextZ, contourPoints, center, settings),
                         builder);
 
                     // Возврат в центр области и подъем

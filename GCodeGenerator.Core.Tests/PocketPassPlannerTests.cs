@@ -41,7 +41,9 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(PocketPassKind.Pocketing, rough.Kind);
             Assert.AreEqual(4.6, rough.Operation.TotalDepth, 1e-9, "до дна остаётся припуск");
-            Assert.AreEqual(6.8, rough.Operation.ToolDiameter, 1e-9, "инструмент «толще» на удвоенный припуск");
+            Assert.AreEqual(0.4, rough.Allowance, 1e-9, "у стенки остаётся припуск");
+            Assert.AreEqual(6.0, rough.Operation.ToolDiameter, 1e-9,
+                "инструмент настоящий: от его диаметра считается шаг между проходами");
             Assert.AreEqual(5.0, operation.TotalDepth, 1e-9, "исходная операция не меняется");
             Assert.AreEqual(6.0, operation.ToolDiameter, 1e-9);
         }
@@ -73,6 +75,7 @@ namespace GCodeGenerator.Tests
             var walls = plan.Passes.Last();
 
             Assert.AreEqual(PocketPassKind.WallFinishing, walls.Kind);
+            Assert.AreEqual(0.0, walls.Allowance, 1e-9, "стенка доводится начисто, без отступа");
             Assert.AreEqual(0.4, walls.Operation.TotalDepth, 1e-9, "снимается только припуск");
             Assert.AreEqual(-4.6, walls.Operation.ContourHeight, 1e-9, "слой начинается у самого дна");
             Assert.AreEqual(0.0, plan.TaperOriginZ, 1e-9, "уклон продолжает стенку исходного кармана");
@@ -93,7 +96,8 @@ namespace GCodeGenerator.Tests
                 plan.Passes.Select(p => p.Kind).ToArray());
 
             var bottom = plan.Passes[0];
-            Assert.AreEqual(6.8, bottom.Operation.ToolDiameter, 1e-9, "дно снимается «толстым» инструментом");
+            Assert.AreEqual(6.0, bottom.Operation.ToolDiameter, 1e-9, "инструмент настоящий");
+            Assert.AreEqual(0.4, bottom.Allowance, 1e-9, "дно снимается с отступом от стенки");
             Assert.AreEqual(0.4, bottom.Operation.TotalDepth, 1e-9);
         }
 

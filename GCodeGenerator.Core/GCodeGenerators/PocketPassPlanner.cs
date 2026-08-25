@@ -20,17 +20,25 @@ namespace GCodeGenerator.GCodeGenerators
     /// <summary>Один проход обработки: что фрезеровать и каким способом.</summary>
     public sealed class PocketPass
     {
-        public PocketPass(IPocketOperation operation, PocketPassKind kind)
+        public PocketPass(IPocketOperation operation, PocketPassKind kind, double allowance = 0.0)
         {
             Operation = operation ?? throw new ArgumentNullException(nameof(operation));
             Kind = kind;
+            Allowance = allowance;
         }
 
-        /// <summary>Операция прохода: копия исходной с изменёнными припуском и глубиной.</summary>
+        /// <summary>Операция прохода: копия исходной с изменённой глубиной.</summary>
         public IPocketOperation Operation { get; }
 
         /// <summary>Способ обработки.</summary>
         public PocketPassKind Kind { get; }
+
+        /// <summary>
+        /// Припуск у стенки: на столько траектория этого прохода отступает
+        /// внутрь от контура кармана. Диаметр инструмента при этом остаётся
+        /// настоящим — от него считается шаг между проходами.
+        /// </summary>
+        public double Allowance { get; }
     }
 
     /// <summary>
@@ -72,9 +80,11 @@ namespace GCodeGenerator.GCodeGenerators
     /// вызовов. Теперь план строится отдельно и проверяется без генерации
     /// G-code, а генератор только исполняет готовый список.
     ///
-    /// Припуск задаётся увеличением диаметра инструмента: это равносильно
-    /// смещению траектории внутрь и работает одинаково для всех типов
-    /// карманов, включая контур из чертежа, который нельзя «сжать» полем.
+    /// Припуск проход несёт отдельной величиной и отступает на неё от
+    /// стенки. Прежде он подмешивался в диаметр инструмента: контур от этого
+    /// получался правильный, но шаг между проходами считался от несуществующей
+    /// фрезы, которая шире настоящей, — и между проходами оставался
+    /// нетронутый материал тем шире, чем больше припуск.
     /// </summary>
     public static class PocketPassPlanner
     {
@@ -129,15 +139,14 @@ namespace GCodeGenerator.GCodeGenerators
 
             var roughOperation = OperationCloner.Clone(operation);
             roughOperation.TotalDepth -= depthAllowance;
-            roughOperation.ToolDiameter += 2.0 * depthAllowance;
 
-            if (IsTooSmall(roughOperation))
+            if (IsTooSmall(roughOperation, depthAllowance))
             {
                 skipComment = "Pocket too small after roughing allowance, skipping";
                 return null;
             }
 
-            return new PocketPass(roughOperation, PocketPassKind.Pocketing);
+            return new PocketPass(roughOperation, PocketPassKind.Pocketing, depthAllowance);
         }
 
         /// <summary>
@@ -162,10 +171,10 @@ namespace GCodeGenerator.GCodeGenerators
 
             if (finishesBottom)
             {
-                var bottom = OperationCloner.Clone(layer);
-                bottom.ToolDiameter += 2.0 * allowance;
-                if (!IsTooSmall(bottom))
-                    passes.Add(new PocketPass(bottom, PocketPassKind.Pocketing));
+                // Дно слоя припуска снимается с тем же отступом от стенки:
+                // саму стенку доводит отдельный проход.
+                if (!IsTooSmall(layer, allowance))
+                    passes.Add(new PocketPass(OperationCloner.Clone(layer), PocketPassKind.Pocketing, allowance));
             }
 
             if (finishesWalls)
@@ -176,11 +185,11 @@ namespace GCodeGenerator.GCodeGenerators
         /// Не исчез ли карман после припуска: контур проверяется в худшем
         /// месте — на дне, где уклон стенки съедает больше всего.
         /// </summary>
-        private static bool IsTooSmall(IPocketOperation operation)
+        private static bool IsTooSmall(IPocketOperation operation, double allowance)
         {
-            var toolRadius = operation.ToolDiameter / 2.0;
+            var contourOffset = operation.ToolDiameter / 2.0 + allowance;
             var taperOffset = GCodeGenerationHelper.CalculateTaperOffset(operation.TotalDepth, operation.WallTaperAngleDeg);
-            return OperationCatalog.CreatePocketGeometry((OperationBase)operation).IsContourTooSmall(toolRadius, taperOffset);
+            return OperationCatalog.CreatePocketGeometry((OperationBase)operation).IsContourTooSmall(contourOffset, taperOffset);
         }
     }
 }

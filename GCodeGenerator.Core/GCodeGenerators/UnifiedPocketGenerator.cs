@@ -61,7 +61,7 @@ namespace GCodeGenerator.GCodeGenerators
                     ? WallFinishingStrategy.Instance
                     : PocketStrategies.For(pass.Operation.PocketStrategy);
 
-                MillPocket(pass.Operation, strategy, builder, settings, plan.TaperOriginZ);
+                MillPocket(pass.Operation, strategy, pass.Allowance, builder, settings, plan.TaperOriginZ);
             }
         }
 
@@ -70,6 +70,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         /// <param name="op">Операция кармана.</param>
         /// <param name="strategy">Способ обхода слоя.</param>
+        /// <param name="allowance">Припуск у стенки: отступ траектории внутрь.</param>
         /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
@@ -77,6 +78,7 @@ namespace GCodeGenerator.GCodeGenerators
         private void MillPocket(
             IPocketOperation op,
             IPocketPocketingStrategy strategy,
+            double allowance,
             ToolPathBuilder builder,
             GCodeSettings settings,
             double? taperOriginZ = null)
@@ -94,6 +96,7 @@ namespace GCodeGenerator.GCodeGenerators
                     op,
                     geometry,
                     toolRadius,
+                    allowance,
                     step,
                     currentZ,
                     nextZ,
@@ -111,6 +114,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="op">Операция кармана.</param>
         /// <param name="geometry">Геометрия контура операции.</param>
         /// <param name="toolRadius">Радиус инструмента.</param>
+        /// <param name="allowance">Припуск у стенки: отступ траектории внутрь.</param>
         /// <param name="step">Шаг обработки.</param>
         /// <param name="currentZ">Z верха слоя.</param>
         /// <param name="nextZ">Рабочая Z слоя.</param>
@@ -123,6 +127,7 @@ namespace GCodeGenerator.GCodeGenerators
             IPocketOperation op,
             IPocketGeometry geometry,
             double toolRadius,
+            double allowance,
             double step,
             double currentZ,
             double nextZ,
@@ -138,22 +143,26 @@ namespace GCodeGenerator.GCodeGenerators
 
             // Для DXF-операций слой состоит из областей, на которые распадается
             // эквидистанта каждого замкнутого контура (см. DxfPocketLayerGenerator).
+            // Отступ траектории от стенки: радиус фрезы и припуск, который
+            // проход оставляет для чистовой обработки.
+            double contourOffset = toolRadius + allowance;
+
             if (op is PocketDxfOperation dxfOp)
             {
                 return _dxfLayerGenerator.GenerateLayer(
-                    dxfOp, toolRadius, taperOffset, step,
+                    dxfOp, toolRadius, allowance, taperOffset, step,
                     currentZ, nextZ, strategy, builder, settings);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
-            if (geometry.IsContourTooSmall(toolRadius, taperOffset))
+            if (geometry.IsContourTooSmall(contourOffset, taperOffset))
             {
                 // Контур слишком маленький - прекращаем обработку
                 return false;
             }
 
             // Получаем контур кармана
-            var contour = geometry.GetContour(toolRadius, taperOffset);
+            var contour = geometry.GetContour(contourOffset, taperOffset);
             if (contour == null)
                 return false;
 
@@ -171,7 +180,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Обработка слоя выбранным способом обхода.
             strategy.MillContour(
                 new PocketLayerContext(
-                    op, geometry, toolRadius, taperOffset, step, nextZ, contourPoints, center, settings),
+                    op, geometry, toolRadius, allowance, taperOffset, step, nextZ, contourPoints, center, settings),
                 builder);
 
             // Возврат в центр и подъем

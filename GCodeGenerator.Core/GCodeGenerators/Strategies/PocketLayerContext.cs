@@ -25,6 +25,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             IPocketOperation operation,
             IPocketGeometry geometry,
             double toolRadius,
+            double allowance,
             double taperOffset,
             double step,
             double workingZ,
@@ -35,6 +36,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             Operation = operation;
             Geometry = geometry;
             ToolRadius = toolRadius;
+            Allowance = allowance;
             TaperOffset = taperOffset;
             Step = step;
             WorkingZ = workingZ;
@@ -49,8 +51,27 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// <summary>Геометрия контура: смещённые контуры и проверка вырождения.</summary>
         public IPocketGeometry Geometry { get; }
 
-        /// <summary>Радиус инструмента.</summary>
+        /// <summary>Радиус инструмента — настоящей фрезы, которой ведётся проход.</summary>
         public double ToolRadius { get; }
+
+        /// <summary>
+        /// Припуск: слой материала, который проход оставляет у стенки для
+        /// чистовой обработки. Ноль — проход идёт по самой стенке.
+        /// </summary>
+        public double Allowance { get; }
+
+        /// <summary>
+        /// На сколько траектория центра инструмента отстоит от стенки:
+        /// радиус фрезы плюс припуск.
+        ///
+        /// Прежде припуск подмешивался в диаметр инструмента — операция
+        /// клонировалась с диаметром, увеличенным на два припуска. Контур
+        /// от этого получался правильный, но всё остальное, что считается от
+        /// диаметра, — нет: шаг между соседними проходами брался от
+        /// несуществующей фрезы и оказывался шире настоящей, оставляя между
+        /// проходами нетронутый материал.
+        /// </summary>
+        public double ContourOffset => ToolRadius + Allowance;
 
         /// <summary>Смещение контура из-за уклона стенок на глубине этого слоя.</summary>
         public double TaperOffset { get; }
