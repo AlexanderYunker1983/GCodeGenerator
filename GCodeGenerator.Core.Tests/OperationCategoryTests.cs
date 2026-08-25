@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -17,21 +16,6 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class OperationCategoryTests
     {
-        private static CultureInfo _originalCulture;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
-
         private static ProjectFileService Service { get; } = new ProjectFileService();
 
         /// <summary>

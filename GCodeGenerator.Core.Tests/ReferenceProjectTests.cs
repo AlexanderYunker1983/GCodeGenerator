@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
@@ -43,20 +42,6 @@ namespace GCodeGenerator.Tests
     {
         private static readonly ProjectFileService Service = new ProjectFileService();
         private static readonly SimpleGCodeGenerator Generator = new SimpleGCodeGenerator();
-        private static CultureInfo _originalCulture;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
 
         /// <summary>Эталонные файлы в каталоге сборки тестов (копия из исходников).</summary>
         private static string ReferenceOutputDirectory =>

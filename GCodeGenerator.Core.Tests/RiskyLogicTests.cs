@@ -40,26 +40,12 @@ namespace GCodeGenerator.Tests
     ///   не остаётся. До перехода те же случаи давали самопересекающуюся
     ///   эквидистанту, и их приходилось распознавать эвристиками площади,
     ///   направления обхода и «песочных часов».
-    /// - Культура: инвариантная (по плану), как в GoldenTests.
+    /// - Культура прогона не закрепляется: вывод инвариантен по построению,
+    ///   как в GoldenTests.
     /// </summary>
     [TestClass]
     public class RiskyLogicTests
     {
-        private static CultureInfo _originalCulture;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
-
         // ------------------------------------------------------------------
         // Вспомогательные методы
         // ------------------------------------------------------------------

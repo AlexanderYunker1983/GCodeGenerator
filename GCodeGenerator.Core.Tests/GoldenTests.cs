@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -15,10 +14,11 @@ namespace GCodeGenerator.Tests
     /// <see cref="FixtureCatalog.All"/> результат <c>SimpleGCodeGenerator.Generate(...)</c>
     /// сравнивается построчно с golden-файлом <c>Golden/&lt;имя фикстуры&gt;.nc</c>.
     ///
-    /// Культура: по плану генерация выполняется в <see cref="CultureInfo.InvariantCulture"/>.
-    /// Причина: <c>GetDescription()</c> операций форматирует double через текущую культуру
-    /// (комментарные строки G-кода) — баг продукта, исправляется в поздней фазе;
-    /// golden-файлы фиксируются в инвариантной культуре и не зависят от локали машины.
+    /// Культура прогона не закрепляется: вывод инвариантен по построению —
+    /// координаты форматирует GCodeGenerationHelper, описания операций собирает
+    /// OperationBase.Invariant, — поэтому прогон под любой локалью обязан
+    /// совпадать с эталонами. Раньше культура закреплялась здесь вручную
+    /// и прятала зависимость описаний операций от локали машины.
     ///
     /// Обновление golden-файлов: установить переменную окружения GCG_WRITE_GOLDEN=1
     /// и выполнить тест <see cref="Write_Golden_Files"/> (пишет в исходный каталог),
@@ -28,7 +28,6 @@ namespace GCodeGenerator.Tests
     public class GoldenTests
     {
         private static readonly SimpleGCodeGenerator Generator = new SimpleGCodeGenerator();
-        private static CultureInfo _originalCulture;
 
         public TestContext TestContext { get; set; }
 
@@ -39,19 +38,6 @@ namespace GCodeGenerator.Tests
         /// <summary>Golden-файлы в исходном каталоге — единственный источник истины.</summary>
         private static string GoldenSourceDirectory =>
             Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "Golden"));
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
 
         [TestMethod]
         public void Golden_Programs_Match_Golden_Files()

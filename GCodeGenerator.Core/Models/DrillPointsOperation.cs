@@ -237,7 +237,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Drill {HolesToDrill.Count} hole(s)";
+            return Invariant($"Drill {HolesToDrill.Count} hole(s)");
         }
 
         /// <summary>

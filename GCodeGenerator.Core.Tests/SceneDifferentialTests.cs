@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -43,23 +42,9 @@ namespace GCodeGenerator.Tests
     {
         private static readonly SimpleGCodeGenerator Generator = new SimpleGCodeGenerator();
         private static readonly ProjectFileService Service = new ProjectFileService();
-        private static CultureInfo _originalCulture;
 
         /// <summary>Допуск сравнения точек (округление текста до 3 знаков).</summary>
         private const double Tolerance = 1e-3;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
 
         /// <summary>
         /// Все 31 фикстура: сцены из структуры и из текста совпадают.

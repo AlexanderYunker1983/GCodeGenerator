@@ -52,7 +52,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Rectangle {Width}x{Height}mm, depth {TotalDepth}mm";
+            return Invariant($"Rectangle {Width}x{Height}mm, depth {TotalDepth}mm");
         }
 
         /// <summary>

@@ -34,7 +34,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Circle R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+            return Invariant($"Circle R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm");
         }
 
         /// <summary>

@@ -46,7 +46,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Ellipse RX{RadiusX}mm RY{RadiusY}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+            return Invariant($"Ellipse RX{RadiusX}mm RY{RadiusY}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm");
         }
 
         /// <summary>

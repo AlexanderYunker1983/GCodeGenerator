@@ -26,21 +26,6 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class ProjectFileServiceTests
     {
-        private static CultureInfo _originalCulture;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
-
         private static ProjectFileService Service { get; } = new ProjectFileService();
 
         /// <summary>

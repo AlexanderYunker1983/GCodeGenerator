@@ -28,7 +28,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Pocket circle R{Radius}mm, depth {TotalDepth}mm";
+            return Invariant($"Pocket circle R{Radius}mm, depth {TotalDepth}mm");
         }
 
         /// <summary>

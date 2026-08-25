@@ -36,7 +36,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Pocket ellipse RX{RadiusX}mm RY{RadiusY}mm, depth {TotalDepth}mm";
+            return Invariant($"Pocket ellipse RX{RadiusX}mm RY{RadiusY}mm, depth {TotalDepth}mm");
         }
 
         /// <summary>

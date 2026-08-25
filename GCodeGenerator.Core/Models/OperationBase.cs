@@ -68,8 +68,21 @@ namespace GCodeGenerator.Models
 
         /// <summary>
         /// Short human readable description for list in UI.
+        /// Числа в описании форматируются инвариантно — см. <see cref="Invariant"/>.
         /// </summary>
         public abstract string GetDescription();
+
+        /// <summary>
+        /// Инвариантное форматирование для <see cref="GetDescription"/>.
+        /// Описание уходит не только в список окна: постпроцессор пишет его
+        /// комментарием в файл программы, а одна и та же операция обязана
+        /// давать один и тот же файл на любой машине. Интерполяция без этой
+        /// обёртки форматирует числа культурой машины — на русской локали
+        /// глубина превращалась в «2,5», и файл зависел от того, где его
+        /// сохранили; тесты этого не видели, потому что закрепляли культуру
+        /// прогона вручную.
+        /// </summary>
+        protected static string Invariant(FormattableString text) => FormattableString.Invariant(text);
 
         /// <summary>
         /// Явное уведомление «изменилось всё сразу». Нужно там, где параметры

@@ -27,7 +27,7 @@ namespace GCodeGenerator.Models
             var lines = 0;
             foreach (var poly in Polylines)
                 lines += poly?.Points?.Count > 1 ? poly.Points.Count - 1 : 0;
-            return $"DXF profile lines: {lines}";
+            return Invariant($"DXF profile lines: {lines}");
         }
 
         /// <summary>

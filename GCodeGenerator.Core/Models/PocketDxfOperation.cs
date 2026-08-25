@@ -25,7 +25,7 @@ namespace GCodeGenerator.Models
         public override string GetDescription()
         {
             var contours = ClosedContours?.Count ?? 0;
-            return $"DXF pocket contours: {contours}, depth {TotalDepth}mm";
+            return Invariant($"DXF pocket contours: {contours}, depth {TotalDepth}mm");
         }
 
         /// <summary>

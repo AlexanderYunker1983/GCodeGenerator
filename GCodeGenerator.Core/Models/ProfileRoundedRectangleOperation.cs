@@ -76,7 +76,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Rounded rectangle {Width}x{Height}mm, depth {TotalDepth}mm";
+            return Invariant($"Rounded rectangle {Width}x{Height}mm, depth {TotalDepth}mm");
         }
 
         /// <summary>

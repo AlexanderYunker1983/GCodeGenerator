@@ -46,7 +46,7 @@ namespace GCodeGenerator.Models
 
         public override string GetDescription()
         {
-            return $"Polygon {NumberOfSides}-sided R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm";
+            return Invariant($"Polygon {NumberOfSides}-sided R{Radius}mm at ({CenterX}, {CenterY}), depth {TotalDepth}mm");
         }
 
         /// <summary>

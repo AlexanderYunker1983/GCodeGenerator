@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -30,20 +29,6 @@ namespace GCodeGenerator.Tests
     {
         private static readonly SimpleGCodeGenerator Generator = new SimpleGCodeGenerator();
         private static readonly ProjectFileService Service = new ProjectFileService();
-        private static CultureInfo _originalCulture;
-
-        [ClassInitialize]
-        public static void Initialize(TestContext context)
-        {
-            _originalCulture = CultureInfo.CurrentCulture;
-            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
-        }
-
-        [ClassCleanup]
-        public static void Cleanup()
-        {
-            CultureInfo.CurrentCulture = _originalCulture;
-        }
 
         private static string GoldenOutputDirectory =>
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Golden");
