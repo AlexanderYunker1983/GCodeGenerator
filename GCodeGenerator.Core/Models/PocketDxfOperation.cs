@@ -6,7 +6,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Pocket milling operation imported from DXF closed contours.
     /// </summary>
-    public class PocketDxfOperation : OperationBase, IPocketOperation, IValidatable
+    public class PocketDxfOperation : MillingOperationBase, IPocketOperation, IValidatable
     {
         public PocketDxfOperation() : base(OperationType.PocketMilling, OperationCategory.Pocket, "Pocket DXF")
         {
@@ -16,36 +16,12 @@ namespace GCodeGenerator.Models
 
         public string DxfFilePath { get; set; }
 
-        public MillingDirection Direction { get; set; } = MillingDirection.Clockwise;
-
         public PocketStrategy PocketStrategy { get; set; } = PocketStrategy.Spiral;
-
-        public double TotalDepth { get; set; } = 2.0;
-
-        public double StepDepth { get; set; } = 1.0;
-
-        public double ToolDiameter { get; set; } = 3.0;
-
-        public double ContourHeight { get; set; } = 0.0;
-
-        public double FeedXYRapid { get; set; } = 1000.0;
-
-        public double FeedXYWork { get; set; } = 300.0;
-
-        public double FeedZRapid { get; set; } = 500.0;
-
-        public double FeedZWork { get; set; } = 200.0;
-
-        public double SafeZHeight { get; set; } = 1.0;
-
-        public double RetractHeight { get; set; } = 0.3;
 
         /// <summary>
         /// Pocketing step as percent of tool diameter (e.g., 40 => 40% of diameter).
         /// </summary>
         public double StepPercentOfTool { get; set; } = 40.0;
-
-        public int Decimals { get; set; } = 3;
 
         /// <summary>
         /// Угол линий для стратегии Lines (градусы к оси X).

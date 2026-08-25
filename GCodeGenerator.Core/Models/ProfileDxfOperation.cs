@@ -17,7 +17,7 @@ namespace GCodeGenerator.Models
     /// <summary>
     /// Profile milling operation imported from DXF lines.
     /// </summary>
-    public class ProfileDxfOperation : OperationBase, IProfileOperation, IValidatable
+    public class ProfileDxfOperation : MillingOperationBase, IProfileOperation, IValidatable
     {
         public ProfileDxfOperation() : base(OperationType.ProfileMilling, OperationCategory.Profile, "Profile DXF")
         {
@@ -26,26 +26,6 @@ namespace GCodeGenerator.Models
         public List<DxfPolyline> Polylines { get; set; } = new List<DxfPolyline>();
 
         public string DxfFilePath { get; set; }
-
-        public double TotalDepth { get; set; } = 2.0;
-
-        public double StepDepth { get; set; } = 1.0;
-
-        public double ToolDiameter { get; set; } = 3.0;
-
-        public double ContourHeight { get; set; } = 0.0;
-
-        public double FeedXYRapid { get; set; } = 1000.0;
-
-        public double FeedXYWork { get; set; } = 300.0;
-
-        public double FeedZRapid { get; set; } = 500.0;
-
-        public double FeedZWork { get; set; } = 200.0;
-
-        public double SafeZHeight { get; set; } = 1.0;
-
-        public double RetractHeight { get; set; } = 0.3;
 
         /// <summary>
         /// Tool path mode: on line, outside, or inside contour.
@@ -63,16 +43,9 @@ namespace GCodeGenerator.Models
         public double EntryAngle { get; set; } = 5.0;
 
         /// <summary>
-        /// Milling direction: clockwise or counter-clockwise.
-        /// </summary>
-        public MillingDirection Direction { get; set; } = MillingDirection.Clockwise;
-
-        /// <summary>
         /// Maximum segment length for arc approximation when arc support is disabled.
         /// </summary>
         public double MaxSegmentLength { get; set; } = 0.5;
-
-        public int Decimals { get; set; } = 3;
 
         public override string GetDescription()
         {

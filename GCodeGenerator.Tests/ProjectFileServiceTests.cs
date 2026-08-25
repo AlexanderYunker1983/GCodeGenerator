@@ -237,6 +237,44 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Deserialize_LegacyPropertyOrder_IsRead()
+        {
+            // Порядок полей в файле, сохранённом до вынесения общих параметров
+            // резания в базовый класс: подачи и глубины шли вперемешку с
+            // собственными параметрами операции. Формат от порядка не зависит,
+            // и такие файлы должны читаться дословно.
+            var json = "{\"version\":4,\"operations\":[{\"type\":\"PocketCircle\",\"data\":{" +
+                "\"PocketStrategy\":1,\"Direction\":0,\"CenterX\":20,\"CenterY\":20,\"Radius\":10," +
+                "\"TotalDepth\":7,\"StepDepth\":1.5,\"ToolDiameter\":4,\"ContourHeight\":-1," +
+                "\"FeedXYRapid\":1100,\"FeedXYWork\":320,\"FeedZRapid\":510,\"FeedZWork\":210," +
+                "\"SafeZHeight\":2,\"RetractHeight\":0.4,\"StepPercentOfTool\":45,\"Decimals\":4," +
+                "\"Name\":\"Карман\",\"IsEnabled\":true}}]}";
+
+            var operations = Service.Deserialize(json).Operations;
+
+            Assert.AreEqual(1, operations.Count);
+            var pocket = (PocketCircleOperation)operations[0];
+            Assert.AreEqual(10.0, pocket.Radius, 1e-9);
+            Assert.AreEqual(7.0, pocket.TotalDepth, 1e-9, "Глубина из файла");
+            Assert.AreEqual(1.5, pocket.StepDepth, 1e-9);
+            Assert.AreEqual(-1.0, pocket.ContourHeight, 1e-9);
+            Assert.AreEqual(2.0, pocket.SafeZHeight, 1e-9);
+            Assert.AreEqual(0.4, pocket.RetractHeight, 1e-9);
+            Assert.AreEqual(1100.0, pocket.FeedXYRapid, 1e-9);
+            Assert.AreEqual(320.0, pocket.FeedXYWork, 1e-9);
+            Assert.AreEqual(510.0, pocket.FeedZRapid, 1e-9);
+            Assert.AreEqual(210.0, pocket.FeedZWork, 1e-9);
+            Assert.AreEqual(4.0, pocket.ToolDiameter, 1e-9);
+            Assert.AreEqual(4, pocket.Decimals);
+
+            // Те же значения доступны и сгруппированными.
+            Assert.AreEqual(1100.0, pocket.Feeds.XYRapid, 1e-9);
+            Assert.AreEqual(210.0, pocket.Feeds.ZWork, 1e-9);
+            Assert.AreEqual(7.0, pocket.Depth.TotalDepth, 1e-9);
+            Assert.AreEqual(2.0, pocket.Depth.SafeZHeight, 1e-9);
+        }
+
+        [TestMethod]
         public void Deserialize_UnsupportedVersion_Throws()
         {
             var newer = "{\"version\":5,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
