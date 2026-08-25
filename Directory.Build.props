@@ -41,5 +41,11 @@
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <!-- Файл документации нужен только компилятору (без него не работает
+         IDE0005). В дистрибутив он попадать не должен: publish-каталог целиком
+         уходит в инсталлятор и в портативный архив. -->
+    <PublishDocumentationFile>false</PublishDocumentationFile>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
   </PropertyGroup>
 </Project>
