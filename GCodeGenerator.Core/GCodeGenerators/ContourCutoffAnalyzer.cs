@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 
 namespace GCodeGenerator.GCodeGenerators
 {
@@ -23,7 +24,7 @@ namespace GCodeGenerator.GCodeGenerators
     /// </summary>
     public sealed class ContourCutoffAnalyzer
     {
-        private const double Tolerance = 1e-6;
+        private const double Tolerance = GeometryTolerances.Vertex;
 
         private readonly Dictionary<int, double> _previousContourAreas = new Dictionary<int, double>();
         private readonly Dictionary<int, (double firstArea, double secondArea, double ratio, int hourglassLayer)>

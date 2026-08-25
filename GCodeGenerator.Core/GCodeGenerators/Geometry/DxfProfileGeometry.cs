@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -33,7 +34,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             else if (_operation.ToolPathMode == ToolPathMode.Inside)
                 offset = -toolRadius;
 
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
 
             // Обрабатываем каждую полилинию отдельно
             // Генератор будет строить линии только между точками внутри каждой полилинии

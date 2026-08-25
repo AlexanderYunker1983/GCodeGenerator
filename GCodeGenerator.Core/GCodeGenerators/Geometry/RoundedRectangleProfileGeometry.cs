@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -120,7 +121,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 var dx = endCorner.Item1 - startCorner.Item1;
                 var dy = endCorner.Item2 - startCorner.Item2;
                 var len = Math.Sqrt(dx * dx + dy * dy);
-                if (len < 1e-6) len = 1e-6;
+                if (len < GeometryTolerances.Vertex) len = GeometryTolerances.Vertex;
                 var ux = dx / len;
                 var uy = dy / len;
 
@@ -304,7 +305,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         private (double X, double Y) Normalize((double X, double Y) v)
         {
             var len = Math.Sqrt(v.X * v.X + v.Y * v.Y);
-            if (len < 1e-9) return (0, 0);
+            if (len < GeometryTolerances.Degenerate) return (0, 0);
             return (v.X / len, v.Y / len);
         }
 

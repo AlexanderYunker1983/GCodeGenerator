@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -94,9 +95,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
 
             area *= 0.5;
-            double tolerance = 1e-6;
-
-            if (Math.Abs(area) > tolerance)
+            if (Math.Abs(area) > GeometryTolerances.Degenerate)
             {
                 double invArea = 1.0 / (6.0 * area);
                 return (cx * invArea, cy * invArea);
@@ -159,7 +158,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             // вернуть bowtie или маленький инвертированный многоугольник с ненулевой
             // shoelace-площадью, и последующие эвристики ошибочно считают его валидным.
             if (effectiveToolRadius > 0
-                && GetMinimumConvexHullWidth() + 1e-6 < 2.0 * effectiveToolRadius)
+                && GetMinimumConvexHullWidth() + GeometryTolerances.Vertex < 2.0 * effectiveToolRadius)
             {
                 return true;
             }
@@ -173,7 +172,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double offsetArea = GetContourArea(offsetContour);
             
             // Проверяем, что смещенный контур не вырожден (имеет достаточную площадь)
-            double minArea = 1e-6; // Минимальная площадь для невырожденного контура
+            double minArea = GeometryTolerances.Vertex; // Минимальная площадь для невырожденного контура
             if (Math.Abs(offsetArea) < minArea)
                 return true;
 
@@ -201,7 +200,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 
                 // Пропускаем точки слишком близко к центру
                 double origDist = Math.Sqrt(origDx * origDx + origDy * origDy);
-                if (origDist < 1e-6)
+                if (origDist < GeometryTolerances.Vertex)
                     continue;
                 
                 // Находим ближайшую точку в смещенном контуре
@@ -227,7 +226,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 
                 // Пропускаем точки слишком близко к центру
                 double offsetDist = Math.Sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
-                if (offsetDist < 1e-6)
+                if (offsetDist < GeometryTolerances.Vertex)
                     continue;
                 
                 // Вычисляем углы векторов (в радианах)
@@ -297,7 +296,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             foreach (var point in points)
             {
                 while (lower.Count >= 2
-                    && Cross(lower[lower.Count - 2], lower[lower.Count - 1], point) <= 1e-9)
+                    && Cross(lower[lower.Count - 2], lower[lower.Count - 1], point) <= GeometryTolerances.Degenerate)
                 {
                     lower.RemoveAt(lower.Count - 1);
                 }
@@ -309,7 +308,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             {
                 var point = points[index];
                 while (upper.Count >= 2
-                    && Cross(upper[upper.Count - 2], upper[upper.Count - 1], point) <= 1e-9)
+                    && Cross(upper[upper.Count - 2], upper[upper.Count - 1], point) <= GeometryTolerances.Degenerate)
                 {
                     upper.RemoveAt(upper.Count - 1);
                 }
@@ -331,7 +330,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 double edgeDx = edgeEnd.x - edgeStart.x;
                 double edgeDy = edgeEnd.y - edgeStart.y;
                 double edgeLength = Math.Sqrt(edgeDx * edgeDx + edgeDy * edgeDy);
-                if (edgeLength <= 1e-9)
+                if (edgeLength <= GeometryTolerances.Degenerate)
                     continue;
 
                 while (true)
@@ -339,7 +338,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                     int nextIndex = (antipodalIndex + 1) % hull.Count;
                     double currentArea = Math.Abs(Cross(edgeStart, edgeEnd, hull[antipodalIndex]));
                     double nextArea = Math.Abs(Cross(edgeStart, edgeEnd, hull[nextIndex]));
-                    if (nextArea <= currentArea + 1e-9)
+                    if (nextArea <= currentArea + GeometryTolerances.Degenerate)
                         break;
                     antipodalIndex = nextIndex;
                 }
@@ -426,7 +425,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 
                 // Пропускаем точки слишком близко к центру
                 double origDist = Math.Sqrt(origDx * origDx + origDy * origDy);
-                if (origDist < 1e-6)
+                if (origDist < GeometryTolerances.Vertex)
                     continue;
                 
                 // Находим ближайшую точку в смещенном контуре
@@ -452,7 +451,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 
                 // Пропускаем точки слишком близко к центру
                 double offsetDist = Math.Sqrt(offsetDx * offsetDx + offsetDy * offsetDy);
-                if (offsetDist < 1e-6)
+                if (offsetDist < GeometryTolerances.Vertex)
                     continue;
                 
                 // Вычисляем углы векторов (в радианах)
@@ -527,9 +526,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
 
             area *= 0.5;
-            double tolerance = 1e-6;
-
-            if (Math.Abs(area) > tolerance)
+            if (Math.Abs(area) > GeometryTolerances.Degenerate)
             {
                 double invArea = 1.0 / (6.0 * area);
                 return (cx * invArea, cy * invArea);
@@ -567,7 +564,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             bool isClockwise = signedArea < 0;
             double absOffset = Math.Abs(offset);
             double offsetSign = offset < 0 ? 1.0 : -1.0; // Для отрицательного offset (внутрь) используем положительный знак
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
 
             // Шаг 1: Строим параллельные прямые для каждого сегмента
             var offsetSegments = new List<OffsetSegment>();
@@ -766,7 +763,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double dx = p1.X - p2.X;
             double dy = p1.Y - p2.Y;
             double distance = Math.Sqrt(dx * dx + dy * dy);
-            return distance <= 0.001;
+            return distance <= GeometryTolerances.PointCoincidence;
         }
 
         private bool IsPointInsideContour(double x, double y, DxfPolyline contour)

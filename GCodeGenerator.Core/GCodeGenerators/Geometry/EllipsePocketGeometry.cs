@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -26,8 +27,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double effectiveRadiusX = _operation.RadiusX - toolRadius - taperOffset;
             double effectiveRadiusY = _operation.RadiusY - toolRadius - taperOffset;
             
-            if (effectiveRadiusX <= 0) effectiveRadiusX = 0.001;
-            if (effectiveRadiusY <= 0) effectiveRadiusY = 0.001;
+            if (effectiveRadiusX <= 0) effectiveRadiusX = GeometryTolerances.MinimumContourExtent;
+            if (effectiveRadiusY <= 0) effectiveRadiusY = GeometryTolerances.MinimumContourExtent;
 
             return new EllipseContour(_operation.CenterX, _operation.CenterY, 
                 effectiveRadiusX, effectiveRadiusY, _operation.RotationAngle);
@@ -54,7 +55,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double normalizedY = yLocal / effectiveRadiusY;
             double dist = normalizedX * normalizedX + normalizedY * normalizedY;
             
-            return dist <= 1.0 + 1e-6; // Небольшой допуск для численных ошибок
+            return dist <= 1.0 + GeometryTolerances.Containment;
         }
 
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
@@ -70,7 +71,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double effectiveDiameterY = (_operation.RadiusY - effectiveToolRadius) * 2.0;
             
             // Контур слишком маленький, если любой из диаметров меньше минимального порога
-            return effectiveDiameterX < minSizeThreshold - 1e-6 || effectiveDiameterY < minSizeThreshold - 1e-6;
+            return effectiveDiameterX < minSizeThreshold - GeometryTolerances.Vertex
+                || effectiveDiameterY < minSizeThreshold - GeometryTolerances.Vertex;
         }
 
         /// <summary>

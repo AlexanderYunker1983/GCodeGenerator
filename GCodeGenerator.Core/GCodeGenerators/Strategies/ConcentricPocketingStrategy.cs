@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -56,7 +57,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 return;
 
             bool clockwise = op.Direction == MillingDirection.Clockwise;
-            double tolerance = 1e-9;
+            const double tolerance = GeometryTolerances.Degenerate;
 
             double offset = 0.0; // дополнительное смещение от стены
             int safetyLimit = 10000;

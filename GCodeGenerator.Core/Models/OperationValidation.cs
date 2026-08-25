@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GCodeGenerator.Geometry;
 
 namespace GCodeGenerator.Models
 {
@@ -17,7 +18,7 @@ namespace GCodeGenerator.Models
         /// closedness tolerance (0.001) so contours imported by the app are
         /// never reported as open.
         /// </summary>
-        public const double ContourClosedTolerance = 1e-3;
+        public const double ContourClosedTolerance = GeometryTolerances.PointCoincidence;
 
         /// <summary>
         /// Adds an issue if <paramref name="value"/> is non-finite or not greater than zero.

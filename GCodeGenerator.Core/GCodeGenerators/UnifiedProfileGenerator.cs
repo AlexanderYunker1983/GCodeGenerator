@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
@@ -129,7 +130,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             // Удаляем последовательные дубликаты точек из списка
             var cleanedPoints = new List<(double x, double y)>();
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
             
             for (int i = 0; i < points.Count; i++)
             {
@@ -215,7 +216,7 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings)
         {
             int decimals = op.Decimals;
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
 
             if (op.Polylines == null || op.Polylines.Count == 0)
                 return;

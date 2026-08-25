@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -78,7 +79,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         {
             double dx = Math.Cos(theta);
             double dy = Math.Sin(theta);
-            const double eps = 1e-9;
+            const double eps = GeometryTolerances.Degenerate;
 
             double bestT = 0.0;
             for (int i = 0; i < contourPoints.Count; i++)
@@ -101,7 +102,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 double t = (ex * wy - wx * ey) / denom;
                 double u = (dx * wy - wx * dy) / denom;
 
-                if (t > eps && u >= -1e-6 && u <= 1.0 + 1e-6)
+                if (t > eps && u >= -GeometryTolerances.Vertex && u <= 1.0 + GeometryTolerances.Vertex)
                 {
                     if (t > bestT)
                         bestT = t;

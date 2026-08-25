@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -25,7 +26,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         {
             double effectiveRadius = _operation.Radius - toolRadius - taperOffset;
             if (effectiveRadius <= 0)
-                effectiveRadius = 0.001; // Минимальный радиус для избежания ошибок
+                effectiveRadius = GeometryTolerances.MinimumContourExtent;
 
             return new CircleContour(_operation.CenterX, _operation.CenterY, effectiveRadius);
         }
@@ -36,7 +37,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double dy = y - _operation.CenterY;
             double dist = Math.Sqrt(dx * dx + dy * dy);
             double effectiveRadius = _operation.Radius - toolRadius - taperOffset;
-            return dist <= effectiveRadius + 1e-6; // Небольшой допуск для численных ошибок
+            return dist <= effectiveRadius + GeometryTolerances.Containment;
         }
 
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
@@ -50,7 +51,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double minSizeThreshold = toolDiameter * 0.05;
             
             // Контур слишком маленький, если эффективный диаметр меньше минимального порога
-            return effectiveDiameter < minSizeThreshold - 1e-6;
+            return effectiveDiameter < minSizeThreshold - GeometryTolerances.Vertex;
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Trajectory
@@ -21,8 +22,15 @@ namespace GCodeGenerator.Trajectory
     /// </summary>
     public static class SceneBuilder
     {
+        /// <summary>
+        /// Допуск сравнения номера команды G/M: номера приходят как double
+        /// (G1, M30), поэтому сравниваются не на равенство. К геометрии
+        /// отношения не имеет.
+        /// </summary>
+        private const double CodeMatchTolerance = 0.001;
+
         /// <summary>Position change below this (mm) is not a move.</summary>
-        private const double PositionTolerance = 0.0001;
+        private const double PositionTolerance = GeometryTolerances.Position;
 
         /// <summary>
         /// Builds the trajectory scene for the given program. A null program
@@ -175,7 +183,7 @@ namespace GCodeGenerator.Trajectory
         private static bool ContainsCode(IReadOnlyList<GCodeWord> words, char letter, double code)
         {
             foreach (var word in words)
-                if (TryGetCode(word, out var l, out var n) && l == letter && Math.Abs(n - code) < 0.001)
+                if (TryGetCode(word, out var l, out var n) && l == letter && Math.Abs(n - code) < CodeMatchTolerance)
                     return true;
             return false;
         }
@@ -199,7 +207,7 @@ namespace GCodeGenerator.Trajectory
         {
             var first = block.Words[0];
             return TryGetCode(first, out var letter, out var number) &&
-                   letter == 'M' && (Math.Abs(number - 30) < 0.001 || Math.Abs(number - 2) < 0.001);
+                   letter == 'M' && (Math.Abs(number - 30) < CodeMatchTolerance || Math.Abs(number - 2) < CodeMatchTolerance);
         }
 
         // ------------------------------------------------------------------

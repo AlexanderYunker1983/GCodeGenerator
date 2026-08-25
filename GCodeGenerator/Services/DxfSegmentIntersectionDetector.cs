@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -60,14 +61,14 @@ namespace GCodeGenerator.Services
             double dy2 = y4 - y3;
             
             double denom = dx1 * dy2 - dy1 * dx2;
-            if (Math.Abs(denom) < 1e-9)
+            if (Math.Abs(denom) < GeometryTolerances.Degenerate)
                 return null; // Параллельные линии
             
             double t1 = ((x3 - x1) * dy2 - (y3 - y1) * dx2) / denom;
             double t2 = ((x3 - x1) * dy1 - (y3 - y1) * dx1) / denom;
             
             // Используем небольшой допуск для границ отрезков
-            const double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
             if (t1 >= -tolerance && t1 <= 1.0 + tolerance && t2 >= -tolerance && t2 <= 1.0 + tolerance)
             {
                 // Ограничиваем параметры диапазоном [0, 1]
@@ -86,7 +87,7 @@ namespace GCodeGenerator.Services
         {
             double dx = x2 - x1;
             double dy = y2 - y1;
-            if (Math.Abs(dx) < 1e-9 && Math.Abs(dy) < 1e-9)
+            if (Math.Abs(dx) < GeometryTolerances.Degenerate && Math.Abs(dy) < GeometryTolerances.Degenerate)
                 return Math.Sqrt(Math.Pow(px - x1, 2) + Math.Pow(py - y1, 2));
             
             double t = ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy);

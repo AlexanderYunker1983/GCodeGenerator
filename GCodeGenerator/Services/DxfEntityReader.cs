@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -9,7 +10,7 @@ namespace GCodeGenerator.Services
     /// <summary>Разбирает поддерживаемые DXF-сущности в независимые полилинии.</summary>
     internal static class DxfEntityReader
     {
-        private const double ClosedContourTolerance = 0.001;
+        private const double ClosedContourTolerance = GeometryTolerances.PointCoincidence;
 
         internal static List<DxfPolyline> Read(string path, bool includePolylineEntities)
         {
@@ -292,7 +293,7 @@ namespace GCodeGenerator.Services
             double majorRadius = Math.Sqrt(majorEndX * majorEndX + majorEndY * majorEndY);
             
             // Проверяем, что радиус не нулевой
-            if (majorRadius < 1e-9)
+            if (majorRadius < GeometryTolerances.Degenerate)
                 return new List<DxfPoint>();
             
             // Малая полуось = большая полуось * соотношение

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.GCodeGenerators.Interfaces;
@@ -295,7 +296,7 @@ namespace GCodeGenerator.GCodeGenerators
                 // Замыкаем контур, если первая точка не совпадает с последней
                 var first = contourPoints[0];
                 var last = contourPoints[contourPoints.Count - 1];
-                const double tolerance = 1e-9;
+                const double tolerance = GeometryTolerances.Degenerate;
                 if (Math.Abs(first.x - last.x) > tolerance || Math.Abs(first.y - last.y) > tolerance)
                 {
                     builder.LinearTo(x: first.x, y: first.y, feed: op.FeedXYWork, decimals: decimals);

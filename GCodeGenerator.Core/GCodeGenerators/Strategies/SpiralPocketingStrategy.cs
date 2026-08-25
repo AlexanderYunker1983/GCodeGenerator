@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -61,7 +62,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             // Количество точек на оборот для плавности
             int pointsPerRevolution = 128;
             double stepAngle = 2.0 * Math.PI / pointsPerRevolution;
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
 
             // Начинаем с центра
             (double x, double y) currentPos = center;
@@ -351,7 +352,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (contourPoints == null || contourPoints.Count == 0)
                 return;
 
-            double tolerance = 1e-6;
+            const double tolerance = GeometryTolerances.Vertex;
 
             // Находим сегменты контура, на которых находятся точки выхода и входа
             var exitSegment = FindContourSegment(exitPoint, contourPoints, tolerance);
@@ -469,7 +470,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             {
                 // Сегмент нулевой длины
                 double dist = Math.Sqrt(Math.Pow(point.x - segStart.x, 2) + Math.Pow(point.y - segStart.y, 2));
-                if (dist < 1e-6)
+                if (dist < GeometryTolerances.Vertex)
                     return segStart;
                 return null;
             }

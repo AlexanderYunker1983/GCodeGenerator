@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
@@ -101,7 +102,8 @@ namespace GCodeGenerator.Preview
 
             var first = points[0];
             var last = points[points.Count - 1];
-            return Math.Abs(first.X - last.X) < 1e-6 && Math.Abs(first.Y - last.Y) < 1e-6;
+            return Math.Abs(first.X - last.X) < GeometryTolerances.Vertex
+                && Math.Abs(first.Y - last.Y) < GeometryTolerances.Vertex;
         }
     }
 }

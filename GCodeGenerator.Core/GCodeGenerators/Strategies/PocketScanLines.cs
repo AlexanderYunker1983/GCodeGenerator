@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 
 namespace GCodeGenerator.GCodeGenerators.Strategies
 {
@@ -70,7 +71,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             }
 
             double height = yMax - yMin;
-            if (height <= 1e-9)
+            if (height <= GeometryTolerances.Degenerate)
                 return result;
 
             // Равные полосы высотой ≤ step; линия — в середине полосы
@@ -112,7 +113,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             List<(double x, double y)> local,
             double y)
         {
-            const double eps = 1e-9;
+            const double eps = GeometryTolerances.Degenerate;
             var xs = new List<double>();
 
             for (int i = 0; i < local.Count; i++)
@@ -125,7 +126,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     continue; // горизонтальный сегмент скан-линию не пересекает
 
                 double t = (y - p1.y) / dy;
-                if (t < -1e-6 || t > 1.0 + 1e-6)
+                if (t < -GeometryTolerances.Vertex || t > 1.0 + GeometryTolerances.Vertex)
                     continue;
 
                 double x = p1.x + t * (p2.x - p1.x);
@@ -138,7 +139,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             var unique = new List<double>();
             foreach (var x in xs)
             {
-                if (unique.Count == 0 || Math.Abs(x - unique[unique.Count - 1]) > 1e-6)
+                if (unique.Count == 0 || Math.Abs(x - unique[unique.Count - 1]) > GeometryTolerances.Vertex)
                     unique.Add(x);
             }
 
@@ -146,7 +147,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             var segments = new List<(double x1, double x2)>();
             for (int i = 0; i + 1 < unique.Count; i += 2)
             {
-                if (unique[i + 1] - unique[i] > 1e-6)
+                if (unique[i + 1] - unique[i] > GeometryTolerances.Vertex)
                     segments.Add((unique[i], unique[i + 1]));
             }
 

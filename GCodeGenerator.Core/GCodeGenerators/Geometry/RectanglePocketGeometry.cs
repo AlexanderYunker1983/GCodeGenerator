@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Geometry
@@ -34,8 +35,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double halfW = baseHalfW - effectiveToolRadius;
             double halfH = baseHalfH - effectiveToolRadius;
             
-            if (halfW <= 0) halfW = 0.001;
-            if (halfH <= 0) halfH = 0.001;
+            if (halfW <= 0) halfW = GeometryTolerances.MinimumContourExtent;
+            if (halfH <= 0) halfH = GeometryTolerances.MinimumContourExtent;
 
             return new RectangleContour(cx, cy, halfW, halfH, _operation.RotationAngle);
         }
@@ -63,7 +64,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double halfW = baseHalfW - effectiveToolRadius;
             double halfH = baseHalfH - effectiveToolRadius;
             
-            return Math.Abs(localX) <= halfW + 1e-6 && Math.Abs(localY) <= halfH + 1e-6;
+            return Math.Abs(localX) <= halfW + GeometryTolerances.Containment
+                && Math.Abs(localY) <= halfH + GeometryTolerances.Containment;
         }
 
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
@@ -79,7 +81,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             double effectiveHeight = _operation.Height - 2 * effectiveToolRadius;
             
             // Контур слишком маленький, если ширина или высота меньше минимального порога
-            return effectiveWidth < minSizeThreshold - 1e-6 || effectiveHeight < minSizeThreshold - 1e-6;
+            return effectiveWidth < minSizeThreshold - GeometryTolerances.Vertex
+                || effectiveHeight < minSizeThreshold - GeometryTolerances.Vertex;
         }
 
         private void GetCenter(ReferencePointType type,

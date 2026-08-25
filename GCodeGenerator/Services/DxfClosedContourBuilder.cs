@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -11,7 +12,7 @@ namespace GCodeGenerator.Services
     /// </summary>
     internal sealed class DxfClosedContourBuilder
     {
-        private const double ClosedContourTolerance = 0.001;
+        private const double ClosedContourTolerance = GeometryTolerances.PointCoincidence;
         private readonly DxfSegmentConnector _segmentConnector =
             new DxfSegmentConnector(ClosedContourTolerance);
         private readonly DxfSegmentIntersectionSplitter _intersectionSplitter =
