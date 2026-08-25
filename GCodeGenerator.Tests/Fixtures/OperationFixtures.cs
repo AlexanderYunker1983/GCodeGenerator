@@ -235,6 +235,20 @@ namespace GCodeGenerator.Tests.Fixtures
             };
         }
 
+        /// <summary>
+        /// Контур с наклонным врезанием: угол мал, а глубина велика, поэтому
+        /// рампа не укладывается в один оборот и идёт несколькими витками
+        /// с отводом на безопасное расстояние между проходами.
+        /// </summary>
+        public static ProfileCircleOperation ProfileCircleAngledEntry()
+        {
+            var operation = ProfileCircle();
+            operation.EntryMode = EntryMode.Angled;
+            operation.EntryAngle = 1.0;
+            operation.SafeDistanceBetweenPasses = 0.8;
+            return operation;
+        }
+
         public static ProfileRoundedRectangleOperation ProfileRoundedRectangle()
         {
             return new ProfileRoundedRectangleOperation

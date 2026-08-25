@@ -24,6 +24,13 @@ namespace GCodeGenerator.GCodeGenerators.Interfaces
         double EntryAngle { get; set; }
 
         /// <summary>
+        /// Безопасное расстояние между проходами, мм: на столько инструмент
+        /// поднимается над материалом, возвращаясь к началу контура между
+        /// витками рампы и перед рабочим проходом.
+        /// </summary>
+        double SafeDistanceBetweenPasses { get; set; }
+
+        /// <summary>
         /// Направление фрезерования.
         /// </summary>
         MillingDirection Direction { get; set; }

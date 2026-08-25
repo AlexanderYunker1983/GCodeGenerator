@@ -96,7 +96,23 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         }
 
         /// <summary>
-        /// Генерирует вход по рампе.
+        /// Наибольшее число витков рампы. Малый угол врезания на длинной
+        /// глубине даёт сотни витков; выше этого предела остаток глубины
+        /// проходится одним витком, круче заданного угла, — так же, как
+        /// поступала прежняя реализация с любой рампой длиннее периметра.
+        /// </summary>
+        private const int MaxRampLaps = 20;
+
+        /// <summary>
+        /// Генерирует вход по рампе: спуск вдоль контура под заданным углом.
+        ///
+        /// За один оборот по контуру рампа опускается на «периметр × тангенс
+        /// угла». Если слой глубже, спуск идёт несколькими витками, между
+        /// которыми инструмент отводится над материалом на безопасное
+        /// расстояние между проходами и возвращается к началу контура.
+        /// Прежде рампа всегда укладывалась в один оборот: заданный угол
+        /// молча становился круче ровно настолько, насколько не хватало
+        /// длины контура.
         /// </summary>
         private void GenerateRampEntry(
             IProfileOperation op,
@@ -113,38 +129,88 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             builder.RapidTo(z: retractZ, feed: op.FeedZRapid, decimals: decimals);
 
-            var rampDepth = retractZ - nextZ;
-            var rampDistance = rampDepth / Math.Tan(entryAngleRad);
+            var totalDepth = retractZ - nextZ;
+            var tangent = Math.Tan(entryAngleRad);
+            var totalDistance = tangent > 0 ? totalDepth / tangent : 0.0;
 
-            // Получаем периметр контура для определения угла рампы
+            // Периметр задаёт длину одного витка; без него остаётся прежняя
+            // оценка «рампа укладывается в половину оборота».
             var perimeter = getPerimeter();
-            if (perimeter <= 0) perimeter = rampDistance * 2; // Fallback оценка
+            if (perimeter <= 0) perimeter = totalDistance * 2;
 
-            // Вычисляем угол рампы на основе расстояния и периметра
-            var angleForRamp = (rampDistance / Math.Max(1e-6, perimeter)) * 2 * Math.PI;
+            var depthPerLap = perimeter * tangent;
+            var laps = depthPerLap > 0 ? (int)Math.Ceiling(totalDepth / depthPerLap) : 1;
+            laps = Math.Max(1, Math.Min(laps, MaxRampLaps));
 
-            // Ограничиваем угол рампы, чтобы не превышать один оборот
-            angleForRamp = Math.Min(Math.Abs(angleForRamp), 2 * Math.PI) * Math.Sign(angleForRamp);
-            if (op.Direction == MillingDirection.Clockwise)
-                angleForRamp = -Math.Abs(angleForRamp);
-            else
-                angleForRamp = Math.Abs(angleForRamp);
+            var lapDepth = totalDepth / laps;
+            var lapDistance = totalDistance / laps;
+            var zFrom = retractZ;
 
-            var rampSegments = Math.Max(4, (int)(Math.Abs(angleForRamp) / (Math.PI / 16)));
-
-            for (int i = 1; i <= rampSegments; i++)
+            for (int lap = 1; lap <= laps; lap++)
             {
-                var t = (double)i / rampSegments;
-                var distance = rampDistance * t;
-                var point = getPointOnContour(distance);
-                var z = retractZ - t * rampDepth;
+                var zTo = lap == laps ? nextZ : zFrom - lapDepth;
+                EmitRampLap(op, zFrom, zTo, lapDistance, perimeter, getPointOnContour, builder, decimals);
+                zFrom = zTo;
 
-                builder.LinearTo(x: point.x, y: point.y, z: z, feed: op.FeedXYWork, decimals: decimals);
+                // Между витками инструмент уходит от материала и возвращается
+                // к началу контура, чтобы следующий виток начался оттуда же.
+                if (lap < laps)
+                    ReturnToStart(op, startPoint, zTo, builder, decimals);
             }
 
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+            ReturnToStart(op, startPoint, nextZ, builder, decimals);
+        }
+
+        /// <summary>Один виток рампы: спуск от <paramref name="zFrom"/> к <paramref name="zTo"/> вдоль контура.</summary>
+        private static void EmitRampLap(
+            IProfileOperation op,
+            double zFrom,
+            double zTo,
+            double distance,
+            double perimeter,
+            Func<double, (double x, double y)> getPointOnContour,
+            ProgramBuilder builder,
+            int decimals)
+        {
+            var depth = zFrom - zTo;
+
+            // Число отрезков — по доле контура, которую проходит виток
+            // (прежняя формула: шаг около 11 градусов оборота).
+            var lapFraction = distance / Math.Max(1e-6, perimeter);
+            var lapAngle = Math.Min(Math.Abs(lapFraction), 1.0) * 2 * Math.PI;
+            var segments = Math.Max(4, (int)(lapAngle / (Math.PI / 16)));
+
+            for (int i = 1; i <= segments; i++)
+            {
+                var t = (double)i / segments;
+                var point = getPointOnContour(distance * t);
+                var z = zFrom - t * depth;
+                builder.LinearTo(x: point.x, y: point.y, z: z, feed: op.FeedXYWork, decimals: decimals);
+            }
+        }
+
+        /// <summary>
+        /// Отводит инструмент от материала и возвращает его к началу контура
+        /// на глубину <paramref name="z"/>.
+        ///
+        /// Высота отвода — безопасное расстояние между проходами над текущей
+        /// глубиной. Пока параметр не задан (ноль в старых проектах),
+        /// используется безопасная высота, как было до его появления.
+        /// </summary>
+        private static void ReturnToStart(
+            IProfileOperation op,
+            (double x, double y) startPoint,
+            double z,
+            ProgramBuilder builder,
+            int decimals)
+        {
+            var retractZ = op.SafeDistanceBetweenPasses > 0
+                ? z + op.SafeDistanceBetweenPasses
+                : op.SafeZHeight;
+
+            builder.RapidTo(z: retractZ, feed: op.FeedZRapid, decimals: decimals);
             builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid, decimals: decimals);
-            builder.RapidTo(z: nextZ, feed: op.FeedZRapid, decimals: decimals);
+            builder.RapidTo(z: z, feed: op.FeedZRapid, decimals: decimals);
         }
 
         private static string Fmt(int decimals) => "0." + new string('0', decimals);
