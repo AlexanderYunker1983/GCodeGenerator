@@ -1,3 +1,5 @@
+using System.IO;
+using System.Text;
 using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -6,6 +8,57 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class GCodeFileServiceTests
     {
+        /// <summary>
+        /// Файл программы начинается с первого кадра, а не с преамбулы
+        /// кодировки. Проверяются именно байты на диске: строковое сравнение
+        /// BOM не видит, и прежний дефект — EF BB BF перед первым кадром —
+        /// жил незамеченным, потому что остальные тесты подменяют сервис
+        /// фейком и до файла не доходят.
+        /// </summary>
+        [TestMethod]
+        public void Save_AsciiProgram_WritesExactlyAsciiBytesWithoutBom()
+        {
+            const string gCode = "G21\r\nG90\r\nM30\r\n";
+            var filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".nc");
+            try
+            {
+                new GCodeFileService().Save(filePath, gCode);
+
+                var bytes = File.ReadAllBytes(filePath);
+                CollectionAssert.AreEqual(
+                    Encoding.ASCII.GetBytes(gCode),
+                    bytes,
+                    "ASCII-программа обязана давать байт-в-байт ASCII-файл: без BOM и без перекодировки.");
+            }
+            finally
+            {
+                File.Delete(filePath);
+            }
+        }
+
+        /// <summary>
+        /// Кодировка — UTF-8, а не ASCII: имя операции пишет пользователь,
+        /// и продукт передаёт его как есть. ASCII-кодировка молча превратила
+        /// бы такое имя в вопросительные знаки — это та же «тихая подмена»,
+        /// которую продукт запрещает себе в G-коде.
+        /// </summary>
+        [TestMethod]
+        public void Save_UserWrittenOperationName_SurvivesRoundTrip()
+        {
+            const string gCode = "(Фланец задний)\r\nG21\r\nM30\r\n";
+            var filePath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".nc");
+            try
+            {
+                new GCodeFileService().Save(filePath, gCode);
+
+                Assert.AreEqual(gCode, File.ReadAllText(filePath, Encoding.UTF8));
+            }
+            finally
+            {
+                File.Delete(filePath);
+            }
+        }
+
         private sealed class RecordingGCodeFileService : IGCodeFileService
         {
             public string FilePath { get; private set; }
