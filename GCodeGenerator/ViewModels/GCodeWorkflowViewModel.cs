@@ -116,14 +116,19 @@ namespace GCodeGenerator.ViewModels
             var generationCompleted = false;
             try
             {
-                var operations = new List<OperationBase>(_operations);
+                // Слепок снимается на потоке интерфейса, до ухода в фон:
+                // операции и настройки копируются, поэтому правка документа
+                // во время генерации не смешивается с уже начатой программой.
+                var snapshot = GenerationSnapshot.Capture(_operations, _settings);
+                var operations = new List<OperationBase>(snapshot.Operations);
+                var settings = snapshot.Settings;
                 var progress = new Progress<int>(p =>
                 {
                     if (generationRevision == Volatile.Read(ref _documentRevision))
                         ProgressPercent = p;
                 });
                 var program = await Task.Run(() =>
-                    _generator.Generate(operations, _settings, progress));
+                    _generator.Generate(operations, settings, progress));
 
                 if (generationRevision != Volatile.Read(ref _documentRevision))
                 {
