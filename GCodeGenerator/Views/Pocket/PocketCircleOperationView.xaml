@@ -1,6 +1,7 @@
-<Window x:Class="GCodeGenerator.Views.Pocket.PocketCircleOperationView"
+﻿<Window x:Class="GCodeGenerator.Views.Pocket.PocketCircleOperationView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
         xmlns:loc="clr-namespace:GCodeGenerator.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -31,11 +32,11 @@
                             <ColumnDefinition Width="120"/>
                         </Grid.ColumnDefinitions>
                         <TextBlock Grid.Column="0" Text="{loc:Loc CenterX}" VerticalAlignment="Center" Margin="0,0,4,0"/>
-                        <TextBox Grid.Column="1" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="1" Text="{Binding CenterX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                         <TextBlock Grid.Column="3" Text="{loc:Loc CenterY}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Column="4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,4,0"/>
+                        <TextBox Grid.Column="4" Text="{Binding CenterY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Margin="0,0,4,0"/>
                         <TextBlock Grid.Column="6" Text="{loc:Loc Radius}" VerticalAlignment="Center" Margin="8,0,4,0"/>
-                        <TextBox Grid.Column="7" Text="{Binding Radius, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBox Grid.Column="7" Text="{Binding Radius, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                     </Grid>
                 </GroupBox>
 

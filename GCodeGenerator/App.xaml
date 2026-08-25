@@ -25,6 +25,16 @@
 
             <infrastructure:EnumToBooleanConverter x:Key="EnumToBooleanConverter"/>
 
+            <!-- Числовые поля ввода: разделителем дробной части считаются
+                 и точка, и запятая, а незавершённый ввод значение не меняет. -->
+            <infrastructure:NumericTextConverter x:Key="NumericText"/>
+
+            <!-- Ячейка таблицы отверстий в режиме правки — такое же числовое
+                 поле, как и остальные: буквы в неё не вводятся. -->
+            <Style x:Key="NumericCellEditor" TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                <Setter Property="infrastructure:NumericInput.Mode" Value="Decimal"/>
+            </Style>
+
             <!-- Показ/скрытие по признаку: полоса прогресса генерации в главном
                  окне и строка о неверных параметрах в диалогах операций. -->
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>

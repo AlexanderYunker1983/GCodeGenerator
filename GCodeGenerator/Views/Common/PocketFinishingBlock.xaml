@@ -1,13 +1,14 @@
-<UserControl x:Class="GCodeGenerator.Views.Common.PocketFinishingBlock"
+﻿<UserControl x:Class="GCodeGenerator.Views.Common.PocketFinishingBlock"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
              xmlns:loc="clr-namespace:GCodeGenerator.Localization"
              xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core">
     <GroupBox Header="{loc:Loc PocketFinishingModeHeader}" Margin="0,0,0,8">
         <StackPanel Margin="8">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="{loc:Loc WallTaperAngleDeg}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox Width="120" Text="{Binding WallTaperAngleDeg, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </StackPanel>
 
             <!-- Черновой проход оставляет припуск, чистовой его снимает: одновременно они не включаются. -->
@@ -21,7 +22,7 @@
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="{loc:Loc PocketFinishAllowance}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                <TextBox Width="120" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged}"/>
+                <TextBox Width="120" Text="{Binding FinishAllowance, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
             </StackPanel>
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">

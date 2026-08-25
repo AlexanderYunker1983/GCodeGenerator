@@ -1,6 +1,7 @@
-<UserControl x:Class="GCodeGenerator.Views.Common.DrillPreviewBlock"
+﻿<UserControl x:Class="GCodeGenerator.Views.Common.DrillPreviewBlock"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
              xmlns:loc="clr-namespace:GCodeGenerator.Localization">
     <GroupBox Header="{loc:Loc FeedsAndZParametersHeader}">
         <Grid Margin="8">
@@ -27,22 +28,22 @@
 
             <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
                 <TextBlock Text="{loc:Loc FeedXYRapid}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+                <TextBox Text="{Binding FeedXYRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
                 <TextBlock Text="{loc:Loc FeedZRapidLabel}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+                <TextBox Text="{Binding FeedZRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
                 <TextBlock Text="{loc:Loc FeedZWorkLabel}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+                <TextBox Text="{Binding FeedZWork, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
                 <TextBlock Text="{loc:Loc SafeZBetweenHoles}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+                <TextBox Text="{Binding SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
                 <TextBlock Text="{loc:Loc RetractHeight}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged}" Width="80" Margin="0,0,0,8"/>
+                <TextBox Text="{Binding RetractHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
                 <TextBlock Text="{loc:Loc Decimals}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged}" Width="60"/>
+                <TextBox Text="{Binding Decimals, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer" Width="60"/>
             </StackPanel>
         </Grid>
     </GroupBox>

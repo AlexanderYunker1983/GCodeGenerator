@@ -1,6 +1,7 @@
-<Window x:Class="GCodeGenerator.Views.SettingsView"
+﻿<Window x:Class="GCodeGenerator.Views.SettingsView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
         xmlns:loc="clr-namespace:GCodeGenerator.Localization"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -32,14 +33,14 @@
                         <Label Content="{loc:Loc LineNumberStart}" Width="180" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding LineNumberStart, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                         <Label Content="{loc:Loc LineNumberStep}" Width="180" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding LineNumberStep, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer"/>
                     </StackPanel>
 
                     <CheckBox Margin="0,8,0,0"
@@ -87,15 +88,15 @@
                         <Label Content="{loc:Loc StartPositionX}" Width="60" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding StartX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                         <Label Content="{loc:Loc StartPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding StartY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                         <Label Content="{loc:Loc StartPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding StartZ, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                     </StackPanel>
 
                     <!-- Конечная позиция (G0) -->
@@ -107,15 +108,15 @@
                         <Label Content="{loc:Loc EndPositionX}" Width="60" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding EndX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                         <Label Content="{loc:Loc EndPositionY}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding EndY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                         <Label Content="{loc:Loc EndPositionZ}" Width="60" Margin="8,0,0,0" VerticalAlignment="Center"/>
                         <TextBox Width="80"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding EndZ, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                     </StackPanel>
                 </StackPanel>
             </mah:MetroTabItem>
@@ -137,7 +138,7 @@
                         <Label Content="{loc:Loc SpindleSpeedRpm}" Width="200" VerticalAlignment="Center"/>
                         <TextBox Width="100"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding SpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer"/>
                     </StackPanel>
 
                     <CheckBox Margin="0,0,0,4"
@@ -170,7 +171,7 @@
                         <Label Content="{loc:Loc SpindleDelaySeconds}" Width="200" VerticalAlignment="Center"/>
                         <TextBox Width="100"
                                  Style="{StaticResource MahApps.Styles.TextBox}"
-                                 Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged}"/>
+                                 Text="{Binding SpindleDelaySeconds, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal"/>
                     </StackPanel>
                 </StackPanel>
             </mah:MetroTabItem>
