@@ -8,6 +8,18 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 {
     /// <summary>
     /// Реализация геометрии для DXF профиля.
+    ///
+    /// Здесь находится единственный расчёт смещения профиля на радиус
+    /// инструмента. Раньше такой же расчёт был продублирован в
+    /// <see cref="UnifiedProfileGenerator"/>: генератор строил траекторию своей
+    /// копией алгоритма, а вход в материал по рампе рассчитывался по этой
+    /// геометрии, так что расхождение копий развело бы рампу и рез.
+    ///
+    /// Замкнутый контур смещает <see cref="ContourOffset"/> (Clipper2): у него
+    /// вершина отходит на правильное расстояние по биссектрисе, тогда как
+    /// смещение по усреднённой нормали срезало углы (на прямом угле — почти
+    /// на 30 %). Для незамкнутой полилинии смещение области не определено,
+    /// поэтому там по-прежнему используется усреднённая нормаль.
     /// </summary>
     public class DxfProfileGeometry : IProfileGeometry
     {
@@ -20,6 +32,22 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public bool SupportsArcs => false; // DXF может содержать дуги, но для упрощения считаем их линейными сегментами
 
+        /// <summary>
+        /// Смещение траектории, заданное режимом обработки операции.
+        /// </summary>
+        private double ToolOffset
+        {
+            get
+            {
+                var toolRadius = _operation.ToolDiameter / 2.0;
+                if (_operation.ToolPathMode == ToolPathMode.Outside)
+                    return toolRadius;
+                if (_operation.ToolPathMode == ToolPathMode.Inside)
+                    return -toolRadius;
+                return 0.0;
+            }
+        }
+
         public IEnumerable<(double x, double y)> GetContourPoints(
             double toolOffset,
             MillingDirection direction)
@@ -27,122 +55,301 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)
                 yield break;
 
-            var toolRadius = _operation.ToolDiameter / 2.0;
-            var offset = 0.0;
-            if (_operation.ToolPathMode == ToolPathMode.Outside)
-                offset = toolRadius;
-            else if (_operation.ToolPathMode == ToolPathMode.Inside)
-                offset = -toolRadius;
-
-            const double tolerance = GeometryTolerances.Vertex;
-
-            // Обрабатываем каждую полилинию отдельно
-            // Генератор будет строить линии только между точками внутри каждой полилинии
             foreach (var polyline in _operation.Polylines)
             {
                 if (polyline?.Points == null || polyline.Points.Count < 2)
                     continue;
 
-                // Применяем смещение к точкам полилинии
-                var points = polyline.Points;
-                var offsetPoints = new List<(double x, double y)>();
-
-                for (int i = 0; i < points.Count; i++)
+                foreach (var part in OffsetPolyline(polyline.Points, ToolOffset))
                 {
-                    var p = points[i];
-                    
-                    // Для вычисления нормали используем соседние точки внутри полилинии
-                    DxfPoint prevP, nextP;
-                    if (i == 0)
+                    var points = TrimClosingDuplicate(part);
+                    if (direction == MillingDirection.Clockwise)
                     {
-                        prevP = points.Count > 1 ? points[points.Count - 1] : points[0];
-                        nextP = points.Count > 1 ? points[1] : points[0];
-                    }
-                    else if (i == points.Count - 1)
-                    {
-                        prevP = points[i - 1];
-                        nextP = points.Count > 2 ? points[0] : points[i - 1];
+                        for (int i = points.Count - 1; i >= 0; i--)
+                            yield return points[i];
                     }
                     else
                     {
-                        prevP = points[i - 1];
-                        nextP = points[i + 1];
-                    }
-
-                    var dx1 = p.X - prevP.X;
-                    var dy1 = p.Y - prevP.Y;
-                    var dx2 = nextP.X - p.X;
-                    var dy2 = nextP.Y - p.Y;
-
-                    var len1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-                    var len2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-
-                    (double x, double y) offsetPoint;
-                    if (len1 > tolerance && len2 > tolerance)
-                    {
-                        var nx1 = -dy1 / len1;
-                        var ny1 = dx1 / len1;
-                        var nx2 = -dy2 / len2;
-                        var ny2 = dx2 / len2;
-
-                        var nx = (nx1 + nx2) / 2.0;
-                        var ny = (ny1 + ny2) / 2.0;
-                        var nlen = Math.Sqrt(nx * nx + ny * ny);
-                        if (nlen > tolerance)
-                        {
-                            nx /= nlen;
-                            ny /= nlen;
-                        }
-
-                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
-                    }
-                    else if (len1 > tolerance)
-                    {
-                        var nx = -dy1 / len1;
-                        var ny = dx1 / len1;
-                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
-                    }
-                    else if (len2 > tolerance)
-                    {
-                        var nx = -dy2 / len2;
-                        var ny = dx2 / len2;
-                        offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
-                    }
-                    else
-                    {
-                        offsetPoint = (p.X, p.Y);
-                    }
-                    
-                    offsetPoints.Add(offsetPoint);
-                }
-
-                if (offsetPoints.Count == 0)
-                    continue;
-
-                // Проверяем, замкнута ли полилиния
-                bool isPolylineClosed = offsetPoints.Count > 1 && 
-                    Math.Abs(offsetPoints[0].x - offsetPoints[offsetPoints.Count - 1].x) < tolerance &&
-                    Math.Abs(offsetPoints[0].y - offsetPoints[offsetPoints.Count - 1].y) < tolerance;
-
-                int pointsToReturn = isPolylineClosed ? offsetPoints.Count - 1 : offsetPoints.Count;
-
-                // Возвращаем точки полилинии последовательно
-                // Генератор будет строить линии только между соседними точками внутри полилинии
-                if (direction == MillingDirection.Clockwise)
-                {
-                    for (int i = pointsToReturn - 1; i >= 0; i--)
-                    {
-                        yield return offsetPoints[i];
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < pointsToReturn; i++)
-                    {
-                        yield return offsetPoints[i];
+                        for (int i = 0; i < points.Count; i++)
+                            yield return points[i];
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Замкнутые цепочки полилиний со смещением на радиус инструмента:
+        /// полилинии, состыкованные концами, образуют один контур, который
+        /// фрезеруется без отрыва инструмента. Возвращает по одному списку
+        /// точек на контур — переходы между контурами добавляет генератор.
+        /// </summary>
+        /// <param name="tolerance">Допуск стыковки концов полилиний.</param>
+        public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOffsetContours(double tolerance)
+        {
+            var result = new List<IReadOnlyList<(double x, double y)>>();
+            if (_operation.Polylines == null || _operation.Polylines.Count == 0)
+                return result;
+
+            double offset = ToolOffset;
+
+            foreach (var chain in GroupPolylinesIntoContours(_operation.Polylines, tolerance))
+            {
+                var contourPoints = new List<(double x, double y)>();
+
+                foreach (var polyline in chain)
+                {
+                    if (polyline?.Points == null || polyline.Points.Count < 2)
+                        continue;
+
+                    foreach (var part in OffsetPolyline(polyline.Points, offset))
+                    {
+                        var points = TrimClosingDuplicate(part);
+                        if (points.Count == 0)
+                            continue;
+
+                        // Стык с предыдущей полилинией цепочки не должен давать
+                        // повторную точку: инструмент уже стоит в ней.
+                        int startIndex = 0;
+                        if (contourPoints.Count > 0)
+                        {
+                            var last = contourPoints[contourPoints.Count - 1];
+                            var first = points[0];
+                            if (Math.Abs(last.x - first.x) < tolerance && Math.Abs(last.y - first.y) < tolerance)
+                                startIndex = 1;
+                        }
+
+                        for (int i = startIndex; i < points.Count; i++)
+                            contourPoints.Add(points[i]);
+                    }
+                }
+
+                if (contourPoints.Count > 0)
+                    result.Add(contourPoints);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Смещает одну полилинию. Замкнутая обрабатывается как область
+        /// (результатом может быть несколько контуров, если она распалась),
+        /// незамкнутая — сдвигом вершин по усреднённой нормали соседних сторон.
+        /// Нулевое смещение возвращает исходные точки без изменений.
+        /// </summary>
+        private static IReadOnlyList<List<(double x, double y)>> OffsetPolyline(
+            IReadOnlyList<DxfPoint> points,
+            double offset)
+        {
+            var single = new List<List<(double x, double y)>>();
+
+            if (offset == 0.0)
+            {
+                single.Add(points.Select(p => (p.X, p.Y)).ToList());
+                return single;
+            }
+
+            if (IsClosed(points))
+            {
+                foreach (var part in ContourOffset.Offset(points, offset))
+                    single.Add(part.Select(p => (p.X, p.Y)).ToList());
+                return single;
+            }
+
+            single.Add(OffsetOpenPolyline(points, offset));
+            return single;
+        }
+
+        /// <summary>
+        /// Смещение незамкнутой полилинии: каждая вершина сдвигается по
+        /// усреднённой нормали прилегающих сторон. Точного смещения области
+        /// здесь не существует — у линии нет внутренней стороны.
+        ///
+        /// Концевые вершины смещаются по нормали своей единственной стороны.
+        /// Прежний расчёт брал у первой вершины «предыдущей» последнюю точку
+        /// полилинии, а у последней — первую, как если бы линия была замкнута:
+        /// у прямого отрезка нормали получались противоположными, их среднее
+        /// обращалось в ноль, и концы линии оставались несмещёнными.
+        /// </summary>
+        private static List<(double x, double y)> OffsetOpenPolyline(IReadOnlyList<DxfPoint> points, double offset)
+        {
+            const double tolerance = GeometryTolerances.Vertex;
+            var offsetPoints = new List<(double x, double y)>(points.Count);
+
+            for (int i = 0; i < points.Count; i++)
+            {
+                var p = points[i];
+
+                // Нормали прилегающих сторон; у концевых вершин сторона одна.
+                bool hasPrevious = i > 0;
+                bool hasNext = i < points.Count - 1;
+
+                double nx1 = 0, ny1 = 0, nx2 = 0, ny2 = 0;
+                bool previousValid = false, nextValid = false;
+
+                if (hasPrevious)
+                {
+                    var prevP = points[i - 1];
+                    var dx = p.X - prevP.X;
+                    var dy = p.Y - prevP.Y;
+                    var len = Math.Sqrt(dx * dx + dy * dy);
+                    if (len > tolerance)
+                    {
+                        nx1 = -dy / len;
+                        ny1 = dx / len;
+                        previousValid = true;
+                    }
+                }
+
+                if (hasNext)
+                {
+                    var nextP = points[i + 1];
+                    var dx = nextP.X - p.X;
+                    var dy = nextP.Y - p.Y;
+                    var len = Math.Sqrt(dx * dx + dy * dy);
+                    if (len > tolerance)
+                    {
+                        nx2 = -dy / len;
+                        ny2 = dx / len;
+                        nextValid = true;
+                    }
+                }
+
+                (double x, double y) offsetPoint;
+                if (previousValid && nextValid)
+                {
+                    var nx = (nx1 + nx2) / 2.0;
+                    var ny = (ny1 + ny2) / 2.0;
+                    var nlen = Math.Sqrt(nx * nx + ny * ny);
+                    if (nlen > tolerance)
+                    {
+                        nx /= nlen;
+                        ny /= nlen;
+                    }
+
+                    offsetPoint = (p.X + nx * offset, p.Y + ny * offset);
+                }
+                else if (previousValid)
+                {
+                    offsetPoint = (p.X + nx1 * offset, p.Y + ny1 * offset);
+                }
+                else if (nextValid)
+                {
+                    offsetPoint = (p.X + nx2 * offset, p.Y + ny2 * offset);
+                }
+                else
+                {
+                    offsetPoint = (p.X, p.Y);
+                }
+
+                offsetPoints.Add(offsetPoint);
+            }
+
+            return offsetPoints;
+        }
+
+        /// <summary>
+        /// Убирает замыкающую точку, совпадающую с первой: инструмент уже
+        /// стоит в ней, а замыкание контура добавляет генератор.
+        /// </summary>
+        private static List<(double x, double y)> TrimClosingDuplicate(List<(double x, double y)> points)
+        {
+            const double tolerance = GeometryTolerances.Vertex;
+            if (points.Count > 1
+                && Math.Abs(points[0].x - points[points.Count - 1].x) < tolerance
+                && Math.Abs(points[0].y - points[points.Count - 1].y) < tolerance)
+            {
+                points.RemoveAt(points.Count - 1);
+            }
+            return points;
+        }
+
+        private static bool IsClosed(IReadOnlyList<DxfPoint> points)
+            => points.Count > 2
+                && Geometry2D.PointsMatch(points[0], points[points.Count - 1], GeometryTolerances.Vertex);
+
+        /// <summary>
+        /// Группирует полилинии в цепочки по стыковке концов: отдельные
+        /// отрезки и дуги из DXF складываются в контуры, которые фрезеруются
+        /// без отрыва инструмента.
+        /// </summary>
+        private static List<List<DxfPolyline>> GroupPolylinesIntoContours(List<DxfPolyline> polylines, double tolerance)
+        {
+            var contours = new List<List<DxfPolyline>>();
+            var used = new bool[polylines.Count];
+
+            for (int i = 0; i < polylines.Count; i++)
+            {
+                if (used[i] || polylines[i]?.Points == null || polylines[i].Points.Count < 2)
+                    continue;
+
+                var contour = BuildContourFromPolyline(polylines, i, used, tolerance);
+                if (contour != null && contour.Count > 0)
+                    contours.Add(contour);
+            }
+
+            return contours;
+        }
+
+        /// <summary>
+        /// Строит цепочку, начиная с указанной полилинии: каждая следующая
+        /// присоединяется концом к текущему концу цепочки, при необходимости
+        /// разворачиваясь.
+        /// </summary>
+        private static List<DxfPolyline> BuildContourFromPolyline(
+            List<DxfPolyline> polylines,
+            int startIdx,
+            bool[] used,
+            double tolerance)
+        {
+            var contour = new List<DxfPolyline> { polylines[startIdx] };
+            used[startIdx] = true;
+
+            var startPoint = polylines[startIdx].Points[0];
+            var currentPoint = polylines[startIdx].Points[polylines[startIdx].Points.Count - 1];
+
+            bool foundConnection = true;
+            while (foundConnection)
+            {
+                foundConnection = false;
+
+                for (int i = 0; i < polylines.Count; i++)
+                {
+                    if (used[i] || polylines[i]?.Points == null || polylines[i].Points.Count < 2)
+                        continue;
+
+                    var polyline = polylines[i];
+                    var polyStart = polyline.Points[0];
+                    var polyEnd = polyline.Points[polyline.Points.Count - 1];
+
+                    if (Geometry2D.PointsMatch(currentPoint, polyStart, tolerance))
+                    {
+                        contour.Add(polyline);
+                        used[i] = true;
+                        currentPoint = polyEnd;
+                        foundConnection = true;
+                        break;
+                    }
+
+                    if (Geometry2D.PointsMatch(currentPoint, polyEnd, tolerance))
+                    {
+                        var reversedPolyline = new DxfPolyline
+                        {
+                            Points = new List<DxfPoint>(polyline.Points)
+                        };
+                        reversedPolyline.Points.Reverse();
+                        contour.Add(reversedPolyline);
+                        used[i] = true;
+                        currentPoint = polyStart;
+                        foundConnection = true;
+                        break;
+                    }
+                }
+
+                if (Geometry2D.PointsMatch(currentPoint, startPoint, tolerance))
+                    break;
+            }
+
+            return contour;
         }
 
         public (double x, double y) GetStartPoint(double toolOffset)
@@ -153,13 +360,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             var firstPolyline = _operation.Polylines[0];
             if (firstPolyline?.Points == null || firstPolyline.Points.Count == 0)
                 return (0, 0);
-
-            var toolRadius = _operation.ToolDiameter / 2.0;
-            var offset = 0.0;
-            if (_operation.ToolPathMode == ToolPathMode.Outside)
-                offset = toolRadius;
-            else if (_operation.ToolPathMode == ToolPathMode.Inside)
-                offset = -toolRadius;
 
             var firstPoint = firstPolyline.Points[0];
             return (firstPoint.X, firstPoint.Y); // Упрощенная версия без смещения для начальной точки
@@ -199,13 +399,6 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)
                 return 0.0;
 
-            var toolRadius = _operation.ToolDiameter / 2.0;
-            var offset = 0.0;
-            if (_operation.ToolPathMode == ToolPathMode.Outside)
-                offset = toolRadius;
-            else if (_operation.ToolPathMode == ToolPathMode.Inside)
-                offset = -toolRadius;
-
             var perimeter = 0.0;
             foreach (var polyline in _operation.Polylines)
             {
@@ -224,7 +417,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
             // Упрощенная коррекция периметра с учетом смещения
             // В реальности нужно учитывать смещение по нормали, но для упрощения используем линейную аппроксимацию
-            return perimeter + offset * 2 * Math.PI; // Примерная коррекция
+            return perimeter + ToolOffset * 2 * Math.PI; // Примерная коррекция
         }
 
         public IEnumerable<IArcSegment> GetArcSegments(double toolOffset)
@@ -233,4 +426,3 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
     }
 }
-
