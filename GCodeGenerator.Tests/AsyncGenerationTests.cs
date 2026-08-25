@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
@@ -12,6 +10,8 @@ using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using GCodeGenerator.ViewModels.PocketMill;
+using netDxf;
+using netDxf.Header;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -150,27 +150,19 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Генерирует DXF с N сущностями LINE в формате, который ожидает парсер
-        /// (пары «код/значение», имя сущности — отдельной строкой).
+        /// Генерирует полноценный DXF-чертёж с N отрезками — такой же, какой
+        /// приходит из CAD-системы: с шапкой, таблицами и секцией сущностей.
         /// </summary>
         private static void WriteBigDxf(string path, int lineCount)
         {
-            using var writer = new StreamWriter(path, false, new UTF8Encoding(false));
+            var document = new DxfDocument(DxfVersion.AutoCad2000);
             for (var i = 0; i < lineCount; i++)
             {
-                writer.WriteLine("0");
-                writer.WriteLine("LINE");
-                writer.WriteLine("8");
-                writer.WriteLine("0");
-                writer.WriteLine("10");
-                writer.WriteLine((i * 0.5).ToString(CultureInfo.InvariantCulture));
-                writer.WriteLine("20");
-                writer.WriteLine("0");
-                writer.WriteLine("11");
-                writer.WriteLine((i * 0.5 + 1).ToString(CultureInfo.InvariantCulture));
-                writer.WriteLine("21");
-                writer.WriteLine("5");
+                document.Entities.Add(new netDxf.Entities.Line(
+                    new Vector2(i * 0.5, 0),
+                    new Vector2(i * 0.5 + 1, 5)));
             }
+            document.Save(path);
         }
     }
 }

@@ -1,343 +1,279 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
+using netDxf;
+using netDxf.Entities;
+using netDxf.Units;
 
 namespace GCodeGenerator.Services
 {
-    /// <summary>Разбирает поддерживаемые DXF-сущности в независимые полилинии.</summary>
+    /// <summary>
+    /// Разбирает DXF-файл в независимые полилинии.
+    ///
+    /// Разбор формата выполняет netDxf. Прежний построчный разбор читал файл
+    /// целиком как массив строк и знал только шесть типов сущностей вне всякой
+    /// структуры файла: он игнорировал секции (сущности искались и в шапке,
+    /// и в таблицах, и в блоках), не раскрывал вставки блоков, не читал
+    /// единицы чертежа и терял дуги внутри полилиний — параметр bulge
+    /// не разбирался, и дуга молча превращалась в хорду. Неразобранное число
+    /// превращалось в координату 0, то есть битый файл давал не ошибку,
+    /// а тихо испорченную геометрию.
+    ///
+    /// Дискретизация окружностей, дуг и эллипсов осталась прежней: сегменты
+    /// считаются теми же формулами, поэтому геометрия ранее импортированных
+    /// чертежей не меняется.
+    /// </summary>
     internal static class DxfEntityReader
     {
-        private const double ClosedContourTolerance = GeometryTolerances.PointCoincidence;
+        /// <summary>Число сегментов аппроксимации окружности.</summary>
+        private const int CircleSegments = 32;
 
-        internal static List<DxfPolyline> Read(string path, bool includePolylineEntities)
+        /// <summary>Наименьшее число сегментов аппроксимации дуги.</summary>
+        private const int MinimumArcSegments = 8;
+
+        /// <summary>Наименьшее число сегментов аппроксимации эллипса.</summary>
+        private const int MinimumEllipseSegments = 16;
+
+        /// <summary>
+        /// Читает геометрию чертежа. Координаты приводятся к миллиметрам
+        /// по единицам чертежа.
+        /// </summary>
+        /// <param name="path">Путь к DXF-файлу.</param>
+        /// <exception cref="InvalidDataException">Файл не является DXF-документом.</exception>
+        internal static List<DxfPolyline> Read(string path)
         {
-            var allPolylines = new List<DxfPolyline>();
-            var lines = File.ReadAllLines(path);
-            int i = 0;
+            var document = DxfDocument.Load(path);
+            if (document == null)
+                throw new InvalidDataException($"Файл не является DXF-документом: {path}");
 
-            double Parse(string v)
-            {
-                if (double.TryParse(v, NumberStyles.Float, CultureInfo.InvariantCulture, out var d))
-                    return d;
-                return 0;
-            }
+            double scale = GetMillimeterScale(document.DrawingVariables.InsUnits);
 
-            // Парсим все полилинии из DXF
-            while (i < lines.Length)
-            {
-                var code = lines[i].Trim();
-                i++;
+            var result = new List<DxfPolyline>();
+            foreach (var entity in document.Entities.All)
+                AppendEntity(entity, scale, result);
 
-                if (string.Equals(code, "LINE", StringComparison.OrdinalIgnoreCase))
-                {
-                    double? x1 = null, y1 = null, x2 = null, y2 = null;
-                    while (i + 1 < lines.Length)
-                    {
-                        var groupCode = lines[i].Trim();
-                        var value = lines[i + 1].Trim();
-                        i += 2;
-
-                        switch (groupCode)
-                        {
-                            case "10": x1 = Parse(value); break;
-                            case "20": y1 = Parse(value); break;
-                            case "11": x2 = Parse(value); break;
-                            case "21": y2 = Parse(value); break;
-                            case "39": break; // Thickness - игнорируем
-                            case "0": i -= 2; goto EndLine;
-                        }
-                    }
-                EndLine:
-                    if (x1.HasValue && y1.HasValue && x2.HasValue && y2.HasValue)
-                    {
-                        allPolylines.Add(new DxfPolyline
-                        {
-                            Points = new List<DxfPoint>
-                            {
-                                new DxfPoint { X = x1.Value, Y = y1.Value },
-                                new DxfPoint { X = x2.Value, Y = y2.Value }
-                            }
-                        });
-                    }
-                    continue;
-                }
-                else if (string.Equals(code, "CIRCLE", StringComparison.OrdinalIgnoreCase))
-                {
-                    double? cx = null, cy = null, radius = null;
-                    while (i + 1 < lines.Length)
-                    {
-                        var groupCode = lines[i].Trim();
-                        var value = lines[i + 1].Trim();
-                        i += 2;
-
-                        switch (groupCode)
-                        {
-                            case "10": cx = Parse(value); break;
-                            case "20": cy = Parse(value); break;
-                            case "40": radius = Parse(value); break;
-                            case "0": i -= 2; goto EndCircle;
-                        }
-                    }
-                EndCircle:
-                    if (cx.HasValue && cy.HasValue && radius.HasValue && radius.Value > 0)
-                    {
-                        var circlePoints = ApproximateCircle(cx.Value, cy.Value, radius.Value);
-                        allPolylines.Add(new DxfPolyline { Points = circlePoints });
-                    }
-                    continue;
-                }
-                else if (string.Equals(code, "ARC", StringComparison.OrdinalIgnoreCase))
-                {
-                    double? cx = null, cy = null, radius = null, startAngle = null, endAngle = null;
-                    while (i + 1 < lines.Length)
-                    {
-                        var groupCode = lines[i].Trim();
-                        var value = lines[i + 1].Trim();
-                        i += 2;
-
-                        switch (groupCode)
-                        {
-                            case "10": cx = Parse(value); break;
-                            case "20": cy = Parse(value); break;
-                            case "40": radius = Parse(value); break;
-                            case "50": startAngle = Parse(value); break;
-                            case "51": endAngle = Parse(value); break;
-                            case "0": i -= 2; goto EndArc;
-                        }
-                    }
-                EndArc:
-                    // Дуги могут быть частью замкнутого контура из нескольких сегментов
-                    // Добавляем их как сегменты для последующего соединения
-                    if (cx.HasValue && cy.HasValue && radius.HasValue && radius.Value > 0 && 
-                        startAngle.HasValue && endAngle.HasValue)
-                    {
-                        var arcPoints = ApproximateArc(cx.Value, cy.Value, radius.Value, 
-                            startAngle.Value, endAngle.Value);
-                        allPolylines.Add(new DxfPolyline { Points = arcPoints });
-                    }
-                    continue;
-                }
-                else if (string.Equals(code, "ELLIPSE", StringComparison.OrdinalIgnoreCase))
-                {
-                    double? centerX = null, centerY = null;
-                    double? majorEndX = null, majorEndY = null;
-                    double? ratio = null;
-                    double? startParam = null, endParam = null;
-                    while (i + 1 < lines.Length)
-                    {
-                        var groupCode = lines[i].Trim();
-                        var value = lines[i + 1].Trim();
-                        i += 2;
-
-                        switch (groupCode)
-                        {
-                            case "10": centerX = Parse(value); break;
-                            case "20": centerY = Parse(value); break;
-                            case "11": majorEndX = Parse(value); break;
-                            case "21": majorEndY = Parse(value); break;
-                            case "40": ratio = Parse(value); break;
-                            case "41": startParam = Parse(value); break;
-                            case "42": endParam = Parse(value); break;
-                            case "0": i -= 2; goto EndEllipse;
-                        }
-                    }
-                EndEllipse:
-                    if (centerX.HasValue && centerY.HasValue && majorEndX.HasValue && majorEndY.HasValue && 
-                        ratio.HasValue && ratio.Value > 0 && startParam.HasValue && endParam.HasValue)
-                    {
-                        var ellipsePoints = ApproximateEllipse(centerX.Value, centerY.Value,
-                            majorEndX.Value, majorEndY.Value, ratio.Value,
-                            startParam.Value, endParam.Value);
-                        allPolylines.Add(new DxfPolyline { Points = ellipsePoints });
-                    }
-                    continue;
-                }
-                else if (includePolylineEntities &&
-                         (string.Equals(code, "LWPOLYLINE", StringComparison.OrdinalIgnoreCase) ||
-                          string.Equals(code, "POLYLINE", StringComparison.OrdinalIgnoreCase)))
-                {
-                    var polylinePoints = new List<DxfPoint>();
-                    bool isClosed = false;
-                    while (i + 1 < lines.Length)
-                    {
-                        var groupCode = lines[i].Trim();
-                        var value = lines[i + 1].Trim();
-                        i += 2;
-
-                        switch (groupCode)
-                        {
-                            case "70": // Flags
-                                isClosed = (int.Parse(value) & 1) != 0; // Bit 0 = closed
-                                break;
-                            case "10": // X coordinate
-                                var x = Parse(value);
-                                var y = 0.0;
-                                if (i < lines.Length && lines[i].Trim() == "20")
-                                {
-                                    i++;
-                                    if (i < lines.Length)
-                                    {
-                                        y = Parse(lines[i].Trim());
-                                        i++;
-                                    }
-                                }
-                                polylinePoints.Add(new DxfPoint { X = x, Y = y });
-                                break;
-                            case "0":
-                                if (string.Equals(value, "VERTEX", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    // Читаем вершину
-                                    double? vx = null, vy = null;
-                                    while (i + 1 < lines.Length)
-                                    {
-                                        var vGroupCode = lines[i].Trim();
-                                        var vValue = lines[i + 1].Trim();
-                                        i += 2;
-
-                                        switch (vGroupCode)
-                                        {
-                                            case "10": vx = Parse(vValue); break;
-                                            case "20": vy = Parse(vValue); break;
-                                            case "0":
-                                                i -= 2;
-                                                goto EndVertex;
-                                        }
-                                    }
-                                EndVertex:
-                                    if (vx.HasValue && vy.HasValue)
-                                        polylinePoints.Add(new DxfPoint { X = vx.Value, Y = vy.Value });
-                                }
-                                else
-                                {
-                                    i -= 2;
-                                    goto EndPolyline;
-                                }
-                                break;
-                        }
-                    }
-                EndPolyline:
-                    if (polylinePoints.Count >= 3)
-                    {
-                        // Если полилиния помечена как замкнутая, добавляем первую точку в конец
-                        if (isClosed && polylinePoints.Count > 0)
-                        {
-                            var firstPoint = polylinePoints[0];
-                            var lastPoint = polylinePoints[polylinePoints.Count - 1];
-                            if (Math.Abs(firstPoint.X - lastPoint.X) > ClosedContourTolerance ||
-                                Math.Abs(firstPoint.Y - lastPoint.Y) > ClosedContourTolerance)
-                            {
-                                polylinePoints.Add(new DxfPoint { X = firstPoint.X, Y = firstPoint.Y });
-                            }
-                        }
-                        allPolylines.Add(new DxfPolyline { Points = polylinePoints });
-                    }
-                    continue;
-                }
-            }
-
-            return allPolylines;
+            return result;
         }
 
-        private static List<DxfPoint> ApproximateCircle(double centerX, double centerY, double radius)
+        /// <summary>
+        /// Коэффициент перевода координат чертежа в миллиметры. Чертёж без
+        /// заданных единиц трактуется как миллиметровый: так же работал
+        /// прежний разбор.
+        /// </summary>
+        private static double GetMillimeterScale(DrawingUnits units)
         {
-            const int segments = 32;
-            var points = new List<DxfPoint>();
-            for (int i = 0; i <= segments; i++)
+            switch (units)
             {
-                var angle = 2.0 * Math.PI * i / segments;
-                points.Add(new DxfPoint
-                {
-                    X = centerX + radius * Math.Cos(angle),
-                    Y = centerY + radius * Math.Sin(angle)
-                });
+                case DrawingUnits.Centimeters: return 10.0;
+                case DrawingUnits.Decimeters: return 100.0;
+                case DrawingUnits.Meters: return 1000.0;
+                case DrawingUnits.Inches: return 25.4;
+                case DrawingUnits.Feet: return 304.8;
+                case DrawingUnits.Yards: return 914.4;
+                case DrawingUnits.Microinches: return 25.4e-6;
+                case DrawingUnits.Mils: return 0.0254;
+                case DrawingUnits.Microns: return 0.001;
+                case DrawingUnits.Millimeters:
+                case DrawingUnits.Unitless:
+                default:
+                    return 1.0;
+            }
+        }
+
+        private static void AppendEntity(EntityObject entity, double scale, List<DxfPolyline> result)
+        {
+            switch (entity)
+            {
+                case Line line:
+                    Add(result, new[]
+                    {
+                        Point(line.StartPoint.X, line.StartPoint.Y, scale),
+                        Point(line.EndPoint.X, line.EndPoint.Y, scale)
+                    });
+                    break;
+
+                case Circle circle:
+                    Add(result, ApproximateCircle(circle, scale));
+                    break;
+
+                case Arc arc:
+                    Add(result, ApproximateArc(arc, scale));
+                    break;
+
+                case Ellipse ellipse:
+                    Add(result, ApproximateEllipse(ellipse, scale));
+                    break;
+
+                case Polyline2D polyline2D:
+                    Add(result, ReadPolyline(polyline2D, scale));
+                    break;
+
+                case Polyline3D polyline3D:
+                    Add(result, ReadPolyline3D(polyline3D, scale));
+                    break;
+
+                case Insert insert:
+                    // Вставка блока: раскрываем в сущности с координатами модели.
+                    foreach (var exploded in insert.Explode())
+                        AppendEntity(exploded, scale, result);
+                    break;
+
+                default:
+                    // Тексты, размеры, штриховки и прочее геометрией контура не являются.
+                    break;
+            }
+        }
+
+        private static void Add(List<DxfPolyline> result, IReadOnlyList<DxfPoint> points)
+        {
+            if (points == null || points.Count < 2)
+                return;
+            result.Add(new DxfPolyline { Points = new List<DxfPoint>(points) });
+        }
+
+        private static DxfPoint Point(double x, double y, double scale)
+            => new DxfPoint { X = x * scale, Y = y * scale };
+
+        private static List<DxfPoint> ApproximateCircle(Circle circle, double scale)
+        {
+            if (circle.Radius <= 0)
+                return null;
+
+            var points = new List<DxfPoint>(CircleSegments + 1);
+            for (int i = 0; i <= CircleSegments; i++)
+            {
+                var angle = 2.0 * Math.PI * i / CircleSegments;
+                points.Add(Point(
+                    circle.Center.X + circle.Radius * Math.Cos(angle),
+                    circle.Center.Y + circle.Radius * Math.Sin(angle),
+                    scale));
             }
             return points;
         }
 
-        private static List<DxfPoint> ApproximateArc(double centerX, double centerY, double radius,
-            double startAngleDeg, double endAngleDeg)
+        private static List<DxfPoint> ApproximateArc(Arc arc, double scale)
         {
-            const int minSegments = 8;
-            var startAngle = startAngleDeg * Math.PI / 180.0;
-            var endAngle = endAngleDeg * Math.PI / 180.0;
+            if (arc.Radius <= 0)
+                return null;
 
+            var startAngle = arc.StartAngle * Math.PI / 180.0;
+            var endAngle = arc.EndAngle * Math.PI / 180.0;
             while (endAngle < startAngle)
                 endAngle += 2.0 * Math.PI;
 
             var angleSpan = endAngle - startAngle;
-            var segments = Math.Max(minSegments, (int)(angleSpan / (Math.PI / 16.0)));
+            var segments = Math.Max(MinimumArcSegments, (int)(angleSpan / (Math.PI / 16.0)));
 
-            var points = new List<DxfPoint>();
+            var points = new List<DxfPoint>(segments + 1);
             for (int i = 0; i <= segments; i++)
             {
                 var angle = startAngle + angleSpan * i / segments;
-                points.Add(new DxfPoint
-                {
-                    X = centerX + radius * Math.Cos(angle),
-                    Y = centerY + radius * Math.Sin(angle)
-                });
+                points.Add(Point(
+                    arc.Center.X + arc.Radius * Math.Cos(angle),
+                    arc.Center.Y + arc.Radius * Math.Sin(angle),
+                    scale));
             }
             return points;
         }
 
-        private static List<DxfPoint> ApproximateEllipse(double centerX, double centerY,
-            double majorEndX, double majorEndY, double ratio,
-            double startParam, double endParam)
+        private static List<DxfPoint> ApproximateEllipse(Ellipse ellipse, double scale)
         {
-            // В DXF: (11, 21) - это конечная точка большой оси ОТНОСИТЕЛЬНО ЦЕНТРА (вектор от центра)
-            // Это стандарт для DXF ELLIPSE - координаты задаются относительно центра
-            // Используем (11, 21) напрямую как вектор от центра
-            double majorRadius = Math.Sqrt(majorEndX * majorEndX + majorEndY * majorEndY);
-            
-            // Проверяем, что радиус не нулевой
-            if (majorRadius < GeometryTolerances.Degenerate)
-                return new List<DxfPoint>();
-            
-            // Малая полуось = большая полуось * соотношение
-            double minorRadius = majorRadius * ratio;
+            double majorRadius = ellipse.MajorAxis / 2.0;
+            double minorRadius = ellipse.MinorAxis / 2.0;
+            if (majorRadius <= 0 || minorRadius <= 0)
+                return null;
 
-            // Вычисляем угол поворота большой оси (направление вектора)
-            double rotationAngle = Math.Atan2(majorEndY, majorEndX);
+            var startParam = ellipse.StartAngle * Math.PI / 180.0;
+            var endParam = ellipse.EndAngle * Math.PI / 180.0;
+            while (endParam <= startParam)
+                endParam += 2.0 * Math.PI;
 
-            // Нормализуем параметры (в DXF параметры заданы в радианах)
-            double normalizedStartParam = startParam;
-            double normalizedEndParam = endParam;
-            while (normalizedEndParam < normalizedStartParam)
-                normalizedEndParam += 2.0 * Math.PI;
+            var paramSpan = endParam - startParam;
+            var segments = Math.Max(MinimumEllipseSegments, (int)(paramSpan / (Math.PI / 16.0)));
 
-            const int minSegments = 32;
-            var paramSpan = normalizedEndParam - normalizedStartParam;
-            var segments = Math.Max(minSegments, (int)(paramSpan / (Math.PI / 16.0)));
+            var rotation = ellipse.Rotation * Math.PI / 180.0;
+            var cosRotation = Math.Cos(rotation);
+            var sinRotation = Math.Sin(rotation);
 
-            var points = new List<DxfPoint>();
-            double cosRot = Math.Cos(rotationAngle);
-            double sinRot = Math.Sin(rotationAngle);
-            
+            var points = new List<DxfPoint>(segments + 1);
             for (int i = 0; i <= segments; i++)
             {
-                var param = normalizedStartParam + paramSpan * i / segments;
-                // Параметрическое уравнение эллипса в локальной системе координат
-                // где большая ось направлена по оси X, малая по оси Y
-                // x = a * cos(t), y = b * sin(t), где a = majorRadius, b = minorRadius
-                double xLocal = majorRadius * Math.Cos(param);
-                double yLocal = minorRadius * Math.Sin(param);
-                
-                // Поворачиваем на угол rotationAngle (чтобы совместить локальную ось X с направлением большой оси)
-                // и переносим в центр
-                double rotatedX = xLocal * cosRot - yLocal * sinRot;
-                double rotatedY = xLocal * sinRot + yLocal * cosRot;
-                
-                points.Add(new DxfPoint
-                {
-                    X = centerX + rotatedX,
-                    Y = centerY + rotatedY
-                });
+                var parameter = startParam + paramSpan * i / segments;
+                var localX = majorRadius * Math.Cos(parameter);
+                var localY = minorRadius * Math.Sin(parameter);
+                points.Add(Point(
+                    ellipse.Center.X + localX * cosRotation - localY * sinRotation,
+                    ellipse.Center.Y + localX * sinRotation + localY * cosRotation,
+                    scale));
             }
             return points;
         }
 
+        /// <summary>
+        /// Полилиния чертежа. Она раскрывается на отрезки и дуги, а дуги
+        /// разбиваются той же формулой, что и отдельная сущность ARC, — иначе
+        /// скругление внутри полилинии описывалось бы грубее, чем такая же
+        /// дуга, нарисованная отдельно. Замкнутая полилиния возвращается
+        /// с повторением первой вершины в конце, как её и ожидает сборка
+        /// контуров.
+        /// </summary>
+        private static List<DxfPoint> ReadPolyline(Polyline2D polyline, double scale)
+        {
+            if (polyline.Vertexes.Count < 2)
+                return null;
+
+            var points = new List<DxfPoint>();
+            foreach (var segment in polyline.Explode())
+            {
+                List<DxfPoint> segmentPoints;
+                switch (segment)
+                {
+                    case Line line:
+                        segmentPoints = new List<DxfPoint>
+                        {
+                            Point(line.StartPoint.X, line.StartPoint.Y, scale),
+                            Point(line.EndPoint.X, line.EndPoint.Y, scale)
+                        };
+                        break;
+                    case Arc arc:
+                        segmentPoints = ApproximateArc(arc, scale);
+                        break;
+                    default:
+                        continue;
+                }
+
+                if (segmentPoints == null || segmentPoints.Count == 0)
+                    continue;
+
+                // Конец предыдущего сегмента и начало следующего — одна вершина.
+                int startIndex = points.Count > 0
+                    && Math.Abs(points[points.Count - 1].X - segmentPoints[0].X) < GeometryTolerances.Vertex
+                    && Math.Abs(points[points.Count - 1].Y - segmentPoints[0].Y) < GeometryTolerances.Vertex
+                    ? 1
+                    : 0;
+
+                for (int i = startIndex; i < segmentPoints.Count; i++)
+                    points.Add(segmentPoints[i]);
+            }
+
+            return points;
+        }
+
+        private static List<DxfPoint> ReadPolyline3D(Polyline3D polyline, double scale)
+        {
+            if (polyline.Vertexes.Count < 2)
+                return null;
+
+            var points = new List<DxfPoint>(polyline.Vertexes.Count + 1);
+            foreach (var vertex in polyline.Vertexes)
+                points.Add(Point(vertex.X, vertex.Y, scale));
+
+            if (polyline.IsClosed)
+                points.Add(Point(polyline.Vertexes[0].X, polyline.Vertexes[0].Y, scale));
+
+            return points;
+        }
     }
 }
