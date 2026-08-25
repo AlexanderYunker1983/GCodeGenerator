@@ -95,7 +95,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
 
             area *= 0.5;
-            if (Math.Abs(area) > GeometryTolerances.Degenerate)
+            // Порог площади вырожденного контура: делить на неё нельзя,
+            // центр берётся как среднее арифметическое вершин.
+            if (Math.Abs(area) > GeometryTolerances.Vertex)
             {
                 double invArea = 1.0 / (6.0 * area);
                 return (cx * invArea, cy * invArea);
@@ -526,7 +528,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
 
             area *= 0.5;
-            if (Math.Abs(area) > GeometryTolerances.Degenerate)
+            // Порог площади вырожденного контура: делить на неё нельзя,
+            // центр берётся как среднее арифметическое вершин.
+            if (Math.Abs(area) > GeometryTolerances.Vertex)
             {
                 double invArea = 1.0 / (6.0 * area);
                 return (cx * invArea, cy * invArea);
