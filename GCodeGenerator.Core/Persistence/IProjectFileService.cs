@@ -13,7 +13,8 @@ namespace GCodeGenerator.Persistence
     {
         /// <summary>
         /// Сохраняет проект в текущем формате (UTF-8 с BOM), включая настройки
-        /// генерации из <paramref name="settings"/>.
+        /// генерации из <paramref name="settings"/>. Запись атомарна: ошибка
+        /// не оставляет существующий файл обрезанным.
         /// </summary>
         void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings);
 
