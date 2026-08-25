@@ -24,10 +24,20 @@ namespace GCodeGenerator.Tests
     public class MainViewModelOperationEditTests
     {
         /// <summary>Заглушка диалоговой VM: фиксирует операцию и коллекцию, переданные в диалог.</summary>
-        private sealed class StubDrillDialogVm : IDrillDialogViewModel
+        private sealed class StubEditorViewModel : IOperationEditorViewModel
         {
-            public ObservableCollection<OperationBase> Operations { get; set; }
-            public DrillPointsOperation Operation { get; set; }
+            public ObservableCollection<OperationBase> Operations { private get; set; }
+
+            public OperationBase EditedOperation { get; private set; }
+
+            public bool IsAccepted => false;
+
+            public bool IsRemovalRequested => false;
+
+            public void SetOperation(OperationBase operation) => EditedOperation = operation;
+
+            /// <summary>Коллекция, переданная диалогу (для проверок теста).</summary>
+            public ObservableCollection<OperationBase> ReceivedOperations => Operations;
         }
 
         /// <summary>Фиксирует вызовы IDialogService без показа окон.</summary>
@@ -63,7 +73,7 @@ namespace GCodeGenerator.Tests
             public object CreateViewModel(Type viewModelType)
             {
                 CreatedType = viewModelType;
-                return ViewModelFactory?.Invoke(viewModelType) ?? new StubDrillDialogVm();
+                return ViewModelFactory?.Invoke(viewModelType) ?? new StubEditorViewModel();
             }
 
             public void ShowDialog<TViewModel>(TViewModel viewModel) where TViewModel : class
@@ -142,6 +152,28 @@ namespace GCodeGenerator.Tests
             public void ApplyTheme(bool useDarkTheme) => ThemeChanged?.Invoke(this, EventArgs.Empty);
         }
 
+        /// <summary>
+        /// Фабрика передаёт диалогу операцию и общий список через единый
+        /// контракт, ничего не зная о его типе. Диалог, который этот контракт
+        /// не реализует, откроется с ошибкой в руках пользователя, поэтому
+        /// соответствие проверяется здесь — для каждого типа операции
+        /// эталонного набора.
+        /// </summary>
+        [TestMethod]
+        public void GetViewModelType_EveryOperation_ImplementsEditorContract()
+        {
+            var (_, factory, _, _) = CreateMain();
+
+            foreach (var operation in ReferenceOperations.Build())
+            {
+                var viewModelType = factory.GetViewModelType(operation);
+                Assert.IsNotNull(viewModelType, $"Для {operation.GetType().Name} должен быть диалог");
+                Assert.IsTrue(
+                    typeof(IOperationEditorViewModel).IsAssignableFrom(viewModelType),
+                    $"{viewModelType.Name} должен реализовывать {nameof(IOperationEditorViewModel)}");
+            }
+        }
+
         [TestMethod]
         public void GetViewModelType_AllDrillModes_MappedCorrectly()
         {
@@ -197,10 +229,11 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.CreatedType,
                 "Диалог выбирается по DrillMode, а не по имени");
             Assert.AreEqual(typeof(DrillArcOperationViewModel), dialogService.ShownType);
-            Assert.AreNotSame(op, ((IDrillDialogViewModel)dialogService.ShownVm).Operation,
+            var shown = (StubEditorViewModel)dialogService.ShownVm;
+            Assert.AreNotSame(op, shown.EditedOperation,
                 "Диалог должен получать изолированную рабочую копию");
-            Assert.AreEqual(op.DrillMode, ((IDrillDialogViewModel)dialogService.ShownVm).Operation.DrillMode);
-            Assert.AreSame(main.AllOperations, ((IDrillDialogViewModel)dialogService.ShownVm).Operations,
+            Assert.AreEqual(op.DrillMode, ((DrillPointsOperation)shown.EditedOperation).DrillMode);
+            Assert.AreSame(main.AllOperations, shown.ReceivedOperations,
                 "Диалог получает единую коллекцию операций (пункт 7.2)");
         }
 

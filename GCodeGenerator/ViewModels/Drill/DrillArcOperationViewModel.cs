@@ -5,7 +5,7 @@ using GCodeGenerator.Localization;
 
 namespace GCodeGenerator.ViewModels.Drill
 {
-    public class DrillArcOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName, IDrillDialogViewModel
+    public class DrillArcOperationViewModel : OperationEditorViewModelBase<DrillPointsOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager _localizationManager;
 

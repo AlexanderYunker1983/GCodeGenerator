@@ -13,6 +13,34 @@ namespace GCodeGenerator.ViewModels
     }
 
     /// <summary>
+    /// Контракт диалога редактора операции, не зависящий от конкретного типа
+    /// операции. Нужен фабрике диалогов: она выбирает view-модель по типу
+    /// операции и должна передать ей операцию и общий список, ничего не зная
+    /// об их типах. Прежде фабрика перебирала одиннадцать типов view-моделей
+    /// в switch, где все ветки делали одно и то же.
+    ///
+    /// Реализуется базовым классом <see cref="OperationEditorViewModelBase{TOperation}"/>,
+    /// который приводит операцию к своему типу.
+    /// </summary>
+    public interface IOperationEditorViewModel : IOperationEditorSession
+    {
+        /// <summary>Единая коллекция операций (MainViewModel.AllOperations).</summary>
+        ObservableCollection<OperationBase> Operations { set; }
+
+        /// <summary>Операция, которую редактирует диалог (рабочая копия).</summary>
+        OperationBase EditedOperation { get; }
+
+        /// <summary>
+        /// Задаёт редактируемую операцию.
+        /// </summary>
+        /// <param name="operation">Операция того типа, который редактирует диалог.</param>
+        /// <exception cref="System.InvalidCastException">
+        /// Тип операции не совпадает с типом, который редактирует диалог.
+        /// </exception>
+        void SetOperation(OperationBase operation);
+    }
+
+    /// <summary>
     /// Базовый класс view-моделей диалогов редактора операций (пункт 7.3 плана):
     /// явная семантика OK/Cancel.
     ///
@@ -29,7 +57,7 @@ namespace GCodeGenerator.ViewModels
     /// (<see cref="LoadFromOperation"/>). Диалоговые VM мигрируют на этот базовый
     /// класс в пункте 7.4 плана (по одному диалогу на коммит).
     /// </summary>
-    public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel, IOperationEditorSession
+    public abstract class OperationEditorViewModelBase<TOperation> : CloseableViewModel, IOperationEditorViewModel
         where TOperation : OperationBase
     {
         private TOperation _operation;
@@ -39,6 +67,13 @@ namespace GCodeGenerator.ViewModels
         /// невалидной операции по OK.
         /// </summary>
         public ObservableCollection<OperationBase> Operations { get; set; }
+
+        /// <inheritdoc />
+        void IOperationEditorViewModel.SetOperation(OperationBase operation)
+            => Operation = (TOperation)operation;
+
+        /// <inheritdoc />
+        OperationBase IOperationEditorViewModel.EditedOperation => Operation;
 
         /// <summary>Редактируемая операция. Сеттер читает значения в свойства VM.</summary>
         public TOperation Operation

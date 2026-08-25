@@ -69,64 +69,18 @@ namespace GCodeGenerator.Services
             if (vmType == null) return;
             var workingCopy = OperationEditTransaction.CreateWorkingCopy(operation);
             var vm = _dialogService.CreateViewModel(vmType);
-            switch (vm)
-            {
-                case IDrillDialogViewModel drillVm:
-                    drillVm.Operations = allOperations;
-                    drillVm.Operation = (DrillPointsOperation)workingCopy;
-                    break;
-                case PocketCircleOperationViewModel pocketCircleVm:
-                    pocketCircleVm.Operations = allOperations;
-                    pocketCircleVm.Operation = (PocketCircleOperation)workingCopy;
-                    break;
-                case PocketRectangleOperationViewModel pocketRectangleVm:
-                    pocketRectangleVm.Operations = allOperations;
-                    pocketRectangleVm.Operation = (PocketRectangleOperation)workingCopy;
-                    break;
-                case PocketEllipseOperationViewModel pocketEllipseVm:
-                    pocketEllipseVm.Operations = allOperations;
-                    pocketEllipseVm.Operation = (PocketEllipseOperation)workingCopy;
-                    break;
-                case PocketDxfOperationViewModel pocketDxfVm:
-                    pocketDxfVm.Operations = allOperations;
-                    pocketDxfVm.Operation = (PocketDxfOperation)workingCopy;
-                    break;
-                case ProfileCircleOperationViewModel profileCircleVm:
-                    profileCircleVm.Operations = allOperations;
-                    profileCircleVm.Operation = (ProfileCircleOperation)workingCopy;
-                    break;
-                case ProfileRectangleOperationViewModel profileRectangleVm:
-                    profileRectangleVm.Operations = allOperations;
-                    profileRectangleVm.Operation = (ProfileRectangleOperation)workingCopy;
-                    break;
-                case ProfileRoundedRectangleOperationViewModel profileRoundedRectangleVm:
-                    profileRoundedRectangleVm.Operations = allOperations;
-                    profileRoundedRectangleVm.Operation = (ProfileRoundedRectangleOperation)workingCopy;
-                    break;
-                case ProfileEllipseOperationViewModel profileEllipseVm:
-                    profileEllipseVm.Operations = allOperations;
-                    profileEllipseVm.Operation = (ProfileEllipseOperation)workingCopy;
-                    break;
-                case ProfilePolygonOperationViewModel profilePolygonVm:
-                    profilePolygonVm.Operations = allOperations;
-                    profilePolygonVm.Operation = (ProfilePolygonOperation)workingCopy;
-                    break;
-                case ProfileDxfOperationViewModel profileDxfVm:
-                    profileDxfVm.Operations = allOperations;
-                    profileDxfVm.Operation = (ProfileDxfOperation)workingCopy;
-                    break;
-                default:
-                    throw new InvalidOperationException($"Неизвестный тип диалоговой VM: {vmType}");
-            }
+            if (!(vm is IOperationEditorViewModel editor))
+                throw new InvalidOperationException(
+                    $"View-модель {vmType.Name} не реализует {nameof(IOperationEditorViewModel)}.");
+
+            editor.Operations = allOperations;
+            editor.SetOperation(workingCopy);
             _dialogService.ShowDialog(vmType, vm);
 
-            if (vm is IOperationEditorSession session)
-            {
-                if (session.IsAccepted)
-                    OperationEditTransaction.Commit(workingCopy, operation);
-                else if (session.IsRemovalRequested)
-                    allOperations?.Remove(operation);
-            }
+            if (editor.IsAccepted)
+                OperationEditTransaction.Commit(workingCopy, operation);
+            else if (editor.IsRemovalRequested)
+                allOperations?.Remove(operation);
         }
 
         /// <summary>
