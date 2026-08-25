@@ -14,7 +14,6 @@ namespace GCodeGenerator.GCodeGenerators
     /// Единый генератор для всех типов карманов.
     /// Использует интерфейсы геометрии и классы-помощники для унификации логики.
     /// Пункт 4.6 плана (декомпозиция): слой DXF-кармана — <see cref="DxfPocketLayerGenerator"/>,
-    /// эвристики отсечки — <see cref="ContourCutoffAnalyzer"/>,
     /// обработка контура — <see cref="IPocketPocketingStrategy"/> (5 стратегий, фаза 5).
     /// Пункт 5.6 плана: roughing/finishing через
     /// <see cref="PocketGenerationHelper.ProcessRoughingFinishing"/>.
@@ -118,9 +117,6 @@ namespace GCodeGenerator.GCodeGenerators
             double stepPercent = (op.StepPercentOfTool <= 0) ? 40 : op.StepPercentOfTool;
             double step = GCodeGenerationHelper.CalculateStep(op.ToolDiameter, stepPercent);
 
-            // Состояние отсечки (площади слоёв, данные подобия) — на вызов MillPocket
-            var cutoff = new ContourCutoffAnalyzer();
-
             // Генерируем цикл по слоям
             _helper.GenerateLayerLoop(
                 op,
@@ -131,8 +127,6 @@ namespace GCodeGenerator.GCodeGenerators
                     step,
                     currentZ,
                     nextZ,
-                    passNumber,
-                    cutoff,
                     builder,
                     settings,
                     taperOriginZ),
@@ -149,8 +143,6 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="step">Шаг обработки.</param>
         /// <param name="currentZ">Z верха слоя.</param>
         /// <param name="nextZ">Рабочая Z слоя.</param>
-        /// <param name="passNumber">Номер слоя (прохода), начиная с 1.</param>
-        /// <param name="cutoff">Состояние эвристик отсечки (используется только DXF-карманами).</param>
         /// <param name="builder">Построитель структурированной программы.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
@@ -163,8 +155,6 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double currentZ,
             double nextZ,
-            int passNumber,
-            ContourCutoffAnalyzer cutoff,
             ProgramBuilder builder,
             GCodeSettings settings,
             double? taperOriginZ = null,
@@ -177,14 +167,13 @@ namespace GCodeGenerator.GCodeGenerators
 
             var activeStrategy = strategy ?? GetStrategy(op.PocketStrategy);
 
-            // Для DXF операций обрабатываем все контуры отдельно
-            // Проверка размера контуров выполняется в DxfPocketLayerGenerator для каждого контура отдельно
+            // Для DXF-операций слой состоит из областей, на которые распадается
+            // эквидистанта каждого замкнутого контура (см. DxfPocketLayerGenerator).
             if (op is PocketDxfOperation dxfOp)
             {
                 return _dxfLayerGenerator.GenerateLayer(
                     dxfOp, toolRadius, taperOffset, step,
-                    currentZ, nextZ, passNumber, cutoff,
-                    activeStrategy, builder, settings);
+                    currentZ, nextZ, activeStrategy, builder, settings);
             }
 
             // Проверяем, не стал ли контур слишком маленьким для обработки (для не-DXF операций)
@@ -237,8 +226,6 @@ namespace GCodeGenerator.GCodeGenerators
             double stepPercent = (wallOp.StepPercentOfTool <= 0) ? 40 : wallOp.StepPercentOfTool;
             double step = GCodeGenerationHelper.CalculateStep(wallOp.ToolDiameter, stepPercent);
 
-            // Состояние отсечки для слоя припуска
-            var cutoff = new ContourCutoffAnalyzer();
             var geometry = CreateGeometry(wallOp);
 
             _helper.GenerateLayerLoop(
@@ -250,8 +237,6 @@ namespace GCodeGenerator.GCodeGenerators
                     step,
                     currentZ,
                     nextZ,
-                    passNumber,
-                    cutoff,
                     builder,
                     settings,
                     taperOriginZ: originalOp.ContourHeight,

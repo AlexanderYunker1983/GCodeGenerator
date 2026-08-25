@@ -16,8 +16,9 @@ namespace GCodeGenerator.Tests
     ///
     /// Задача — зафиксировать ТЕКУЩЕЕ поведение рискованных участков, чтобы
     /// последующие фазы (4/5) могли менять его осознанно:
-    /// - DXF-карман: отсечка слоя («песочные часы», критерии площади/обхода/векторов),
-    ///   крайние случаи (узкий контур с уклоном, вырождение, контур меньше фрезы);
+    /// - DXF-карман: остановка обработки, когда эквидистанта перестаёт давать
+    ///   области, распад области на части («песочные часы»), крайние случаи
+    ///   (узкий контур с уклоном, контур меньше фрезы);
     /// - спираль при малых шагах и малом контуре;
     /// - уклон стенок (taper) на карманах;
     /// - дуги G2/G3 и fallback на полилинии при AllowArcs=false.
@@ -26,18 +27,19 @@ namespace GCodeGenerator.Tests
     /// - Тесты вызывают генераторы напрямую (UnifiedPocketGenerator / UnifiedProfileGenerator
     ///   с List&lt;string&gt;-коллектором) — это уровень, на котором живёт тестируемая логика.
     /// - Ранее зафиксированные T9/T4 и Geo_Square защищают исправление «фантомной
-    ///   фрезеровки»: контур меньше фрезы отсекается до построения вырожденного оффсета.
+    ///   фрезеровки»: контур меньше фрезы не даёт областей эквидистанты и
+    ///   не порождает ни одного рабочего перемещения.
     /// - Helpers_CalculateStep фиксирует оставшийся guard `step &lt; 1e-6` — no-op
     ///   (переприсваивает то же значение).
     /// - У профилей НЕТ параметра taper (в плане пункт упоминает «taper на профилях и карманах»,
     ///   но в моделях профилей/`IProfileOperation` WallTaperAngleDeg отсутствует — только у карманов).
     ///   Поэтому taper покрывается только для карманов.
-    /// - Формула слоя «песочных часов» (`ceil(log(0.01)/log(ratio))+1` по первым двум слоям)
-    ///   для выпуклых контуров с линейным уклоном никогда не срабатывает первой: сжатие площади
-    ///   всегда ускоряется, и экстраполяция предсказывает точку 1% позже реального вырождения —
-    ///   первыми побеждают критерий 1 (рост площади от bowtie) или IsContourTooSmall
-    ///   (проверено на T2/T7/T9/HG1). Она может иметь значение только для невыпуклых контуров;
-    ///   здесь её эффект характеризуется косвенно — через наблюдаемые слои остановки.
+    /// - Тесты «песочных часов» и П-образного контура фиксируют поведение после
+    ///   перехода на корректное смещение контура: область, распавшаяся на части,
+    ///   фрезеруется по частям, а обработка останавливается тогда, когда частей
+    ///   не остаётся. До перехода те же случаи давали самопересекающуюся
+    ///   эквидистанту, и их приходилось распознавать эвристиками площади,
+    ///   направления обхода и «песочных часов».
     /// - Культура: инвариантная (по плану), как в GoldenTests.
     /// </summary>
     [TestClass]
@@ -255,7 +257,7 @@ namespace GCodeGenerator.Tests
             var lines = RunPocket(op);
             Assert.AreEqual(5, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
-            Assert.AreEqual(755, CountG1XY(lines));
+            Assert.AreEqual(791, CountG1XY(lines));
         }
 
         /// <summary>
@@ -273,10 +275,10 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(4, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
-            Assert.AreEqual(6000, CountG1XY(lines));
+            Assert.AreEqual(5996, CountG1XY(lines));
 
             // T4b: разбивка перемещений по областям контуров.
-            Assert.AreEqual(6000, CountG1XYInRegion(lines, -2, 42, -2, 22), "Перемещения в области большого контура");
+            Assert.AreEqual(5996, CountG1XYInRegion(lines, -2, 42, -2, 22), "Перемещения в области большого контура");
             Assert.AreEqual(0, CountG1XYInRegion(lines, 58, 64, -2, 4),
                 "Контур меньше диаметра фрезы не должен порождать траекторию");
         }
@@ -310,29 +312,36 @@ namespace GCodeGenerator.Tests
             var lines = RunPocket(op);
             Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
-            Assert.AreEqual(203, CountG1XY(lines));
+            Assert.AreEqual(201, CountG1XY(lines));
             Assert.AreEqual(1.768, MaxDistFromCenter(lines, 3.75, 3.75), 0.01);
         }
 
         /// <summary>
         /// HG1: «песочные часы» (0,0)-(10,0)-(6,4)-(10,8)-(0,8)-(4,4), фреза 3, taper 15°, глубина 6.
-        /// Оффсет на o=1.768 самопересекается → остановка уже на 1-м слое, перемещений нет.
-        /// Контрастная пара с HG2 (тот же контур, taper 0).
+        /// Перемычка в середине шириной 2 мм уже фрезы, поэтому смещение на
+        /// радиус разрывает область на верхнюю и нижнюю половины — обе
+        /// фрезеруются, пока уклон не съедает их полностью.
+        /// Прежняя реализация возвращала здесь самопересекающийся контур,
+        /// и обработка обрывалась эвристикой на первом же слое.
         /// </summary>
         [TestMethod]
-        public void Dxf_Hourglass_Taper15_StopsOnFirstPass()
+        public void Dxf_Hourglass_Taper15_MillsBothHalvesUntilTaperClosesThem()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 6, StepDepth = 1, WallTaperAngleDeg = 15 };
             op.ClosedContours.Add(Poly((0, 0), (10, 0), (6, 4), (10, 8), (0, 8), (4, 4), (0, 0)));
             var lines = RunPocket(op);
-            Assert.AreEqual(1, CountPasses(lines));
-            Assert.IsTrue(HasStopComment(lines));
-            Assert.AreEqual(0, CountG1XY(lines));
+            Assert.AreEqual(3, CountPasses(lines));
+            Assert.IsTrue(HasStopComment(lines), "С ростом глубины уклон закрывает обе половины");
+            Assert.IsTrue(CountG1XY(lines) > 0, "Половины «песочных часов» должны фрезероваться");
+            Assert.IsTrue(CountG1XYInRegion(lines, -1, 11, -1, 4) > 0, "Нижняя половина обрабатывается");
+            Assert.IsTrue(CountG1XYInRegion(lines, -1, 11, 4, 9) > 0, "Верхняя половина обрабатывается");
         }
 
         /// <summary>
-        /// HG2: тот же контур «песочные часы», но taper 0 → фрезеруется на полную глубину
-        /// (6 слоёв). Резкая граница поведения между taper 15° (HG1) и taper 0.
+        /// HG2: тот же контур «песочные часы», но taper 0 → обе половины
+        /// фрезеруются на полную глубину (6 слоёв). Прежняя реализация
+        /// проходила здесь по самопересекающейся эквидистанте и давала вдвое
+        /// меньше перемещений.
         /// </summary>
         [TestMethod]
         public void Dxf_Hourglass_TaperZero_MillsFullDepth()
@@ -342,22 +351,27 @@ namespace GCodeGenerator.Tests
             var lines = RunPocket(op);
             Assert.AreEqual(6, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
-            Assert.AreEqual(546, CountG1XY(lines));
+            Assert.AreEqual(1086, CountG1XY(lines));
+            Assert.IsTrue(CountG1XYInRegion(lines, -1, 11, -1, 4) > 0, "Нижняя половина обрабатывается");
+            Assert.IsTrue(CountG1XYInRegion(lines, -1, 11, 4, 9) > 0, "Верхняя половина обрабатывается");
         }
 
         /// <summary>
-        /// HG3: U-образный контур (невыпуклый), фреза 3, taper 10°, глубина 6.
-        /// Остановка на 4-м слое (o ≈ 2.029).
+        /// HG3: П-образный контур (невыпуклый), фреза 3, taper 10°, глубина 6.
+        /// Основание и ножки имеют толщину 4 мм, поэтому на третьем слое
+        /// эффективный радиус 1.5 + 3·tg10° = 2.029 требует 4.06 мм — области
+        /// не остаётся. Прежняя реализация делала на этой глубине ещё один
+        /// проход по испорченной эквидистанте.
         /// </summary>
         [TestMethod]
-        public void Dxf_UShape_Taper10_StopsAtPass4()
+        public void Dxf_UShape_Taper10_StopsWhenWallsCloseIn()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 6, StepDepth = 1, WallTaperAngleDeg = 10 };
             op.ClosedContours.Add(Poly((0, 0), (12, 0), (12, 10), (8, 10), (8, 4), (4, 4), (4, 10), (0, 10), (0, 0)));
             var lines = RunPocket(op);
-            Assert.AreEqual(4, CountPasses(lines));
+            Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
-            Assert.AreEqual(269, CountG1XY(lines));
+            Assert.IsTrue(CountG1XY(lines) > 0);
         }
 
         // ------------------------------------------------------------------
@@ -433,14 +447,14 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// G1/G2: тонкий треугольник (0,0)-(20,0)-(10,2).
-        /// Центр (центроид) = (10, 0.6667).
-        /// На o=0.5 все критерии — False (контур валиден).
-        /// На o=1.5 оффсет меняет направление обхода: winding=True
-        /// (векторный и tooSmall критерии его не ловят).
+        /// Тонкий треугольник (0,0)-(20,0)-(10,2), центроид (10, 0.6667).
+        /// При смещении 0.5 область ещё остаётся, при 1.5 — уже нет: высота
+        /// треугольника всего 2 мм. Прежняя реализация на 1.5 возвращала
+        /// вывернутый контур, и распознавать его приходилось эвристикой смены
+        /// направления обхода.
         /// </summary>
         [TestMethod]
-        public void DxfGeometry_ThinTriangle_WindingFlipsAtOffset1_5()
+        public void DxfGeometry_ThinTriangle_LosesAreaBeyondHalfHeight()
         {
             var op = new PocketDxfOperation { ToolDiameter = 3 };
             var geo = new DxfPocketGeometry(op, Poly((0, 0), (20, 0), (10, 2), (0, 0)));
@@ -449,15 +463,11 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(10.0, center.x, 1e-4);
             Assert.AreEqual(2.0 / 3.0, center.y, 1e-4);
 
-            // o = 0.5 (toolRadius=0 + taperOffset=0.5): контур валиден
             Assert.IsFalse(geo.IsContourTooSmall(0, 0.5));
-            Assert.IsFalse(geo.HasWindingDirectionChanged(0, 0.5));
-            Assert.IsFalse(geo.HasVectorDirectionChanged(0, 0.5));
+            Assert.AreEqual(1, geo.GetOffsetParts(0, 0.5).Count);
 
-            // o = 1.5: смена направления обхода
             Assert.IsTrue(geo.IsContourTooSmall(0, 1.5), "Фреза D3 не помещается по высоте треугольника");
-            Assert.IsTrue(geo.HasWindingDirectionChanged(0, 1.5), "На o=1.5 направление обхода должно поменяться");
-            Assert.IsFalse(geo.HasVectorDirectionChanged(0, 1.5));
+            Assert.AreEqual(0, geo.GetOffsetParts(0, 1.5).Count);
         }
 
         /// <summary>
@@ -474,8 +484,7 @@ namespace GCodeGenerator.Tests
             foreach (var o in new[] { 1.0, 4.9 })
             {
                 Assert.IsFalse(geo.IsContourTooSmall(0, o), $"IsContourTooSmall(o={o})");
-                Assert.IsFalse(geo.HasWindingDirectionChanged(0, o), $"HasWindingDirectionChanged(o={o})");
-                Assert.IsFalse(geo.HasVectorDirectionChanged(0, o), $"HasVectorDirectionChanged(o={o})");
+                Assert.AreEqual(1, geo.GetOffsetParts(0, o).Count, $"Число областей при o={o}");
             }
 
             Assert.IsTrue(geo.IsContourTooSmall(0, 5.1), "Оффсет больше вписанного радиуса должен отсекаться");

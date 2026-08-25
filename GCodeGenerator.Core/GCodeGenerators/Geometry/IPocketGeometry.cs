@@ -59,9 +59,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         IEnumerable<(double x, double y)> GetPoints();
 
         /// <summary>
-        /// Получить площадь контура.
-        /// Используется эвристиками отсечки слоёв DXF-кармана
-        /// (<see cref="ContourCutoffAnalyzer"/>).
+        /// Получить площадь контура. Используется выбором наибольшей области
+        /// эквидистанты DXF-кармана и превью операций.
         /// </summary>
         /// <returns>Площадь контура</returns>
         double GetArea();

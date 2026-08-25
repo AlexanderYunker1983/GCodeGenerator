@@ -34,5 +34,8 @@
     <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
     <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Clipper2" Version="2.0.0" />
+  </ItemGroup>
 
 </Project>
