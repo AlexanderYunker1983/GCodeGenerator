@@ -59,16 +59,35 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void ChangingSettings_MakesDocumentDirty()
+        public void ChangingGenerationSettings_MakesDocumentDirty()
         {
             var (main, _, dialogs, settingsStore) = MainViewModelOperationEditTests.CreateMain();
 
             // Настройки генерации сохраняются вместе с проектом.
+            settingsStore.Current.Format.UseComments = !settingsStore.Current.Format.UseComments;
             settingsStore.Save();
             main.ConfirmClose();
 
             Assert.AreEqual(1, dialogs.SaveConfirmationCount,
-                "Правка настроек делает проект несохранённым");
+                "Правка настроек генерации делает проект несохранённым");
+        }
+
+        /// <summary>
+        /// Смена темы или языка — дело приложения, а не документа: прежде
+        /// любой OK окна настроек помечал проект несохранённым, даже если
+        /// в нём меняли только тему.
+        /// </summary>
+        [TestMethod]
+        public void UiOnlySettingsSave_KeepsDocumentClean()
+        {
+            var (main, _, dialogs, settingsStore) = MainViewModelOperationEditTests.CreateMain();
+
+            settingsStore.Current.Ui.UseDarkTheme = !settingsStore.Current.Ui.UseDarkTheme;
+            settingsStore.Save();
+            main.ConfirmClose();
+
+            Assert.AreEqual(0, dialogs.SaveConfirmationCount,
+                "Смена темы не делает проект несохранённым");
         }
 
         [TestMethod]

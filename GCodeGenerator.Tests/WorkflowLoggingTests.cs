@@ -144,13 +144,26 @@ namespace GCodeGenerator.Tests
         /// <summary>Хранилище настроек по умолчанию, без персистентности.</summary>
         private sealed class DefaultSettingsStore : ISettingsStore
         {
-            public event EventHandler SettingsChanged;
+            public event EventHandler GenerationSettingsChanged;
 
             public GCodeSettings Current { get; } = new GCodeSettings();
 
-            public void Save() => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            public void Save()
+            {
+            }
 
-            public void RestoreGlobalGenerationSettings() => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            public void SaveGenerationDefaults(GCodeSettings source)
+            {
+            }
+
+            public void RestoreGlobalGenerationSettings() => GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
+
+            public void ApplyProjectSettings(
+                GCodeFormatSettings format,
+                SpindleSettings spindle,
+                CoolantSettings coolant,
+                WorkCoordinateSettings workCoordinate)
+                => GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 }

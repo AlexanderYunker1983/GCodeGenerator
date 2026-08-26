@@ -48,7 +48,7 @@ namespace GCodeGenerator.ViewModels
             _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
-            _settingsStore.SettingsChanged += OnSettingsChanged;
+            _settingsStore.GenerationSettingsChanged += OnGenerationSettingsChanged;
             _operationsWorkspace = operationsWorkspace
                 ?? throw new ArgumentNullException(nameof(operationsWorkspace));
 
@@ -162,11 +162,13 @@ namespace GCodeGenerator.ViewModels
             _documentBatch = null;
         }
 
-        private void OnSettingsChanged(object? sender, EventArgs e)
+        private void OnGenerationSettingsChanged(object? sender, EventArgs e)
         {
             _gCodeWorkflow.InvalidateGeneratedProgram();
             // Настройки генерации сохраняются вместе с проектом, поэтому их
-            // правка делает проект несохранённым.
+            // правка делает проект несохранённым. Событие приходит только при
+            // фактическом их изменении: смена темы или языка программу не
+            // сбрасывает и проект не пачкает.
             _projectWorkflow.MarkDirty();
         }
 

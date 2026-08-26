@@ -83,6 +83,7 @@ namespace GCodeGenerator.ViewModels
 
             OkCommand = new RelayCommand(OnOk);
             CancelCommand = new RelayCommand(RequestClose);
+            SaveAsDefaultsCommand = new RelayCommand(OnSaveAsDefaults);
 
             LoadFromSettings(_settings);
             _initialDarkTheme = UseDarkTheme;
@@ -202,6 +203,12 @@ namespace GCodeGenerator.ViewModels
         public ICommand CancelCommand { get; }
 
         /// <summary>
+        /// Записать значения окна как умолчания генерации для новых проектов.
+        /// Текущий документ не меняется — его настройки меняет OK.
+        /// </summary>
+        public ICommand SaveAsDefaultsCommand { get; }
+
+        /// <summary>
         /// Смена темы видна сразу — окно показывает то, что получит
         /// приложение. Если настройки не приняты, тема возвращается к
         /// исходной при закрытии.
@@ -249,6 +256,18 @@ namespace GCodeGenerator.ViewModels
             _settingsStore?.Save();
             _isAccepted = true;
             RequestClose();
+        }
+
+        /// <summary>
+        /// Значения окна становятся умолчаниями для новых проектов. Настройки
+        /// открытого документа не трогаются: пользователь мог нажать кнопку
+        /// и затем отменить окно — документ обязан остаться прежним.
+        /// </summary>
+        private void OnSaveAsDefaults()
+        {
+            var defaults = new GCodeSettings();
+            ApplyToSettings(defaults);
+            _settingsStore?.SaveGenerationDefaults(defaults);
         }
 
         /// <summary>Читает настройки в свойства окна по таблице маппинга.</summary>

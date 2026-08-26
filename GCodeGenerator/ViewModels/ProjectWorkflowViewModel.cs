@@ -343,18 +343,11 @@ namespace GCodeGenerator.ViewModels
 
         private void ApplyProjectSettings(ProjectFileData data)
         {
-            _settingsStore?.RestoreGlobalGenerationSettings();
-            var settings = _settingsStore?.Current;
-            if (settings == null)
-                return;
-            if (data.Format != null)
-                settings.Format = data.Format;
-            if (data.Spindle != null)
-                settings.Spindle = data.Spindle;
-            if (data.Coolant != null)
-                settings.Coolant = data.Coolant;
-            if (data.WorkCoordinate != null)
-                settings.WorkCoordinate = data.WorkCoordinate;
+            // Применяет хранилище: оно ведёт слепок генерационных настроек,
+            // и мутация Current в обход него оставила бы слепок устаревшим —
+            // следующее сохранение настроек ложно пометило бы проект
+            // несохранённым.
+            _settingsStore?.ApplyProjectSettings(data.Format, data.Spindle, data.Coolant, data.WorkCoordinate);
         }
 
         private string Localize(string key)

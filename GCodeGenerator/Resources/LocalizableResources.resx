@@ -309,6 +309,12 @@
   <data name="PostProcessor" xml:space="preserve">
     <value>Machine controller (post-processor):</value>
   </data>
+  <data name="SaveAsDefaults" xml:space="preserve">
+    <value>Save as defaults</value>
+  </data>
+  <data name="SaveAsDefaultsToolTip" xml:space="preserve">
+    <value>Remember the generation settings in this window as defaults for new projects. The current project is not affected.</value>
+  </data>
   <data name="DarkTheme" xml:space="preserve">
     <value>Night mode (dark theme)</value>
   </data>

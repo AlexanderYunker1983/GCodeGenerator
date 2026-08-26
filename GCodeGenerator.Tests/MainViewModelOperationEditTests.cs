@@ -72,12 +72,26 @@ namespace GCodeGenerator.Tests
         /// <summary>Пункт 8.4: internal — переиспользуется в AsyncGenerationTests.</summary>
         internal sealed class FakeSettingsStore : ISettingsStore
         {
-            public event EventHandler SettingsChanged;
+            private string _generationSnapshot;
+
+            public event EventHandler GenerationSettingsChanged;
 
             public GCodeSettings Current { get; } = new GCodeSettings();
             public int RestoreCalls { get; private set; }
 
-            public void Save() => SettingsChanged?.Invoke(this, EventArgs.Empty);
+            public FakeSettingsStore()
+            {
+                _generationSnapshot = Snapshot(Current);
+            }
+
+            // Контракт хранилища: о генерационных настройках сообщается по
+            // фактической разнице. Фикс повторяет это, иначе тесты цепочки
+            // «настройки → проект несохранён» проверяли бы не то поведение.
+            public void Save() => RaiseIfChanged();
+
+            public void SaveGenerationDefaults(GCodeSettings source)
+            {
+            }
 
             public void RestoreGlobalGenerationSettings()
             {
@@ -86,8 +100,37 @@ namespace GCodeGenerator.Tests
                 Current.Spindle = new SpindleSettings();
                 Current.Coolant = new CoolantSettings();
                 Current.WorkCoordinate = new WorkCoordinateSettings();
-                SettingsChanged?.Invoke(this, EventArgs.Empty);
+                RaiseIfChanged();
             }
+
+            public void ApplyProjectSettings(
+                GCodeFormatSettings format,
+                SpindleSettings spindle,
+                CoolantSettings coolant,
+                WorkCoordinateSettings workCoordinate)
+            {
+                RestoreCalls++;
+                Current.Format = format ?? new GCodeFormatSettings();
+                Current.Spindle = spindle ?? new SpindleSettings();
+                Current.Coolant = coolant ?? new CoolantSettings();
+                Current.WorkCoordinate = workCoordinate ?? new WorkCoordinateSettings();
+                RaiseIfChanged();
+            }
+
+            private void RaiseIfChanged()
+            {
+                var snapshot = Snapshot(Current);
+                if (snapshot == _generationSnapshot)
+                    return;
+
+                _generationSnapshot = snapshot;
+                GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            private static string Snapshot(GCodeSettings settings)
+                => System.Text.Json.JsonSerializer.Serialize(
+                    new { settings.Format, settings.Spindle, settings.Coolant, settings.WorkCoordinate },
+                    ProjectJson.Options);
         }
 
         /// <summary>Фикс IThemeService (пункт 7.5 плана): без WPF.</summary>

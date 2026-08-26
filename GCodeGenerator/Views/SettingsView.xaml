@@ -14,11 +14,20 @@
         Width="640" Height="600"
         MinWidth="560" MinHeight="360">
     <DockPanel>
-        <!-- Явные OK/Cancel: сохраняет OK, отмена и крестик оставляют настройки прежними. -->
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Margin="8,0,8,8">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
-        </StackPanel>
+        <!-- Явные OK/Cancel: сохраняет OK, отмена и крестик оставляют настройки прежними.
+             «Сделать умолчаниями» записывает значения окна как умолчания генерации
+             для новых проектов, не трогая открытый документ. -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="8,0,8,8">
+            <Button DockPanel.Dock="Left"
+                    Content="{loc:Loc SaveAsDefaults}"
+                    ToolTip="{loc:Loc SaveAsDefaultsToolTip}"
+                    Command="{Binding SaveAsDefaultsCommand}"
+                    MinWidth="120"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
+                <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
+            </StackPanel>
+        </DockPanel>
 
         <mah:MetroTabControl Margin="8">
             <!-- MahApps 2.x: mah:MetroTabItem вместо TabItem (стиль MetroTabItem типизирован под MetroTabItem). -->

@@ -87,6 +87,27 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(1, store.SaveCount);
         }
 
+        /// <summary>
+        /// «Сделать умолчаниями» отправляет в хранилище значения окна,
+        /// не трогая настройки открытого документа: пользователь может
+        /// нажать кнопку и затем отменить окно — документ остаётся прежним.
+        /// </summary>
+        [TestMethod]
+        public void SaveAsDefaults_WritesWindowValuesWithoutTouchingDocument()
+        {
+            var store = new FakeSettingsStore();
+            store.Current.Format.LineNumberStep = 10;
+            var dialog = new SettingsViewModel(null, store, new FakeThemeService());
+
+            dialog.LineNumberStep = 55;
+            Execute(dialog.SaveAsDefaultsCommand);
+
+            Assert.AreEqual(1, store.SavedDefaults.Count, "Умолчания записаны один раз");
+            Assert.AreEqual(55, store.SavedDefaults[0].Format.LineNumberStep, "Записаны значения окна");
+            Assert.AreEqual(10, store.Current.Format.LineNumberStep, "Документ не изменился");
+            Assert.AreEqual(0, store.SaveCount, "Это не OK: обычного сохранения не было");
+        }
+
         [TestMethod]
         public void Cancel_KeepsSettingsUntouched()
         {
@@ -253,19 +274,32 @@ namespace GCodeGenerator.Tests
         /// <summary>Хранилище настроек в памяти: считает вызовы сохранения.</summary>
         private sealed class FakeSettingsStore : ISettingsStore
         {
-            public event EventHandler SettingsChanged;
+            public event EventHandler GenerationSettingsChanged;
 
             public GCodeSettings Current { get; } = new GCodeSettings();
 
             public int SaveCount { get; private set; }
 
+            /// <summary>Слепки настроек, записанных как умолчания.</summary>
+            public List<GCodeSettings> SavedDefaults { get; } = new List<GCodeSettings>();
+
             public void Save()
             {
                 SaveCount++;
-                SettingsChanged?.Invoke(this, EventArgs.Empty);
+                GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
             }
 
+            public void SaveGenerationDefaults(GCodeSettings source) => SavedDefaults.Add(source);
+
             public void RestoreGlobalGenerationSettings()
+            {
+            }
+
+            public void ApplyProjectSettings(
+                GCodeFormatSettings format,
+                SpindleSettings spindle,
+                CoolantSettings coolant,
+                WorkCoordinateSettings workCoordinate)
             {
             }
         }
