@@ -47,7 +47,7 @@ namespace GCodeGenerator.Tests
         private const double Tolerance = 1e-3;
 
         /// <summary>
-        /// Все 31 фикстура: сцены из структуры и из текста совпадают.
+        /// Все фикстуры каталога: сцены из структуры и из текста совпадают.
         /// Покрывает дуги (Profile.Circle — G2/G3 с I/J), G92-фикстуру,
         /// padded G, линейные номера, M3/M4/M5/M8/M9, WCS.
         /// </summary>

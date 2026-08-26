@@ -37,7 +37,7 @@ namespace GCodeGenerator.Tests
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Reference");
 
         /// <summary>
-        /// Все 31 фикстура: новый пайплайн (структура → форматтер) == golden
+        /// Все фикстуры каталога: новый пайплайн (структура → форматтер) == golden
         /// (старый строковый вывод) построчно.
         /// </summary>
         [TestMethod]
