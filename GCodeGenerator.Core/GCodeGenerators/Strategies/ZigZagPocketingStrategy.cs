@@ -53,10 +53,17 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     double xFrom = leftToRight ? seg.x1 : seg.x2;
                     double xTo = leftToRight ? seg.x2 : seg.x1;
 
+                    var from = PocketScanLines.ToWorld((xFrom, line.Y), layer.Center, op.LineAngleDeg);
                     var to = PocketScanLines.ToWorld((xTo, line.Y), layer.Center, op.LineAngleDeg);
 
-                    // Первый вызов — связка из центра (инструмент уже на рабочей Z);
-                    // остальные — рез сегмента или связка к следующему сегменту.
+                    // Связка к ближнему концу сегмента (первый раз — из центра,
+                    // дальше — от конца предыдущего реза: у соседних линий это
+                    // короткий шаг вдоль стенки), затем рез вдоль скан-линии.
+                    // Прежде выводился только дальний конец: рез «x1 → x2»,
+                    // обещанный шапкой, не выполнялся никогда, траектория
+                    // вырождалась в диагонали через весь карман, а у стенок
+                    // шаг между реально пройденными путями удваивался.
+                    builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork, decimals: decimals);
                     builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork, decimals: decimals);
                 }
             }

@@ -241,6 +241,57 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
+        // Зигзаг: рез вдоль скан-линий
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Каждая скан-линия зигзага проходится резом вдоль неё — от края
+        /// сегмента до края, — а не пересекается диагональю. Прежде стратегия
+        /// выводила только дальний конец сегмента: рез «x1 → x2», записанный
+        /// в её же описании, не выполнялся никогда, траектория вырождалась
+        /// в диагонали через весь карман, а у стенок шаг между реально
+        /// пройденными путями удваивался. Инварианты покрытия дефекта
+        /// не видели: радиус фрезы больше шага, и кромка инструмента
+        /// «накрывала» пропущенное даже с диагоналей.
+        /// </summary>
+        [TestMethod]
+        public void ZigZag_CutsAlongEachScanLine()
+        {
+            var op = Configure(Circle(), PocketStrategy.ZigZag);
+            var lines = Run(op);
+
+            var offsetRadius = 20.0 - ToolDiameter / 2.0;
+            var cuts = new List<(double y, double length)>();
+            (double x, double y)? previous = null;
+            foreach (var m in GCodeLineParser.LinearXyMoves(lines))
+            {
+                var current = (x: m.X.Value, y: m.Y.Value);
+                if (previous.HasValue
+                    && Math.Abs(previous.Value.y - current.y) < 1e-6
+                    && Math.Abs(previous.Value.x - current.x) > Step / 2)
+                {
+                    cuts.Add((current.y, Math.Abs(previous.Value.x - current.x)));
+                }
+
+                previous = current;
+            }
+
+            Assert.IsTrue(cuts.Count >= 5,
+                $"резов вдоль скан-линий найдено {cuts.Count} — зигзаг обязан резать вдоль каждой линии, а не диагоналями");
+
+            // Рез тянется на всю хорду смещённого круга на высоте линии.
+            // Допуск: округление координат кадра до трёх знаков плюс хорды
+            // тесселяции контура — сегмент строится по многоугольнику,
+            // а хорда считается по идеальному кругу.
+            foreach (var (y, length) in cuts)
+            {
+                var chord = 2.0 * Math.Sqrt(Math.Max(0.0, offsetRadius * offsetRadius - y * y));
+                Assert.IsTrue(length >= chord - 0.01,
+                    $"рез на Y={y:F3} длиной {length:F3} короче хорды {chord:F3}");
+            }
+        }
+
+        // ------------------------------------------------------------------
         // Z-переходы
         // ------------------------------------------------------------------
 
