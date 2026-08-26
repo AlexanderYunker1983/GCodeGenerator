@@ -46,6 +46,8 @@ namespace GCodeGenerator.Tests.Fixtures
                 cases.Add(new FixtureCase("Profile.Polygon.Inside", Ops(WithToolPathMode(OperationFixtures.ProfilePolygon(), ToolPathMode.Inside)), SettingsFixtures.Default()));
                 cases.Add(new FixtureCase("Profile.Ellipse.Outside", Ops(WithToolPathMode(OperationFixtures.ProfileEllipse(), ToolPathMode.Outside)), SettingsFixtures.Default()));
                 cases.Add(new FixtureCase("Profile.Ellipse.Inside", Ops(WithToolPathMode(OperationFixtures.ProfileEllipse(), ToolPathMode.Inside)), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Dxf.Outside", Ops(WithToolPathMode(OperationFixtures.ProfileDxf(), ToolPathMode.Outside)), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Dxf.Inside", Ops(WithToolPathMode(OperationFixtures.ProfileDxf(), ToolPathMode.Inside)), SettingsFixtures.Default()));
 
                 // Карманы: 4 вида.
                 cases.Add(new FixtureCase("Pocket.Rectangle.Default", Ops(OperationFixtures.PocketRectangle()), SettingsFixtures.Default()));

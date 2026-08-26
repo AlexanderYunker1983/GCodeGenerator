@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -361,15 +361,23 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public (double x, double y) GetStartPoint(double toolOffset)
         {
-            if (_operation.Polylines == null || _operation.Polylines.Count == 0)
+            // Точка входа обязана лежать на смещённой траектории: подвод,
+            // врезание, витки рампы и возвраты между ними выполняются в ней.
+            // Прежде здесь возвращалась первая точка чертежа — центр фрезы
+            // вставал прямо на кромку детали, врезание зарезало её на радиус
+            // инструмента, а быстрый спуск между витками рампы бил в
+            // нетронутый материал: колонку над точкой чертежа никто не режет,
+            // режется колонка над точкой траектории. Точка согласована
+            // с первым резом GenerateOrderedContours: тот же допуск стыковки
+            // и тот же порядок обхода.
+            var contours = GetOrderedContours(GeometryTolerances.Vertex);
+            if (contours.Count == 0 || contours[0].Count == 0)
                 return (0, 0);
 
-            var firstPolyline = _operation.Polylines[0];
-            if (firstPolyline?.Points == null || firstPolyline.Points.Count == 0)
-                return (0, 0);
-
-            var firstPoint = firstPolyline.Points[0];
-            return (firstPoint.X, firstPoint.Y); // Упрощенная версия без смещения для начальной точки
+            var first = contours[0];
+            return _operation.Direction == MillingDirection.Clockwise
+                ? first[first.Count - 1]
+                : first[0];
         }
 
         public (double x, double y) GetPointOnContour(double distance, double toolOffset)

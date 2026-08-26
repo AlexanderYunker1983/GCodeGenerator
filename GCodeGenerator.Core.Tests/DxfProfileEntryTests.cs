@@ -1,0 +1,133 @@
+using System;
+using System.Collections.Generic;
+using GCodeGenerator.GCodeGenerators;
+using GCodeGenerator.GCodeGenerators.Geometry;
+using GCodeGenerator.Geometry;
+using GCodeGenerator.Models;
+using GCodeGenerator.Tests.Fixtures;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace GCodeGenerator.Tests
+{
+    /// <summary>
+    /// Точка входа DXF-профиля лежит на смещённой траектории, а не на линии
+    /// чертежа. В этой точке выполняются подвод, врезание, витки рампы
+    /// и быстрые возвраты между ними: колонку над точкой чертежа никто
+    /// не фрезерует, и прежняя «упрощённая версия без смещения» ставила
+    /// центр фрезы прямо на кромку детали — врезание зарезало кромку
+    /// на радиус инструмента, а быстрый спуск между витками рампы бил
+    /// в нетронутый материал.
+    /// </summary>
+    [TestClass]
+    public class DxfProfileEntryTests
+    {
+        private const double ToolRadius = 1.5;
+
+        /// <summary>Замкнутый квадрат чертежа 20×20 с углом в начале координат.</summary>
+        private static ProfileDxfOperation Square(ToolPathMode mode)
+        {
+            var square = new Polyline2D
+            {
+                Points =
+                {
+                    new Point2D { X = 0.0, Y = 0.0 },
+                    new Point2D { X = 20.0, Y = 0.0 },
+                    new Point2D { X = 20.0, Y = 20.0 },
+                    new Point2D { X = 0.0, Y = 20.0 },
+                    new Point2D { X = 0.0, Y = 0.0 },
+                },
+            };
+
+            return new ProfileDxfOperation
+            {
+                Polylines = new List<Polyline2D> { square },
+                ToolPathMode = mode,
+                ToolDiameter = ToolRadius * 2.0,
+                TotalDepth = 2.0,
+                StepDepth = 1.0,
+                ContourHeight = 0.0,
+                SafeZHeight = 5.0,
+                FeedXYRapid = 1000.0,
+                FeedXYWork = 300.0,
+                FeedZRapid = 500.0,
+                FeedZWork = 200.0,
+                Decimals = 3,
+            };
+        }
+
+        /// <summary>
+        /// Стартовая точка — вершина смещённого контура, согласованная
+        /// с порядком обхода: первый рез начинается в ней.
+        /// </summary>
+        [TestMethod]
+        [DataRow(ToolPathMode.Outside)]
+        [DataRow(ToolPathMode.Inside)]
+        public void StartPoint_IsVertexOfOffsetContour(ToolPathMode mode)
+        {
+            var op = Square(mode);
+            var geometry = new DxfProfileGeometry(op);
+
+            var start = geometry.GetStartPoint(0.0);
+            var contour = geometry.GetOrderedContours(GeometryTolerances.Vertex)[0];
+            var expected = op.Direction == MillingDirection.Clockwise
+                ? contour[contour.Count - 1]
+                : contour[0];
+
+            Assert.AreEqual(expected.x, start.x, 1e-9);
+            Assert.AreEqual(expected.y, start.y, 1e-9);
+        }
+
+        /// <summary>
+        /// Врезание происходит на расстоянии не меньше радиуса фрезы от линии
+        /// чертежа — прежде колонка врезания стояла прямо на ней (расстояние
+        /// ноль), и кромка зарезалась на радиус инструмента.
+        /// </summary>
+        [TestMethod]
+        [DataRow(ToolPathMode.Outside)]
+        [DataRow(ToolPathMode.Inside)]
+        public void EntryPlunge_KeepsToolRadiusFromDrawing(ToolPathMode mode)
+        {
+            var op = Square(mode);
+            var drawing = op.Polylines[0].Points;
+
+            var toolPath = OperationToolPath.Build(new UnifiedProfileGenerator(), op, new GCodeSettings());
+
+            var x = 0.0;
+            var y = 0.0;
+            var z = 0.0;
+            var plunges = 0;
+            foreach (var move in toolPath.Moves())
+            {
+                var targetZ = move.Z ?? z;
+                if (targetZ < z - 1e-9 && targetZ < op.ContourHeight - 1e-9)
+                {
+                    var distance = DistanceToDrawing(x, y, drawing);
+                    Assert.IsTrue(distance >= ToolRadius - 0.01, FormattableString.Invariant(
+                        $"врезание на глубину {targetZ} в точке ({x}; {y}) — в {distance:0.000} от линии чертежа, ближе радиуса фрезы"));
+                    plunges++;
+                }
+
+                x = move.X ?? x;
+                y = move.Y ?? y;
+                z = targetZ;
+            }
+
+            Assert.IsTrue(plunges > 0, "в программе должно быть хотя бы одно врезание");
+        }
+
+        private static double DistanceToDrawing(double x, double y, IReadOnlyList<Point2D> drawing)
+        {
+            var distance = double.MaxValue;
+            for (int i = 0; i < drawing.Count - 1; i++)
+            {
+                distance = Math.Min(distance, Geometry2D.DistanceToSegment(
+                    x, y,
+                    drawing[i].X, drawing[i].Y,
+                    drawing[i + 1].X, drawing[i + 1].Y,
+                    GeometryTolerances.Degenerate));
+            }
+
+            return distance;
+        }
+    }
+}
