@@ -51,11 +51,17 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         }
 
         /// <summary>Реестр из явного набора — для расширений и тестов.</summary>
-        /// <param name="strategies">Соответствие «способ → стратегия».</param>
+        /// <param name="strategies">Соответствие «способ → стратегия»; набор не пуст.</param>
         public PocketStrategyRegistry(IReadOnlyDictionary<PocketStrategy, IPocketPocketingStrategy> strategies)
         {
             if (strategies == null)
                 throw new ArgumentNullException(nameof(strategies));
+
+            // Реестр без единой стратегии не построил бы ни один карман:
+            // пустой набор — ошибка конфигурации, о которой нужно узнать
+            // при создании реестра, а не отказом каждой генерации.
+            if (strategies.Count == 0)
+                throw new ArgumentException("At least one pocketing strategy is required.", nameof(strategies));
 
             _strategies = new Dictionary<PocketStrategy, IPocketPocketingStrategy>();
             foreach (var entry in strategies)

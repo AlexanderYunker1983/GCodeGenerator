@@ -71,6 +71,18 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Реестр без единой стратегии отвергается при создании: он не
+        /// построил бы ни один карман, а отказ приходил бы на каждой
+        /// генерации вместо одного раза при ошибочной конфигурации.
+        /// </summary>
+        [TestMethod]
+        public void EmptySet_IsRefused()
+        {
+            Assert.Throws<ArgumentException>(() => new PocketStrategyRegistry(
+                new Dictionary<PocketStrategy, IPocketPocketingStrategy>()));
+        }
+
+        /// <summary>
         /// Значение вне перечисления — отказ с указанием значения: файл
         /// проекта, принесший незнакомый способ, не должен молча обрабатываться
         /// каким-то другим.

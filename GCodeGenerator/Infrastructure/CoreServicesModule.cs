@@ -55,6 +55,17 @@ namespace GCodeGenerator.Infrastructure
             // в начале программы, вид команд шпинделя и охлаждения, единица
             // аргумента паузы, завершение программы. Стойка выбирается
             // настройкой Format.PostProcessorName из реестра.
+            //
+            // Каждая стойка регистрируется сама: реестр принимает их
+            // коллекцией, и новая стойка добавляется одной строкой здесь.
+            // Регистрации обязательны: Autofac выбирает конструктор
+            // с наибольшим числом разрешимых параметров, а коллекцию
+            // интерфейса он умеет собирать и пустой — реестр без этих
+            // строк собрался бы БЕЗ ЕДИНОЙ СТОЙКИ, и генерация отказывала
+            // бы любым настройкам. Пустой набор реестр отвергает сам,
+            // а полноту набора из контейнера держит тест.
+            builder.RegisterType<GenericPostProcessor>().As<IPostProcessor>().SingleInstance();
+            builder.RegisterType<GrblPostProcessor>().As<IPostProcessor>().SingleInstance();
             builder.RegisterType<PostProcessorRegistry>()
                 .As<IPostProcessorRegistry>()
                 .SingleInstance();

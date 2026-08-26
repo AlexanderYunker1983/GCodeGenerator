@@ -43,12 +43,19 @@ namespace GCodeGenerator.GCodeGenerators
         {
         }
 
-        /// <summary>Реестр из явного набора — для расширений и тестов.</summary>
-        /// <param name="postProcessors">Постпроцессоры; ключи не должны повторяться.</param>
+        /// <summary>Реестр из явного набора — для контейнера, расширений и тестов.</summary>
+        /// <param name="postProcessors">Постпроцессоры; набор не пуст, ключи не повторяются.</param>
         public PostProcessorRegistry(IReadOnlyList<IPostProcessor> postProcessors)
         {
             if (postProcessors == null)
                 throw new ArgumentNullException(nameof(postProcessors));
+
+            // Реестр без единой стойки не может построить ничего: он отвергал
+            // бы любые настройки с пустым перечнем допустимых. Такой набор —
+            // ошибка конфигурации (контейнер без регистраций стоек), и о ней
+            // нужно узнать при сборке приложения, а не отказом каждой генерации.
+            if (postProcessors.Count == 0)
+                throw new ArgumentException("At least one post-processor is required.", nameof(postProcessors));
 
             _postProcessors = postProcessors.ToArray();
 

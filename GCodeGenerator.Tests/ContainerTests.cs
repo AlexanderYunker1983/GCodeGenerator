@@ -90,6 +90,60 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Генерация через контейнерный генератор с настройками по умолчанию —
+        /// сквозной сценарий кнопки «Сгенерировать G-код». Прямые тесты
+        /// генератора собирают реестры сами и этого не проверяют: Autofac
+        /// выбирает конструктор с наибольшим числом разрешимых параметров,
+        /// коллекцию интерфейса умеет собирать и пустой, и без регистраций
+        /// стоек реестр постпроцессоров собирался БЕЗ ЕДИНОЙ СТОЙКИ —
+        /// генерация отказывала любым настройкам с пустым перечнем
+        /// допустимых, а все прочие тесты оставались зелёными.
+        /// </summary>
+        [TestMethod]
+        public void Container_GeneratesProgramWithDefaultSettings()
+        {
+            using (var container = BuildContainer())
+            {
+                var generator = container.Resolve<GCodeGenerator.GCodeGenerators.IGCodeGenerator>();
+                var operations = new List<GCodeGenerator.Models.OperationBase>
+                {
+                    new GCodeGenerator.Models.DrillPointsOperation
+                    {
+                        Name = "Drill",
+                        Holes =
+                        {
+                            new GCodeGenerator.Models.DrillHole { X = 1, Y = 1, TotalDepth = 2, StepDepth = 1 },
+                        },
+                    },
+                    Fixtures.OperationFixtures.ProfileCircle(),
+                    Fixtures.OperationFixtures.PocketCircle(),
+                };
+
+                var program = generator.Generate(operations, new GCodeGenerator.Models.GCodeSettings());
+
+                Assert.IsTrue(program.Lines.Count > 0, "Программа построена контейнерной сборкой");
+            }
+        }
+
+        /// <summary>
+        /// Реестр стоек из контейнера полон: обе стойки продукта на месте.
+        /// Забытая регистрация стойки делала бы её недоступной только в
+        /// приложении — реестр, созданный конструктором по умолчанию в
+        /// тестах, её бы по-прежнему содержал.
+        /// </summary>
+        [TestMethod]
+        public void Container_PostProcessorRegistry_ContainsEveryController()
+        {
+            using (var container = BuildContainer())
+            {
+                var registry = container.Resolve<GCodeGenerator.GCodeGenerators.IPostProcessorRegistry>();
+
+                var keys = registry.All.Select(postProcessor => postProcessor.Key).ToList();
+                CollectionAssert.AreEquivalent(new List<string> { "Generic", "GRBL" }, keys);
+            }
+        }
+
+        /// <summary>
         /// Три диалоговых контракта разделены, но реализация каждого должна
         /// быть зарегистрирована: без любой из них не собирается ни одна
         /// view-модель, которая ею пользуется.

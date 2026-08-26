@@ -73,6 +73,19 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Реестр без единой стойки отвергается при создании: он отказывал
+        /// бы любым настройкам с пустым перечнем допустимых. Так собрался
+        /// реестр в контейнере без регистраций стоек — и «must be one of ,
+        /// but is "Generic"» получила каждая операция.
+        /// </summary>
+        [TestMethod]
+        public void EmptySet_IsRefused()
+        {
+            Assert.Throws<ArgumentException>(
+                () => new PostProcessorRegistry(System.Array.Empty<IPostProcessor>()));
+        }
+
+        /// <summary>
         /// Два постпроцессора с одним ключом делают выбор в настройках
         /// неоднозначным: какой строил бы программу — зависело бы от порядка
         /// регистрации.
