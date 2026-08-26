@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using GCodeGenerator.Geometry;
@@ -39,6 +39,15 @@ namespace GCodeGenerator.Import
 
         /// <summary>Наименьшее число сегментов аппроксимации эллипса.</summary>
         private const int MinimumEllipseSegments = 16;
+
+        /// <summary>Число сегментов пробной оценки длины сплайна.</summary>
+        private const int SplineProbeSegments = 16;
+
+        /// <summary>Хорда аппроксимации сплайна, мм.</summary>
+        private const double SplineChordMillimeters = 0.5;
+
+        /// <summary>Верхний предел числа сегментов сплайна.</summary>
+        private const int MaximumSplineSegments = 512;
 
         /// <summary>
         /// Читает геометрию чертежа. Координаты приводятся к миллиметрам
@@ -116,6 +125,10 @@ namespace GCodeGenerator.Import
 
                 case Polyline3D polyline3D:
                     Add(result, ReadPolyline3D(polyline3D, scale));
+                    break;
+
+                case Spline spline:
+                    Add(result, ApproximateSpline(spline, scale));
                     break;
 
                 case Insert insert:
@@ -260,6 +273,55 @@ namespace GCodeGenerator.Import
 
                 for (int i = startIndex; i < segmentPoints.Count; i++)
                     points.Add(segmentPoints[i]);
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        /// Сплайн: обычный результат экспорта из векторных редакторов и CAD.
+        /// Прежде сущность молча пропускалась — контур из отрезков и одного
+        /// сплайна терял ребро и не замыкался, карман «не находил замкнутых
+        /// контуров», хотя netDxf умеет разбивать сплайн на хорды. Угловой
+        /// меры, как у дуг, у сплайна нет, поэтому число сегментов
+        /// подбирается по длине кривой: пробная ломаная оценивает длину,
+        /// шаг хорды — полмиллиметра, та же плотность, с которой продукт
+        /// тесселирует собственные фигуры.
+        /// </summary>
+        private static List<Point2D> ApproximateSpline(Spline spline, double scale)
+        {
+            var probe = spline.PolygonalVertexes(SplineProbeSegments);
+            if (probe == null || probe.Count < 2)
+                return null;
+
+            double lengthMillimeters = 0.0;
+            for (int i = 1; i < probe.Count; i++)
+            {
+                var dx = (probe[i].X - probe[i - 1].X) * scale;
+                var dy = (probe[i].Y - probe[i - 1].Y) * scale;
+                lengthMillimeters += Math.Sqrt(dx * dx + dy * dy);
+            }
+
+            var segments = Math.Min(MaximumSplineSegments, Math.Max(SplineProbeSegments,
+                (int)Math.Ceiling(lengthMillimeters / SplineChordMillimeters)));
+
+            var vertexes = spline.PolygonalVertexes(segments);
+            if (vertexes == null || vertexes.Count < 2)
+                return null;
+
+            var points = new List<Point2D>(vertexes.Count + 1);
+            foreach (var vertex in vertexes)
+                points.Add(Point(vertex.X, vertex.Y, scale));
+
+            // Замкнутый сплайн возвращается с повторением первой вершины,
+            // как и замкнутая полилиния: так его ожидает сборка контуров.
+            var first = points[0];
+            var last = points[points.Count - 1];
+            if (spline.IsClosedPeriodic
+                && (Math.Abs(first.X - last.X) >= GeometryTolerances.Vertex
+                    || Math.Abs(first.Y - last.Y) >= GeometryTolerances.Vertex))
+            {
+                points.Add(new Point2D { X = first.X, Y = first.Y });
             }
 
             return points;
