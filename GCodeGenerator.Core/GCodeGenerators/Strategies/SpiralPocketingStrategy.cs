@@ -205,10 +205,14 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 var p1 = contourPoints[i];
                 var p2 = contourPoints[(i + 1) % contourPoints.Count];
 
+                // Порог определителя — «математический ноль» (Degenerate):
+                // определитель имеет размерность мм², и миллиметровый допуск
+                // здесь отбрасывал бы настоящие пересечения почти параллельных
+                // отрезков. Допуск границ параметра остаётся прежним.
                 var intersection = Geometry2D.SegmentIntersection(
                     start.x, start.y, end.x, end.y,
                     p1.x, p1.y, p2.x, p2.y,
-                    tolerance, tolerance);
+                    GeometryTolerances.Degenerate, tolerance);
 
                 if (intersection.HasValue)
                 {
@@ -250,10 +254,12 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 var p1 = contourPoints[i];
                 var p2 = contourPoints[(i + 1) % contourPoints.Count];
 
+                // Порог определителя — Degenerate, как в FindExitPointWithTheta:
+                // мм-допуск на величине размерности мм² терял пересечения.
                 var intersection = Geometry2D.SegmentIntersection(
                     start.x, start.y, end.x, end.y,
                     p1.x, p1.y, p2.x, p2.y,
-                    tolerance, tolerance);
+                    GeometryTolerances.Degenerate, tolerance);
 
                 if (intersection.HasValue)
                 {

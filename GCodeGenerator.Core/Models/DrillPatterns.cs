@@ -247,6 +247,15 @@ namespace GCodeGenerator.Models
     /// <summary>Отверстия по дуге между начальным и конечным углом.</summary>
     public sealed class ArcDrillPattern : DrillPattern
     {
+        /// <summary>
+        /// Раскрыв дуги (радианы), меньше которого начальный и конечный углы
+        /// считаются совпавшими, а дуга — полной окружностью. Допуск угловой,
+        /// а не миллиметровый, поэтому объявлен здесь, а не в
+        /// <see cref="GCodeGenerator.Geometry.GeometryTolerances"/>: тот
+        /// каталог описывает расстояния.
+        /// </summary>
+        private const double FullCircleSpanRadians = 0.001;
+
         public override DrillMode Mode => DrillMode.Arc;
 
         public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
@@ -271,7 +280,7 @@ namespace GCodeGenerator.Models
             while (arcSpan > 2 * Math.PI) arcSpan -= 2 * Math.PI;
 
             // Нулевой раскрыв трактуется как полная окружность.
-            if (arcSpan < 0.001)
+            if (arcSpan < FullCircleSpanRadians)
                 arcSpan = 2 * Math.PI;
 
             var stepRad = operation.HoleCount > 1 ? arcSpan / (operation.HoleCount - 1) : 0;

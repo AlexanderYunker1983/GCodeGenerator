@@ -127,7 +127,14 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     continue; // горизонтальный сегмент скан-линию не пересекает
 
                 double t = (y - p1.y) / dy;
-                if (t < -GeometryTolerances.Vertex || t > 1.0 + GeometryTolerances.Vertex)
+
+                // Допуск попадания в конец ребра выражается в единицах
+                // параметра: t безразмерен, а Vertex — миллиметры, и прямое
+                // сравнение делало допуск тем грубее, чем короче ребро,
+                // и тем строже, чем длиннее.
+                double length = Math.Sqrt(Math.Pow(p2.x - p1.x, 2) + dy * dy);
+                double tTolerance = length > eps ? GeometryTolerances.Vertex / length : 0.0;
+                if (t < -tTolerance || t > 1.0 + tTolerance)
                     continue;
 
                 double x = p1.x + t * (p2.x - p1.x);
