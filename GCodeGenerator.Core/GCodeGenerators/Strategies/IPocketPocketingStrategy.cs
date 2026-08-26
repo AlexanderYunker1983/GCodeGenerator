@@ -13,7 +13,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// <see cref="ConcentricPocketingStrategy"/>, <see cref="RadialPocketingStrategy"/>,
     /// <see cref="ZigZagPocketingStrategy"/>, <see cref="LinesPocketingStrategy"/>.
     /// Стратегии не хранят состояния между вызовами и существуют в одном
-    /// экземпляре — их выдаёт <see cref="PocketStrategies"/>.
+    /// экземпляре — их выдаёт <see cref="PocketStrategyRegistry"/>.
     /// </summary>
     public interface IPocketPocketingStrategy
     {

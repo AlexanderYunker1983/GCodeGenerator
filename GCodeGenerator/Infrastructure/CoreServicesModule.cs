@@ -1,6 +1,7 @@
-#nullable enable
+﻿#nullable enable
 using Autofac;
 using GCodeGenerator.GCodeGenerators;
+using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Import;
 using GCodeGenerator.Persistence;
 using GCodeGenerator.Services;
@@ -30,9 +31,20 @@ namespace GCodeGenerator.Infrastructure
             // обязанностью диалоговых ViewModel и доступны через отдельный сервис.
             builder.RegisterType<DxfImportService>().As<IDxfImportService>().SingleInstance();
 
+            // Реестр стратегий выборки кармана: экземпляр с интерфейсом,
+            // чтобы способ выборки можно было расширить через контейнер,
+            // не меняя генератор.
+            builder.RegisterType<PocketStrategyRegistry>()
+                .As<IPocketStrategyRegistry>()
+                .SingleInstance();
+
             // Пункт 4.5 плана: явный маппинг «тип операции → генератор»
-            // (name-based рефлексия удалена).
-            builder.RegisterType<OperationGeneratorRegistry>()
+            // (name-based рефлексия удалена). Генератор карманов получает
+            // реестр стратегий из контейнера.
+            builder.Register(c => new OperationGeneratorRegistry(
+                    new DrillPointsOperationGenerator(),
+                    new UnifiedProfileGenerator(),
+                    new UnifiedPocketGenerator(c.Resolve<IPocketStrategyRegistry>())))
                 .As<IOperationGeneratorRegistry>()
                 .SingleInstance();
             builder.RegisterType<SimpleGCodeGenerator>()

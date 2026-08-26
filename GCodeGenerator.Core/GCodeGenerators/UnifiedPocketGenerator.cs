@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
@@ -23,9 +24,22 @@ namespace GCodeGenerator.GCodeGenerators
     {
         private readonly PocketGenerationHelper _helper;
         private readonly DxfPocketLayerGenerator _dxfLayerGenerator;
+        private readonly IPocketStrategyRegistry _strategies;
 
+        /// <summary>Генератор со стандартным набором стратегий.</summary>
         public UnifiedPocketGenerator()
+            : this(new PocketStrategyRegistry())
         {
+        }
+
+        /// <summary>
+        /// Генератор с внешним реестром стратегий: способ выборки можно
+        /// расширить, не меняя генератор.
+        /// </summary>
+        /// <param name="strategies">Реестр «способ выборки → стратегия».</param>
+        public UnifiedPocketGenerator(IPocketStrategyRegistry strategies)
+        {
+            _strategies = strategies ?? throw new ArgumentNullException(nameof(strategies));
             _helper = new PocketGenerationHelper();
             _dxfLayerGenerator = new DxfPocketLayerGenerator();
         }
@@ -55,7 +69,7 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 var strategy = pass.Kind == PocketPassKind.WallFinishing
                     ? WallFinishingStrategy.Instance
-                    : PocketStrategies.For(pass.Operation.PocketStrategy);
+                    : _strategies.For(pass.Operation.PocketStrategy);
 
                 MillPocket(pass.Operation, strategy, pass.Allowance, builder, settings, plan.TaperOriginZ);
             }

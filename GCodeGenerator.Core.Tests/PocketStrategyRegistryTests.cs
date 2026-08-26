@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Strategies;
@@ -17,6 +17,8 @@ namespace GCodeGenerator.Tests
     [TestClass]
     public class PocketStrategyRegistryTests
     {
+        private static readonly PocketStrategyRegistry Registry = new PocketStrategyRegistry();
+
         /// <summary>
         /// Каждый способ из перечисления умеет обрабатывать слой: новый
         /// способ, добавленный в перечисление и в окно, но забытый здесь,
@@ -27,12 +29,12 @@ namespace GCodeGenerator.Tests
         {
             foreach (PocketStrategy strategy in Enum.GetValues(typeof(PocketStrategy)))
             {
-                Assert.IsNotNull(PocketStrategies.For(strategy), strategy.ToString());
+                Assert.IsNotNull(Registry.For(strategy), strategy.ToString());
             }
 
             Assert.AreEqual(
                 Enum.GetValues(typeof(PocketStrategy)).Length,
-                PocketStrategies.All.Count,
+                Registry.All.Count,
                 "В реестре не должно быть записей без значения перечисления");
         }
 
@@ -47,7 +49,7 @@ namespace GCodeGenerator.Tests
 
             foreach (PocketStrategy strategy in Enum.GetValues(typeof(PocketStrategy)))
             {
-                var instance = PocketStrategies.For(strategy);
+                var instance = Registry.For(strategy);
 
                 Assert.IsFalse(byInstance.ContainsKey(instance),
                     $"{strategy}: та же реализация, что и у {(byInstance.TryGetValue(instance, out var other) ? other : strategy)}");
@@ -64,7 +66,7 @@ namespace GCodeGenerator.Tests
         {
             foreach (PocketStrategy strategy in Enum.GetValues(typeof(PocketStrategy)))
             {
-                Assert.AreSame(PocketStrategies.For(strategy), PocketStrategies.For(strategy), strategy.ToString());
+                Assert.AreSame(Registry.For(strategy), Registry.For(strategy), strategy.ToString());
             }
         }
 
@@ -78,7 +80,7 @@ namespace GCodeGenerator.Tests
         {
             var unknown = (PocketStrategy)Enum.GetValues(typeof(PocketStrategy)).Cast<int>().Max() + 1;
 
-            var failure = Assert.Throws<NotSupportedException>(() => PocketStrategies.For(unknown));
+            var failure = Assert.Throws<NotSupportedException>(() => Registry.For(unknown));
 
             StringAssert.Contains(failure.Message, ((int)unknown).ToString());
         }
