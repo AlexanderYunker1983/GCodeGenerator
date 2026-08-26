@@ -96,6 +96,28 @@ namespace GCodeGenerator.Tests.Fixtures
                 cases.Add(new FixtureCase("Pocket.Circle.ArcsOff", Ops(OperationFixtures.PocketCircle()), SettingsFixtures.ArcsOff()));
                 cases.Add(new FixtureCase("Pocket.Dxf.ArcsOff", Ops(OperationFixtures.PocketDxf()), SettingsFixtures.ArcsOff()));
 
+                // Рискованная логика: остановки по уклону и отсечке, «песочные
+                // часы», спирали на краях диапазона. Счётчики RiskyLogicTests
+                // остаются быстрым сигналом «что-то изменилось», а эти эталоны
+                // показывают, что именно. Полноглубинный круг R50 (23 тысячи
+                // ходов) в эталоны не включён намеренно — только счётчик.
+                cases.Add(new FixtureCase("Risky.Pocket.TaperCircle", Ops(RiskyScenarios.TaperCircle()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Pocket.TaperRectangle", Ops(RiskyScenarios.TaperRectangle()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Pocket.CircleAboveCutoff", Ops(RiskyScenarios.CircleAboveCutoff()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Pocket.CircleBelowCutoff", Ops(RiskyScenarios.CircleBelowCutoff()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.Trapezoid", Ops(RiskyScenarios.Trapezoid()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.MultiContour", Ops(RiskyScenarios.MultiContour()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.TinyContour", Ops(RiskyScenarios.TinyContour()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.SquareTaper", Ops(RiskyScenarios.SquareTaper45()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.HourglassTaper", Ops(RiskyScenarios.HourglassTaper15()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.HourglassFlat", Ops(RiskyScenarios.HourglassFlat()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Dxf.UShape", Ops(RiskyScenarios.UShape()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Spiral.FineStep", Ops(RiskyScenarios.SpiralFineStep()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Spiral.SmallContour", Ops(RiskyScenarios.SpiralSmallContour()), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Risky.Profile.PolylineFine", Ops(RiskyScenarios.CircleProfileFine()), SettingsFixtures.ArcsOff()));
+                cases.Add(new FixtureCase("Risky.Profile.PolylineCoarse", Ops(RiskyScenarios.CircleProfileCoarse()), SettingsFixtures.ArcsOff()));
+                cases.Add(new FixtureCase("Risky.Profile.Arcs", Ops(RiskyScenarios.CircleProfileFine()), SettingsFixtures.Default()));
+
                 return cases;
             }
         }

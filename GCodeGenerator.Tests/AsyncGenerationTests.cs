@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -26,18 +25,26 @@ namespace GCodeGenerator.Tests
     public class AsyncGenerationTests
     {
         /// <summary>
-        /// Медленный генератор: спит ~300 мс, затем делегирует реальному
-        /// SimpleGCodeGenerator. Если команда выполнялась бы на потоке вызывающего
-        /// (UI), Execute() заняла бы не менее 300 мс.
+        /// Генератор со шлюзом: сообщает о старте и стоит, пока тест его не
+        /// отпустит. Прежний вариант спал 300 мс, а тест мерил секундомером
+        /// «Execute вернулся быстрее 250 мс» — на занятой машине порог ложно
+        /// срабатывал, а на быстрой почти не отличал фон от блокировки.
+        /// Сигналы доказывают то же без часов: вызов вернулся, а генерация
+        /// ещё стоит на шлюзе — значит, вызывающий поток её не ждал.
         /// </summary>
-        private sealed class SlowGCodeGenerator : IGCodeGenerator
+        private sealed class GatedGCodeGenerator : IGCodeGenerator
         {
             private readonly SimpleGCodeGenerator _inner = new SimpleGCodeGenerator();
+
+            public ManualResetEventSlim Started { get; } = new ManualResetEventSlim(false);
+
+            public ManualResetEventSlim Release { get; } = new ManualResetEventSlim(false);
 
             public GCodeProgram Generate(IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
             {
-                Thread.Sleep(300);
+                Started.Set();
+                Release.Wait(TimeSpan.FromSeconds(5));
                 return _inner.Generate(operations, settings, progress);
             }
 
@@ -45,7 +52,11 @@ namespace GCodeGenerator.Tests
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
                 IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
-                => new SimpleGCodeGenerator().BuildToolPath(operations, settings, progress);
+            {
+                Started.Set();
+                Release.Wait(TimeSpan.FromSeconds(5));
+                return _inner.BuildToolPath(operations, settings, progress);
+            }
         }
 
         /// <summary>Синхронный IProgress&lt;int&gt; для детерминированных проверок (без marshalling).</summary>
@@ -69,21 +80,21 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public async Task GenerateGCodeCommand_DoesNotBlockCaller_AndCompletes()
         {
-            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain(new SlowGCodeGenerator());
+            var generator = new GatedGCodeGenerator();
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain(generator);
             main.OperationsWorkspace.AllOperations.Add(CreateDrillOperation("Drill1"));
 
             var command = (IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand;
-            var stopwatch = Stopwatch.StartNew();
             var task = command.ExecuteAsync(null);
-            stopwatch.Stop();
 
             // Пункт 8.4 плана: генерация выполняется в пуле (Task.Run), поток
-            // вызывающего (UI) не блокируется — Execute() возвращается сразу,
-            // хотя полная генерация занимает не менее 300 мс.
+            // вызывающего (UI) не блокируется. Вызов уже вернулся, а генератор
+            // ещё стоит на шлюзе — блокирующая реализация не вернулась бы,
+            // пока генерация не кончится.
+            Assert.IsTrue(generator.Started.Wait(TimeSpan.FromSeconds(2)), "Генерация должна начаться в фоне");
             Assert.IsFalse(task.IsCompleted, "Команда не должна завершиться синхронно");
-            Assert.IsTrue(stopwatch.ElapsedMilliseconds < 250,
-                $"Execute() должен вернуться сразу, занял {stopwatch.ElapsedMilliseconds} мс");
 
+            generator.Release.Set();
             await task;
 
             Assert.IsFalse(main.GCodeWorkflow.IsGenerating, "После завершения генерации IsGenerating == false");
@@ -113,6 +124,8 @@ namespace GCodeGenerator.Tests
         {
             // DoD пункта 8.4: большой DXF (>10k сегментов) не блокирует UI —
             // парсинг выполняется в пуле (Task.Run) внутри AsyncRelayCommand.
+            // Неблокирование доказывается шлюзом, а не секундомером: вызов
+            // вернулся, пока чтение ещё стоит на сигнале.
             const int lineCount = 12000;
             var path = Path.Combine(Path.GetTempPath(), $"gcodegen_big_dxf_{Guid.NewGuid():N}.dxf");
             try
@@ -120,16 +133,15 @@ namespace GCodeGenerator.Tests
                 WriteBigDxf(path, lineCount);
 
                 var dialogs = new FakeDialogs { OpenDialogResult = path };
-                var vm = new ProfileDxfOperationViewModel(null, dialogs, dialogs, new DxfImportService());
+                var import = new GatedDxfImportService();
+                var vm = new ProfileDxfOperationViewModel(null, dialogs, dialogs, import);
 
-                var stopwatch = Stopwatch.StartNew();
                 var task = ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
-                stopwatch.Stop();
 
+                Assert.IsTrue(import.Started.Wait(TimeSpan.FromSeconds(2)), "Чтение должно начаться в фоне");
                 Assert.IsFalse(task.IsCompleted, "Импорт не должен завершиться синхронно");
-                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 250,
-                    $"Execute() должен вернуться сразу, занял {stopwatch.ElapsedMilliseconds} мс");
 
+                import.Release.Set();
                 await task;
 
                 Assert.AreEqual(lineCount, vm.Operation.Polylines.Count, "Все сущности LINE распознаны");
@@ -139,6 +151,30 @@ namespace GCodeGenerator.Tests
             finally
             {
                 File.Delete(path);
+            }
+        }
+
+        /// <summary>Служба импорта со шлюзом: см. <see cref="GatedGCodeGenerator"/>.</summary>
+        private sealed class GatedDxfImportService : IDxfImportService
+        {
+            private readonly DxfImportService _inner = new DxfImportService();
+
+            public ManualResetEventSlim Started { get; } = new ManualResetEventSlim(false);
+
+            public ManualResetEventSlim Release { get; } = new ManualResetEventSlim(false);
+
+            public List<Polyline2D> ReadProfilePolylines(string path)
+            {
+                Started.Set();
+                Release.Wait(TimeSpan.FromSeconds(5));
+                return _inner.ReadProfilePolylines(path);
+            }
+
+            public List<Polyline2D> ReadPocketClosedContours(string path, CancellationToken cancellation = default)
+            {
+                Started.Set();
+                Release.Wait(TimeSpan.FromSeconds(5));
+                return _inner.ReadPocketClosedContours(path, cancellation);
             }
         }
 

@@ -141,11 +141,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Taper_Circle_StopsBeforeFullDepth()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 6,
-                ToolDiameter = 3, TotalDepth = 10, StepDepth = 1, WallTaperAngleDeg = 45
-            };
+            var op = Fixtures.RiskyScenarios.TaperCircle();
             var lines = RunPocket(op);
             Assert.AreEqual(5, CountPasses(lines), "5 комментариев (Pass N): 4 фрезерных слоя + 1 остановка");
             Assert.IsTrue(HasStopComment(lines), "Ожидался комментарий об остановке");
@@ -160,11 +156,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Taper_Rectangle_StopsAtPass3_ByAreaIncrease()
         {
-            var op = new PocketRectangleOperation
-            {
-                Width = 7.5, Height = 7.5, ReferencePointX = 0, ReferencePointY = 0,
-                ToolDiameter = 3, TotalDepth = 10, StepDepth = 1, WallTaperAngleDeg = 45
-            };
+            var op = Fixtures.RiskyScenarios.TaperRectangle();
             var lines = RunPocket(op);
             Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
@@ -177,11 +169,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Taper_Zero_MillsFullDepth()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 50,
-                ToolDiameter = 3, TotalDepth = 4, StepDepth = 1, WallTaperAngleDeg = 0
-            };
+            var op = Fixtures.RiskyScenarios.FullDepthCircle();
             var lines = RunPocket(op);
             Assert.AreEqual(4, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -195,11 +183,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Circle_EffectiveDiameter_AboveThreshold_Milled()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 1.6,
-                ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, WallTaperAngleDeg = 0
-            };
+            var op = Fixtures.RiskyScenarios.CircleAboveCutoff();
             var lines = RunPocket(op);
             Assert.AreEqual(2, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -214,11 +198,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Circle_EffectiveDiameter_BelowThreshold_StopsWithoutMoves()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 1.55,
-                ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, WallTaperAngleDeg = 0
-            };
+            var op = Fixtures.RiskyScenarios.CircleBelowCutoff();
             var lines = RunPocket(op);
             Assert.AreEqual(1, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
@@ -236,8 +216,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_Trapezoid_Taper10_MillsFullDepth()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 5, StepDepth = 1, WallTaperAngleDeg = 10 };
-            op.ClosedContours.Add(Poly((0, 0), (12, 0), (8, 6), (4, 6), (0, 0)));
+            var op = Fixtures.RiskyScenarios.Trapezoid();
             var lines = RunPocket(op);
             Assert.AreEqual(5, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -252,9 +231,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_MultiContour_SmallContourIsSkipped()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 4, StepDepth = 1, WallTaperAngleDeg = 0 };
-            op.ClosedContours.Add(Poly((0, 0), (40, 0), (40, 20), (0, 20), (0, 0)));
-            op.ClosedContours.Add(Poly((60, 0), (62, 0), (62, 2), (60, 2), (60, 0)));
+            var op = Fixtures.RiskyScenarios.MultiContour();
             var lines = RunPocket(op);
 
             Assert.AreEqual(4, CountPasses(lines));
@@ -275,8 +252,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_TinyContour_IsSkippedBeforePhantomMilling()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 4, StepDepth = 1, WallTaperAngleDeg = 0 };
-            op.ClosedContours.Add(Poly((60, 0), (62, 0), (62, 2), (60, 2), (60, 0)));
+            var op = Fixtures.RiskyScenarios.TinyContour();
             var lines = RunPocket(op);
             Assert.AreEqual(1, CountPasses(lines), "Обработка останавливается на первом слое");
             Assert.IsTrue(HasStopComment(lines), "Ожидалось сообщение об отсечке контура");
@@ -291,8 +267,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_Square_Taper45_StopsAtPass3()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 10, StepDepth = 1, WallTaperAngleDeg = 45 };
-            op.ClosedContours.Add(Poly((0, 0), (7.5, 0), (7.5, 7.5), (0, 7.5), (0, 0)));
+            var op = Fixtures.RiskyScenarios.SquareTaper45();
             var lines = RunPocket(op);
             Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
@@ -311,8 +286,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_Hourglass_Taper15_MillsBothHalvesUntilTaperClosesThem()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 6, StepDepth = 1, WallTaperAngleDeg = 15 };
-            op.ClosedContours.Add(Poly((0, 0), (10, 0), (6, 4), (10, 8), (0, 8), (4, 4), (0, 0)));
+            var op = Fixtures.RiskyScenarios.HourglassTaper15();
             var lines = RunPocket(op);
             Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines), "С ростом глубины уклон закрывает обе половины");
@@ -330,8 +304,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_Hourglass_TaperZero_MillsFullDepth()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 6, StepDepth = 1, WallTaperAngleDeg = 0 };
-            op.ClosedContours.Add(Poly((0, 0), (10, 0), (6, 4), (10, 8), (0, 8), (4, 4), (0, 0)));
+            var op = Fixtures.RiskyScenarios.HourglassFlat();
             var lines = RunPocket(op);
             Assert.AreEqual(6, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -350,8 +323,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Dxf_UShape_Taper10_StopsWhenWallsCloseIn()
         {
-            var op = new PocketDxfOperation { ToolDiameter = 3, TotalDepth = 6, StepDepth = 1, WallTaperAngleDeg = 10 };
-            op.ClosedContours.Add(Poly((0, 0), (12, 0), (12, 10), (8, 10), (8, 4), (4, 4), (4, 10), (0, 10), (0, 0)));
+            var op = Fixtures.RiskyScenarios.UShape();
             var lines = RunPocket(op);
             Assert.AreEqual(3, CountPasses(lines));
             Assert.IsTrue(HasStopComment(lines));
@@ -371,11 +343,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Spiral_SmallStep_ManyTurns_BoundedByOffsetContour()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 10,
-                ToolDiameter = 3, TotalDepth = 1, StepDepth = 1, StepPercentOfTool = 10
-            };
+            var op = Fixtures.RiskyScenarios.SpiralFineStep();
             var lines = RunPocket(op);
             Assert.AreEqual(1, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -416,11 +384,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Spiral_SmallContour_BoundedByOffsetContour()
         {
-            var op = new PocketCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 4,
-                ToolDiameter = 3, TotalDepth = 1, StepDepth = 1, StepPercentOfTool = 40
-            };
+            var op = Fixtures.RiskyScenarios.SpiralSmallContour();
             var lines = RunPocket(op);
             Assert.AreEqual(1, CountPasses(lines));
             Assert.IsFalse(HasStopComment(lines));
@@ -571,11 +535,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Profile_ArcsOff_PolylinePointCountFormula()
         {
-            var op = new ProfileCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 10,
-                ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 0.5
-            };
+            var op = Fixtures.RiskyScenarios.CircleProfileFine();
             var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = false, UseComments = false } });
             Assert.AreEqual(254, CountG1XY(lines), "2 прохода × 127 точек");
             Assert.AreEqual(0, CountArcs(lines, "G2"), "Дуг G2 быть не должно");
@@ -590,11 +550,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Profile_ArcsOff_LargerSegment_FewerPoints()
         {
-            var op = new ProfileCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 10,
-                ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 2
-            };
+            var op = Fixtures.RiskyScenarios.CircleProfileCoarse();
             var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = false, UseComments = false } });
             Assert.AreEqual(66, CountG1XY(lines), "2 прохода × 33 точки");
             Assert.AreEqual(0, CountArcs(lines, "G2"));
@@ -612,11 +568,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Profile_ArcsOn_Circle_TwoSemicircleG2PerPass()
         {
-            var op = new ProfileCircleOperation
-            {
-                CenterX = 0, CenterY = 0, Radius = 10,
-                ToolDiameter = 3, TotalDepth = 2, StepDepth = 1, MaxSegmentLength = 0.5
-            };
+            var op = Fixtures.RiskyScenarios.CircleProfileFine();
             var lines = RunProfile(op, new GCodeSettings { Format = new GCodeFormatSettings { AllowArcs = true, UseComments = false } });
 
             Assert.AreEqual(4, CountArcs(lines, "G2"), "4 дуги G2 (2 полукруга × 2 прохода)");
