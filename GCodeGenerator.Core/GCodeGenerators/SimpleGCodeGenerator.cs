@@ -54,7 +54,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <inheritdoc />
         public GCodeProgram Generate(
-            IList<OperationBase> operations,
+            IReadOnlyList<OperationBase?> operations,
             GCodeSettings settings,
             IProgress<int>? progress = null,
             CancellationToken cancellation = default)
@@ -67,7 +67,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         /// <inheritdoc />
         public ToolPath BuildToolPath(
-            IList<OperationBase> operations,
+            IReadOnlyList<OperationBase?> operations,
             GCodeSettings settings,
             IProgress<int>? progress = null,
             CancellationToken cancellation = default)
@@ -88,9 +88,8 @@ namespace GCodeGenerator.GCodeGenerators
             var total = operations.Count;
             for (var index = 0; index < operations.Count; index++)
             {
-                // Отмена проверяется между операциями: внутри одной операции
-                // прервать построение нельзя, но операций в проекте много,
-                // и каждая — заметный кусок работы.
+                // Отмена проверяется между операциями, а внутри операции —
+                // между её слоями и отверстиями (токен уходит в генератор).
                 cancellation.ThrowIfCancellationRequested();
 
                 var operation = operations[index];
@@ -103,7 +102,7 @@ namespace GCodeGenerator.GCodeGenerators
                     operation.Name, operation.GetDescription(), OperationDecimals(operation), operation);
                 toolPath.AddOperation(pathOperation);
 
-                resolvedGenerators[index].Generate(operation, new ToolPathBuilder(pathOperation), settings);
+                resolvedGenerators[index].Generate(operation, new ToolPathBuilder(pathOperation), settings, cancellation);
 
                 if (total > 0)
                     progress?.Report((index + 1) * 100 / total);
@@ -129,7 +128,7 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private IOperationGenerator[] ValidateAndResolveGenerators(IList<OperationBase> operations, GCodeSettings settings)
+        private IOperationGenerator[] ValidateAndResolveGenerators(IReadOnlyList<OperationBase?> operations, GCodeSettings settings)
         {
             var failures = new List<OperationValidationFailure>();
             var generators = new IOperationGenerator[operations.Count];

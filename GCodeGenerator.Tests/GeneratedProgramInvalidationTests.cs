@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -23,7 +23,7 @@ namespace GCodeGenerator.Tests
             public void Continue() => _continue.Set();
 
             public GCodeProgram Generate(
-                IList<OperationBase> operations,
+                IReadOnlyList<OperationBase> operations,
                 GCodeSettings settings,
                 IProgress<int> progress = null,
                 CancellationToken cancellation = default)
@@ -34,7 +34,7 @@ namespace GCodeGenerator.Tests
             /// поэтому останавливаться нужно здесь.
             /// </summary>
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
             {
                 _started.Set();
@@ -119,13 +119,19 @@ namespace GCodeGenerator.Tests
 
         private static void AssertGeneratedResultIsAvailable(GCodeGenerator.ViewModels.MainViewModel main)
         {
+            // Программа живёт строками для виртуализированного списка; текст
+            // целиком собирается по требованию и заканчивается переводом строки.
+            Assert.IsNotNull(main.GCodeWorkflow.ProgramLines);
+            Assert.IsTrue(main.GCodeWorkflow.ProgramLines.Count > 0);
             Assert.IsFalse(string.IsNullOrEmpty(main.GCodeWorkflow.GCodePreview));
+            StringAssert.EndsWith(main.GCodeWorkflow.GCodePreview, System.Environment.NewLine);
             Assert.IsTrue(main.GCodeWorkflow.SaveGCodeCommand.CanExecute(null));
             Assert.IsTrue(main.GCodeWorkflow.PreviewGCodeCommand.CanExecute(null));
         }
 
         private static void AssertGeneratedResultIsUnavailable(GCodeGenerator.ViewModels.MainViewModel main)
         {
+            Assert.IsNull(main.GCodeWorkflow.ProgramLines);
             Assert.AreEqual(string.Empty, main.GCodeWorkflow.GCodePreview);
             Assert.IsFalse(main.GCodeWorkflow.SaveGCodeCommand.CanExecute(null));
             Assert.IsFalse(main.GCodeWorkflow.PreviewGCodeCommand.CanExecute(null));

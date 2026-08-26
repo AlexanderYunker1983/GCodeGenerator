@@ -75,17 +75,18 @@ namespace GCodeGenerator.Tests
         public void MainViewModel_SaveGCode_DelegatesToFileService()
         {
             const string filePath = "virtual-program.nc";
-            const string gCode = "G0 X1 Y2\r\nM30\r\n";
             var fileService = new RecordingGCodeFileService();
             var (main, _, dialog, _) = MainViewModelOperationEditTests.CreateMain(
                 gCodeFileService: fileService);
-            main.GCodeWorkflow.GCodePreview = gCode;
+            // Программа живёт строками; текст с переводами строк собирается
+            // самим сохранением.
+            main.GCodeWorkflow.ProgramLines = new[] { "G0 X1 Y2", "M30" };
             dialog.SaveDialogResult = filePath;
 
             main.GCodeWorkflow.SaveGCodeCommand.Execute(null);
 
             Assert.AreEqual(filePath, fileService.FilePath);
-            Assert.AreEqual(gCode, fileService.GCode);
+            Assert.AreEqual("G0 X1 Y2" + System.Environment.NewLine + "M30" + System.Environment.NewLine, fileService.GCode);
         }
     }
 }

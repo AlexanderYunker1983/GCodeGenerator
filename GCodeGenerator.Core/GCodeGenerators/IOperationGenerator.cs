@@ -1,4 +1,5 @@
 #nullable enable
+using System.Threading;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -12,6 +13,19 @@ namespace GCodeGenerator.GCodeGenerators
     /// </summary>
     public interface IOperationGenerator
     {
-        void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings);
+        /// <param name="operation">Операция документа.</param>
+        /// <param name="builder">Построитель траектории.</param>
+        /// <param name="settings">Настройки генерации.</param>
+        /// <param name="cancellation">
+        /// Отмена: проверяется между единицами работы операции — слоями и
+        /// отверстиями. Одна операция может строиться заметное время
+        /// (глубокий карман — это сотни слоёв), и прежде отменить её можно
+        /// было только целиком.
+        /// </param>
+        void Generate(
+            OperationBase operation,
+            ToolPathBuilder builder,
+            GCodeSettings settings,
+            CancellationToken cancellation = default);
     }
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using GCodeGenerator.Persistence;
@@ -18,11 +20,19 @@ namespace GCodeGenerator.Tests
                 string filePath,
                 IReadOnlyList<OperationBase> operations,
                 GCodeSettings settings)
+                => SaveSerialized(filePath, Serialize(operations, settings));
+
+            // Слепок снимает Serialize — именно ему рабочий процесс отдаёт
+            // операции и настройки перед уходом записи в фон.
+            public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
             {
-                FilePath = filePath;
                 Operations = operations;
                 Settings = settings;
+                return "serialized-project";
             }
+
+            public void SaveSerialized(string filePath, string json)
+                => FilePath = filePath;
 
             public ProjectFileData Load(string filePath)
                 => throw new System.NotSupportedException();
@@ -38,6 +48,12 @@ namespace GCodeGenerator.Tests
                 string filePath,
                 IReadOnlyList<OperationBase> operations,
                 GCodeSettings settings)
+                => SaveSerialized(filePath, Serialize(operations, settings));
+
+            public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => string.Empty;
+
+            public void SaveSerialized(string filePath, string json)
                 => SaveCount++;
 
             public ProjectFileData Load(string filePath)
@@ -48,6 +64,9 @@ namespace GCodeGenerator.Tests
                 };
         }
 
+        private static Task ExecuteAsync(System.Windows.Input.ICommand command)
+            => ((IAsyncRelayCommand)command).ExecuteAsync(null);
+
         /// <summary>
         /// Файл старого формата после сохранения молча становился файлом
         /// текущей версии — прежние сборки его больше не откроют, и раньше
@@ -56,29 +75,29 @@ namespace GCodeGenerator.Tests
         /// него файл уже текущей версии.
         /// </summary>
         [TestMethod]
-        public void SavingProjectLoadedFromOlderFormat_WarnsAboutUpgradeOnce()
+        public async Task SavingProjectLoadedFromOlderFormat_WarnsAboutUpgradeOnce()
         {
             var projectFiles = new VersionedProjectFileService { LoadVersion = 2 };
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain(
                 projectFileService: projectFiles);
             dialogs.OpenDialogResult = "old-project.ygc";
 
-            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.OpenProjectCommand);
             Assert.AreEqual(0, dialogs.InfoMessageCount, "открытие само по себе ничего не сообщает");
 
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
             Assert.AreEqual(1, dialogs.InfoMessageCount, "первое сохранение сообщает об апгрейде формата");
             Assert.AreEqual("ProjectUpgradedFromOlderVersionInfo", dialogs.LastInfoMessage,
                 "текст сообщения берётся из словаря локализации");
 
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
             Assert.AreEqual(1, dialogs.InfoMessageCount, "файл уже текущей версии — повторного сообщения нет");
             Assert.AreEqual(2, projectFiles.SaveCount, "оба сохранения при этом состоялись");
         }
 
         /// <summary>Файл текущей версии сохраняется без сообщений.</summary>
         [TestMethod]
-        public void SavingProjectLoadedFromCurrentFormat_StaysSilent()
+        public async Task SavingProjectLoadedFromCurrentFormat_StaysSilent()
         {
             var projectFiles = new VersionedProjectFileService
             {
@@ -88,14 +107,56 @@ namespace GCodeGenerator.Tests
                 projectFileService: projectFiles);
             dialogs.OpenDialogResult = "current-project.ygc";
 
-            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.OpenProjectCommand);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             Assert.AreEqual(0, dialogs.InfoMessageCount);
         }
 
+        /// <summary>
+        /// Слепок снимается на потоке интерфейса, а запись уходит в фон:
+        /// окно не замирает на время дискового ввода-вывода.
+        /// </summary>
         [TestMethod]
-        public void SaveProject_DelegatesSelectedPathOperationsAndActiveSettings()
+        public async Task SaveProject_WritesOnBackgroundThread()
+        {
+            var projectFiles = new ThreadRecordingProjectFileService();
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain(
+                projectFileService: projectFiles);
+            main.OperationsWorkspace.AllOperations.Add(new DrillPointsOperation());
+            dialogs.SaveDialogResult = "threaded-project.ygc";
+            var testThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+
+            Assert.AreEqual(testThread, projectFiles.SerializeThread, "Слепок — на вызывающем потоке");
+            Assert.AreNotEqual(testThread, projectFiles.WriteThread, "Запись — в фоне");
+        }
+
+        private sealed class ThreadRecordingProjectFileService : IProjectFileService
+        {
+            public int SerializeThread { get; private set; }
+
+            public int WriteThread { get; private set; }
+
+            public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => SaveSerialized(filePath, Serialize(operations, settings));
+
+            public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+            {
+                SerializeThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+                return string.Empty;
+            }
+
+            public void SaveSerialized(string filePath, string json)
+                => WriteThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
+
+            public ProjectFileData Load(string filePath)
+                => throw new System.NotSupportedException();
+        }
+
+        [TestMethod]
+        public async Task SaveProject_DelegatesSelectedPathOperationsAndActiveSettings()
         {
             const string filePath = "virtual-project.ygc";
             var projectFiles = new RecordingProjectFileService();
@@ -106,7 +167,7 @@ namespace GCodeGenerator.Tests
             settingsStore.Current.Spindle.SpindleSpeedRpm = 7300;
             dialogs.SaveDialogResult = filePath;
 
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             Assert.AreEqual(filePath, projectFiles.FilePath);
             Assert.AreSame(main.OperationsWorkspace.AllOperations, projectFiles.Operations);

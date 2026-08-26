@@ -5,7 +5,9 @@ using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using GCodeGenerator.Persistence;
 
@@ -67,10 +69,13 @@ namespace GCodeGenerator.ViewModels
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
             _logger = logger ?? NullAppLogger.Instance;
 
-            NewProgramCommand = new RelayCommand(CreateNewProgram);
-            SaveProjectCommand = new RelayCommand(SaveProject, () => _operations.Count > 0);
-            SaveProjectAsCommand = new RelayCommand(SaveProjectAs, () => _operations.Count > 0);
-            OpenProjectCommand = new RelayCommand(OpenProject);
+            // Команды асинхронны: чтение, разбор и запись файла уходят в фон,
+            // окно остаётся живым. К документу фон не прикасается — слепок
+            // и применение выполняются на потоке интерфейса.
+            NewProgramCommand = new AsyncRelayCommand(CreateNewProgramAsync);
+            SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, () => _operations.Count > 0);
+            SaveProjectAsCommand = new AsyncRelayCommand(SaveProjectAsAsync, () => _operations.Count > 0);
+            OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
         }
 
         public event EventHandler? ProjectResetting;
@@ -136,8 +141,8 @@ namespace GCodeGenerator.ViewModels
 
         public void NotifyOperationsChanged()
         {
-            ((RelayCommand)SaveProjectCommand).NotifyCanExecuteChanged();
-            ((RelayCommand)SaveProjectAsCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)SaveProjectCommand).NotifyCanExecuteChanged();
+            ((IRelayCommand)SaveProjectAsCommand).NotifyCanExecuteChanged();
             MarkDirty();
         }
 
@@ -154,20 +159,14 @@ namespace GCodeGenerator.ViewModels
 
         /// <summary>
         /// Спрашивает о несохранённых изменениях перед действием, которое их
-        /// потеряет: созданием нового проекта, открытием другого и закрытием
-        /// программы.
+        /// потеряет. Синхронная версия — для закрытия программы: событие
+        /// закрытия окна WPF не умеет ждать, и сохранение при закрытии
+        /// выполняется на месте; команды меню пользуются асинхронной.
         /// </summary>
         /// <returns><c>false</c> — пользователь передумал, действие выполнять нельзя.</returns>
         public bool ConfirmDiscardChanges()
         {
-            if (!IsDirty)
-                return true;
-
-            var answer = _messageService.ShowSaveConfirmation(
-                Localize("ConfirmSaveChangesMessage"),
-                Localize("ConfirmSaveChangesTitle"));
-
-            switch (answer)
+            switch (AskAboutUnsavedChanges())
             {
                 case SaveConfirmation.Save:
                     // Сохранение может не состояться: пользователь закрыл
@@ -181,9 +180,40 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
-        private void CreateNewProgram()
+        /// <summary>
+        /// Асинхронная версия <see cref="ConfirmDiscardChanges"/> для команд
+        /// создания и открытия проекта: сохранение пишет файл в фоне.
+        /// </summary>
+        private async Task<bool> ConfirmDiscardChangesAsync()
         {
-            if (!ConfirmDiscardChanges())
+            switch (AskAboutUnsavedChanges())
+            {
+                case SaveConfirmation.Save:
+                    return await SaveToFileAsync(CurrentPath ?? AskFileName());
+                case SaveConfirmation.Discard:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Вопрос о несохранённых изменениях; для чистого документа — сразу
+        /// «отбросить»: терять нечего, спрашивать не о чем.
+        /// </summary>
+        private SaveConfirmation AskAboutUnsavedChanges()
+        {
+            if (!IsDirty)
+                return SaveConfirmation.Discard;
+
+            return _messageService.ShowSaveConfirmation(
+                Localize("ConfirmSaveChangesMessage"),
+                Localize("ConfirmSaveChangesTitle"));
+        }
+
+        private async Task CreateNewProgramAsync()
+        {
+            if (!await ConfirmDiscardChangesAsync())
                 return;
 
             ApplyDocument(() =>
@@ -195,20 +225,20 @@ namespace GCodeGenerator.ViewModels
             });
         }
 
-        private void SaveProject()
+        private Task SaveProjectAsync()
         {
             if (_operations.Count == 0)
-                return;
+                return Task.CompletedTask;
 
-            SaveToFile(CurrentPath ?? AskFileName());
+            return SaveToFileAsync(CurrentPath ?? AskFileName());
         }
 
-        private void SaveProjectAs()
+        private Task SaveProjectAsAsync()
         {
             if (_operations.Count == 0)
-                return;
+                return Task.CompletedTask;
 
-            SaveToFile(AskFileName());
+            return SaveToFileAsync(AskFileName());
         }
 
         /// <summary>Спрашивает имя файла проекта; <c>null</c> — пользователь отменил.</summary>
@@ -221,7 +251,8 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// Сохраняет проект в файл и запоминает его как текущий.
+        /// Сохраняет проект в файл и запоминает его как текущий. Синхронная
+        /// версия — для закрытия программы (см. <see cref="ConfirmDiscardChanges"/>).
         /// </summary>
         /// <returns><c>false</c>, если сохранение не состоялось.</returns>
         /// <param name="fileName">
@@ -235,42 +266,87 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                _projectFileService.Save(fileName, _operations, _settingsStore?.Current);
-                CurrentPath = fileName;
-                IsDirty = false;
-                _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
-
-                // Файл старого формата после сохранения стал файлом текущей
-                // версии — прежние сборки программы его больше не откроют.
-                // Пользователь узнаёт об этом сразу, а не при попытке открыть
-                // файл там, где это уже не получится; после предупреждения
-                // файл уже текущий, и повторять его незачем.
-                if (_loadedFileVersion is int loadedVersion
-                    && loadedVersion < ProjectFileService.CurrentVersion)
-                {
-                    _messageService.ShowInfo(
-                        string.Format(
-                            Localize("ProjectUpgradedFromOlderVersionInfo"),
-                            loadedVersion,
-                            ProjectFileService.CurrentVersion),
-                        Localize("SaveProjectTitle"));
-                }
-
-                _loadedFileVersion = ProjectFileService.CurrentVersion;
-                return true;
+                _projectFileService.SaveSerialized(fileName, SerializeProject());
+                return FinishSuccessfulSave(fileName);
             }
             catch (Exception ex)
             {
-                _logger.Error($"Saving project failed: {fileName}", ex);
-                var message = Localize("ErrorSavingProject");
-                _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", Localize("SaveProjectTitle"));
-                return false;
+                return ReportSaveFailure(fileName, ex);
             }
         }
 
-        private void OpenProject()
+        /// <summary>
+        /// Сохраняет проект, не замораживая окно: слепок снимается на потоке
+        /// интерфейса — документ нельзя читать из фона, пока его может
+        /// править пользователь, — а запись на диск, самую долгую часть,
+        /// выполняет фоновый поток.
+        /// </summary>
+        /// <returns><c>false</c>, если сохранение не состоялось.</returns>
+        /// <param name="fileName">Имя файла; пусто — сохранение не состоялось.</param>
+        private async Task<bool> SaveToFileAsync(string? fileName)
         {
-            if (!ConfirmDiscardChanges())
+            if (string.IsNullOrEmpty(fileName))
+                return false;
+
+            try
+            {
+                var json = SerializeProject();
+                await Task.Run(() => _projectFileService.SaveSerialized(fileName, json));
+                return FinishSuccessfulSave(fileName);
+            }
+            catch (Exception ex)
+            {
+                return ReportSaveFailure(fileName, ex);
+            }
+        }
+
+        /// <summary>Слепок документа для записи: снимается на потоке интерфейса.</summary>
+        private string SerializeProject()
+            => _projectFileService.Serialize(_operations, _settingsStore?.Current);
+
+        /// <summary>
+        /// Общее завершение удачного сохранения: файл становится текущим,
+        /// признак изменений снимается — только теперь, когда данные
+        /// действительно на диске.
+        /// </summary>
+        private bool FinishSuccessfulSave(string fileName)
+        {
+            CurrentPath = fileName;
+            IsDirty = false;
+            _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
+
+            // Файл старого формата после сохранения стал файлом текущей
+            // версии — прежние сборки программы его больше не откроют.
+            // Пользователь узнаёт об этом сразу, а не при попытке открыть
+            // файл там, где это уже не получится; после предупреждения
+            // файл уже текущий, и повторять его незачем.
+            if (_loadedFileVersion is int loadedVersion
+                && loadedVersion < ProjectFileService.CurrentVersion)
+            {
+                _messageService.ShowInfo(
+                    string.Format(
+                        Localize("ProjectUpgradedFromOlderVersionInfo"),
+                        loadedVersion,
+                        ProjectFileService.CurrentVersion),
+                    Localize("SaveProjectTitle"));
+            }
+
+            _loadedFileVersion = ProjectFileService.CurrentVersion;
+            return true;
+        }
+
+        /// <summary>Общее завершение неудачного сохранения: журнал и сообщение.</summary>
+        private bool ReportSaveFailure(string fileName, Exception failure)
+        {
+            _logger.Error($"Saving project failed: {fileName}", failure);
+            var message = Localize("ErrorSavingProject");
+            _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(failure, _localizationManager)}", Localize("SaveProjectTitle"));
+            return false;
+        }
+
+        private async Task OpenProjectAsync()
+        {
+            if (!await ConfirmDiscardChangesAsync())
                 return;
 
             var filter = Localize("ProjectFileFilter");
@@ -281,10 +357,10 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                // Файл разбирается целиком до того, как меняется состояние
-                // программы: непригодный проект отвергается, а открытый
-                // остаётся нетронутым.
-                var data = _projectFileService.Load(fileName);
+                // Файл читается и разбирается в фоне целиком до того, как
+                // меняется состояние программы: крупный проект не замораживает
+                // окно, непригодный отвергается, а открытый остаётся нетронутым.
+                var data = await Task.Run(() => _projectFileService.Load(fileName));
                 if (data?.Operations == null)
                 {
                     _logger.Warning($"Project file has no operations section: {fileName}");
@@ -313,15 +389,27 @@ namespace GCodeGenerator.ViewModels
 
         /// <summary>
         /// Выполняет замену документа: изменения, которые она вызывает, не
-        /// делают проект несохранённым, а по завершении признак сбрасывается.
+        /// делают проект несохранённым, а признак изменений сбрасывается
+        /// только при успехе. Сбой на полпути возвращает прежние операции:
+        /// документ либо заменён целиком, либо остался прежним.
         /// </summary>
         private void ApplyDocument(Action apply)
         {
             _isApplyingDocument = true;
             DocumentApplying?.Invoke(this, EventArgs.Empty);
+            var previousOperations = new List<OperationBase>(_operations);
             try
             {
                 apply();
+            }
+            catch
+            {
+                // Восстановление идёт при ещё поднятом признаке «замена
+                // документа»: откат — дело программы, не пользователя.
+                _operations.Clear();
+                foreach (var operation in previousOperations)
+                    _operations.Add(operation);
+                throw;
             }
             finally
             {
@@ -330,8 +418,11 @@ namespace GCodeGenerator.ViewModels
                 // ещё считается своей, иначе они пометят проект изменённым.
                 DocumentApplied?.Invoke(this, EventArgs.Empty);
                 _isApplyingDocument = false;
-                IsDirty = false;
             }
+
+            // Успешная замена — документ совпадает с источником: новым
+            // проектом или только что открытым файлом.
+            IsDirty = false;
         }
 
         private void ResetOperations()

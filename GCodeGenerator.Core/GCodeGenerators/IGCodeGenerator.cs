@@ -14,7 +14,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// чистым синхронным (асинхронность — на стороне UI, Task.Run).
         /// </summary>
         GCodeProgram Generate(
-            IList<OperationBase> operations,
+            IReadOnlyList<OperationBase?> operations,
             GCodeSettings settings,
             IProgress<int>? progress = null,
             CancellationToken cancellation = default);
@@ -25,16 +25,22 @@ namespace GCodeGenerator.GCodeGenerators
         /// инструмента, а не текст программы, и раньше вынужден был получать
         /// его обратным разбором уже готового G-code.
         /// </summary>
-        /// <param name="operations">Операции документа.</param>
+        /// <param name="operations">
+        /// Операции документа. Пустой элемент допустим — файл проекта,
+        /// написанный вручную, способен принести и такое, — и его отклоняет
+        /// проверка перед генерацией, называя место в списке; фильтровать
+        /// пустоту заранее — значит спрятать её от проверки.
+        /// </param>
         /// <param name="settings">Настройки генерации.</param>
         /// <param name="progress">Сообщение о прогрессе (0–100, по операциям).</param>
         /// <param name="cancellation">
-        /// Отмена: проверяется между операциями. Программа большого проекта
-        /// строится заметное время, и её незачем достраивать, если документ
-        /// уже изменился или пользователь закрывает окно.
+        /// Отмена: проверяется между операциями и внутри операции — между
+        /// её слоями и отверстиями. Программа большого проекта строится
+        /// заметное время, и её незачем достраивать, если документ уже
+        /// изменился или пользователь закрывает окно.
         /// </param>
         Toolpath.ToolPath BuildToolPath(
-            IList<OperationBase> operations,
+            IReadOnlyList<OperationBase?> operations,
             GCodeSettings settings,
             IProgress<int>? progress = null,
             CancellationToken cancellation = default);

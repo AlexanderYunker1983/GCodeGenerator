@@ -46,7 +46,19 @@ namespace GCodeGenerator.Models
         /// </summary>
         /// <param name="operations">Операции документа.</param>
         /// <param name="settings">Настройки генерации.</param>
-        public static GenerationSnapshot Capture(IEnumerable<OperationBase> operations, GCodeSettings settings)
+        public static GenerationSnapshot Capture(IEnumerable<OperationBase?> operations, GCodeSettings settings)
+            => Serialize(operations, settings).Deserialize();
+
+        /// <summary>
+        /// Первая стадия слепка: операции и настройки превращаются в текст.
+        /// Выполняется на потоке интерфейса — документ нельзя читать из фона,
+        /// пока его может править пользователь, — и это дешёвая половина
+        /// работы; дорогая материализация копий уходит в фон
+        /// (<see cref="Serialized.Deserialize"/>).
+        /// </summary>
+        /// <param name="operations">Операции документа.</param>
+        /// <param name="settings">Настройки генерации.</param>
+        public static Serialized Serialize(IEnumerable<OperationBase?> operations, GCodeSettings settings)
         {
             if (operations == null)
                 throw new ArgumentNullException(nameof(operations));
@@ -56,23 +68,82 @@ namespace GCodeGenerator.Models
             // Пустая операция в списке возможна: файл проекта, написанный
             // вручную, способен принести и такое — снимок сохраняет её как
             // есть, а отклонит её проверка перед генерацией.
-            var copies = new List<OperationBase?>();
+            var entries = new List<Serialized.Entry?>();
             foreach (var operation in operations)
-                copies.Add(operation == null ? null : OperationCloner.Clone(operation));
+            {
+                entries.Add(operation == null
+                    ? null
+                    : new Serialized.Entry(
+                        operation.GetType(),
+                        JsonSerializer.Serialize(operation, operation.GetType(), SettingsOptions),
+                        operation.Id));
+            }
 
-            return new GenerationSnapshot(copies, CloneSettings(settings));
+            return new Serialized(entries, JsonSerializer.Serialize(settings, SettingsOptions));
         }
 
         /// <summary>
-        /// Копия настроек. Группы настроек — обычные классы со свойствами,
-        /// поэтому копируется весь объект целиком: новая группа или новый
-        /// параметр попадут в слепок без правки этого метода.
+        /// Сериализованный слепок — текстовая форма документа между потоками.
+        /// Состав копий тот же, что у <see cref="OperationCloner"/> и файла
+        /// проекта (общие настройки сериализации); идентификатор операции
+        /// в файл не пишется и переносится явно — по нему предпросмотр
+        /// сопоставляет копию с операцией документа.
         /// </summary>
-        private static GCodeSettings CloneSettings(GCodeSettings settings)
+        public sealed class Serialized
         {
-            var json = JsonSerializer.Serialize(settings, SettingsOptions);
-            return JsonSerializer.Deserialize<GCodeSettings>(json, SettingsOptions)
-                ?? throw new InvalidOperationException("Failed to clone the generation settings.");
+            private readonly IReadOnlyList<Entry?> _operations;
+            private readonly string _settings;
+
+            internal Serialized(IReadOnlyList<Entry?> operations, string settings)
+            {
+                _operations = operations;
+                _settings = settings;
+            }
+
+            /// <summary>
+            /// Вторая стадия слепка: материализация копий. Выполняется в фоне —
+            /// текст уже ни с кем не разделён, и интерфейс это не задерживает.
+            /// </summary>
+            public GenerationSnapshot Deserialize()
+            {
+                var copies = new List<OperationBase?>();
+                foreach (var entry in _operations)
+                {
+                    if (entry == null)
+                    {
+                        copies.Add(null);
+                        continue;
+                    }
+
+                    if (!(JsonSerializer.Deserialize(entry.Json, entry.Type, SettingsOptions) is OperationBase copy))
+                        throw new InvalidOperationException($"Failed to clone the operation {entry.Type.Name}.");
+
+                    copy.Id = entry.Id;
+                    copies.Add(copy);
+                }
+
+                var settings = JsonSerializer.Deserialize<GCodeSettings>(_settings, SettingsOptions)
+                    ?? throw new InvalidOperationException("Failed to clone the generation settings.");
+
+                return new GenerationSnapshot(copies, settings);
+            }
+
+            /// <summary>Одна операция в текстовой форме.</summary>
+            internal sealed class Entry
+            {
+                public Entry(Type type, string json, Guid id)
+                {
+                    Type = type;
+                    Json = json;
+                    Id = id;
+                }
+
+                public Type Type { get; }
+
+                public string Json { get; }
+
+                public Guid Id { get; }
+            }
         }
     }
 }

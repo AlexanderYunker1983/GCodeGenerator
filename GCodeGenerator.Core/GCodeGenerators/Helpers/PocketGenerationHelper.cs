@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Globalization;
+using System.Threading;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -21,11 +22,13 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="generateLayer">Делегат для генерации одного слоя (currentZ, nextZ, passNumber) - возвращает false, если обработку нужно прекратить</param>
         /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
+        /// <param name="cancellation">Отмена: проверяется перед каждым слоем.</param>
         public void GenerateLayerLoop(
             PocketOperationBase op,
             Func<double, double, int, bool> generateLayer,
             ToolPathBuilder builder,
-            GCodeSettings settings)
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
             // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл по слоям
             // превращается в бесконечный. Бросаем исключение вместо зависания.
@@ -41,6 +44,10 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             while (currentZ > finalZ)
             {
+                // Слой — единица работы: глубокий карман строится из сотен
+                // слоёв, и отмена не должна ждать конца операции.
+                cancellation.ThrowIfCancellationRequested();
+
                 double nextZ = currentZ - op.StepDepth;
                 if (nextZ < finalZ) nextZ = finalZ;
                 pass++;

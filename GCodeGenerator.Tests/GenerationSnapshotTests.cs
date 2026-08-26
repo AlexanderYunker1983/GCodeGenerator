@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -96,6 +96,31 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Слепок работает в две стадии — сериализация на потоке интерфейса,
+        /// материализация в фоне, — и текстовая форма обязана переносить всё,
+        /// что не пишется в файл: идентификатор операции (по нему предпросмотр
+        /// сопоставляет копию с операцией документа) и пустую операцию,
+        /// которую отклонит проверка перед генерацией.
+        /// </summary>
+        [TestMethod]
+        public void SerializedSnapshot_KeepsOperationIdAndNullEntries()
+        {
+            var operation = Drill(10);
+
+            var payload = GenerationSnapshot.Serialize(
+                new List<OperationBase> { operation, null }, new GCodeSettings());
+            operation.Holes[0].X = 999;
+            var snapshot = payload.Deserialize();
+
+            Assert.AreEqual(2, snapshot.Operations.Count, "Состав списка сохранён");
+            Assert.IsNull(snapshot.Operations[1], "Пустая операция не выброшена — её отклонит проверка");
+            var copy = (DrillPointsOperation)snapshot.Operations[0];
+            Assert.AreNotSame(operation, copy, "Копия, а не та же ссылка");
+            Assert.AreEqual(operation.Id, copy.Id, "Идентификатор перенесён — он не пишется в текст");
+            Assert.AreEqual(10, copy.Holes[0].X, "Слепок снят в момент сериализации");
+        }
+
+        /// <summary>
         /// Главная проверка: правка документа, сделанная уже после запуска
         /// генерации, не должна попасть в собираемую программу.
         /// </summary>
@@ -141,7 +166,7 @@ namespace GCodeGenerator.Tests
 
             public bool ObservedUseLineNumbers { get; private set; }
 
-            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+            public GCodeProgram Generate(IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
                 => new SimpleGCodeGenerator().Generate(operations, settings, progress);
 
@@ -150,7 +175,7 @@ namespace GCodeGenerator.Tests
             /// именно с этими данными работает фоновый поток.
             /// </summary>
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
             {
                 Started.Set();

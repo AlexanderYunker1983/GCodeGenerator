@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Windows;
@@ -19,6 +19,12 @@ namespace GCodeGenerator.Views
     /// renders the pure <see cref="OperationScene"/> from
     /// <see cref="OperationsPreviewViewModel"/> and handles the mouse;
     /// contour point generation lives in Core (<see cref="OperationSceneBuilder"/>).
+    ///
+    /// Отрисовка разделена по стоимости: фигуры собираются заново только
+    /// когда меняется их состав или масштаб — сцена, зум, тема, — а пан
+    /// сдвигает готовый слой трансформацией, сетку — вьюпортом плиточной
+    /// кисти, и наведение с выделением перекрашивают фигуры на месте.
+    /// Прежде каждое движение мыши очищало холст и строило всё заново.
     /// </summary>
     public partial class OperationsPreviewView : System.Windows.Controls.UserControl
     {
@@ -37,9 +43,39 @@ namespace GCodeGenerator.Views
         /// </summary>
         private OperationPreviewPalette _palette = OperationPreviewPalette.ForCurrentTheme();
 
+        /// <summary>Пан готового слоя фигур: сдвиг вместо пересборки.</summary>
+        private readonly TranslateTransform _panTransform = new TranslateTransform();
+
+        /// <summary>Слой фигур; его дети собраны при пане <see cref="_builtOffset"/>.</summary>
+        private readonly Canvas _shapesLayer = new Canvas();
+
+        /// <summary>Сетка — плиточная кисть: пан двигает её вьюпорт.</summary>
+        private readonly Rectangle _gridRect = new Rectangle { IsHitTestVisible = false, Opacity = 0.6 };
+
+        private readonly Line _axisX = new Line { StrokeThickness = 1, IsHitTestVisible = false };
+        private readonly Line _axisY = new Line { StrokeThickness = 1, IsHitTestVisible = false };
+
+        private DrawingBrush? _gridBrush;
+
+        /// <summary>Пан на момент сборки слоя фигур.</summary>
+        private Point _builtOffset;
+
+        /// <summary>Фигуры сцены и их визуальные элементы — для перекраски на месте.</summary>
+        private readonly List<(OperationShape Shape, Shape[] Visuals)> _visuals =
+            new List<(OperationShape, Shape[])>();
+
         public OperationsPreviewView()
         {
             InitializeComponent();
+
+            // Постоянные слои: сетка и оси под фигурами. Состав детей холста
+            // больше не меняется — меняются дети слоя фигур.
+            _shapesLayer.RenderTransform = _panTransform;
+            PreviewCanvas.Children.Add(_gridRect);
+            PreviewCanvas.Children.Add(_axisX);
+            PreviewCanvas.Children.Add(_axisY);
+            PreviewCanvas.Children.Add(_shapesLayer);
+
             Loaded += OnLoaded;
             DataContextChanged += OnDataContextChanged;
         }
@@ -48,13 +84,13 @@ namespace GCodeGenerator.Views
         {
             _offset = new Point(PreviewCanvas.ActualWidth / 2.0, PreviewCanvas.ActualHeight / 2.0);
             HookVm();
-            Redraw();
+            RebuildScene();
         }
 
         private void OnDataContextChanged(object? sender, DependencyPropertyChangedEventArgs e)
         {
             HookVm();
-            Redraw();
+            RebuildScene();
         }
 
         private void HookVm()
@@ -87,11 +123,14 @@ namespace GCodeGenerator.Views
 
         private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            // Scene rebuild or selection change → redraw.
-            if (e.PropertyName == nameof(OperationsPreviewViewModel.Scene) ||
-                e.PropertyName == nameof(OperationsPreviewViewModel.SelectedOperation))
+            if (e.PropertyName == nameof(OperationsPreviewViewModel.Scene))
             {
-                Redraw();
+                RebuildScene();
+            }
+            else if (e.PropertyName == nameof(OperationsPreviewViewModel.SelectedOperation))
+            {
+                // Состав фигур прежний — меняется только их цвет.
+                UpdateBrushes();
             }
         }
 
@@ -137,7 +176,7 @@ namespace GCodeGenerator.Views
                 PreviewCanvas.ActualWidth / 2.0 - (minX + maxX) / 2.0 * _zoom,
                 PreviewCanvas.ActualHeight / 2.0 + (minY + maxY) / 2.0 * _zoom);
 
-            Redraw();
+            RebuildScene();
         }
 
         private void PreviewCanvas_OnMouseWheel(object? sender, MouseWheelEventArgs e)
@@ -156,7 +195,8 @@ namespace GCodeGenerator.Views
             var dy = mousePos.Y - screenAfter.Y;
             _offset = new Point(_offset.X + dx, _offset.Y + dy);
 
-            Redraw();
+            // Зум меняет экранные координаты всех точек — слой собирается заново.
+            RebuildScene();
         }
 
         private void PreviewCanvas_OnMouseDown(object? sender, MouseButtonEventArgs e)
@@ -194,7 +234,10 @@ namespace GCodeGenerator.Views
                 var delta = pos - _lastMouse;
                 _offset = new Point(_offset.X + delta.X, _offset.Y + delta.Y);
                 _lastMouse = pos;
-                Redraw();
+
+                // Пан не пересобирает фигуры: слой сдвигается трансформацией,
+                // сетка — вьюпортом кисти, оси — двумя координатами.
+                UpdateViewport();
             }
             else
             {
@@ -202,7 +245,7 @@ namespace GCodeGenerator.Views
                 if (!ReferenceEquals(op, _hoverOp))
                 {
                     _hoverOp = op;
-                    Redraw();
+                    UpdateBrushes();
                 }
             }
         }
@@ -218,7 +261,7 @@ namespace GCodeGenerator.Views
             if (_hoverOp != null)
             {
                 _hoverOp = null;
-                Redraw();
+                UpdateBrushes();
             }
         }
 
@@ -226,35 +269,138 @@ namespace GCodeGenerator.Views
         {
             if (double.IsNaN(_offset.X) || double.IsNaN(_offset.Y))
                 _offset = new Point(PreviewCanvas.ActualWidth / 2.0, PreviewCanvas.ActualHeight / 2.0);
-            Redraw();
+
+            // Фигуры от размера окна не зависят — обновляются сетка и оси.
+            UpdateViewport();
         }
 
         private void OnThemeChanged(object? sender, EventArgs e)
         {
             _palette = OperationPreviewPalette.ForCurrentTheme();
-            Redraw();
+            RebuildScene();
         }
 
         // ------------------------------------------------------------------
         // Rendering
         // ------------------------------------------------------------------
 
-        private void Redraw()
+        /// <summary>
+        /// Полная пересборка слоя фигур: сцена, зум, тема. Пан и подкраска
+        /// выделения обходятся без неё.
+        /// </summary>
+        private void RebuildScene()
         {
             if (!Dispatcher.CheckAccess())
             {
-                Dispatcher.Invoke(Redraw);
+                Dispatcher.Invoke(RebuildScene);
                 return;
             }
             if (!IsLoaded || PreviewCanvas == null || _vm == null) return;
-            PreviewCanvas.Children.Clear();
 
-            DrawGrid();
+            _shapesLayer.Children.Clear();
+            _visuals.Clear();
+            _builtOffset = _offset;
 
-            var selected = _vm.SelectedOperation;
-            var hover = _hoverOp;
+            RebuildGridResources();
+            UpdateViewport();
 
             foreach (var shape in _vm.Scene?.Shapes ?? (IReadOnlyList<OperationShape>)System.Array.Empty<OperationShape>())
+            {
+                var visuals = shape.Kind == OperationShapeKind.Point
+                    ? BuildHole(shape)
+                    : BuildPolyline(shape);
+                if (visuals.Length > 0)
+                    _visuals.Add((shape, visuals));
+            }
+
+            UpdateBrushes();
+        }
+
+        /// <summary>
+        /// Пан: сдвиг слоя фигур, вьюпорта сетки и осей. Ни одна фигура не
+        /// создаётся заново.
+        /// </summary>
+        private void UpdateViewport()
+        {
+            if (PreviewCanvas == null) return;
+
+            _panTransform.X = _offset.X - _builtOffset.X;
+            _panTransform.Y = _offset.Y - _builtOffset.Y;
+
+            _gridRect.Width = Math.Max(0, PreviewCanvas.ActualWidth);
+            _gridRect.Height = Math.Max(0, PreviewCanvas.ActualHeight);
+            if (_gridBrush != null)
+            {
+                var step = GridStepMm * _zoom;
+                _gridBrush.Viewport = new Rect(Mod(_offset.X, step), Mod(_offset.Y, step), step, step);
+            }
+
+            var origin = WorldToScreen(new Point(0, 0));
+            _axisX.X1 = 0;
+            _axisX.Y1 = origin.Y;
+            _axisX.X2 = PreviewCanvas.ActualWidth;
+            _axisX.Y2 = origin.Y;
+            _axisY.X1 = origin.X;
+            _axisY.Y1 = 0;
+            _axisY.X2 = origin.X;
+            _axisY.Y2 = PreviewCanvas.ActualHeight;
+        }
+
+        /// <summary>
+        /// Кисть сетки под текущий шаг и палитру: одна плитка с двумя
+        /// штриховыми линиями вместо десятков элементов Line на холсте.
+        /// </summary>
+        private void RebuildGridResources()
+        {
+            var step = GridStepMm * _zoom;
+
+            var pen = new Pen(_palette.Grid, 0.5)
+            {
+                DashStyle = new DashStyle(new double[] { 2, 2 }, 0),
+            };
+            pen.Freeze();
+
+            var lines = new GeometryGroup();
+            lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(step, 0)));
+            lines.Children.Add(new LineGeometry(new Point(0, 0), new Point(0, step)));
+
+            var drawing = new GeometryDrawing(null, pen, lines);
+            drawing.Freeze();
+
+            // Кисть не замораживается: пан двигает её вьюпорт.
+            _gridBrush = new DrawingBrush(drawing)
+            {
+                TileMode = TileMode.Tile,
+                ViewportUnits = BrushMappingMode.Absolute,
+                Stretch = Stretch.None,
+            };
+            _gridRect.Fill = _gridBrush;
+
+            // Оси заметнее сетки: тот же цвет, но менее прозрачный.
+            var axisBrush = new SolidColorBrush(((SolidColorBrush)_palette.Grid).Color) { Opacity = 0.8 };
+            axisBrush.Freeze();
+            _axisX.Stroke = axisBrush;
+            _axisY.Stroke = axisBrush;
+        }
+
+        /// <summary>Остаток по модулю, всегда неотрицательный: для вьюпорта плитки.</summary>
+        private static double Mod(double value, double step)
+        {
+            if (step <= 0) return 0;
+            var remainder = value % step;
+            return remainder < 0 ? remainder + step : remainder;
+        }
+
+        /// <summary>
+        /// Подкраска фигур по выделению и наведению — на месте, без
+        /// пересборки: кисти палитры заморожены, присваивание дёшево.
+        /// </summary>
+        private void UpdateBrushes()
+        {
+            var selected = _vm?.SelectedOperation;
+            var hover = _hoverOp;
+
+            foreach (var (shape, visuals) in _visuals)
             {
                 var op = shape.Operation;
 
@@ -266,98 +412,29 @@ namespace GCodeGenerator.Views
                 else
                     stroke = _palette.ForShape(shape.Kind);
 
-                if (shape.Kind == OperationShapeKind.Point)
+                foreach (var visual in visuals)
                 {
-                    var (x, y) = shape.Points[0];
-                    DrawHole(x, y, stroke, op);
-                }
-                else
-                {
-                    DrawPolyline(shape.Points, stroke, op, shape.IsFilled,
-                        dashed: shape.Kind == OperationShapeKind.RapidMove);
+                    switch (visual)
+                    {
+                        case Ellipse hole:
+                            hole.Fill = stroke;
+                            break;
+                        case Polygon filled:
+                            filled.Stroke = stroke;
+                            filled.Fill = stroke;
+                            break;
+                        case Polyline outline:
+                            outline.Stroke = stroke;
+                            break;
+                    }
                 }
             }
         }
 
-        private void DrawGrid()
+        private Shape[] BuildHole(OperationShape shape)
         {
-            var minX = (0 - _offset.X) / _zoom;
-            var maxX = (PreviewCanvas.ActualWidth - _offset.X) / _zoom;
-            var minY = (_offset.Y - PreviewCanvas.ActualHeight) / _zoom;
-            var maxY = _offset.Y / _zoom;
-
-            var startX = Math.Floor(minX / GridStepMm) * GridStepMm;
-            var startY = Math.Floor(minY / GridStepMm) * GridStepMm;
-
-            var gridBrush = _palette.Grid;
-
-            for (double x = startX; x <= maxX; x += GridStepMm)
-            {
-                var p1 = WorldToScreen(new Point(x, minY));
-                var p2 = WorldToScreen(new Point(x, maxY));
-                var line = new Line
-                {
-                    X1 = p1.X,
-                    Y1 = p1.Y,
-                    X2 = p2.X,
-                    Y2 = p2.Y,
-                    Stroke = gridBrush,
-                    StrokeThickness = 0.5,
-                    StrokeDashArray = new DoubleCollection { 2, 2 },
-                    Opacity = 0.6
-                };
-                PreviewCanvas.Children.Add(line);
-            }
-
-            for (double y = startY; y <= maxY; y += GridStepMm)
-            {
-                var p1 = WorldToScreen(new Point(minX, y));
-                var p2 = WorldToScreen(new Point(maxX, y));
-                var line = new Line
-                {
-                    X1 = p1.X,
-                    Y1 = p1.Y,
-                    X2 = p2.X,
-                    Y2 = p2.Y,
-                    Stroke = gridBrush,
-                    StrokeThickness = 0.5,
-                    StrokeDashArray = new DoubleCollection { 2, 2 },
-                    Opacity = 0.6
-                };
-                PreviewCanvas.Children.Add(line);
-            }
-
-            // axes
-            var origin = WorldToScreen(new Point(0, 0));
-            // Оси заметнее сетки: та же кисть, но менее прозрачная.
-            var axisBrush = gridBrush.CloneCurrentValue();
-            axisBrush.Opacity = 0.8;
-
-            var axisX = new Line
-            {
-                X1 = 0,
-                Y1 = origin.Y,
-                X2 = PreviewCanvas.ActualWidth,
-                Y2 = origin.Y,
-                Stroke = axisBrush,
-                StrokeThickness = 1
-            };
-            PreviewCanvas.Children.Add(axisX);
-
-            var axisY = new Line
-            {
-                X1 = origin.X,
-                Y1 = 0,
-                X2 = origin.X,
-                Y2 = PreviewCanvas.ActualHeight,
-                Stroke = axisBrush,
-                StrokeThickness = 1
-            };
-            PreviewCanvas.Children.Add(axisY);
-        }
-
-        private void DrawHole(double x, double y, Brush brush, OperationBase op)
-        {
+            var op = shape.Operation;
+            var (x, y) = shape.Points[0];
             var screen = WorldToScreen(new Point(x, y));
             var size = 5.0;
             var opacity = op != null && !op.IsEnabled ? 0.3 : 1.0;
@@ -365,52 +442,61 @@ namespace GCodeGenerator.Views
             {
                 Width = size,
                 Height = size,
-                Fill = brush,
                 Tag = op,
                 Opacity = opacity
             };
             ApplyTooltip(ellipse, op);
             Canvas.SetLeft(ellipse, screen.X - size / 2.0);
             Canvas.SetTop(ellipse, screen.Y - size / 2.0);
-            PreviewCanvas.Children.Add(ellipse);
+            _shapesLayer.Children.Add(ellipse);
+            return new Shape[] { ellipse };
         }
 
-        private void DrawPolyline(IReadOnlyList<(double X, double Y)> worldPoints, Brush stroke, OperationBase op, bool fill, bool dashed = false)
+        private Shape[] BuildPolyline(OperationShape shape)
         {
+            var worldPoints = shape.Points;
             if (worldPoints == null || worldPoints.Count == 0)
-                return;
+                return Array.Empty<Shape>();
 
+            var op = shape.Operation;
             var screenPoints = new List<Point>(worldPoints.Count);
             foreach (var (x, y) in worldPoints)
                 screenPoints.Add(WorldToScreen(new Point(x, y)));
 
             var baseOpacity = op != null && !op.IsEnabled ? 0.3 : 1.0;
+            var visuals = new List<Shape>(2);
 
-            if (fill && screenPoints.Count >= 3)
+            if (shape.IsFilled && screenPoints.Count >= 3)
             {
+                // Заливка и её контур полупрозрачны целиком; кисть общая с
+                // обводкой — прежний клон кисти на каждый полигон не нужен,
+                // палитра заморожена и безопасно разделяется.
                 var polygon = new Polygon
                 {
-                    Stroke = stroke,
-                    Fill = stroke.Clone(),
                     Opacity = 0.25 * baseOpacity,
                     StrokeThickness = 1,
                     Points = new PointCollection(screenPoints),
                     Tag = op
                 };
                 ApplyTooltip(polygon, op);
-                PreviewCanvas.Children.Add(polygon);
+                _shapesLayer.Children.Add(polygon);
+                visuals.Add(polygon);
             }
 
             var poly = new Polyline
             {
-                Stroke = stroke,
                 StrokeThickness = 1,
                 Opacity = baseOpacity,
                 Points = new PointCollection(screenPoints),
                 Tag = op
             };
+            if (shape.Kind == OperationShapeKind.RapidMove)
+                poly.StrokeDashArray = new DoubleCollection { 4, 3 };
             ApplyTooltip(poly, op);
-            PreviewCanvas.Children.Add(poly);
+            _shapesLayer.Children.Add(poly);
+            visuals.Add(poly);
+
+            return visuals.ToArray();
         }
 
         private void ApplyTooltip(FrameworkElement element, OperationBase? op)

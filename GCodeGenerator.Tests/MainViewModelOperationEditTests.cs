@@ -1,6 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Operations;
@@ -313,7 +315,7 @@ namespace GCodeGenerator.Tests
         /// а настройка темы UI остаётся текущей.
         /// </summary>
         [TestMethod]
-        public void OpenProject_FileWithSections_AllGenerationSettingsReplacedAndUiPreserved()
+        public async Task OpenProject_FileWithSections_AllGenerationSettingsReplacedAndUiPreserved()
         {
             var (main, _, dialogs, store) = CreateMain();
 
@@ -334,7 +336,7 @@ namespace GCodeGenerator.Tests
                     new List<OperationBase> { OperationFixtures.DrillPoints() }, settings);
                 dialogs.OpenDialogResult = filePath;
 
-                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+                await ((IAsyncRelayCommand)main.ProjectWorkflow.OpenProjectCommand).ExecuteAsync(null);
 
                 Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Операция из файла загружена");
                 Assert.IsFalse(store.Current.Format.UseLineNumbers, "Формат из секции файла в сессии");
@@ -358,7 +360,7 @@ namespace GCodeGenerator.Tests
         /// ранее открытого проекта.
         /// </summary>
         [TestMethod]
-        public void OpenProject_FileWithoutSettingsSections_SessionRestoredToGlobal()
+        public async Task OpenProject_FileWithoutSettingsSections_SessionRestoredToGlobal()
         {
             var (main, _, dialogs, store) = CreateMain();
 
@@ -378,7 +380,7 @@ namespace GCodeGenerator.Tests
             {
                 dialogs.OpenDialogResult = path;
 
-                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+                await ((IAsyncRelayCommand)main.ProjectWorkflow.OpenProjectCommand).ExecuteAsync(null);
 
                 Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Операции из файла загружены");
                 Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Файл без секций → глобальный шпиндель (дефолт)");
@@ -395,7 +397,7 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void OpenProject_UnsupportedVersion_PreservesCurrentProject()
+        public async Task OpenProject_UnsupportedVersion_PreservesCurrentProject()
         {
             var (main, _, dialogs, _) = CreateMain();
             var existingOperation = OperationFixtures.DrillPoints();
@@ -407,7 +409,7 @@ namespace GCodeGenerator.Tests
                 File.WriteAllText(path, "{\"version\":5,\"operations\":[]}");
                 dialogs.OpenDialogResult = path;
 
-                main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+                await ((IAsyncRelayCommand)main.ProjectWorkflow.OpenProjectCommand).ExecuteAsync(null);
 
                 Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count);
                 Assert.AreSame(existingOperation, main.OperationsWorkspace.AllOperations[0],
@@ -425,7 +427,7 @@ namespace GCodeGenerator.Tests
         /// тема UI остаётся текущей.
         /// </summary>
         [TestMethod]
-        public void NewProgram_AllGenerationSettingsRestoredToGlobalAndUiPreserved()
+        public async Task NewProgram_AllGenerationSettingsRestoredToGlobalAndUiPreserved()
         {
             var (main, _, _, store) = CreateMain();
 
@@ -436,7 +438,7 @@ namespace GCodeGenerator.Tests
             store.Current.WorkCoordinate.WorkCoordinateSystem = "G59";
             store.Current.Ui.UseDarkTheme = true;
 
-            main.ProjectWorkflow.NewProgramCommand.Execute(null);
+            await ((IAsyncRelayCommand)main.ProjectWorkflow.NewProgramCommand).ExecuteAsync(null);
 
             Assert.AreEqual(0, main.OperationsWorkspace.AllOperations.Count, "Операции очищены");
             Assert.AreEqual(12000, store.Current.Spindle.SpindleSpeedRpm, "Новый проект → глобальный шпиндель");

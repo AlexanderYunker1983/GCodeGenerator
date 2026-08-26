@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Tests.Fixtures
@@ -9,7 +9,7 @@ namespace GCodeGenerator.Tests.Fixtures
     /// </summary>
     public sealed class FixtureCase
     {
-        public FixtureCase(string name, IList<OperationBase> operations, GCodeSettings settings)
+        public FixtureCase(string name, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
         {
             Name = name;
             Operations = operations;
@@ -20,7 +20,7 @@ namespace GCodeGenerator.Tests.Fixtures
         public string Name { get; }
 
         /// <summary>Операции программы (порядок важен).</summary>
-        public IList<OperationBase> Operations { get; }
+        public IReadOnlyList<OperationBase> Operations { get; }
 
         /// <summary>Настройки генератора для этой фикстуры.</summary>
         public GCodeSettings Settings { get; }

@@ -108,7 +108,8 @@ namespace GCodeGenerator.Tests
                 var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
                 dialogs.OpenDialogResult = path;
 
-                var rebuilds = CountRebuilds(main, () => main.ProjectWorkflow.OpenProjectCommand.Execute(null));
+                var rebuilds = CountRebuilds(main, () => ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)
+                    main.ProjectWorkflow.OpenProjectCommand).ExecuteAsync(null).GetAwaiter().GetResult());
 
                 Assert.AreEqual(5, main.OperationsWorkspace.AllOperations.Count, "Проект открыт целиком");
                 Assert.AreEqual(1, rebuilds, "Пять операций — одно обновление предпросмотра");

@@ -180,18 +180,29 @@
         <!-- Right: G-code preview with initial width ~250 and resizable -->
         <GroupBox Header="{loc:Loc GCodePreviewHeader}"
                   Grid.Row="2" Grid.Column="2">
-            <!-- Пункт 1.4: 1.x-ключи ControlBackgroundBrush/TextBrush/TextBoxBorderBrush
-                 заменены на 2.x-аналоги из темы MahApps. -->
-            <TextBox Text="{Binding GCodeWorkflow.GCodePreview}" FontFamily="Consolas"
-                     Style="{StaticResource MahApps.Styles.TextBox}"
+            <!-- Программа показывается виртуализированным списком строк:
+                 поле ввода держало весь текст одной строкой и на сотне тысяч
+                 строк замирало при каждой генерации. -->
+            <ListBox x:Name="GCodePreviewList"
+                     ItemsSource="{Binding GCodeWorkflow.ProgramLines}"
+                     FontFamily="Consolas"
                      Background="{DynamicResource MahApps.Brushes.Control.Background}"
                      Foreground="{DynamicResource MahApps.Brushes.Text}"
                      BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
-                     VerticalScrollBarVisibility="Auto"
-                     HorizontalScrollBarVisibility="Auto"
-                     AcceptsReturn="True"
-                     AcceptsTab="True"
-                     IsReadOnly="True"/>
+                     BorderThickness="1"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto"
+                     ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                     VirtualizingPanel.IsVirtualizing="True"
+                     VirtualizingPanel.VirtualizationMode="Recycling"
+                     VirtualizingPanel.ScrollUnit="Item">
+                <ListBox.ItemContainerStyle>
+                    <!-- Плотные строки, как в текстовом поле: без отступов темы. -->
+                    <Style TargetType="ListBoxItem" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Padding" Value="4,0"/>
+                        <Setter Property="MinHeight" Value="0"/>
+                    </Style>
+                </ListBox.ItemContainerStyle>
+            </ListBox>
         </GroupBox>
 
         <GridSplitter Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Height="2"

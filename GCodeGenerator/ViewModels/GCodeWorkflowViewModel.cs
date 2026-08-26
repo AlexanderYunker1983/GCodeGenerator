@@ -7,7 +7,6 @@ using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -40,7 +39,7 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         private CancellationTokenSource? _generationCancellation;
         private long _documentRevision;
-        private string _gCodePreview = string.Empty;
+        private IReadOnlyList<string>? _programLines;
         private bool _isGenerating;
         private int _progressPercent;
 
@@ -70,22 +69,39 @@ namespace GCodeGenerator.ViewModels
             _logger = logger ?? NullAppLogger.Instance;
 
             GenerateGCodeCommand = new AsyncRelayCommand(GenerateGCodeAsync, () => _operations.Count > 0);
-            SaveGCodeCommand = new RelayCommand(SaveGCode, () => !string.IsNullOrEmpty(GCodePreview));
-            PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => !string.IsNullOrEmpty(GCodePreview));
+            SaveGCodeCommand = new RelayCommand(SaveGCode, () => ProgramLines is { Count: > 0 });
+            PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => ProgramLines is { Count: > 0 });
         }
 
-        public string GCodePreview
+        /// <summary>
+        /// Строки построенной программы; null — программы нет. Предпросмотр
+        /// показывает их виртуализированным списком: сто тысяч строк не
+        /// склеиваются в многомегабайтный текст поля ввода. Запись — для
+        /// тестов, которым нужно готовое состояние «программа построена».
+        /// </summary>
+        public IReadOnlyList<string>? ProgramLines
         {
-            get => _gCodePreview;
-            set
+            get => _programLines;
+            internal set
             {
-                if (Equals(value, _gCodePreview)) return;
-                _gCodePreview = value;
+                if (ReferenceEquals(value, _programLines)) return;
+                _programLines = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(GCodePreview));
                 ((RelayCommand)SaveGCodeCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)PreviewGCodeCommand).NotifyCanExecuteChanged();
             }
         }
+
+        /// <summary>
+        /// Текст программы целиком, с завершающим переводом строки. Собирается
+        /// по требованию — при сохранении в файл; постоянно полная строка
+        /// нигде не хранится.
+        /// </summary>
+        public string GCodePreview
+            => _programLines is { Count: > 0 } lines
+                ? string.Join(Environment.NewLine, lines) + Environment.NewLine
+                : string.Empty;
 
         public bool IsGenerating
         {
@@ -135,7 +151,7 @@ namespace GCodeGenerator.ViewModels
             Interlocked.Increment(ref _documentRevision);
             _generationCancellation?.Cancel();
             GeneratedToolPath = null;
-            GCodePreview = string.Empty;
+            ProgramLines = null;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
         }
 
@@ -147,35 +163,37 @@ namespace GCodeGenerator.ViewModels
             IsGenerating = true;
             ProgressPercent = 0;
             GeneratedToolPath = null;
-            GCodePreview = string.Empty;
+            ProgramLines = null;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
             var cancellation = new CancellationTokenSource();
             _generationCancellation = cancellation;
             try
             {
-                // Слепок снимается на потоке интерфейса, до ухода в фон:
-                // операции и настройки копируются, поэтому правка документа
-                // во время генерации не смешивается с уже начатой программой.
-                var snapshot = GenerationSnapshot.Capture(_operations, _settings);
+                // Слепок сериализуется на потоке интерфейса — документ нельзя
+                // читать из фона, пока его может править пользователь, — а
+                // дорогая материализация копий уходит в фон: окно держится
+                // ровно столько, сколько занимает сериализация.
+                var payload = GenerationSnapshot.Serialize(_operations, _settings);
+                var operationCount = _operations.Count;
 
-                // Пустая операция в снимке возможна: файл проекта, написанный
-                // вручную, способен принести и такую. Отклоняет её проверка
-                // перед генерацией, поэтому список передаётся как есть.
-                var operations = snapshot.Operations.OfType<OperationBase>().ToList();
-                var settings = snapshot.Settings;
                 var progress = new Progress<int>(p =>
                 {
                     if (generationRevision == Volatile.Read(ref _documentRevision))
                         ProgressPercent = p;
                 });
+                // Пустая операция в снимке возможна: файл проекта, написанный
+                // вручную, способен принести и такую. Отклоняет её проверка
+                // перед генерацией, поэтому список передаётся как есть.
                 // Траектория строится один раз: постпроцессор делает из неё
                 // программу, а трёхмерный предпросмотр показывает её саму.
                 // Стойку выбирает настройка; проверка внутри BuildToolPath
                 // уже отказала бы на неизвестном ключе.
                 var (toolPath, program) = await Task.Run(() =>
                 {
-                    var path = _generator.BuildToolPath(operations, settings, progress, cancellation.Token);
+                    var snapshot = payload.Deserialize();
+                    var settings = snapshot.Settings;
+                    var path = _generator.BuildToolPath(snapshot.Operations, settings, progress, cancellation.Token);
                     return (path, _postProcessors.For(settings.Format.PostProcessorName).Build(path, settings));
                 }, cancellation.Token);
 
@@ -188,14 +206,12 @@ namespace GCodeGenerator.ViewModels
 
                 GeneratedToolPath = toolPath;
 
-                // Текст собирается сразу нужного размера. Прежде строки
-                // добавлялись в растущий буфер, и на пике в памяти лежали
-                // и он, и готовая строка — для программы в сотню тысяч
-                // строк это лишние мегабайты сверх той копии, которую
-                // всё равно заведёт поле ввода.
-                GCodePreview = string.Join(Environment.NewLine, program.Lines) + Environment.NewLine;
+                // Программа хранится строками, как её и построил генератор:
+                // предпросмотр показывает их виртуализированным списком, а
+                // единый текст собирается только при сохранении в файл.
+                ProgramLines = program.Lines as IReadOnlyList<string> ?? new List<string>(program.Lines);
                 generationCompleted = true;
-                _logger.Info($"G-code generated: {operations.Count} operation(s), {program.Lines.Count} line(s)");
+                _logger.Info($"G-code generated: {operationCount} operation(s), {program.Lines.Count} line(s)");
             }
             catch (OperationCanceledException)
             {
@@ -207,7 +223,7 @@ namespace GCodeGenerator.ViewModels
             catch (Exception ex)
             {
                 GeneratedToolPath = null;
-                GCodePreview = string.Empty;
+                ProgramLines = null;
                 ProgressPercent = 0;
                 _logger.Error("G-code generation failed", ex);
                 var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
@@ -224,7 +240,7 @@ namespace GCodeGenerator.ViewModels
 
         private void SaveGCode()
         {
-            if (string.IsNullOrEmpty(GCodePreview))
+            if (ProgramLines is not { Count: > 0 })
                 return;
 
             var fileName = _fileDialogService.ShowSaveDialog(
@@ -251,7 +267,7 @@ namespace GCodeGenerator.ViewModels
 
         private void PreviewGCode()
         {
-            if (string.IsNullOrEmpty(GCodePreview))
+            if (ProgramLines is not { Count: > 0 })
                 return;
 
             var viewModel = _createPreview();

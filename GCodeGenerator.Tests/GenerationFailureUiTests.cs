@@ -20,7 +20,7 @@ namespace GCodeGenerator.Tests
         public async Task ValidationFailure_ClearsPreviewAndShowsReason()
         {
             var (main, _, dialogService, _) = MainViewModelOperationEditTests.CreateMain();
-            main.GCodeWorkflow.GCodePreview = "stale G-code";
+            main.GCodeWorkflow.ProgramLines = new[] { "stale G-code" };
             main.OperationsWorkspace.AllOperations.Add(new ProfileCircleOperation { Radius = 0 });
 
             await ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
@@ -30,6 +30,25 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(string.Empty, main.GCodeWorkflow.GCodePreview, "Устаревшая программа убрана");
             Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage), "Причина показана");
             StringAssert.Contains(dialogService.LastErrorMessage, "Radius", "Назван параметр");
+        }
+
+        /// <summary>
+        /// Пустая операция в списке — например, из файла проекта, написанного
+        /// вручную, — доходит до проверки перед генерацией и отклоняется с
+        /// показом причины. Прежде окно молча выбрасывало пустоту из слепка,
+        /// и проверка ядра, спроектированная её отклонять, не получала шанса.
+        /// </summary>
+        [TestMethod]
+        public async Task NullOperation_ReachesValidationAndIsReported()
+        {
+            var (main, _, dialogService, _) = MainViewModelOperationEditTests.CreateMain();
+            main.OperationsWorkspace.AllOperations.Add(new ProfileCircleOperation { Radius = 10 });
+            main.OperationsWorkspace.AllOperations.Add(null);
+
+            await ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
+
+            Assert.AreEqual(string.Empty, main.GCodeWorkflow.GCodePreview, "Программа не построена");
+            Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage), "Причина показана");
         }
     }
 }

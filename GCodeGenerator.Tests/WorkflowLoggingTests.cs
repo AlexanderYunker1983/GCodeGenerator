@@ -38,12 +38,12 @@ namespace GCodeGenerator.Tests
 
         private sealed class ThrowingGenerator : IGCodeGenerator
         {
-            public GCodeProgram Generate(IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+            public GCodeProgram Generate(IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
                 => throw new InvalidOperationException("generator failure");
 
             public GCodeGenerator.Toolpath.ToolPath BuildToolPath(
-                IList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
+                IReadOnlyList<OperationBase> operations, GCodeSettings settings, IProgress<int> progress = null,
                 CancellationToken cancellation = default)
                 => throw new InvalidOperationException("generator failure");
         }
@@ -106,7 +106,7 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void ProjectSave_Failure_LogsErrorWithPath()
+        public async Task ProjectSave_Failure_LogsErrorWithPath()
         {
             var logger = new RecordingLogger();
             // Путь с недопустимым для файловой системы именем: сохранение падает
@@ -133,7 +133,7 @@ namespace GCodeGenerator.Tests
             var operations = OneDrillOperation();
             var workflow = factory.Create(operations, gCodeFactory.Create(operations, new GCodeSettings()));
 
-            workflow.SaveProjectCommand.Execute(null);
+            await ((IAsyncRelayCommand)workflow.SaveProjectCommand).ExecuteAsync(null);
 
             var error = logger.Records.SingleOrDefault(r => r.Level == LogLevel.Error);
             Assert.IsNotNull(error.Message, "Сбой сохранения проекта должен попасть в журнал");

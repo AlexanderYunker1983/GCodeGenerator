@@ -39,14 +39,25 @@ namespace GCodeGenerator.Persistence
 
         /// <summary>Сохраняет проект в файл (UTF-8 с BOM, как раньше).</summary>
         public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+            => SaveSerialized(filePath, Serialize(operations, settings));
+
+        /// <summary>
+        /// Записывает уже сериализованный проект. Разделение стадий нужно
+        /// асинхронному сохранению: слепок снимается на потоке интерфейса,
+        /// а на диск — самую долгую часть — текст пишет фоновый поток.
+        /// </summary>
+        /// <param name="filePath">Путь к файлу проекта.</param>
+        /// <param name="json">Содержимое, полученное от <see cref="Serialize"/>.</param>
+        public void SaveSerialized(string filePath, string json)
         {
             if (string.IsNullOrWhiteSpace(filePath))
                 throw new ArgumentException("The project file path is not set.", nameof(filePath));
+            if (json == null)
+                throw new ArgumentNullException(nameof(json));
 
-            // Сначала полностью строим JSON в памяти, затем пишем временный файл
-            // в том же каталоге и атомарно заменяем назначение. Ошибка сериализации
-            // или записи не должна оставлять существующий .ygc частично обрезанным.
-            var json = Serialize(operations, settings);
+            // JSON уже построен целиком; пишем временный файл в том же
+            // каталоге и атомарно заменяем назначение. Ошибка записи не
+            // должна оставлять существующий .ygc частично обрезанным.
             var destinationPath = Path.GetFullPath(filePath);
             var directory = Path.GetDirectoryName(destinationPath);
             var temporaryPath = Path.Combine(

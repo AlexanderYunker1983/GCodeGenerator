@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using GCodeGenerator.GCodeGenerators;
@@ -18,7 +18,11 @@ namespace GCodeGenerator.Tests
             /// <summary>Что сделать после построения операции — например, отменить.</summary>
             public Action AfterGenerate { get; set; }
 
-            public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
+            public void Generate(
+                OperationBase operation,
+                ToolPathBuilder builder,
+                GCodeSettings settings,
+                System.Threading.CancellationToken cancellation = default)
             {
                 Calls++;
                 AfterGenerate?.Invoke();

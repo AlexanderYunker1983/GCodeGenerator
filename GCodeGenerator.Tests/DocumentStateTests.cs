@@ -1,5 +1,7 @@
-using System;
+﻿using System;
 using System.IO;
+using System.Threading.Tasks;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -30,6 +32,9 @@ namespace GCodeGenerator.Tests
             if (File.Exists(_projectPath))
                 File.Delete(_projectPath);
         }
+
+        private static Task ExecuteAsync(System.Windows.Input.ICommand command)
+            => ((IAsyncRelayCommand)command).ExecuteAsync(null);
 
         private static DrillPointsOperation Drill()
             => new DrillPointsOperation
@@ -91,13 +96,13 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void Saving_ClearsDirtyFlagAndRemembersFile()
+        public async Task Saving_ClearsDirtyFlagAndRemembersFile()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
 
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             Assert.IsTrue(File.Exists(_projectPath), "Проект записан в файл");
             main.ConfirmClose();
@@ -110,16 +115,16 @@ namespace GCodeGenerator.Tests
         /// у проекта, которого ещё нет на диске.
         /// </summary>
         [TestMethod]
-        public void SavingTwice_DoesNotAskForFileNameAgain()
+        public async Task SavingTwice_DoesNotAskForFileNameAgain()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             dialogs.SaveDialogResult = null; // диалог выбора файла ответил бы отказом
             main.OperationsWorkspace.AllOperations.Add(Drill());
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             main.ConfirmClose();
             Assert.AreEqual(0, dialogs.SaveConfirmationCount,
@@ -127,18 +132,18 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void SaveAs_AlwaysAsksForFileName()
+        public async Task SaveAs_AlwaysAsksForFileName()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             var otherPath = Path.Combine(Path.GetTempPath(), $"gcodegen_doc_{Guid.NewGuid():N}.ygc");
             dialogs.SaveDialogResult = otherPath;
             try
             {
-                main.ProjectWorkflow.SaveProjectAsCommand.Execute(null);
+                await ExecuteAsync(main.ProjectWorkflow.SaveProjectAsCommand);
                 Assert.IsTrue(File.Exists(otherPath), "«Сохранить как» пишет в выбранный файл");
             }
             finally
@@ -149,16 +154,16 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void OpeningProject_StartsClean()
+        public async Task OpeningProject_StartsClean()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             main.OperationsWorkspace.AllOperations.Add(Drill());
             dialogs.SaveDialogResult = _projectPath;
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
-            main.ProjectWorkflow.NewProgramCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+            await ExecuteAsync(main.ProjectWorkflow.NewProgramCommand);
 
             dialogs.OpenDialogResult = _projectPath;
-            main.ProjectWorkflow.OpenProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.OpenProjectCommand);
 
             Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Проект открыт");
             main.ConfirmClose();
@@ -171,7 +176,7 @@ namespace GCodeGenerator.Tests
         /// и закрытие программы, и создание нового проекта.
         /// </summary>
         [TestMethod]
-        public void CancelAnswer_StopsTheAction()
+        public async Task CancelAnswer_StopsTheAction()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             main.OperationsWorkspace.AllOperations.Add(Drill());
@@ -179,7 +184,7 @@ namespace GCodeGenerator.Tests
 
             Assert.IsFalse(main.ConfirmClose(), "Закрытие отменено");
 
-            main.ProjectWorkflow.NewProgramCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.NewProgramCommand);
             Assert.AreEqual(1, main.OperationsWorkspace.AllOperations.Count, "Создание нового проекта отменено");
         }
 
@@ -228,7 +233,7 @@ namespace GCodeGenerator.Tests
         /// несохранённые изменения.
         /// </summary>
         [TestMethod]
-        public void WindowTitle_ShowsFileNameAndChangeMark()
+        public async Task WindowTitle_ShowsFileNameAndChangeMark()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
             StringAssert.Contains(main.DisplayName, "UntitledProject",
@@ -238,11 +243,78 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(main.DisplayName, "*", "Изменения отмечены звёздочкой");
 
             dialogs.SaveDialogResult = _projectPath;
-            main.ProjectWorkflow.SaveProjectCommand.Execute(null);
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
 
             StringAssert.Contains(main.DisplayName, Path.GetFileName(_projectPath),
                 "После сохранения виден файл проекта");
             Assert.IsFalse(main.DisplayName.Contains("*"), "Звёздочка снята");
+        }
+
+        /// <summary>
+        /// Сбой записи не выдаёт проект за сохранённый: признак изменений
+        /// сбрасывается только когда данные действительно на диске.
+        /// </summary>
+        [TestMethod]
+        public async Task FailedSave_KeepsDocumentDirty()
+        {
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
+            main.OperationsWorkspace.AllOperations.Add(Drill());
+            // Недопустимое для файловой системы имя: запись падает.
+            dialogs.SaveDialogResult = "?:\\<>|\\project.ygc";
+
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+
+            Assert.IsFalse(string.IsNullOrEmpty(dialogs.LastErrorMessage), "Сбой показан");
+            StringAssert.Contains(main.DisplayName, "*", "Изменения по-прежнему несохранённые");
+        }
+
+        /// <summary>
+        /// Сбой на полпути замены документа — например, в обработчике нового
+        /// содержимого — возвращает прежние операции: документ либо заменён
+        /// целиком, либо остался прежним, а признак изменений не сбрасывается.
+        /// </summary>
+        [TestMethod]
+        public async Task FailedDocumentApply_RestoresPreviousOperations()
+        {
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
+            var existing = Drill();
+            main.OperationsWorkspace.AllOperations.Add(existing);
+            dialogs.SaveDialogResult = _projectPath;
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+            main.OperationsWorkspace.AllOperations.Add(Drill());
+            dialogs.SaveConfirmationResult = SaveConfirmation.Discard;
+            dialogs.OpenDialogResult = _projectPath;
+            // Падение только на операциях из файла: прежние операции откат
+            // обязан вернуть беспрепятственно — как обработчик, которому
+            // плохо от конкретного нового содержимого.
+            var known = new System.Collections.Generic.HashSet<OperationBase>(
+                main.OperationsWorkspace.AllOperations);
+            var failing = new System.Collections.Specialized.NotifyCollectionChangedEventHandler(
+                (_, e) =>
+                {
+                    if (e.Action == System.Collections.Specialized.NotifyCollectionChangedAction.Add
+                        && e.NewItems?[0] is OperationBase added
+                        && !known.Contains(added))
+                    {
+                        throw new InvalidOperationException("preview failure");
+                    }
+                });
+            main.OperationsWorkspace.AllOperations.CollectionChanged += failing;
+
+            try
+            {
+                await ExecuteAsync(main.ProjectWorkflow.OpenProjectCommand);
+            }
+            finally
+            {
+                main.OperationsWorkspace.AllOperations.CollectionChanged -= failing;
+            }
+
+            Assert.IsFalse(string.IsNullOrEmpty(dialogs.LastErrorMessage), "Сбой открытия показан");
+            Assert.AreEqual(2, main.OperationsWorkspace.AllOperations.Count, "Прежний документ возвращён");
+            Assert.AreSame(existing, main.OperationsWorkspace.AllOperations[0], "Те же операции, не копии");
+            StringAssert.Contains(main.DisplayName, "*",
+                "Несохранённые изменения не выданы за сохранённые");
         }
     }
 }

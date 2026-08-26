@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
@@ -25,7 +26,11 @@ namespace GCodeGenerator.GCodeGenerators
             _helper = new ProfileGenerationHelper();
         }
 
-        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
+        public void Generate(
+            OperationBase operation,
+            ToolPathBuilder builder,
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
             // Проверяем, что операция является профилем
             if (!(operation is ProfileOperationBase profileOp))
@@ -53,7 +58,8 @@ namespace GCodeGenerator.GCodeGenerators
                     builder,
                     settings),
                 builder,
-                settings);
+                settings,
+                cancellation);
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Linq;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
@@ -48,7 +49,11 @@ namespace GCodeGenerator.GCodeGenerators
         private static IPocketGeometry CreateGeometry(PocketOperationBase op)
             => OperationCatalog.CreatePocketGeometry(op);
 
-        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
+        public void Generate(
+            OperationBase operation,
+            ToolPathBuilder builder,
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
             // Проверяем, что операция является карманом
             if (!(operation is PocketOperationBase pocketOp))
@@ -71,7 +76,7 @@ namespace GCodeGenerator.GCodeGenerators
                     ? WallFinishingStrategy.Instance
                     : _strategies.For(pass.Operation.PocketStrategy);
 
-                MillPocket(pass.Operation, strategy, pass.Allowance, builder, settings, plan.TaperOriginZ);
+                MillPocket(pass.Operation, strategy, pass.Allowance, builder, settings, plan.TaperOriginZ, cancellation);
             }
         }
 
@@ -85,13 +90,15 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
+        /// <param name="cancellation">Отмена: проверяется перед каждым слоем.</param>
         private void MillPocket(
             PocketOperationBase op,
             IPocketPocketingStrategy strategy,
             double allowance,
             ToolPathBuilder builder,
             GCodeSettings settings,
-            double? taperOriginZ = null)
+            double? taperOriginZ = null,
+            CancellationToken cancellation = default)
         {
             var geometry = CreateGeometry(op);
             double toolRadius = op.ToolDiameter / 2.0;
@@ -115,7 +122,8 @@ namespace GCodeGenerator.GCodeGenerators
                     settings,
                     taperOriginZ),
                 builder,
-                settings);
+                settings,
+                cancellation);
         }
 
         /// <summary>

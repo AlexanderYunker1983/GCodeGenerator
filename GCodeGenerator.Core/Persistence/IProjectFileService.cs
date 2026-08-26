@@ -19,6 +19,20 @@ namespace GCodeGenerator.Persistence
         void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings);
 
         /// <summary>
+        /// Сериализует проект в текст текущего формата — первую стадию
+        /// сохранения, выполняемую на потоке интерфейса: документ нельзя
+        /// читать из фона, пока его может править пользователь.
+        /// </summary>
+        string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings);
+
+        /// <summary>
+        /// Записывает уже сериализованный проект — вторую стадию сохранения,
+        /// пригодную для фонового потока. Запись атомарна, как у
+        /// <see cref="Save"/>.
+        /// </summary>
+        void SaveSerialized(string filePath, string json);
+
+        /// <summary>
         /// Читает проект из файла (v4, v3 или v2).
         /// <see cref="ProjectFileData.Operations"/> равно <c>null</c>, если в файле
         /// нет секции операций (пустой/чужой файл).

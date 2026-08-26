@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Globalization;
+using System.Threading;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -9,7 +10,11 @@ namespace GCodeGenerator.GCodeGenerators
 {
     public class DrillPointsOperationGenerator : IOperationGenerator
     {
-        public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
+        public void Generate(
+            OperationBase operation,
+            ToolPathBuilder builder,
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
             if (!(operation is DrillPointsOperation drill))
                 return;
@@ -17,6 +22,10 @@ namespace GCodeGenerator.GCodeGenerators
             int holeIndex = 0;
             foreach (var hole in drill.HolesToDrill)
             {
+                // Отверстие — единица работы: между отверстиями операцию
+                // можно отменить, не дожидаясь конца шаблона.
+                cancellation.ThrowIfCancellationRequested();
+
                 // Пункт 3.8 плана: StepDepth <= 0 не двигает Z вниз — цикл сверления
                 // превращается в бесконечный. Бросаем исключение вместо зависания.
                 if (hole.StepDepth <= 0)
