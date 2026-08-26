@@ -72,7 +72,12 @@ namespace GCodeGenerator.GCodeGenerators
                 if (contourPoints.Count < 3)
                     continue;
 
-                var center = area.GetCenter();
+                // Точка врезания: центроид, а у вогнутой области, где центроид
+                // лежит вне её, — внутренняя точка по скан-линии. Стратегия
+                // получает эту же точку центром: спираль и радиальные проходы
+                // расходятся из неё, и она обязана лежать в области.
+                var center = PocketEntryPoint.Choose(
+                    area, 0, 0, contourPoints, area.GetCenter(), step);
 
                 // Поднимаем инструмент перед переходом к следующей области (кроме первой)
                 if (!isFirstArea)
@@ -80,7 +85,7 @@ namespace GCodeGenerator.GCodeGenerators
                     builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
                 }
 
-                // Перемещаемся к центру области
+                // Перемещаемся к точке врезания области
                 builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid, decimals: decimals);
 
                 // Опускаемся на рабочую высоту слоя: быстрым ходом только до

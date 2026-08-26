@@ -168,12 +168,17 @@ namespace GCodeGenerator.GCodeGenerators
             if (contour == null)
                 return false;
 
-            var center = geometry.GetCenter();
             var contourPoints = contour.GetPoints().ToList();
             if (contourPoints.Count == 0)
                 return false;
 
-            // Перемещаемся к центру кармана
+            // Точка врезания: центр фигуры, а если он вне области — как у
+            // вогнутого контура — внутренняя точка по скан-линии. Базовые
+            // фигуры выпуклы, и для них проверка ничего не меняет.
+            var center = PocketEntryPoint.Choose(
+                geometry, contourOffset, taperOffset, contourPoints, geometry.GetCenter(), step);
+
+            // Перемещаемся к точке врезания кармана
             builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
             builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid, decimals: decimals);
             builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
