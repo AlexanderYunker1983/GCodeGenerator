@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
@@ -37,6 +37,13 @@ namespace GCodeGenerator.ViewModels
         /// а не пользователем: такие изменения не делают проект несохранённым.
         /// </summary>
         private bool _isApplyingDocument;
+
+        /// <summary>
+        /// Версия формата файла, из которого открыт текущий проект;
+        /// null — проект новый. Нужна одному решению: предупредить ли при
+        /// сохранении, что файл старого формата стал файлом текущей версии.
+        /// </summary>
+        private int? _loadedFileVersion;
 
         private string? _currentPath;
         private bool _isDirty;
@@ -184,6 +191,7 @@ namespace GCodeGenerator.ViewModels
                 ResetOperations();
                 _settingsStore?.RestoreGlobalGenerationSettings();
                 CurrentPath = null;
+                _loadedFileVersion = null;
             });
         }
 
@@ -231,6 +239,24 @@ namespace GCodeGenerator.ViewModels
                 CurrentPath = fileName;
                 IsDirty = false;
                 _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
+
+                // Файл старого формата после сохранения стал файлом текущей
+                // версии — прежние сборки программы его больше не откроют.
+                // Пользователь узнаёт об этом сразу, а не при попытке открыть
+                // файл там, где это уже не получится; после предупреждения
+                // файл уже текущий, и повторять его незачем.
+                if (_loadedFileVersion is int loadedVersion
+                    && loadedVersion < ProjectFileService.CurrentVersion)
+                {
+                    _messageService.ShowInfo(
+                        string.Format(
+                            Localize("ProjectUpgradedFromOlderVersionInfo"),
+                            loadedVersion,
+                            ProjectFileService.CurrentVersion),
+                        Localize("SaveProjectTitle"));
+                }
+
+                _loadedFileVersion = ProjectFileService.CurrentVersion;
                 return true;
             }
             catch (Exception ex)
@@ -273,6 +299,7 @@ namespace GCodeGenerator.ViewModels
                     foreach (var operation in data.Operations)
                         _operations.Add(operation);
                     CurrentPath = fileName;
+                    _loadedFileVersion = data.Version;
                 });
                 _logger.Info($"Project opened: {fileName} ({data.Operations.Count} operation(s))");
             }

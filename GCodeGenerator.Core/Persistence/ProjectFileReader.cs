@@ -17,7 +17,9 @@ namespace GCodeGenerator.Persistence
     internal static class ProjectFileReader
     {
         /// <summary>Настройки чтения содержимого операций и секций настроек.</summary>
-        private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions();
+        // Общие настройки сериализации: чтение обязано разбирать ровно то
+        // представление, которое пишет ProjectFileWriter (см. ProjectJson).
+        private static readonly JsonSerializerOptions PayloadOptions = ProjectJson.Options;
 
         /// <summary>
         /// Десериализует JSON проекта .ygc (v4, v3 или v2).
@@ -41,10 +43,11 @@ namespace GCodeGenerator.Persistence
 
             var version = ValidateVersionedEnvelope(root, versionElement);
             var operations = root.TryGetProperty("operations", out var operationsElement)
-                ? ReadOperationsArray(operationsElement, version)
+                ? ReadOperationsArray(operationsElement)
                 : null;
             return new ProjectFileData
             {
+                Version = version,
                 Operations = operations,
                 Format = version >= 3 ? ReadSection<GCodeFormatSettings>(root, "format") : null,
                 Spindle = ReadSection<SpindleSettings>(root, "spindle"),
@@ -102,7 +105,7 @@ namespace GCodeGenerator.Persistence
             return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
         }
 
-        private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement, int version)
+        private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement)
         {
             if (operationsElement.ValueKind == JsonValueKind.Null)
                 return null;

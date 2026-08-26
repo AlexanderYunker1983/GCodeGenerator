@@ -366,6 +366,9 @@
   <data name="ErrorSavingProject" xml:space="preserve">
     <value>Ошибка при сохранении проекта:</value>
   </data>
+  <data name="ProjectUpgradedFromOlderVersionInfo" xml:space="preserve">
+    <value>Файл проекта был в формате версии {0}. Он сохранён в текущей версии {1}: прежние сборки программы его больше не откроют.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Ошибка при загрузке проекта:</value>
   </data>

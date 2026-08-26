@@ -9,6 +9,14 @@ namespace GCodeGenerator.Persistence
     /// </summary>
     public sealed class ProjectFileData
     {
+        /// <summary>
+        /// Версия формата, в которой файл был прочитан. Сохранение всегда
+        /// пишет текущую версию: файл старой версии после первого же
+        /// сохранения не откроется прежними сборками, и вызывающая сторона
+        /// по этой версии решает, предупреждать ли об апгрейде.
+        /// </summary>
+        public int Version { get; init; }
+
         /// <summary>Операции (null — в файле нет секции операций).</summary>
         public List<OperationBase> Operations { get; init; }
 

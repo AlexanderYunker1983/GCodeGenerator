@@ -366,6 +366,9 @@
   <data name="ErrorSavingProject" xml:space="preserve">
     <value>Error saving project:</value>
   </data>
+  <data name="ProjectUpgradedFromOlderVersionInfo" xml:space="preserve">
+    <value>The project file used format version {0}. It has been saved in the current version {1}: older builds of the program will no longer open it.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Error loading project:</value>
   </data>

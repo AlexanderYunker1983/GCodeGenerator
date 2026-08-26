@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
@@ -693,6 +693,21 @@ namespace GCodeGenerator.Tests
                 Assert.IsFalse(json.Contains("\"HasErrors\""),
                     $"{descriptor.OperationType.Name}: вычисляемое HasErrors утекло в файл проекта.");
             }
+        }
+
+        /// <summary>
+        /// Прочитанная версия формата сообщается вызывающему: по ней
+        /// приложение решает, предупреждать ли, что файл старой версии после
+        /// сохранения станет файлом текущей и перестанет открываться прежними
+        /// сборками. Прежде версия разбиралась и выбрасывалась.
+        /// </summary>
+        [TestMethod]
+        public void Deserialize_ReportsFormatVersion()
+        {
+            Assert.AreEqual(2, Service.Deserialize("{\"version\":2,\"operations\":[]}").Version);
+
+            var current = Service.Serialize(new OperationBase[] { new ProfileCircleOperation() }, null);
+            Assert.AreEqual(ProjectFileService.CurrentVersion, Service.Deserialize(current).Version);
         }
 
         /// <summary>

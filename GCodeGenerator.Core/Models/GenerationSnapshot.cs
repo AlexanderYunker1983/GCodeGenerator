@@ -25,7 +25,8 @@ namespace GCodeGenerator.Models
     /// </summary>
     public sealed class GenerationSnapshot
     {
-        private static readonly JsonSerializerOptions SettingsOptions = new JsonSerializerOptions();
+        // Общие настройки сериализации с файлом проекта (см. ProjectJson).
+        private static readonly JsonSerializerOptions SettingsOptions = ProjectJson.Options;
 
         private GenerationSnapshot(IReadOnlyList<OperationBase?> operations, GCodeSettings settings)
         {

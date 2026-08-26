@@ -35,6 +35,9 @@ namespace GCodeGenerator.Tests.Fixtures
         /// <summary>Последнее сообщение, показанное как справочное.</summary>
         public string LastInfoMessage { get; private set; }
 
+        /// <summary>Сколько справочных сообщений было показано.</summary>
+        public int InfoMessageCount { get; private set; }
+
         /// <summary>Все показанные view-модели окон в порядке показа.</summary>
         public List<object> ShownDialogs { get; } = new List<object>();
 
@@ -50,7 +53,11 @@ namespace GCodeGenerator.Tests.Fixtures
         /// <summary>Ошибку можно объявить провалом теста — тогда её замечают сразу.</summary>
         public Action<string> OnError { get; set; }
 
-        public void ShowInfo(string message, string title = "") => LastInfoMessage = message;
+        public void ShowInfo(string message, string title = "")
+        {
+            LastInfoMessage = message;
+            InfoMessageCount++;
+        }
 
         public void ShowError(string message, string title = "")
         {

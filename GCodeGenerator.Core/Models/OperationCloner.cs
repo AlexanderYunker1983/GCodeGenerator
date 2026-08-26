@@ -23,7 +23,9 @@ namespace GCodeGenerator.Models
     /// </summary>
     public static class OperationCloner
     {
-        private static readonly JsonSerializerOptions Options = new JsonSerializerOptions();
+        // Общие настройки сериализации с файлом проекта (см. ProjectJson):
+        // «тот же сериализатор» держится на общем экземпляре, а не на вере.
+        private static readonly JsonSerializerOptions Options = ProjectJson.Options;
 
         /// <summary>
         /// Возвращает независимую копию операции того же типа.

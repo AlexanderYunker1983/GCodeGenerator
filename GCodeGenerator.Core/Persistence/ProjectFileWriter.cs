@@ -24,12 +24,13 @@ namespace GCodeGenerator.Persistence
         public const int Version = 4;
 
         /// <summary>
-        /// Настройки сериализации содержимого операций и секций настроек.
+        /// Настройки сериализации содержимого операций и секций настроек —
+        /// общие с чтением, клоном и слепком (<see cref="ProjectJson"/>).
         /// Отдельный конвертер double не нужен: System.Text.Json пишет
         /// вещественные числа в кратчайшем round-trip-виде (0.3 → «0.3»),
         /// совпадающем с форматом «R».
         /// </summary>
-        private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions();
+        private static readonly JsonSerializerOptions PayloadOptions = ProjectJson.Options;
 
         /// <summary>
         /// Сериализует проект в JSON .ygc v4 (in-memory), включая все настройки,
