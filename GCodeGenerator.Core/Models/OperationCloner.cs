@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Text.Json;
 
@@ -41,7 +41,13 @@ namespace GCodeGenerator.Models
             var type = source.GetType();
             var json = JsonSerializer.Serialize(source, type, Options);
             if (JsonSerializer.Deserialize(json, type, Options) is OperationBase clone)
+            {
+                // Копия представляет ту же операцию документа: идентификатор
+                // переносится явно — в файл он не пишется, и сериализация
+                // выдала бы копии новый.
+                clone.Id = source.Id;
                 return clone;
+            }
 
             throw new InvalidOperationException($"Не удалось создать копию операции {type.Name}.");
         }

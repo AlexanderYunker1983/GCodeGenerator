@@ -25,7 +25,7 @@ namespace GCodeGenerator.Tests
                 builder.LinearTo(x: startX + i, y: i, z: -1, feed: 100);
 
             var path = new ToolPath();
-            path.Operations.Add(operation);
+            path.AddOperation(operation);
             return path;
         }
 

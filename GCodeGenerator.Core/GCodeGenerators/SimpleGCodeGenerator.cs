@@ -94,7 +94,7 @@ namespace GCodeGenerator.GCodeGenerators
 
                 var pathOperation = new ToolPathOperation(
                     operation.Name, operation.GetDescription(), OperationDecimals(operation), operation);
-                toolPath.Operations.Add(pathOperation);
+                toolPath.AddOperation(pathOperation);
 
                 resolvedGenerators[index].Generate(operation, new ToolPathBuilder(pathOperation), settings);
 

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace GCodeGenerator.Toolpath
@@ -43,7 +44,7 @@ namespace GCodeGenerator.Toolpath
     /// Ось, которая не меняется, не задаётся вовсе: программа не должна
     /// выводить координату, которую станок и так удерживает.
     /// </summary>
-    public sealed class ToolMove : ToolPathItem
+    public class ToolMove : ToolPathItem
     {
         public ToolMove(
             ToolMoveKind kind,
@@ -54,6 +55,19 @@ namespace GCodeGenerator.Toolpath
             double? centerOffsetY = null,
             double? feed = null)
         {
+            // Дуга представима только типом ArcMove, который требует все
+            // пять величин конструктором: кадр G2/G3 без конечной точки,
+            // смещения центра или подачи не имеет смысла. Прямое создание
+            // ToolMove с дуговым видом — ошибка кода, и она называется
+            // здесь, при создании, а не при выводе программы.
+            if ((kind == ToolMoveKind.ArcClockwise || kind == ToolMoveKind.ArcCounterClockwise)
+                && GetType() == typeof(ToolMove))
+            {
+                throw new ArgumentException(
+                    "Дуга описывается типом ArcMove: конечная точка, смещение центра и подача обязательны.",
+                    nameof(kind));
+            }
+
             Kind = kind;
             X = x;
             Y = y;
@@ -85,6 +99,39 @@ namespace GCodeGenerator.Toolpath
     }
 
     /// <summary>
+    /// Дуга траектории. Пять величин обязательны — кадр G2/G3 без любой
+    /// из них не имеет смысла, — и обязательность обеспечивает конструктор:
+    /// нелегальная дуга непредставима, и ни постпроцессору, ни превью
+    /// не приходится перепроверять её при выводе. Прежде обязательность
+    /// восстанавливали проверки постпроцессора; отказ теперь приходит
+    /// раньше — в месте, где дугу собрали.
+    /// </summary>
+    public sealed class ArcMove : ToolMove
+    {
+        public ArcMove(bool clockwise, double x, double y, double centerOffsetX, double centerOffsetY, double feed)
+            : base(
+                clockwise ? ToolMoveKind.ArcClockwise : ToolMoveKind.ArcCounterClockwise,
+                x, y, null, centerOffsetX, centerOffsetY, feed)
+        {
+        }
+
+        /// <summary>Конечная точка дуги, X.</summary>
+        public double EndX => X.Value;
+
+        /// <summary>Конечная точка дуги, Y.</summary>
+        public double EndY => Y.Value;
+
+        /// <summary>Смещение центра от начала дуги по X (слово I).</summary>
+        public double ArcCenterOffsetX => CenterOffsetX.Value;
+
+        /// <summary>Смещение центра от начала дуги по Y (слово J).</summary>
+        public double ArcCenterOffsetY => CenterOffsetY.Value;
+
+        /// <summary>Подача дуги, мм/мин.</summary>
+        public double ArcFeed => Feed.Value;
+    }
+
+    /// <summary>
     /// Траектория одной операции: её перемещения и точность вывода координат.
     /// </summary>
     public sealed class ToolPathOperation
@@ -113,8 +160,17 @@ namespace GCodeGenerator.Toolpath
         /// <summary>Знаков после запятой у координат этой операции.</summary>
         public int Decimals { get; }
 
-        /// <summary>Перемещения и пояснения по порядку.</summary>
-        public IList<ToolPathItem> Items { get; } = new List<ToolPathItem>();
+        private readonly List<ToolPathItem> _items = new List<ToolPathItem>();
+
+        /// <summary>
+        /// Перемещения и пояснения по порядку — только чтение: траекторию
+        /// наполняет <see cref="ToolPathBuilder"/>, а потребители смотрят
+        /// на готовую и менять её не должны.
+        /// </summary>
+        public IReadOnlyList<ToolPathItem> Items => _items;
+
+        /// <summary>Добавляет участок траектории (для построителя).</summary>
+        internal void Add(ToolPathItem item) => _items.Add(item);
     }
 
     /// <summary>
@@ -133,8 +189,14 @@ namespace GCodeGenerator.Toolpath
     /// </summary>
     public sealed class ToolPath
     {
-        /// <summary>Операции по порядку обработки.</summary>
-        public IList<ToolPathOperation> Operations { get; } = new List<ToolPathOperation>();
+        private readonly List<ToolPathOperation> _operations = new List<ToolPathOperation>();
+
+        /// <summary>Операции по порядку обработки — только чтение.</summary>
+        public IReadOnlyList<ToolPathOperation> Operations => _operations;
+
+        /// <summary>Добавляет траекторию операции в порядок обработки.</summary>
+        public void AddOperation(ToolPathOperation operation)
+            => _operations.Add(operation ?? throw new ArgumentNullException(nameof(operation)));
 
         /// <summary>Все перемещения подряд, без разбивки по операциям.</summary>
         public IEnumerable<ToolMove> Moves()

@@ -29,7 +29,7 @@ namespace GCodeGenerator.Toolpath
         /// <summary>Пояснение к следующему участку траектории.</summary>
         public void Comment(string text)
         {
-            _operation.Items.Add(new ToolPathNote(text));
+            _operation.Add(new ToolPathNote(text));
         }
 
         // Параметра точности у перемещений нет намеренно: точность вывода
@@ -54,19 +54,19 @@ namespace GCodeGenerator.Toolpath
         /// <summary>Дуга по часовой стрелке в точку (x, y) вокруг центра (i, j).</summary>
         public void ArcCW(double x, double y, double i, double j, double feed)
         {
-            Add(ToolMoveKind.ArcClockwise, x, y, null, i, j, feed);
+            _operation.Add(new ArcMove(clockwise: true, x, y, i, j, feed));
         }
 
         /// <summary>Дуга против часовой стрелки в точку (x, y) вокруг центра (i, j).</summary>
         public void ArcCCW(double x, double y, double i, double j, double feed)
         {
-            Add(ToolMoveKind.ArcCounterClockwise, x, y, null, i, j, feed);
+            _operation.Add(new ArcMove(clockwise: false, x, y, i, j, feed));
         }
 
         private void Add(
             ToolMoveKind kind, double? x, double? y, double? z, double? i, double? j, double? feed)
         {
-            _operation.Items.Add(new ToolMove(kind, x, y, z, i, j, feed));
+            _operation.Add(new ToolMove(kind, x, y, z, i, j, feed));
         }
     }
 }

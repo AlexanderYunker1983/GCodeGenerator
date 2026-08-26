@@ -133,14 +133,10 @@ namespace GCodeGenerator.ViewModels
         {
             // Двумерный предпросмотр умеет показывать саму траекторию, а не
             // только контуры операций: он получает её от той же генерации.
-            // Сначала соответствие клонов слепка операциям документа, затем
-            // траектория: пересборка сцены происходит при смене траектории,
-            // и к этому моменту превью уже должно уметь разрешать клоны.
+            // Клоны слепка превью разрешает в операции документа сам —
+            // по идентификатору операции.
             if (e.PropertyName == nameof(GCodeWorkflowViewModel.GeneratedToolPath))
-            {
-                _operationsWorkspace.OperationsPreview.ToolPathSources = _gCodeWorkflow.GeneratedOperationSources;
                 _operationsWorkspace.OperationsPreview.ToolPath = _gCodeWorkflow.GeneratedToolPath;
-            }
         }
 
         private void OnOperationsWorkspaceContentChanged(object? sender, EventArgs e)

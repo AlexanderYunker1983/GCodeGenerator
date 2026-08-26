@@ -39,14 +39,10 @@ namespace GCodeGenerator.Trajectory
             {
                 var target = Apply(position, move);
 
-                if (move.IsArc)
+                if (move is ArcMove arc)
                 {
-                    var segment = BuildArc(position, target, move);
-                    if (segment != null)
-                    {
-                        segments.Add(segment);
-                        position = target;
-                    }
+                    segments.Add(BuildArc(position, target, arc));
+                    position = target;
                     continue;
                 }
 
@@ -74,16 +70,14 @@ namespace GCodeGenerator.Trajectory
 
         /// <summary>
         /// Дуга задаётся смещением центра от начальной точки — так же, как
-        /// в программе словами I и J.
+        /// в программе словами I и J. Тип ArcMove гарантирует величины:
+        /// проверять их на пустоту больше не нужно.
         /// </summary>
-        private static TrajectorySegment BuildArc(Vec3 start, Vec3 end, ToolMove move)
+        private static TrajectorySegment BuildArc(Vec3 start, Vec3 end, ArcMove move)
         {
-            if (move.CenterOffsetX == null || move.CenterOffsetY == null)
-                return null;
-
             var center = new Vec3(
-                start.X + move.CenterOffsetX.Value,
-                start.Y + move.CenterOffsetY.Value,
+                start.X + move.ArcCenterOffsetX,
+                start.Y + move.ArcCenterOffsetY,
                 start.Z);
 
             var clockwise = move.Kind == ToolMoveKind.ArcClockwise;

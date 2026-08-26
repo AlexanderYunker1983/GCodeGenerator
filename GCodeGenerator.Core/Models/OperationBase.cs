@@ -46,6 +46,17 @@ namespace GCodeGenerator.Models
         public OperationCategory Category { get; }
 
         /// <summary>
+        /// Идентичность операции на время жизни процесса. Копия операции —
+        /// рабочая копия диалога, слепок фоновой генерации — представляет
+        /// ту же операцию документа и несёт тот же идентификатор:
+        /// <see cref="OperationCloner"/> переносит его явно, потому что
+        /// в файл идентификатор не пишется и сериализацией не переживается.
+        /// По нему траектория ведёт обратно к операции документа.
+        /// </summary>
+        [JsonIgnore]
+        public Guid Id { get; internal set; } = Guid.NewGuid();
+
+        /// <summary>
         /// User-friendly name of operation, shown in UI.
         /// </summary>
         public string Name

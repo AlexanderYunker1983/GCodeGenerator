@@ -85,7 +85,7 @@ namespace GCodeGenerator.Tests
             builder.LinearTo(z: -2);
 
             var path = new Toolpath.ToolPath();
-            path.Operations.Add(operation);
+            path.AddOperation(operation);
 
             Assert.AreEqual(0, ToolPathSceneProjection.Build(path).Shapes.Count);
         }

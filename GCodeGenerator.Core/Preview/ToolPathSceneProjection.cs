@@ -86,14 +86,15 @@ namespace GCodeGenerator.Preview
             (double x, double y, double z) end,
             ToolMove move)
         {
-            if (!move.IsArc || move.CenterOffsetX == null || move.CenterOffsetY == null)
+            // Тип ArcMove гарантирует величины дуги: пустоту проверять не нужно.
+            if (!(move is ArcMove arc))
             {
                 points.Add((end.x, end.y));
                 return;
             }
 
-            var centerX = start.x + move.CenterOffsetX.Value;
-            var centerY = start.y + move.CenterOffsetY.Value;
+            var centerX = start.x + arc.ArcCenterOffsetX;
+            var centerY = start.y + arc.ArcCenterOffsetY;
 
             // Формула разбиения общая для всех предпросмотров
             // (ArcInterpolation): начальная точка уже лежит в ломаной.
