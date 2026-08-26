@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,11 +27,24 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public bool SupportsArcs => false;
 
+        /// <summary>
+        /// Радиус описанной окружности траектории. Смещение эквидистанты —
+        /// это расстояние между сторонами, а прибавка к радиусу вершины
+        /// сдвигает сторону лишь на cos(π/n) от прибавки: у треугольника
+        /// прибавка радиуса на r сдвинула бы грань всего на r/2, и при
+        /// наружной обработке фреза врезалась бы в деталь на половину
+        /// своего радиуса, у квадрата — на 29 %. Поэтому смещение делится
+        /// на cos(π/n): стороны уходят ровно на toolOffset, а вершины
+        /// траектории остаются острыми углами, как у прямоугольника.
+        /// </summary>
+        private double ActualRadius(double toolOffset)
+            => _operation.Radius + toolOffset / Math.Cos(Math.PI / _operation.NumberOfSides);
+
         public IEnumerable<(double x, double y)> GetContourPoints(
             double toolOffset,
             MillingDirection direction)
         {
-            var actualRadius = _operation.Radius + toolOffset;
+            var actualRadius = ActualRadius(toolOffset);
             var rotationRad = _operation.RotationAngle * Math.PI / 180.0;
             var angleStep = 2 * Math.PI / _operation.NumberOfSides;
 
@@ -69,7 +82,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public (double x, double y) GetStartPoint(double toolOffset)
         {
-            var actualRadius = _operation.Radius + toolOffset;
+            var actualRadius = ActualRadius(toolOffset);
             var rotationRad = _operation.RotationAngle * Math.PI / 180.0;
             var angle = rotationRad;
             return (_operation.CenterX + actualRadius * Math.Cos(angle), _operation.CenterY + actualRadius * Math.Sin(angle));
@@ -103,7 +116,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public double GetPerimeter(double toolOffset)
         {
-            var actualRadius = _operation.Radius + toolOffset;
+            var actualRadius = ActualRadius(toolOffset);
             var angleStep = 2 * Math.PI / _operation.NumberOfSides;
             var sideLength = 2 * actualRadius * Math.Sin(angleStep / 2.0);
             return _operation.NumberOfSides * sideLength;

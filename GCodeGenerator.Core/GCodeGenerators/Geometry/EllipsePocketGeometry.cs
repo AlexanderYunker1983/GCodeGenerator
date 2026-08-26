@@ -8,6 +8,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 {
     /// <summary>
     /// Реализация геометрии для эллиптического кармана.
+    ///
+    /// Эквидистанта стенки считается честно — смещением контура через
+    /// <see cref="ContourOffset"/>. Прежняя реализация вычитала смещение
+    /// из полуосей, но уменьшенный эллипс — не эквидистанта эллипса: точка
+    /// сдвигается радиально, а не по нормали, и в средних участках
+    /// квадрантов траектория не доходила до стенки — карман получался уже
+    /// задуманного.
     /// </summary>
     public class EllipsePocketGeometry : IPocketGeometry
     {
@@ -19,6 +26,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             => System.Array.Empty<IPocketGeometry>();
 
         private readonly PocketEllipseOperation _operation;
+
+        // Кеш последней эквидистанты, по образцу DxfPocketGeometry: в пределах
+        // слоя смещение одинаково для всех вызовов (контур, принадлежность
+        // каждой точки траектории спирали), а меняется только между слоями.
+        private bool _hasCachedOffset;
+        private double _cachedOffsetDelta;
+        private List<Point2D> _cachedOffsetContour = new List<Point2D>();
 
         public EllipsePocketGeometry(PocketEllipseOperation operation)
         {
@@ -32,38 +46,13 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public IContour GetContour(double toolRadius, double taperOffset)
         {
-            double effectiveRadiusX = _operation.RadiusX - toolRadius - taperOffset;
-            double effectiveRadiusY = _operation.RadiusY - toolRadius - taperOffset;
-            
-            if (effectiveRadiusX <= 0) effectiveRadiusX = GeometryTolerances.MinimumContourExtent;
-            if (effectiveRadiusY <= 0) effectiveRadiusY = GeometryTolerances.MinimumContourExtent;
-
-            return new EllipseContour(_operation.CenterX, _operation.CenterY, 
-                effectiveRadiusX, effectiveRadiusY, _operation.RotationAngle);
+            return new PolylineContour(OffsetContour(toolRadius + taperOffset));
         }
 
         public bool IsPointInside(double x, double y, double toolRadius, double taperOffset)
         {
-            // Переводим точку в локальные координаты эллипса (с учетом поворота)
-            double dx = x - _operation.CenterX;
-            double dy = y - _operation.CenterY;
-            
-            double rotationRad = _operation.RotationAngle * Math.PI / 180.0;
-            double cosRot = Math.Cos(-rotationRad); // Обратный поворот
-            double sinRot = Math.Sin(-rotationRad);
-            
-            double xLocal = dx * cosRot - dy * sinRot;
-            double yLocal = dx * sinRot + dy * cosRot;
-            
-            double effectiveRadiusX = _operation.RadiusX - toolRadius - taperOffset;
-            double effectiveRadiusY = _operation.RadiusY - toolRadius - taperOffset;
-            
-            // Проверка: (x/a)^2 + (y/b)^2 <= 1
-            double normalizedX = xLocal / effectiveRadiusX;
-            double normalizedY = yLocal / effectiveRadiusY;
-            double dist = normalizedX * normalizedX + normalizedY * normalizedY;
-            
-            return dist <= 1.0 + GeometryTolerances.Containment;
+            var contour = OffsetContour(toolRadius + taperOffset);
+            return contour.Count >= 3 && Geometry2D.IsPointInsidePolygon(x, y, contour);
         }
 
         public bool IsContourTooSmall(double toolRadius, double taperOffset)
@@ -84,54 +73,95 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
 
         /// <summary>
-        /// Реализация контура для эллипса.
+        /// Эквидистанта стенки: контур эллипса, смещённый внутрь на
+        /// <paramref name="inwardDelta"/>. Пустой список означает, что фреза
+        /// с таким смещением в карман не помещается — этот случай отсекает
+        /// <see cref="IsContourTooSmall"/> до построения слоя, поэтому
+        /// «разумное значение» здесь не подставляется.
         /// </summary>
-        private class EllipseContour : IContour
+        private List<Point2D> OffsetContour(double inwardDelta)
         {
-            private readonly double _centerX;
-            private readonly double _centerY;
-            private readonly double _radiusX;
-            private readonly double _radiusY;
-            private readonly double _rotationAngle;
+            if (_hasCachedOffset && _cachedOffsetDelta.Equals(inwardDelta))
+                return _cachedOffsetContour;
 
-            public EllipseContour(double centerX, double centerY, double radiusX, double radiusY, double rotationAngle)
+            var parts = ContourOffset.Offset(TessellateBase(), -inwardDelta);
+            var largest = new List<Point2D>();
+            double largestArea = 0.0;
+            foreach (var part in parts)
             {
-                _centerX = centerX;
-                _centerY = centerY;
-                _radiusX = Math.Max(0, radiusX);
-                _radiusY = Math.Max(0, radiusY);
-                _rotationAngle = rotationAngle;
+                var area = Geometry2D.Area(part);
+                if (area > largestArea)
+                {
+                    largestArea = area;
+                    largest = part;
+                }
+            }
+
+            _cachedOffsetContour = largest;
+            _cachedOffsetDelta = inwardDelta;
+            _hasCachedOffset = true;
+            return largest;
+        }
+
+        /// <summary>
+        /// Тесселяция самого эллипса — вход для смещения. Плотность прежняя:
+        /// шаг полмиллиметра, не меньше 32 сегментов.
+        /// </summary>
+        private List<Point2D> TessellateBase()
+        {
+            double h = Math.Pow(_operation.RadiusX - _operation.RadiusY, 2)
+                / Math.Pow(_operation.RadiusX + _operation.RadiusY, 2);
+            double perimeter = Math.PI * (_operation.RadiusX + _operation.RadiusY)
+                * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
+            int segments = Math.Max(32, (int)Math.Ceiling(perimeter / 0.5));
+
+            double rotationRad = _operation.RotationAngle * Math.PI / 180.0;
+            double cosRot = Math.Cos(rotationRad);
+            double sinRot = Math.Sin(rotationRad);
+
+            var points = new List<Point2D>(segments);
+            for (int i = 0; i < segments; i++)
+            {
+                double t = 2 * Math.PI * i / segments;
+                double xEllipse = _operation.RadiusX * Math.Cos(t);
+                double yEllipse = _operation.RadiusY * Math.Sin(t);
+                points.Add(new Point2D
+                {
+                    X = _operation.CenterX + xEllipse * cosRot - yEllipse * sinRot,
+                    Y = _operation.CenterY + xEllipse * sinRot + yEllipse * cosRot,
+                });
+            }
+
+            return points;
+        }
+
+        /// <summary>
+        /// Контур-ломаная: точки эквидистанты с замыканием, площадь — по ним же.
+        /// </summary>
+        private class PolylineContour : IContour
+        {
+            private readonly List<Point2D> _points;
+
+            public PolylineContour(List<Point2D> points)
+            {
+                _points = points;
             }
 
             public IEnumerable<(double x, double y)> GetPoints()
             {
-                // Используем приближенную формулу периметра для определения количества сегментов
-                double h = Math.Pow(_radiusX - _radiusY, 2) / Math.Pow(_radiusX + _radiusY, 2);
-                double perimeter = Math.PI * (_radiusX + _radiusY) * (1 + 3 * h / (10 + Math.Sqrt(4 - 3 * h)));
-                int segments = Math.Max(32, (int)Math.Ceiling(perimeter / 0.5));
-                if (segments < 8) segments = 8;
+                if (_points.Count == 0)
+                    yield break;
 
-                double rotationRad = _rotationAngle * Math.PI / 180.0;
-                double cosRot = Math.Cos(rotationRad);
-                double sinRot = Math.Sin(rotationRad);
+                foreach (var point in _points)
+                    yield return (point.X, point.Y);
 
-                for (int i = 0; i <= segments; i++)
-                {
-                    double t = 2 * Math.PI * i / segments;
-                    double xEllipse = _radiusX * Math.Cos(t);
-                    double yEllipse = _radiusY * Math.Sin(t);
-                    
-                    // Поворот
-                    double x = _centerX + xEllipse * cosRot - yEllipse * sinRot;
-                    double y = _centerY + xEllipse * sinRot + yEllipse * cosRot;
-                    
-                    yield return (x, y);
-                }
+                // Замыкаем контур: смещение возвращает вершины без дубликата.
+                yield return (_points[0].X, _points[0].Y);
             }
 
             public double GetArea()
             {
-                return Math.PI * _radiusX * _radiusY;
+                return Geometry2D.Area(_points);
             }
         }
     }

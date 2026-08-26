@@ -38,6 +38,15 @@ namespace GCodeGenerator.Tests.Fixtures
                 cases.Add(new FixtureCase("Profile.Dxf.Default", Ops(OperationFixtures.ProfileDxf()), SettingsFixtures.Default()));
                 cases.Add(new FixtureCase("Profile.Circle.AngledEntry", Ops(OperationFixtures.ProfileCircleAngledEntry()), SettingsFixtures.Default()));
 
+                // Режимы траектории: у Default-фикстур режим OnLine, смещения
+                // нет, и наружная с внутренней эквидистантами прежде не имели
+                // эталонов вовсе — дефект эквидистант многоугольника и эллипса
+                // жил в невидимой для эталонов зоне.
+                cases.Add(new FixtureCase("Profile.Polygon.Outside", Ops(WithToolPathMode(OperationFixtures.ProfilePolygon(), ToolPathMode.Outside)), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Polygon.Inside", Ops(WithToolPathMode(OperationFixtures.ProfilePolygon(), ToolPathMode.Inside)), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Ellipse.Outside", Ops(WithToolPathMode(OperationFixtures.ProfileEllipse(), ToolPathMode.Outside)), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Ellipse.Inside", Ops(WithToolPathMode(OperationFixtures.ProfileEllipse(), ToolPathMode.Inside)), SettingsFixtures.Default()));
+
                 // Карманы: 4 вида.
                 cases.Add(new FixtureCase("Pocket.Rectangle.Default", Ops(OperationFixtures.PocketRectangle()), SettingsFixtures.Default()));
                 cases.Add(new FixtureCase("Pocket.Circle.Default", Ops(OperationFixtures.PocketCircle()), SettingsFixtures.Default()));
@@ -107,6 +116,12 @@ namespace GCodeGenerator.Tests.Fixtures
         private static OperationBase WithStrategy(PocketOperationBase operation, PocketStrategy strategy)
         {
             operation.PocketStrategy = strategy;
+            return operation;
+        }
+
+        private static OperationBase WithToolPathMode(ProfileOperationBase operation, ToolPathMode mode)
+        {
+            operation.ToolPathMode = mode;
             return operation;
         }
 
