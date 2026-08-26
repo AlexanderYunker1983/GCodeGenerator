@@ -312,6 +312,15 @@
   <data name="SaveAsDefaults" xml:space="preserve">
     <value>Save as defaults</value>
   </data>
+  <data name="DxfFileFilter" xml:space="preserve">
+    <value>DXF files (*.dxf)|*.dxf|All files (*.*)|*.*</value>
+  </data>
+  <data name="GCodeFileFilter" xml:space="preserve">
+    <value>G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*</value>
+  </data>
+  <data name="SaveGCodeDialogTitle" xml:space="preserve">
+    <value>Save G-code</value>
+  </data>
   <data name="SaveAsDefaultsToolTip" xml:space="preserve">
     <value>Remember the generation settings in this window as defaults for new projects. The current project is not affected.</value>
   </data>

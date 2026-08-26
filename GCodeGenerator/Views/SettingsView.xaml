@@ -1,4 +1,4 @@
-<Window x:Class="GCodeGenerator.Views.SettingsView"
+﻿<Window x:Class="GCodeGenerator.Views.SettingsView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:infrastructure="clr-namespace:GCodeGenerator.Infrastructure"
@@ -10,7 +10,7 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:SettingsViewModel}"
         Title="{loc:Loc GCodeSettingsTitle}"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="CenterOwner"
         Width="640" Height="600"
         MinWidth="560" MinHeight="360">
     <DockPanel>

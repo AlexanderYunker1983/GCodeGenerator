@@ -2,6 +2,7 @@
 using System;
 using System.Configuration;
 using System.Text.Json;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Services
@@ -38,11 +39,17 @@ namespace GCodeGenerator.Services
         {
         }
 
+        /// <summary>Хранилище с журналом: сбой переноса настроек оставляет след.</summary>
+        public AppSettingsStore(IAppLogger logger)
+            : this(new ApplicationPersistedSettings(), logger)
+        {
+        }
+
         /// <summary>Хранилище настроек с заданным постоянным хранилищем (тесты).</summary>
-        internal AppSettingsStore(IPersistedSettings persisted)
+        internal AppSettingsStore(IPersistedSettings persisted, IAppLogger? logger = null)
         {
             _persisted = persisted ?? throw new ArgumentNullException(nameof(persisted));
-            UpgradeFromPreviousVersion(_persisted);
+            UpgradeFromPreviousVersion(_persisted, logger ?? NullAppLogger.Instance);
 
             // Initialize from persistent storage (таблица SettingsMapping — пункт 8.1).
             Current = new GCodeSettings();
@@ -68,9 +75,11 @@ namespace GCodeGenerator.Services
         ///
         /// Сбой переноса (нет файла предыдущей версии, повреждённый или
         /// недоступный <c>user.config</c>) не должен мешать запуску: настройки
-        /// останутся значениями по умолчанию.
+        /// останутся значениями по умолчанию, а причина — в журнале. Прежде
+        /// сбой глотался молча, и «настройки сбросились после обновления»
+        /// было не с чем сопоставить.
         /// </summary>
-        private static void UpgradeFromPreviousVersion(IPersistedSettings persisted)
+        private static void UpgradeFromPreviousVersion(IPersistedSettings persisted, IAppLogger logger)
         {
             if (!persisted.UpgradeRequired)
                 return;
@@ -81,8 +90,9 @@ namespace GCodeGenerator.Services
                 persisted.UpgradeRequired = false;
                 persisted.Save();
             }
-            catch (ConfigurationException)
+            catch (ConfigurationException failure)
             {
+                logger.Warning($"Settings upgrade from the previous version failed: {failure.Message}");
             }
         }
 

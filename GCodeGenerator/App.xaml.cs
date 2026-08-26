@@ -120,10 +120,13 @@ namespace GCodeGenerator
             _mainViewModel = _container.Resolve<MainViewModel>();
             var mainWindow = new MainView { DataContext = _mainViewModel };
             MainWindow = mainWindow;
-            mainWindow.Show();
 
+            // Тема применяется до показа окна: прежде окно на мгновение
+            // появлялось в светлой теме и перекрашивалось на глазах.
             var uiSettings = _container.Resolve<ISettingsStore>().Current.Ui;
             _container.Resolve<IThemeService>().ApplyTheme(uiSettings.UseDarkTheme);
+
+            mainWindow.Show();
         }
 
         /// <summary>

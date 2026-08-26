@@ -59,17 +59,39 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// Повреждённый или недоступный файл настроек не должен мешать запуску:
-        /// программа стартует со значениями по умолчанию.
+        /// программа стартует со значениями по умолчанию, а причина остаётся
+        /// в журнале. Прежде сбой глотался молча, и «настройки сбросились
+        /// после обновления» было не с чем сопоставить.
         /// </summary>
         [TestMethod]
-        public void BrokenPreviousSettings_DoNotBreakStartup()
+        public void BrokenPreviousSettings_DoNotBreakStartup_AndAreLogged()
         {
             var persisted = new FakePersistedSettings { UpgradeRequired = true };
             persisted.OnUpgrade = () => throw new ConfigurationErrorsException("повреждённый user.config");
+            var logger = new RecordingLogger();
 
-            var store = new AppSettingsStore(persisted);
+            var store = new AppSettingsStore(persisted, logger);
 
             Assert.IsNotNull(store.Current, "Настройки создаются несмотря на сбой переноса");
+            Assert.IsTrue(
+                logger.Warnings.Exists(message => message.Contains("Settings upgrade")),
+                "Сбой переноса должен попасть в журнал");
+        }
+
+        /// <summary>Журнал, запоминающий предупреждения.</summary>
+        private sealed class RecordingLogger : GCodeGenerator.Diagnostics.IAppLogger
+        {
+            public System.Collections.Generic.List<string> Warnings { get; }
+                = new System.Collections.Generic.List<string>();
+
+            public void Log(
+                GCodeGenerator.Diagnostics.LogLevel level,
+                string message,
+                System.Exception exception = null)
+            {
+                if (level == GCodeGenerator.Diagnostics.LogLevel.Warning)
+                    Warnings.Add(message);
+            }
         }
 
         private sealed class FakePersistedSettings : IPersistedSettings

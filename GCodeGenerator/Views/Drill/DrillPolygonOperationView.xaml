@@ -12,7 +12,7 @@
         Title="{Binding DisplayName}"
         Width="1000" Height="600"
         MinWidth="900" MinHeight="500"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterOwner">
     <DockPanel>
         <common:DialogButtons DockPanel.Dock="Bottom"/>
         <Grid Margin="10">

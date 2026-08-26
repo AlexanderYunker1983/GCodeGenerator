@@ -312,6 +312,15 @@
   <data name="SaveAsDefaults" xml:space="preserve">
     <value>Сделать умолчаниями</value>
   </data>
+  <data name="DxfFileFilter" xml:space="preserve">
+    <value>Чертежи DXF (*.dxf)|*.dxf|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="GCodeFileFilter" xml:space="preserve">
+    <value>Файлы G-кода (*.nc;*.tap)|*.nc;*.tap|Файлы NC (*.nc)|*.nc|Файлы TAP (*.tap)|*.tap|Все файлы (*.*)|*.*</value>
+  </data>
+  <data name="SaveGCodeDialogTitle" xml:space="preserve">
+    <value>Сохранение G-кода</value>
+  </data>
   <data name="SaveAsDefaultsToolTip" xml:space="preserve">
     <value>Запомнить настройки генерации из этого окна как умолчания для новых проектов. Текущий проект не изменяется.</value>
   </data>

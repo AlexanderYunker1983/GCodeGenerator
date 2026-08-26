@@ -1,5 +1,4 @@
 ﻿#nullable enable
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
@@ -22,9 +21,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         : PocketOperationEditorViewModelBase<PocketDxfOperation>, IHasDisplayName
     {
         private readonly ILocalizationManager? _localizationManager;
-        private readonly IMessageService _messageService;
-        private readonly IFileDialogService _fileDialogService;
-        private readonly IDxfImportService _dxfImportService;
+        private readonly DxfImportFlow _importFlow;
         private readonly IAppLogger _logger;
 
         [ObservableProperty]
@@ -46,14 +43,13 @@ namespace GCodeGenerator.ViewModels.Pocket
             IAppLogger? logger = null)
         {
             _localizationManager = localizationManager;
-            _messageService = messageService;
-            _fileDialogService = fileDialogService;
-            _dxfImportService = dxfImportService ?? throw new ArgumentNullException(nameof(dxfImportService));
+            // Общий поток импорта двух DXF-диалогов: выбор файла, чтение
+            // в фоне, сообщения. Диалогу остаётся своя геометрия. Команда
+            // отменяема: токен доходит до перебора циклов в ядре, где
+            // сложный чертёж занимает заметное время.
+            _importFlow = new DxfImportFlow(
+                localizationManager, messageService, fileDialogService, dxfImportService, logger);
             _logger = logger ?? NullAppLogger.Instance;
-            // Пункт 8.4 плана: импорт DXF — async: разбор файла выполняется в пуле,
-            // поэтому интерфейс не замирает даже на больших чертежах. Команда
-            // отменяема: токен доходит до перебора циклов в ядре, где сложный
-            // чертёж занимает заметное время.
             ImportDxfCommand = new AsyncRelayCommand(ImportDxfFileAsync);
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
@@ -90,47 +86,21 @@ namespace GCodeGenerator.ViewModels.Pocket
             if (Operation == null)
                 return;
 
-            var title = _localizationManager?.GetString("DxfImportDialogTitle") ?? "DxfImportDialogTitle";
-            var fileName = _fileDialogService?.ShowOpenDialog(title, "DXF files (*.dxf)|*.dxf|All files (*.*)|*.*", "dxf");
-            if (fileName == null)
+            var import = await _importFlow.ImportPocketAsync(cancellation);
+            if (import == null)
                 return;
 
-            try
-            {
-                var closedContours = await Task.Run(
-                    () => _dxfImportService.ReadPocketClosedContours(fileName, cancellation), cancellation);
-                if (closedContours.Count == 0)
-                {
-                    _logger.Warning($"DXF import found no closed contours: {fileName}");
-                    var msg = _localizationManager?.GetString("DxfImportNoClosedContours") ?? "DxfImportNoClosedContours";
-                    _messageService?.ShowInfo(msg, title);
-                    return;
-                }
-
-                Operation.ClosedContours = closedContours;
-                Operation.DxfFilePath = fileName;
-                // Пункт 7.2 плана: импорт DXF перерисовывает 2D-превью
-                // (ClosedContours — авто-свойство, без PropertyChanged).
-                Operation.NotifyContentChanged();
-                FilePath = fileName;
-                var contourCount = closedContours.Count;
-                var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
-                ImportInfo = string.Format(infoTemplate, contourCount);
-                _logger.Info($"DXF imported for pocket: {fileName} ({contourCount} closed contour(s))");
-            }
-            catch (OperationCanceledException)
-            {
-                // Отменённый импорт — не ошибка: пользователь передумал,
-                // сообщать не о чем.
-                _logger.Info($"DXF import canceled: {fileName}");
-            }
-            catch (Exception ex)
-            {
-                _logger.Error($"DXF import failed: {fileName}", ex);
-                var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
-                _messageService?.ShowError($"{msg} {CoreErrorMessages.Describe(ex, _localizationManager)}", title);
-            }
+            var (fileName, closedContours) = import.Value;
+            Operation.ClosedContours = closedContours;
+            Operation.DxfFilePath = fileName;
+            // Пункт 7.2 плана: импорт DXF перерисовывает 2D-превью
+            // (ClosedContours — авто-свойство, без PropertyChanged).
+            Operation.NotifyContentChanged();
+            FilePath = fileName;
+            var contourCount = closedContours.Count;
+            var infoTemplate = _localizationManager?.GetString("DxfImportContoursInfo") ?? "DxfImportContoursInfo";
+            ImportInfo = string.Format(infoTemplate, contourCount);
+            _logger.Info($"DXF imported for pocket: {fileName} ({contourCount} closed contour(s))");
         }
-
     }
 }

@@ -35,7 +35,8 @@ namespace GCodeGenerator.Tests
             IGCodeGenerator generator = null,
             IGCodeFileService gCodeFileService = null,
             IProjectFileService projectFileService = null,
-            FakeEditorIndex editors = null)
+            FakeEditorIndex editors = null,
+            GCodeGenerator.Localization.ILocalizationManager localizationManager = null)
         {
             var dialogs = new FakeDialogs();
             var factory = new OperationEditorFactory(editors ?? new FakeEditorIndex(), dialogs);
@@ -61,7 +62,8 @@ namespace GCodeGenerator.Tests
                 null,
                 factory,
                 new FakeThemeService());
-            var main = new MainViewModel(null, () => new SettingsViewModel(null, settingsStore, new FakeThemeService()),
+            var main = new MainViewModel(localizationManager,
+                () => new SettingsViewModel(null, settingsStore, new FakeThemeService()),
                 dialogs, gCodeWorkflowFactory, projectWorkflowFactory,
                 operationsWorkspace, new ProgramInfo("1.0"), settingsStore);
             return (main, factory, dialogs, settingsStore);

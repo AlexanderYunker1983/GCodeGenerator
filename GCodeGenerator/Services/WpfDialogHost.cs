@@ -23,6 +23,12 @@ namespace GCodeGenerator.Services
             window.DataContext = viewModel;
             window.Owner = Application.Current?.MainWindow;
 
+            // Диалоги центрируются на владельце; без него (первое окно ещё
+            // не создано) — по экрану, иначе CenterOwner оставил бы окно
+            // в углу.
+            if (window.Owner == null)
+                window.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+
             var closeable = viewModel as CloseableViewModel;
             Action? closeHandler = null;
             if (closeable != null)
@@ -32,13 +38,21 @@ namespace GCodeGenerator.Services
                 closeable.CloseRequested += closeHandler;
             }
 
-            // Модальный показ: блокирует до закрытия окна.
-            window.ShowDialog();
-
-            if (closeable != null)
+            try
             {
-                closeable.CloseRequested -= closeHandler;
-                closeable.OnClosed();
+                // Модальный показ: блокирует до закрытия окна.
+                window.ShowDialog();
+            }
+            finally
+            {
+                // Отписка и уведомление о закрытии выполняются и при сбое
+                // внутри окна: иначе view-модель оставалась бы подписанной
+                // на закрытое окно.
+                if (closeable != null)
+                {
+                    closeable.CloseRequested -= closeHandler;
+                    closeable.OnClosed();
+                }
             }
         }
     }

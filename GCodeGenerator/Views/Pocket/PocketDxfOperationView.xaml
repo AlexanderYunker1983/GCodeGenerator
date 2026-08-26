@@ -11,7 +11,7 @@
         Title="{Binding DisplayName}"
         Width="780" Height="560"
         MinWidth="760" MinHeight="520"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterOwner">
     <DockPanel>
         <common:DialogButtons DockPanel.Dock="Bottom"/>
         <ScrollViewer VerticalScrollBarVisibility="Auto">

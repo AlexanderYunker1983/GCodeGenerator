@@ -166,6 +166,10 @@ namespace GCodeGenerator.ViewModels
             ProgramLines = null;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
+            // Источник отмены прошлой генерации уже никем не используется:
+            // повторный запуск возможен только после завершения предыдущего
+            // (IsGenerating), а отмена по правке документа уже сработала.
+            _generationCancellation?.Dispose();
             var cancellation = new CancellationTokenSource();
             _generationCancellation = cancellation;
             try
@@ -235,6 +239,12 @@ namespace GCodeGenerator.ViewModels
                 IsGenerating = false;
                 if (generationCompleted)
                     ProgressPercent = 100;
+
+                // Источник освобождается своим создателем; чужой (от уже
+                // начатой следующей генерации) не трогается.
+                if (ReferenceEquals(_generationCancellation, cancellation))
+                    _generationCancellation = null;
+                cancellation.Dispose();
             }
         }
 
@@ -243,9 +253,11 @@ namespace GCodeGenerator.ViewModels
             if (ProgramLines is not { Count: > 0 })
                 return;
 
+            // Заголовок и фильтр — из словаря: прежде фильтр был захардкожен
+            // по-английски, а заголовок пуст.
             var fileName = _fileDialogService.ShowSaveDialog(
-                "",
-                "G-code files (*.nc;*.tap)|*.nc;*.tap|NC files (*.nc)|*.nc|TAP files (*.tap)|*.tap|All files (*.*)|*.*",
+                _localizationManager?.GetString("SaveGCodeDialogTitle") ?? "SaveGCodeDialogTitle",
+                _localizationManager?.GetString("GCodeFileFilter") ?? "GCodeFileFilter",
                 "nc",
                 "program.nc");
             if (fileName == null)

@@ -29,7 +29,7 @@ namespace GCodeGenerator.ViewModels
         private readonly Func<SettingsViewModel> _createSettings;
         private readonly IDialogHost _dialogHost;
         private readonly IProgramInfo _programInfo;
-        private readonly string _programTitle;
+        private string _programTitle;
         private IDisposable? _documentBatch;
         private IDisposable? _undoSuspension;
         private string _displayName = string.Empty;
@@ -68,10 +68,27 @@ namespace GCodeGenerator.ViewModels
 
             OpenSettingsCommand = new RelayCommand(OpenSettings);
 
+            _programTitle = BuildProgramTitle();
+            UpdateDisplayName();
+
+            // Надписи разметки перечитываются при смене языка сами, а
+            // заголовок окна собирается здесь — и прежде оставался на языке
+            // запуска до перезапуска программы. Обе стороны подписки живут
+            // всё время работы приложения, отписка не требуется.
+            if (_localizationManager != null)
+                _localizationManager.CultureChanged += (_, _) =>
+                {
+                    _programTitle = BuildProgramTitle();
+                    UpdateDisplayName();
+                };
+        }
+
+        /// <summary>Название и версия программы на действующем языке.</summary>
+        private string BuildProgramTitle()
+        {
             var baseTitle = _localizationManager?.GetString("MainTitle") ?? "MainTitle";
             var version = _programInfo.Version;
-            _programTitle = string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
-            UpdateDisplayName();
+            return string.IsNullOrEmpty(version) ? baseTitle : $"{baseTitle} v.{version}";
         }
 
         public string DisplayName

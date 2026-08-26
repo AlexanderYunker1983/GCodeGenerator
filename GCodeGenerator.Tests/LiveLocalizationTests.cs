@@ -27,6 +27,26 @@ namespace GCodeGenerator.Tests
             "xmlns:loc=\"clr-namespace:GCodeGenerator.Localization;assembly=GCodeGenerator\" " +
             "Text=\"{loc:Loc MainTitle}\"/>";
 
+        /// <summary>
+        /// Заголовок главного окна собирается в view-модели, а не в разметке:
+        /// прежде он оставался на языке запуска до перезапуска программы,
+        /// хотя все надписи окон уже перечитались.
+        /// </summary>
+        [TestMethod]
+        public void ChangingCulture_UpdatesMainWindowTitle()
+        {
+            var manager = new AppLocalizationManager();
+            manager.AddAssembly("GCodeGenerator");
+            manager.ChangeCulture(new CultureInfo("ru"));
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain(localizationManager: manager);
+            StringAssert.Contains(main.DisplayName, "Генератор G-кода");
+
+            manager.ChangeCulture(new CultureInfo("en"));
+
+            StringAssert.Contains(main.DisplayName, "G-code Generator",
+                "Заголовок должен перечитаться без пересоздания окна");
+        }
+
         [TestMethod]
         public void ChangingCulture_UpdatesTextAlreadyOnScreen()
         {
