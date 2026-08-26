@@ -175,6 +175,61 @@ namespace GCodeGenerator.Tests
             AssertValid(op);
         }
 
+        /// <summary>
+        /// Порог режима согласован с формулой расстановки: окружность из
+        /// одного отверстия отклоняется на поле HoleCount. Прежде порог
+        /// в операции требовал лишь одно отверстие, формула честно
+        /// возвращала пусто, и ошибка приходила на поле Holes — которого
+        /// в диалоге окружности нет.
+        /// </summary>
+        [TestMethod]
+        public void DrillCircle_SingleHole_NamesHoleCountInsteadOfHoles()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Circle);
+            op.HoleCount = 1;
+
+            AssertSingleIssue(op, nameof(op.HoleCount));
+        }
+
+        /// <summary>
+        /// Рамке нужны хотя бы два ряда: один ряд — линия, а не периметр,
+        /// и формула такую рамку не строит. Прежде параметры проходили,
+        /// а ошибка приходила на поле Holes.
+        /// </summary>
+        [TestMethod]
+        public void DrillRect_SingleRow_NamesRowCountInsteadOfHoles()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Rect);
+            op.RowCount = 1;
+
+            AssertSingleIssue(op, nameof(op.RowCount));
+        }
+
+        /// <summary>
+        /// Отвод отверстия — единственная используемая генератором величина,
+        /// которая прежде не проверялась вовсе: NaN доживал до кадра.
+        /// Отрицательный отвод при этом легален — высота абсолютная,
+        /// и для поверхности ниже нуля отвод тоже ниже нуля.
+        /// </summary>
+        [TestMethod]
+        public void DrillPoints_HoleWithNanRetract_IsRejectedByName()
+        {
+            var op = DrillPointsOperation.CreateNew(DrillMode.Points);
+            op.Holes.Add(new DrillHole
+            {
+                X = 0,
+                Y = 0,
+                TotalDepth = 2,
+                StepDepth = 1,
+                RetractHeight = double.NaN,
+            });
+
+            AssertSingleIssue(op, "Holes[0].RetractHeight");
+
+            op.Holes[0].RetractHeight = -1.5;
+            AssertValid(op);
+        }
+
         // ------------------------------------------------------------------
         // Сверление
         // ------------------------------------------------------------------

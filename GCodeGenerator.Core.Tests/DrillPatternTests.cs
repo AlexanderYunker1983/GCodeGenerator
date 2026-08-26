@@ -377,5 +377,32 @@ namespace GCodeGenerator.Tests
 
             StringAssert.Contains(failure.Message, ((int)unknown).ToString());
         }
+
+        /// <summary>
+        /// Пороги каждого шаблона согласованы с его формулой: операция
+        /// с параметрами по умолчанию проходит проверку шаблона и даёт
+        /// непустую расстановку. Расхождение порога и формулы означало бы
+        /// режим, который принимает параметры и молча ничего не сверлит, —
+        /// ровно то, из-за чего пороги переехали из switch операции
+        /// в сами шаблоны.
+        /// </summary>
+        [TestMethod]
+        public void EveryPattern_DefaultsPassIssuesAndProduceHoles()
+        {
+            foreach (var entry in DrillPatterns.All)
+            {
+                var operation = DrillPointsOperation.CreateNew(entry.Key);
+                if (entry.Key == DrillMode.Points)
+                    operation.Holes.Add(new DrillHole { X = 0, Y = 0, TotalDepth = 2, StepDepth = 1 });
+
+                var issues = new List<ValidationIssue>();
+                entry.Value.AddIssues(issues, operation);
+
+                Assert.AreEqual(0, issues.Count,
+                    $"{entry.Key}: {string.Join("; ", issues)}");
+                Assert.IsTrue(operation.HolesToDrill.Count > 0,
+                    $"{entry.Key}: расстановка по умолчанию пуста");
+            }
+        }
     }
 }

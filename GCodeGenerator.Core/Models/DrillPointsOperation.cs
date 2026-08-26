@@ -275,6 +275,12 @@ namespace GCodeGenerator.Models
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].X", hole.X);
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Y", hole.Y);
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Z", hole.Z);
+
+                // Отвод между проходами генератор берёт из отверстия — прежде
+                // это была единственная используемая им величина без проверки.
+                // Отрицательное значение легально: отвод задан абсолютной
+                // высотой, и для поверхности ниже нуля он тоже ниже нуля.
+                OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].RetractHeight", hole.RetractHeight);
             }
         }
 
@@ -306,49 +312,12 @@ namespace GCodeGenerator.Models
                 OperationValidation.AddIfNotPositive(issues, nameof(StepDepth), StepDepth);
             }
 
-            switch (DrillMode)
-            {
-                case DrillMode.Line:
-                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
-                    OperationValidation.AddIfNotPositive(issues, nameof(Distance), Distance);
-                    break;
-                case DrillMode.Array:
-                case DrillMode.Rect:
-                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
-                    OperationValidation.AddIfNotPositive(issues, nameof(Distance), Distance);
-                    OperationValidation.AddIfBelow(issues, nameof(RowCount), RowCount, 1);
-                    OperationValidation.AddIfNotPositive(issues, nameof(RowPitch), RowPitch);
-                    break;
-                case DrillMode.Circle:
-                case DrillMode.Arc:
-                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
-                    OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
-                    break;
-                case DrillMode.Polygon:
-                    OperationValidation.AddIfNotPositive(issues, nameof(Radius), Radius);
-                    OperationValidation.AddIfBelow(issues, nameof(NumberOfSides), NumberOfSides, 3);
-                    OperationValidation.AddIfBelow(issues, nameof(HolesPerSide), HolesPerSide, 1);
-                    break;
-                case DrillMode.Ellipse:
-                    OperationValidation.AddIfBelow(issues, nameof(HoleCount), HoleCount, 1);
-                    OperationValidation.AddIfNotPositive(issues, nameof(RadiusX), RadiusX);
-                    OperationValidation.AddIfNotPositive(issues, nameof(RadiusY), RadiusY);
-                    break;
-                case DrillMode.Package:
-                    // Пустое имя допустимо: за ним стоит корпус по умолчанию,
-                    // который диалог показывает для новой операции. Непустое,
-                    // но неизвестное имя — опечатка в файле: тихая подмена
-                    // корпусом по умолчанию просверлила бы не тот корпус.
-                    if (!string.IsNullOrWhiteSpace(PackageName) && PackageCatalog.Find(PackageName) == null)
-                    {
-                        issues.Add(new ValidationIssue(nameof(PackageName), ValidationCode.NotAllowed,
-                            $"unknown package name '{PackageName}'"));
-                    }
-                    break;
-                case DrillMode.Points:
-                default:
-                    break;
-            }
+            // Пороги параметров режима объявлены в его шаблоне — рядом
+            // с формулами расстановки, которые эти пороги защищают. Прежде
+            // они жили здесь, в switch, и успели разойтись с защитными
+            // условиями формул: знание об одном режиме лежало в двух местах.
+            if (DrillPatterns.TryFor(DrillMode, out var pattern))
+                pattern.AddIssues(issues, this);
 
             // Расстановка проверяется последней и только если параметры
             // шаблона верны: пустая расстановка при неверном параметре — его

@@ -38,6 +38,20 @@ namespace GCodeGenerator.Models
         protected abstract List<DrillHole> Build(DrillPointsOperation operation);
 
         /// <summary>
+        /// Проблемы параметров шаблона. Пороги объявляются рядом с формулами
+        /// расстановки, которые они защищают: прежде пороги жили в switch
+        /// самой операции и успели разойтись с защитными условиями формул —
+        /// окружность из одного отверстия проходила проверку параметров,
+        /// расстановка возвращала пусто, и пользователь получал ошибку
+        /// «нет отверстий» на поле, которого в диалоге окружности нет.
+        /// </summary>
+        /// <param name="issues">Список проблем, куда добавляются найденные.</param>
+        /// <param name="operation">Операция сверления.</param>
+        public virtual void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+        }
+
+        /// <summary>
         /// Отверстие шаблона: координаты плюс общие параметры глубины и подач,
         /// одинаковые для всех отверстий операции.
         /// </summary>
@@ -77,6 +91,12 @@ namespace GCodeGenerator.Models
     {
         public override DrillMode Mode => DrillMode.Line;
 
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 1);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
+        }
+
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
@@ -98,6 +118,14 @@ namespace GCodeGenerator.Models
     public sealed class ArrayDrillPattern : DrillPattern
     {
         public override DrillMode Mode => DrillMode.Array;
+
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 1);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
+            OperationValidation.AddIfBelow(issues, nameof(operation.RowCount), operation.RowCount, 1);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.RowPitch), operation.RowPitch);
+        }
 
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
@@ -133,6 +161,17 @@ namespace GCodeGenerator.Models
     public sealed class RectDrillPattern : DrillPattern
     {
         public override DrillMode Mode => DrillMode.Rect;
+
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            // Рамке нужны хотя бы два узла в каждом направлении — иначе
+            // периметра нет. Прежний общий порог «не меньше одного» пропускал
+            // рамку 1×N, для которой формула честно возвращала пусто.
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 2);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
+            OperationValidation.AddIfBelow(issues, nameof(operation.RowCount), operation.RowCount, 2);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.RowPitch), operation.RowPitch);
+        }
 
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
@@ -174,6 +213,14 @@ namespace GCodeGenerator.Models
     {
         public override DrillMode Mode => DrillMode.Circle;
 
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            // Отверстия «по окружности» начинаются с двух: одно отверстие —
+            // это точка, а не окружность, и формула его не расставляет.
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 2);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
+        }
+
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
@@ -201,6 +248,12 @@ namespace GCodeGenerator.Models
     public sealed class ArcDrillPattern : DrillPattern
     {
         public override DrillMode Mode => DrillMode.Arc;
+
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 1);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
+        }
 
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
@@ -241,6 +294,13 @@ namespace GCodeGenerator.Models
     public sealed class PolygonDrillPattern : DrillPattern
     {
         public override DrillMode Mode => DrillMode.Polygon;
+
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
+            OperationValidation.AddIfBelow(issues, nameof(operation.NumberOfSides), operation.NumberOfSides, 3);
+            OperationValidation.AddIfBelow(issues, nameof(operation.HolesPerSide), operation.HolesPerSide, 1);
+        }
 
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
@@ -293,6 +353,15 @@ namespace GCodeGenerator.Models
     {
         public override DrillMode Mode => DrillMode.Ellipse;
 
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            // Как и у окружности: эллипс из одного отверстия — точка,
+            // формула такую расстановку не строит.
+            OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 2);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.RadiusX), operation.RadiusX);
+            OperationValidation.AddIfNotPositive(issues, nameof(operation.RadiusY), operation.RadiusY);
+        }
+
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
             var holes = new List<DrillHole>();
@@ -326,6 +395,20 @@ namespace GCodeGenerator.Models
     public sealed class PackageDrillPattern : DrillPattern
     {
         public override DrillMode Mode => DrillMode.Package;
+
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+        {
+            // Пустое имя допустимо: за ним стоит корпус по умолчанию, который
+            // диалог показывает для новой операции. Непустое, но неизвестное
+            // имя — опечатка в файле: тихая подмена корпусом по умолчанию
+            // просверлила бы не тот корпус.
+            if (!string.IsNullOrWhiteSpace(operation.PackageName)
+                && PackageCatalog.Find(operation.PackageName) == null)
+            {
+                issues.Add(new ValidationIssue(nameof(operation.PackageName), ValidationCode.NotAllowed,
+                    $"unknown package name '{operation.PackageName}'"));
+            }
+        }
 
         protected override List<DrillHole> Build(DrillPointsOperation operation)
         {
