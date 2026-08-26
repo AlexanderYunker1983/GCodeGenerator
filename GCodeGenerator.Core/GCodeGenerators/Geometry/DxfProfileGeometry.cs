@@ -443,6 +443,10 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return points[0];
         }
 
+        /// <inheritdoc />
+        public IReadOnlyList<double> GetCornerDistances(double toolOffset)
+            => ContourCornerDistances.FromPolyline(CachedContourPoints(_operation.Direction));
+
         public double GetPerimeter(double toolOffset)
         {
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)

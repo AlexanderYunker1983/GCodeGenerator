@@ -85,6 +85,7 @@ namespace GCodeGenerator.GCodeGenerators
                 nextZ,
                 distance => geometry.GetPointOnContour(distance, toolOffset),
                 () => geometry.GetPerimeter(toolOffset),
+                () => geometry.GetCornerDistances(toolOffset),
                 builder,
                 settings);
 

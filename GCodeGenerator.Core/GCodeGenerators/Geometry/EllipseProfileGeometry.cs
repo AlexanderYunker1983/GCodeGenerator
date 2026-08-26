@@ -111,8 +111,11 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return points[0];
         }
 
-        public double GetPerimeter(double toolOffset)
-        {
+        /// <inheritdoc />
+        public IReadOnlyList<double> GetCornerDistances(double toolOffset)
+            => ContourCornerDistances.FromPolyline(OffsetPoints(toolOffset));
+
+        public double GetPerimeter(double toolOffset)        {
             var points = OffsetPoints(toolOffset);
             if (points.Count < 2)
                 return 0.0;

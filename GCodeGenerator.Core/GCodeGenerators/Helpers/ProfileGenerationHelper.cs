@@ -1,7 +1,9 @@
-﻿#nullable enable
+#nullable enable
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
+using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -76,6 +78,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="nextZ">Следующая высота Z (целевая глубина)</param>
         /// <param name="getPointOnContour">Делегат для получения точки на контуре по расстоянию (для рампы)</param>
         /// <param name="getPerimeter">Делегат для получения периметра контура (для расчета рампы)</param>
+        /// <param name="getCornerDistances">Делегат для получения расстояний изломов контура (для рампы)</param>
         /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateEntry(
@@ -85,6 +88,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double nextZ,
             Func<double, (double x, double y)> getPointOnContour,
             Func<double> getPerimeter,
+            Func<IReadOnlyList<double>> getCornerDistances,
             ToolPathBuilder builder,
             GCodeSettings settings)
         {
@@ -100,7 +104,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             }
             else
             {
-                GenerateRampEntry(op, startPoint, currentZ, nextZ, getPointOnContour, getPerimeter, builder, decimals);
+                GenerateRampEntry(op, startPoint, currentZ, nextZ, getPointOnContour, getPerimeter, getCornerDistances, builder, decimals);
             }
         }
 
@@ -130,6 +134,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double nextZ,
             Func<double, (double x, double y)> getPointOnContour,
             Func<double> getPerimeter,
+            Func<IReadOnlyList<double>> getCornerDistances,
             ToolPathBuilder builder,
             int decimals)
         {
@@ -153,12 +158,13 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             var lapDepth = totalDepth / laps;
             var lapDistance = totalDistance / laps;
+            var corners = getCornerDistances();
             var zFrom = retractZ;
 
             for (int lap = 1; lap <= laps; lap++)
             {
                 var zTo = lap == laps ? nextZ : zFrom - lapDepth;
-                EmitRampLap(op, zFrom, zTo, lapDistance, perimeter, getPointOnContour, builder, decimals);
+                EmitRampLap(op, zFrom, zTo, lapDistance, perimeter, getPointOnContour, corners, builder, decimals);
                 zFrom = zTo;
 
                 // Между витками инструмент уходит от материала и возвращается
@@ -178,6 +184,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             double distance,
             double perimeter,
             Func<double, (double x, double y)> getPointOnContour,
+            IReadOnlyList<double> cornerDistances,
             ToolPathBuilder builder,
             int decimals)
         {
@@ -189,12 +196,59 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             var lapAngle = Math.Min(Math.Abs(lapFraction), 1.0) * 2 * Math.PI;
             var segments = Math.Max(4, (int)(lapAngle / (Math.PI / 16)));
 
-            for (int i = 1; i <= segments; i++)
+            foreach (var (s, t) in RampStops(distance, segments, cornerDistances))
             {
-                var t = (double)i / segments;
-                var point = getPointOnContour(distance * t);
+                var point = getPointOnContour(s);
                 var z = zFrom - t * depth;
                 builder.LinearTo(x: point.x, y: point.y, z: z, feed: op.FeedXYWork);
+            }
+        }
+
+        /// <summary>
+        /// Остановки витка рампы: равномерные сэмплы, объединённые с изломами
+        /// контура. Сэмплы задают крутизну по гладким участкам, а изломы
+        /// рампа обязана пройти точно: сэмпл почти никогда не попадает
+        /// в вершину, и хорда между соседними сэмплами срезала бы угол —
+        /// зарез детали, который не исправить следующим проходом.
+        /// Каждая остановка — пара «расстояние вдоль контура, доля глубины»:
+        /// глубина распределяется по пройденному пути, поэтому угол врезания
+        /// остаётся заданным и между изломами.
+        /// </summary>
+        /// <param name="distance">Длина витка вдоль контура.</param>
+        /// <param name="segments">Число равномерных сэмплов витка.</param>
+        /// <param name="cornerDistances">Расстояния изломов контура от его начала.</param>
+        private static IEnumerable<(double Distance, double DepthFraction)> RampStops(
+            double distance,
+            int segments,
+            IReadOnlyList<double> cornerDistances)
+        {
+            var stops = new List<(double Distance, double DepthFraction)>(segments + cornerDistances.Count);
+            for (int i = 1; i <= segments; i++)
+                stops.Add((distance * i / segments, (double)i / segments));
+
+            // Вырожденный виток (угол врезания 90°) не движется по контуру:
+            // изломов на нулевом пути нет, остаются прежние ступени по глубине.
+            if (distance > 0)
+            {
+                foreach (var corner in cornerDistances)
+                {
+                    if (corner > 0 && corner < distance)
+                        stops.Add((corner, corner / distance));
+                }
+            }
+
+            stops.Sort((a, b) => a.Distance.CompareTo(b.Distance));
+
+            // Совпавшие остановки (сэмпл попал в вершину) не повторяются:
+            // повторная точка дала бы кадр нулевой длины.
+            var previous = double.NegativeInfinity;
+            foreach (var stop in stops)
+            {
+                if (stop.Distance - previous < GeometryTolerances.Degenerate && distance > 0)
+                    continue;
+
+                previous = stop.Distance;
+                yield return stop;
             }
         }
 

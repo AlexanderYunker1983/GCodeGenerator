@@ -38,6 +38,12 @@ namespace GCodeGenerator.Tests.Fixtures
                 cases.Add(new FixtureCase("Profile.Dxf.Default", Ops(OperationFixtures.ProfileDxf()), SettingsFixtures.Default()));
                 cases.Add(new FixtureCase("Profile.Circle.AngledEntry", Ops(OperationFixtures.ProfileCircleAngledEntry()), SettingsFixtures.Default()));
 
+                // Наклонное врезание на контурах с изломами: рампа обязана
+                // проходить каждую вершину — прежде хорды между её сэмплами
+                // срезали углы, и эталонов на это не было вовсе.
+                cases.Add(new FixtureCase("Profile.Rectangle.AngledEntry", Ops(WithAngledEntry(OperationFixtures.ProfileRectangle())), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Profile.Dxf.AngledEntry", Ops(WithAngledEntry(OperationFixtures.ProfileDxf())), SettingsFixtures.Default()));
+
                 // Режимы траектории: у Default-фикстур режим OnLine, смещения
                 // нет, и наружная с внутренней эквидистантами прежде не имели
                 // эталонов вовсе — дефект эквидистант многоугольника и эллипса
@@ -147,6 +153,19 @@ namespace GCodeGenerator.Tests.Fixtures
         private static OperationBase WithToolPathMode(ProfileOperationBase operation, ToolPathMode mode)
         {
             operation.ToolPathMode = mode;
+            return operation;
+        }
+
+        /// <summary>
+        /// Наклонное врезание, как у Profile.Circle.AngledEntry: рампа идёт
+        /// вдоль контура. У контуров с изломами она обязана проходить каждую
+        /// вершину — хорда между сэмплами срезала бы угол детали.
+        /// </summary>
+        private static OperationBase WithAngledEntry(ProfileOperationBase operation)
+        {
+            operation.EntryMode = EntryMode.Angled;
+            operation.EntryAngle = 1.0;
+            operation.SafeDistanceBetweenPasses = 0.8;
             return operation;
         }
 

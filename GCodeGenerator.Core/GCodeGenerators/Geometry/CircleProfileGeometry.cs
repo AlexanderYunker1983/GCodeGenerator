@@ -66,8 +66,12 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             return (x, y);
         }
 
-        public double GetPerimeter(double toolOffset)
-        {
+        /// <inheritdoc />
+        /// <remarks>Окружность аналитически гладкая: изломов нет.</remarks>
+        public IReadOnlyList<double> GetCornerDistances(double toolOffset)
+            => System.Array.Empty<double>();
+
+        public double GetPerimeter(double toolOffset)        {
             var actualRadius = _operation.Radius + toolOffset;
             return 2 * Math.PI * actualRadius;
         }

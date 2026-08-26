@@ -125,6 +125,119 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        private static ProfileRectangleOperation Rectangle(double entryAngle)
+            => new ProfileRectangleOperation
+            {
+                Name = "Rectangle",
+                Width = 40,
+                Height = 20,
+                ReferencePointX = 0,
+                ReferencePointY = 0,
+                ReferencePointType = ReferencePointType.Center,
+                TotalDepth = 1,
+                StepDepth = 1,
+                ToolDiameter = 3,
+                EntryMode = EntryMode.Angled,
+                EntryAngle = entryAngle,
+                SafeDistanceBetweenPasses = 0.8
+            };
+
+        /// <summary>Наклонные рабочие сегменты траектории: рампа входа.</summary>
+        private static List<((double x, double y, double z) From, (double x, double y, double z) To)> RampSegments(
+            OperationBase operation)
+        {
+            var toolPath = new SimpleGCodeGenerator()
+                .BuildToolPath(new List<OperationBase> { operation }, new GCodeSettings());
+
+            var segments = new List<((double, double, double), (double, double, double))>();
+            var position = (x: 0.0, y: 0.0, z: 0.0);
+            foreach (var move in toolPath.Moves())
+            {
+                var target = (x: move.X ?? position.x, y: move.Y ?? position.y, z: move.Z ?? position.z);
+                var movesInPlane = Math.Abs(target.x - position.x) > 1e-9 || Math.Abs(target.y - position.y) > 1e-9;
+                var movesInDepth = Math.Abs(target.z - position.z) > 1e-9;
+                if (move.Kind == Toolpath.ToolMoveKind.Linear && movesInPlane && movesInDepth)
+                    segments.Add((position, target));
+                position = target;
+            }
+
+            return segments;
+        }
+
+        /// <summary>Расстояние точки до замкнутой ломаной.</summary>
+        private static double DistanceToPolyline(double x, double y, IReadOnlyList<(double x, double y)> points)
+        {
+            var best = double.MaxValue;
+            for (int i = 0; i < points.Count - 1; i++)
+            {
+                var d = Geometry.Geometry2D.DistanceToSegment(
+                    x, y, points[i].x, points[i].y, points[i + 1].x, points[i + 1].y,
+                    Geometry.GeometryTolerances.Degenerate);
+                if (d < best) best = d;
+            }
+
+            return best;
+        }
+
+        /// <summary>
+        /// Рампа не срезает углы: каждый её сегмент лежит на контуре целиком.
+        /// Прежде точки рампы брались с контура через равные доли пути,
+        /// вершина угла попадала между ними, и хорда шла напрямик через
+        /// угол — зарез детали, который не исправить следующим проходом.
+        /// Середина сегмента-хорды лежала бы в стороне от контура.
+        /// </summary>
+        [TestMethod]
+        public void Ramp_DoesNotCutCorners()
+        {
+            var operation = Rectangle(entryAngle: 1);
+            var contour = new GCodeGenerators.Geometry.RectangleProfileGeometry(operation)
+                .GetContourPoints(0, operation.Direction).ToList();
+
+            var ramp = RampSegments(operation);
+            Assert.IsTrue(ramp.Count > 0, "Рампа построена");
+
+            foreach (var (from, to) in ramp)
+            {
+                var midX = (from.x + to.x) / 2;
+                var midY = (from.y + to.y) / 2;
+                Assert.IsTrue(DistanceToPolyline(midX, midY, contour) < 1e-6,
+                    $"Сегмент рампы ({from.x:0.###};{from.y:0.###})→({to.x:0.###};{to.y:0.###}) сошёл с контура");
+            }
+        }
+
+        /// <summary>
+        /// Рампа проходит вершины контура точно: изломы — это точки её
+        /// траектории, а не препятствия между сэмплами. Рампа на градусном
+        /// угле идёт витками почти в полный периметр, поэтому каждая из
+        /// четырёх вершин прямоугольника обязана встретиться среди концов
+        /// её сегментов.
+        /// </summary>
+        [TestMethod]
+        public void Ramp_PassesEveryCornerExactly()
+        {
+            var operation = Rectangle(entryAngle: 1);
+            // Угол подбирается из глубины витка: рампа проходит девять
+            // десятых периметра одним витком, и все четыре вершины
+            // прямоугольника лежат на её пути при любом умолчании отвода.
+            var perimeter = 2 * (operation.Width + operation.Height);
+            var rampDepth = operation.StepDepth + operation.RetractHeight;
+            operation.EntryAngle = Math.Atan(rampDepth / (perimeter * 0.9)) * 180 / Math.PI;
+
+            var segments = RampSegments(operation);
+            // Стартовая вершина — начало рампы, остальные обязаны быть
+            // концами её сегментов: обе стороны излома принадлежат рампе.
+            var points = segments.Select(segment => segment.From)
+                .Concat(segments.Select(segment => segment.To))
+                .ToList();
+
+            foreach (var (cornerX, cornerY) in new[] { (-20.0, -10.0), (20.0, -10.0), (20.0, 10.0), (-20.0, 10.0) })
+            {
+                Assert.IsTrue(
+                    points.Any(p => Math.Abs(p.x - cornerX) < 1e-9 && Math.Abs(p.y - cornerY) < 1e-9),
+                    $"Вершина ({cornerX};{cornerY}) не пройдена рампой");
+            }
+        }
+
         /// <summary>
         /// Вертикальное врезание безопасным расстоянием не пользуется:
         /// параметр относится только к рампе.
