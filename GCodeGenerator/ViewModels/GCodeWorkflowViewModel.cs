@@ -23,7 +23,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IList<OperationBase> _operations;
         private readonly GCodeSettings _settings;
         private readonly IGCodeGenerator _generator;
-        private readonly IPostProcessor _postProcessor;
+        private readonly IPostProcessorRegistry _postProcessors;
         private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
@@ -48,7 +48,7 @@ namespace GCodeGenerator.ViewModels
             IList<OperationBase> operations,
             GCodeSettings settings,
             IGCodeGenerator generator,
-            IPostProcessor postProcessor,
+            IPostProcessorRegistry postProcessors,
             ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
@@ -60,7 +60,7 @@ namespace GCodeGenerator.ViewModels
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _settings = settings ?? throw new ArgumentNullException(nameof(settings));
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
-            _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
+            _postProcessors = postProcessors ?? throw new ArgumentNullException(nameof(postProcessors));
             _localizationManager = localizationManager;
             _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
@@ -171,10 +171,12 @@ namespace GCodeGenerator.ViewModels
                 });
                 // Траектория строится один раз: постпроцессор делает из неё
                 // программу, а трёхмерный предпросмотр показывает её саму.
+                // Стойку выбирает настройка; проверка внутри BuildToolPath
+                // уже отказала бы на неизвестном ключе.
                 var (toolPath, program) = await Task.Run(() =>
                 {
                     var path = _generator.BuildToolPath(operations, settings, progress, cancellation.Token);
-                    return (path, _postProcessor.Build(path, settings));
+                    return (path, _postProcessors.For(settings.Format.PostProcessorName).Build(path, settings));
                 }, cancellation.Token);
 
                 if (generationRevision != Volatile.Read(ref _documentRevision))

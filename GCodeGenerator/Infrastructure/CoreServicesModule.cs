@@ -53,9 +53,10 @@ namespace GCodeGenerator.Infrastructure
 
             // Всё, что зависит от станка, а не от детали: модальные состояния
             // в начале программы, вид команд шпинделя и охлаждения, единица
-            // аргумента паузы, завершение программы.
-            builder.RegisterType<GenericPostProcessor>()
-                .As<IPostProcessor>()
+            // аргумента паузы, завершение программы. Стойка выбирается
+            // настройкой Format.PostProcessorName из реестра.
+            builder.RegisterType<PostProcessorRegistry>()
+                .As<IPostProcessorRegistry>()
                 .SingleInstance();
         }
     }

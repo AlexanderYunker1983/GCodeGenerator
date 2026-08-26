@@ -306,6 +306,9 @@
   <data name="UsePaddedGCodes" xml:space="preserve">
     <value>G01/G00 command format instead of G1/G0</value>
   </data>
+  <data name="PostProcessor" xml:space="preserve">
+    <value>Machine controller (post-processor):</value>
+  </data>
   <data name="DarkTheme" xml:space="preserve">
     <value>Night mode (dark theme)</value>
   </data>

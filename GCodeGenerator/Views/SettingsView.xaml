@@ -55,6 +55,18 @@
                                   Content="{loc:Loc UsePaddedGCodes}"
                                   IsChecked="{Binding UsePaddedGCodes}"/>
 
+                        <!-- Стойка, для которой строится программа: показывается
+                             название, сохраняется ключ (единицы паузы G4 у стоек разные). -->
+                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                            <Label Content="{loc:Loc PostProcessor}" Width="180" VerticalAlignment="Center"/>
+                            <ComboBox Width="220"
+                                      Style="{StaticResource MahApps.Styles.ComboBox}"
+                                      ItemsSource="{Binding PostProcessors}"
+                                      DisplayMemberPath="Name"
+                                      SelectedValuePath="Key"
+                                      SelectedValue="{Binding PostProcessorName}"/>
+                        </StackPanel>
+
                         <Separator Margin="0,12,0,8"/>
 
                         <!-- Рабочая система координат (G54-G59) -->

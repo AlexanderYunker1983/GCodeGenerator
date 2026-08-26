@@ -13,11 +13,21 @@ namespace GCodeGenerator.GCodeGenerators
     /// генератору и построителю программы, поэтому вывод годился ровно для
     /// одной стойки, а какой именно — нигде не было записано.
     ///
-    /// Первая реализация — <see cref="GenericPostProcessor"/>: она повторяет
-    /// прежний вывод байт в байт.
+    /// Реализации: <see cref="GenericPostProcessor"/> (повторяет прежний
+    /// вывод байт в байт) и <see cref="GrblPostProcessor"/>; выбирается по
+    /// <see cref="GCodeFormatSettings.PostProcessorName"/> через
+    /// <see cref="IPostProcessorRegistry"/>.
     /// </summary>
     public interface IPostProcessor
     {
+        /// <summary>
+        /// Ключ в настройках и файле проекта: короткий, латиницей, стабильный.
+        /// Человеку показывается <see cref="Name"/>, ключ же не переводится
+        /// и не меняется — по нему проект, открытый через годы, находит ту же
+        /// стойку.
+        /// </summary>
+        string Key { get; }
+
         /// <summary>Название стойки или семейства, для которого годится вывод.</summary>
         string Name { get; }
 

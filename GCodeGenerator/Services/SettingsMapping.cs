@@ -24,6 +24,7 @@ namespace GCodeGenerator.Services
             ("Format.UseComments", "UseComments"),
             ("Format.AllowArcs", "AllowArcs"),
             ("Format.UsePaddedGCodes", "UsePaddedGCodes"),
+            ("Format.PostProcessorName", "PostProcessorName"),
             ("Ui.UseDarkTheme", "UseDarkTheme"),
             ("Ui.Language", "Language"),
             ("Spindle.SpindleControlEnabled", "SpindleControlEnabled"),

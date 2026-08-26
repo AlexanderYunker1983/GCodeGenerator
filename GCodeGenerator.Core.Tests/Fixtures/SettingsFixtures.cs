@@ -62,6 +62,18 @@ namespace GCodeGenerator.Tests.Fixtures
             return s;
         }
 
+        /// <summary>
+        /// Та же задержка шпинделя, но для стойки GRBL: единственное отличие
+        /// программы от <see cref="SpindleDelay"/> — аргумент P команды G4
+        /// в секундах, а не в миллисекундах.
+        /// </summary>
+        public static GCodeSettings GrblSpindleDelay()
+        {
+            var s = SpindleDelay();
+            s.Format.PostProcessorName = "GRBL";
+            return s;
+        }
+
         /// <summary>Установка рабочей системы координат G55 в начале программы.</summary>
         public static GCodeSettings WcsG55()
         {

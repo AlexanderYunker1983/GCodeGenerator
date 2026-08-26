@@ -26,7 +26,7 @@ namespace GCodeGenerator.GCodeGenerators
     public class SimpleGCodeGenerator : IGCodeGenerator
     {
         private readonly IOperationGeneratorRegistry _registry;
-        private readonly IPostProcessor _postProcessor;
+        private readonly IPostProcessorRegistry _postProcessors;
 
         /// <summary>
         /// Пункт 4.5 плана: генераторы берутся из явного реестра
@@ -37,14 +37,19 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         public SimpleGCodeGenerator(IOperationGeneratorRegistry registry)
-            : this(registry, new GenericPostProcessor())
+            : this(registry, new PostProcessorRegistry())
         {
         }
 
-        public SimpleGCodeGenerator(IOperationGeneratorRegistry registry, IPostProcessor postProcessor)
+        /// <summary>
+        /// Генератор с внешним реестром постпроцессоров: стойка выбирается
+        /// настройкой <see cref="GCodeFormatSettings.PostProcessorName"/>
+        /// при каждой генерации, а не фиксируется при создании генератора.
+        /// </summary>
+        public SimpleGCodeGenerator(IOperationGeneratorRegistry registry, IPostProcessorRegistry postProcessors)
         {
             _registry = registry ?? throw new ArgumentNullException(nameof(registry));
-            _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
+            _postProcessors = postProcessors ?? throw new ArgumentNullException(nameof(postProcessors));
         }
 
         /// <inheritdoc />
@@ -54,8 +59,10 @@ namespace GCodeGenerator.GCodeGenerators
             IProgress<int>? progress = null,
             CancellationToken cancellation = default)
         {
+            // Проверка настроек внутри BuildToolPath уже отказала бы на
+            // неизвестном ключе, поэтому здесь выбор всегда удаётся.
             var toolPath = BuildToolPath(operations, settings, progress, cancellation);
-            return _postProcessor.Build(toolPath, settings);
+            return _postProcessors.For(settings.Format?.PostProcessorName).Build(toolPath, settings);
         }
 
         /// <inheritdoc />
@@ -129,7 +136,20 @@ namespace GCodeGenerator.GCodeGenerators
 
             // Настройки проверяются вместе с операциями, чтобы пользователь
             // увидел все причины отказа сразу.
-            var settingsIssues = GCodeSettingsValidation.Validate(settings);
+            var settingsIssues = new List<ValidationIssue>(GCodeSettingsValidation.Validate(settings));
+
+            // Ключ постпроцессора проверяется здесь, а не в общей проверке
+            // настроек: список допустимых стоек знает реестр, а слой моделей
+            // от генераторов не зависит.
+            var postProcessorName = settings.Format?.PostProcessorName;
+            if (_postProcessors.Find(postProcessorName) == null)
+            {
+                var known = string.Join(", ", _postProcessors.All.Select(p => p.Key));
+                settingsIssues.Add(new ValidationIssue(
+                    nameof(GCodeFormatSettings.PostProcessorName),
+                    $"must be one of {known}, but is "
+                    + (string.IsNullOrEmpty(postProcessorName) ? "empty" : $"\"{postProcessorName}\"")));
+            }
 
             for (int index = 0; index < operations.Count; index++)
             {

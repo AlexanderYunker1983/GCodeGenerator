@@ -22,6 +22,9 @@
     <Setting Name="UsePaddedGCodes" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="PostProcessorName" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Generic</Value>
+    </Setting>
     <Setting Name="UseDarkTheme" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>

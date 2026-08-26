@@ -12,7 +12,7 @@ namespace GCodeGenerator.Services
     public sealed class GCodeWorkflowFactory : IGCodeWorkflowFactory
     {
         private readonly IGCodeGenerator _generator;
-        private readonly IPostProcessor _postProcessor;
+        private readonly IPostProcessorRegistry _postProcessors;
         private readonly ILocalizationManager? _localizationManager;
         private readonly IMessageService _messageService;
         private readonly IFileDialogService _fileDialogService;
@@ -23,7 +23,7 @@ namespace GCodeGenerator.Services
 
         public GCodeWorkflowFactory(
             IGCodeGenerator generator,
-            IPostProcessor postProcessor,
+            IPostProcessorRegistry postProcessors,
             ILocalizationManager? localizationManager,
             IMessageService messageService,
             IFileDialogService fileDialogService,
@@ -33,7 +33,7 @@ namespace GCodeGenerator.Services
             IAppLogger? logger = null)
         {
             _generator = generator ?? throw new ArgumentNullException(nameof(generator));
-            _postProcessor = postProcessor ?? throw new ArgumentNullException(nameof(postProcessor));
+            _postProcessors = postProcessors ?? throw new ArgumentNullException(nameof(postProcessors));
             _localizationManager = localizationManager;
             _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
             _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
@@ -48,7 +48,7 @@ namespace GCodeGenerator.Services
                 operations,
                 settings,
                 _generator,
-                _postProcessor,
+                _postProcessors,
                 _localizationManager,
                 _messageService,
                 _fileDialogService,

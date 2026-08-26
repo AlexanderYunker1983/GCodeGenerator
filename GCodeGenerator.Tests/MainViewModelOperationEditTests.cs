@@ -42,7 +42,7 @@ namespace GCodeGenerator.Tests
             var settingsStore = new FakeSettingsStore();
             var gCodeWorkflowFactory = new GCodeWorkflowFactory(
                 generator ?? new SimpleGCodeGenerator(),
-                new GenericPostProcessor(),
+                new PostProcessorRegistry(),
                 null,
                 dialogs,
                 dialogs,

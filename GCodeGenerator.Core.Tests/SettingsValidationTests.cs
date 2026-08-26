@@ -75,6 +75,27 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Файл проекта может принести незнакомую стойку — например, из более
+        /// новой версии продукта. Отказ перечисляет допустимые и называет
+        /// отвергнутое значение; молчаливая генерация «как для Generic» дала
+        /// бы программу с неверной единицей паузы.
+        /// </summary>
+        [TestMethod]
+        public void UnknownPostProcessor_IsRejected()
+        {
+            var settings = new GCodeSettings();
+            settings.Format.PostProcessorName = "Mazak";
+
+            var error = Generate(settings);
+
+            Assert.IsTrue(error.SettingsIssues.Any(i => i.Property == "PostProcessorName"),
+                "Названа причина: стойка");
+            StringAssert.Contains(error.Message, "Mazak", "В сообщении видно отвергнутое значение");
+            StringAssert.Contains(error.Message, "Generic", "Перечислены допустимые стойки");
+            StringAssert.Contains(error.Message, "GRBL", "Перечислены допустимые стойки");
+        }
+
+        /// <summary>
         /// Отказ перечисляет все причины сразу: и настройки, и операции.
         /// </summary>
         [TestMethod]

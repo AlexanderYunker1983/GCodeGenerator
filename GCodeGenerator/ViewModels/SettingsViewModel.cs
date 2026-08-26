@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
@@ -54,7 +55,21 @@ namespace GCodeGenerator.ViewModels
         }
 
         public SettingsViewModel(ILocalizationManager? localizationManager, ISettingsStore? settingsStore, IThemeService? themeService)
+            : this(localizationManager, settingsStore, themeService, null)
         {
+        }
+
+        public SettingsViewModel(
+            ILocalizationManager? localizationManager,
+            ISettingsStore? settingsStore,
+            IThemeService? themeService,
+            IPostProcessorRegistry? postProcessors)
+        {
+            // Список стоек берётся из того же реестра, по которому генерация
+            // выбирает постпроцессор: окно не может предложить стойку,
+            // которую генерация отвергнет.
+            PostProcessors = (postProcessors ?? new PostProcessorRegistry()).All;
+
             // Настройки и тема поступают через IoC. Безаргументный конструктор —
             // для XAML-дизайнера: фолбэк на настройки по умолчанию.
             _settings = settingsStore?.Current ?? new GCodeSettings();
@@ -94,6 +109,9 @@ namespace GCodeGenerator.ViewModels
 
         [ObservableProperty]
         private bool _usePaddedGCodes;
+
+        [ObservableProperty]
+        private string _postProcessorName = string.Empty;
 
         [ObservableProperty]
         private bool _useDarkTheme;
@@ -170,6 +188,12 @@ namespace GCodeGenerator.ViewModels
         /// язык системы — он и стоит по умолчанию.
         /// </summary>
         public IReadOnlyList<LanguageChoice> Languages { get; } = LanguageChoice.All;
+
+        /// <summary>
+        /// Стойки, для которых продукт умеет строить программу. Показывается
+        /// название, сохраняется ключ (<see cref="IPostProcessor.Key"/>).
+        /// </summary>
+        public IReadOnlyList<IPostProcessor> PostProcessors { get; }
 
         /// <summary>OK: сохранить настройки и закрыть окно.</summary>
         public ICommand OkCommand { get; }

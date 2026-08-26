@@ -12,16 +12,19 @@ namespace GCodeGenerator.GCodeGenerators
     /// Такой вывод понимают стойки Fanuc и совместимые с ними. Он же
     /// действовал в программе всегда — просто нигде не был назван, а его
     /// правила лежали в генераторе вперемешку с обходом операций.
-    /// Единица аргумента паузы для GRBL и LinuxCNC другая (секунды), и когда
-    /// понадобится их поддержать, отличаться будет этот класс, а не генераторы.
+    /// Стойки с другой единицей аргумента паузы описываются наследником
+    /// (<see cref="GrblPostProcessor"/>), а не ветвлением в генераторах.
     /// </summary>
-    public sealed class GenericPostProcessor : IPostProcessor
+    public class GenericPostProcessor : IPostProcessor
     {
         /// <summary>Секунда в миллисекундах: пауза задаётся в секундах, выводится в них.</summary>
         private const double MillisecondsPerSecond = 1000.0;
 
         /// <inheritdoc />
-        public string Name => "Generic (Fanuc-compatible)";
+        public virtual string Key => "Generic";
+
+        /// <inheritdoc />
+        public virtual string Name => "Generic (Fanuc-compatible)";
 
         /// <inheritdoc />
         public GCodeProgram Build(ToolPath toolPath, GCodeSettings settings)
@@ -43,10 +46,19 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
+        /// Аргумент P команды паузы G4 для заданной длительности. Fanuc
+        /// и совместимые стойки понимают миллисекунды; GRBL и LinuxCNC —
+        /// секунды, и их постпроцессор переопределяет ровно это
+        /// преобразование, не трогая состав программы.
+        /// </summary>
+        /// <param name="seconds">Длительность паузы в секундах, как она задана в настройках.</param>
+        protected virtual double DwellArgument(double seconds) => seconds * MillisecondsPerSecond;
+
+        /// <summary>
         /// Начало программы: подпись, модальные состояния станка, ноль детали
         /// и запуск шпинделя с охлаждением.
         /// </summary>
-        private static void WriteHeader(ProgramBuilder builder, GCodeSettings settings)
+        private void WriteHeader(ProgramBuilder builder, GCodeSettings settings)
         {
             var spindle = settings.Spindle;
             var coolant = settings.Coolant;
@@ -78,7 +90,7 @@ namespace GCodeGenerator.GCodeGenerators
                 builder.CoolantOn();
 
             if (spindle.SpindleDelayEnabled && spindle.SpindleDelaySeconds > 0)
-                builder.Dwell(spindle.SpindleDelaySeconds * MillisecondsPerSecond);
+                builder.Dwell(DwellArgument(spindle.SpindleDelaySeconds));
         }
 
         /// <summary>Траектория операций: комментарий с именем и сами перемещения.</summary>

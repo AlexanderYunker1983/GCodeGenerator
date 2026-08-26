@@ -37,6 +37,11 @@ namespace GCodeGenerator.Services
             // Legacy-поведение: пустой WCS трактуется как G54.
             if (string.IsNullOrEmpty(Current.WorkCoordinate.WorkCoordinateSystem))
                 Current.WorkCoordinate.WorkCoordinateSystem = "G54";
+
+            // Пустой ключ стойки — это отсутствие выбора, а не выбор «ничего»:
+            // хранилище прежней версии ключа не содержит вовсе.
+            if (string.IsNullOrEmpty(Current.Format.PostProcessorName))
+                Current.Format.PostProcessorName = "Generic";
         }
 
         /// <summary>
@@ -105,6 +110,8 @@ namespace GCodeGenerator.Services
             }
             if (string.IsNullOrEmpty(Current.WorkCoordinate.WorkCoordinateSystem))
                 Current.WorkCoordinate.WorkCoordinateSystem = "G54";
+            if (string.IsNullOrEmpty(Current.Format.PostProcessorName))
+                Current.Format.PostProcessorName = "Generic";
             SettingsChanged?.Invoke(this, EventArgs.Empty);
         }
     }

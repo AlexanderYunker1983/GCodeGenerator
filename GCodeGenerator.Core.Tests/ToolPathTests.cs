@@ -98,15 +98,20 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Диалект станка сменяем: генератору можно дать другой постпроцессор,
-        /// и ни одна операция об этом не узнает. Ради этого слой и появился.
+        /// Диалект станка сменяем: в реестр можно добавить свою стойку,
+        /// настройка выбирает её по ключу, и ни одна операция об этом не
+        /// узнает. Ради этого слой и появился.
         /// </summary>
         [TestMethod]
         public void PostProcessor_IsReplaceable()
         {
-            var generator = new SimpleGCodeGenerator(new OperationGeneratorRegistry(), new CountingPostProcessor());
+            var generator = new SimpleGCodeGenerator(
+                new OperationGeneratorRegistry(),
+                new PostProcessorRegistry(new IPostProcessor[] { new CountingPostProcessor() }));
+            var settings = new GCodeSettings();
+            settings.Format.PostProcessorName = "Counting";
 
-            var program = generator.Generate(TwoOperations(), new GCodeSettings());
+            var program = generator.Generate(TwoOperations(), settings);
 
             Assert.AreEqual(1, program.Lines.Count, "Программу построил заданный постпроцессор");
             StringAssert.StartsWith(program.Lines[0], "moves=");
@@ -142,6 +147,8 @@ namespace GCodeGenerator.Tests
         /// <summary>Постпроцессор, считающий перемещения вместо вывода программы.</summary>
         private sealed class CountingPostProcessor : IPostProcessor
         {
+            public string Key => "Counting";
+
             public string Name => "Counting";
 
             public GCodeProgram Build(ToolPath toolPath, GCodeSettings settings)

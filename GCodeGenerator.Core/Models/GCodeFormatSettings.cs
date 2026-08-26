@@ -24,5 +24,15 @@ namespace GCodeGenerator.Models
         /// If true, G-codes are formatted with leading zero, e.g. G01 instead of G1.
         /// </summary>
         public bool UsePaddedGCodes { get; set; } = false;
+
+        /// <summary>
+        /// Ключ постпроцессора — стойки, для которой строится программа.
+        /// Значение по умолчанию повторяет ключ GenericPostProcessor
+        /// (ссылаться на него отсюда нельзя: слой моделей не зависит от
+        /// генераторов, связь закреплена тестом реестра постпроцессоров).
+        /// Файлы проектов прежних версий ключа не содержат — они читаются
+        /// с этим же значением и дают прежнюю программу.
+        /// </summary>
+        public string PostProcessorName { get; set; } = "Generic";
     }
 }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -65,7 +65,7 @@ namespace GCodeGenerator.Tests
             var logger = new RecordingLogger();
             var factory = new GCodeWorkflowFactory(
                 new SimpleGCodeGenerator(),
-                new GenericPostProcessor(),
+                new PostProcessorRegistry(),
                 null,
                 new FakeDialogs(),
                 new FakeDialogs(),
@@ -87,7 +87,7 @@ namespace GCodeGenerator.Tests
             var logger = new RecordingLogger();
             var factory = new GCodeWorkflowFactory(
                 new ThrowingGenerator(),
-                new GenericPostProcessor(),
+                new PostProcessorRegistry(),
                 null,
                 new FakeDialogs(),
                 new FakeDialogs(),
@@ -122,7 +122,7 @@ namespace GCodeGenerator.Tests
                 logger);
             var gCodeFactory = new GCodeWorkflowFactory(
                 new SimpleGCodeGenerator(),
-                new GenericPostProcessor(),
+                new PostProcessorRegistry(),
                 null,
                 dialogs,
                 dialogs,

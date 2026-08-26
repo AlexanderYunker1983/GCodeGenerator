@@ -149,6 +149,21 @@ namespace GCodeGenerator.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Generic")]
+        public string PostProcessorName
+        {
+            get
+            {
+                return ((string)(this["PostProcessorName"]));
+            }
+            set
+            {
+                this["PostProcessorName"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool SpindleControlEnabled
         {
