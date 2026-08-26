@@ -1,3 +1,4 @@
+﻿#nullable enable
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -38,7 +39,7 @@ namespace GCodeGenerator.Persistence
         /// </summary>
         /// <param name="operations">Операции в том порядке, в котором они должны сохраниться.</param>
         /// <param name="settings">Настройки генерации (null — секции не пишутся).</param>
-        public static string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+        public static string Serialize(IReadOnlyList<OperationBase>? operations, GCodeSettings? settings)
         {
             using var stream = new MemoryStream();
             using (var writer = new Utf8JsonWriter(stream))

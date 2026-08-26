@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
@@ -159,7 +159,7 @@ namespace GCodeGenerator.ViewModels
             // Замена документа — не правка, а другой документ: история
             // изменений на её время не пишется, а затем очищается.
             _undoSuspension?.Dispose();
-            _undoSuspension = _operationsWorkspace.UndoRedo.SuspendAndClear();
+            _undoSuspension = _operationsWorkspace.History.SuspendAndClear();
         }
 
         private void OnDocumentApplied(object? sender, EventArgs e)

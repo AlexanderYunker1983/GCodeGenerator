@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
@@ -108,7 +109,7 @@ namespace GCodeGenerator.Preview
 
         private static void Flush(
             List<OperationShape> shapes,
-            OperationBase source,
+            OperationBase? source,
             List<(double X, double Y)> points,
             bool isRapid)
         {

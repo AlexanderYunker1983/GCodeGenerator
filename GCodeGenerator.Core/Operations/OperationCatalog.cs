@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
@@ -19,8 +20,8 @@ namespace GCodeGenerator.Operations
             OperationCategory category,
             Func<OperationBase> create,
             Func<OperationBase, IEnumerable<OperationOutline>> outlines,
-            Func<OperationBase, IProfileGeometry> createProfileGeometry = null,
-            Func<OperationBase, IPocketGeometry> createPocketGeometry = null)
+            Func<OperationBase, IProfileGeometry>? createProfileGeometry = null,
+            Func<OperationBase, IPocketGeometry>? createPocketGeometry = null)
         {
             OperationType = operationType;
             PersistentName = persistentName;
@@ -62,13 +63,13 @@ namespace GCodeGenerator.Operations
         /// Построение геометрии профиля; <c>null</c> для операций других
         /// категорий.
         /// </summary>
-        public Func<OperationBase, IProfileGeometry> CreateProfileGeometry { get; }
+        public Func<OperationBase, IProfileGeometry>? CreateProfileGeometry { get; }
 
         /// <summary>
         /// Построение геометрии кармана; <c>null</c> для операций других
         /// категорий.
         /// </summary>
-        public Func<OperationBase, IPocketGeometry> CreatePocketGeometry { get; }
+        public Func<OperationBase, IPocketGeometry>? CreatePocketGeometry { get; }
     }
 
     /// <summary>
@@ -191,7 +192,7 @@ namespace GCodeGenerator.Operations
         }
 
         /// <summary>Описание типа операции или <c>null</c>, если тип не зарегистрирован.</summary>
-        public static OperationDescriptor FindByType(Type operationType)
+        public static OperationDescriptor? FindByType(Type? operationType)
             => operationType != null && ByOperationType.TryGetValue(operationType, out var descriptor)
                 ? descriptor
                 : null;
@@ -200,7 +201,7 @@ namespace GCodeGenerator.Operations
         /// Описание типа по имени из файла проекта (имя каталога или имя класса
         /// из первой версии формата). <c>null</c> — имя неизвестно.
         /// </summary>
-        public static OperationDescriptor FindByPersistentName(string name)
+        public static OperationDescriptor? FindByPersistentName(string? name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return null;

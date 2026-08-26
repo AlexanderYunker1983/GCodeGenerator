@@ -26,7 +26,7 @@ namespace GCodeGenerator.Services
     /// (<see cref="SuspendAndClear"/>): отменять «открытие файла» в
     /// документ, которого больше нет, было бы неверно и опасно.
     /// </summary>
-    public sealed class UndoService
+    public sealed class OperationHistory
     {
         private readonly ObservableCollection<OperationBase> _operations;
         private readonly Stack<IUndoStep> _undo = new Stack<IUndoStep>();
@@ -38,7 +38,7 @@ namespace GCodeGenerator.Services
         /// <summary>Идёт замена документа: изменения не записываются.</summary>
         private bool _isSuspended;
 
-        public UndoService(ObservableCollection<OperationBase> operations)
+        public OperationHistory(ObservableCollection<OperationBase> operations)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _operations.CollectionChanged += OnCollectionChanged;
@@ -281,12 +281,12 @@ namespace GCodeGenerator.Services
         /// <summary>Открытая правка: снимает слепки и пишет шаг при различии.</summary>
         private sealed class EditScope : IDisposable
         {
-            private readonly UndoService _service;
+            private readonly OperationHistory _service;
             private readonly OperationBase _operation;
             private readonly OperationMemento _before;
             private bool _closed;
 
-            public EditScope(UndoService service, OperationBase operation)
+            public EditScope(OperationHistory service, OperationBase operation)
             {
                 _service = service;
                 _operation = operation;
@@ -313,10 +313,10 @@ namespace GCodeGenerator.Services
         /// <summary>Приостановка на время замены документа.</summary>
         private sealed class Suspension : IDisposable
         {
-            private readonly UndoService _service;
+            private readonly OperationHistory _service;
             private bool _closed;
 
-            public Suspension(UndoService service)
+            public Suspension(OperationHistory service)
             {
                 _service = service;
             }

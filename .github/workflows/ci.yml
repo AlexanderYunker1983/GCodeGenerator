@@ -1,4 +1,4 @@
-name: CI
+﻿name: CI
 
 on:
   push:
@@ -38,90 +38,12 @@ jobs:
       - name: Build (Release)
         run: dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror
 
-      # Фаза 2 плана (пункт 2.3): ядро не должно ссылаться на WPF-стек.
-      # Сборка Core без UseWPF сама по себе не пропустит WPF-зависимости
-      # (они не будут доступны компилятору) — проверка ниже страхует от
-      # случайного добавления UseWPF/UseWindowsForms и WPF-using в исходники.
-      - name: Check Core purity (no WPF)
-        shell: pwsh
-        run: |
-          $proj = [xml](Get-Content "GCodeGenerator.Core/GCodeGenerator.Core.csproj")
-          if ($proj.Project.PropertyGroup | Where-Object { $_.UseWPF -eq 'true' -or $_.UseWindowsForms -eq 'true' }) {
-            Write-Error 'GCodeGenerator.Core: UseWPF/UseWindowsForms found in csproj (phase 2 violation)'
-            exit 1
-          }
-          $bad = Get-ChildItem "GCodeGenerator.Core" -Recurse -Filter *.cs |
-            Select-String -Pattern '^\s*using\s+(System\.Windows|System\.Xaml|PresentationCore|WindowsBase|PresentationFramework)\b'
-          if ($bad) {
-            Write-Host 'WPF usings found in GCodeGenerator.Core:'
-            $bad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
-            exit 1
-          }
-          Write-Host 'Core purity OK: no WPF references'
-
-      # Фаза 7 плана (DoD): ViewModels не должны ссылаться на WPF UI-стек.
-      # System.Windows.Input (ICommand/IRelayCommand) разрешён — это MVVM-контракт;
-      # запрещены UI-неймспейсы (Controls/Media/Shapes/...) и Application.Current/Dispatcher (п. 7.1).
-      - name: Check ViewModels purity (no WPF UI)
-        shell: pwsh
-        run: |
-          $usingBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
-            Select-String -Pattern '^\s*using\s+(System\.Windows(;|\.(?!Input\b).*)|System\.Xaml|PresentationCore|WindowsBase|PresentationFramework)\b'
-          $refBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
-            Select-String -Pattern 'Application\.Current|Dispatcher'
-          if ($usingBad -or $refBad) {
-            Write-Host 'WPF UI references found in GCodeGenerator/ViewModels:'
-            @($usingBad, $refBad) | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
-            exit 1
-          }
-          Write-Host 'ViewModels purity OK: no WPF UI references'
-
-      # Архитектурная граница: ViewModel координируют сервисы, но не читают и
-      # не пишут файлы и не сериализуют данные самостоятельно.
-      - name: Check ViewModels infrastructure boundaries
-        shell: pwsh
-        run: |
-          $ioBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
-            Select-String -Pattern '^\s*using\s+System\.IO\b|\bSystem\.IO\b|\b(File|Directory|FileInfo|DirectoryInfo|StreamReader|StreamWriter)\s*\.|\bJsonSerializer\b'
-          if ($ioBad) {
-            Write-Host 'Direct file I/O or serialization found in GCodeGenerator/ViewModels:'
-            $ioBad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
-            exit 1
-          }
-          $serviceBad = Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs |
-            Select-String -Pattern '\bnew\s+\w+Service\s*\('
-          if ($serviceBad) {
-            Write-Host 'Concrete services constructed in GCodeGenerator/ViewModels:'
-            $serviceBad | ForEach-Object { Write-Host "  $($_.Path):$($_.LineNumber)" }
-            exit 1
-          }
-          Write-Host 'ViewModels infrastructure boundaries OK: I/O and concrete service construction are absent'
-
-      # Фаза 8 плана (пункт 8.3, DoD): в VM нет захардкоженных строк —
-      # кириллица в строковых литералах запрещена (текст — только через resx-ключи;
-      # отсутствующий ключ LocalizationManager вернёт «?key?» и запишет в лог).
-      # Целострочные комментарии (// и ///) не проверяются — русский текст в
-      # комментариях легитимен; строковые литералы (включая $"...") проверяются.
-      - name: Check ViewModels localization (no Cyrillic string literals)
-        shell: pwsh
-        run: |
-          $violations = @()
-          Get-ChildItem "GCodeGenerator/ViewModels" -Recurse -Filter *.cs | ForEach-Object {
-            $lines = @(Get-Content -Encoding UTF8 $_.FullName)  # @() — файл в одну строку тоже массив
-            for ($i = 0; $i -lt $lines.Count; $i++) {
-              $line = $lines[$i]
-              if ($line -match '^\s*//') { continue }  # комментарий — не строковый литерал
-              if ($line -match '"[^"]*[\u0400-\u04FF][^"]*"') {
-                $violations += "$($_.Name):$($i + 1)"
-              }
-            }
-          }
-          if ($violations) {
-            Write-Host 'Cyrillic string literals found in GCodeGenerator/ViewModels:'
-            $violations | ForEach-Object { Write-Host "  $_" }
-            exit 1
-          }
-          Write-Host 'ViewModels localization OK: no Cyrillic string literals'
+      # Архитектурные правила — чистота ядра и view-моделей от WPF,
+      # запрет ввода-вывода и кириллицы в view-моделях, пофайловая
+      # директива #nullable — живут в тестах (CoreAssemblyPurityTests,
+      # ArchitectureRulesTests): они выполняются и локально, и здесь,
+      # а проверка ссылок собранной сборки не обходится полным именем
+      # типа, как обходились прежние регэкспы этого файла.
 
       # Тесты ядра не ссылаются на приложение и собираются под net10.0:
       # их прохождение подтверждает, что ядро работает без WPF.

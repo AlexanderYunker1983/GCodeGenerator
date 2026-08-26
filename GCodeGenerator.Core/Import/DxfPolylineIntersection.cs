@@ -1,3 +1,4 @@
+#nullable enable
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Import

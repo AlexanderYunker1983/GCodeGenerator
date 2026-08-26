@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using GCodeGenerator.Operations;
 
@@ -19,7 +20,7 @@ namespace GCodeGenerator.Persistence
         /// неизвестно; загрузчик проекта трактует это как неподдерживаемый файл
         /// и не открывает его частично.
         /// </summary>
-        public static Type Resolve(string name)
+        public static Type? Resolve(string? name)
             => OperationCatalog.FindByPersistentName(name)?.OperationType;
 
         /// <summary>

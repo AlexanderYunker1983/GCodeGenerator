@@ -1,3 +1,4 @@
+#nullable enable
 using System.Collections.Generic;
 
 namespace GCodeGenerator.Trajectory
@@ -27,6 +28,6 @@ namespace GCodeGenerator.Trajectory
         /// Interpolated points of the arc (G2/G3); null for rapid/linear moves.
         /// The first and the last points are the arc's start and end.
         /// </summary>
-        public IReadOnlyList<Vec3> InterpolatedPoints { get; set; }
+        public IReadOnlyList<Vec3>? InterpolatedPoints { get; set; }
     }
 }

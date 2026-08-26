@@ -1,3 +1,4 @@
+#nullable enable
 namespace GCodeGenerator.Trajectory
 {
     /// <summary>

@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Globalization;
 using System.Reflection;
@@ -12,6 +13,6 @@ namespace GCodeGenerator.Localization
         void AddResourceManager(ResourceManager resourceManager);
         void AddAssembly(Assembly assembly, string resourcePath = "Resources.LocalizableResources");
         void AddAssembly(string assemblyName, string resourcePath = "Resources.LocalizableResources");
-        event EventHandler CultureChanged;
+        event EventHandler? CultureChanged;
     }
 }

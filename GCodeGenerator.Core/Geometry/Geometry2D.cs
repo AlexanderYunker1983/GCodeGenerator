@@ -1,3 +1,4 @@
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Models;
@@ -49,7 +50,7 @@ namespace GCodeGenerator.Geometry
         /// Положительная — обход против часовой стрелки, отрицательная — по часовой.
         /// Контур меньше трёх точек площади не имеет.
         /// </summary>
-        public static double SignedArea(IReadOnlyList<Point2D> points)
+        public static double SignedArea(IReadOnlyList<Point2D>? points)
         {
             if (points == null || points.Count < 3)
                 return 0;
@@ -65,7 +66,7 @@ namespace GCodeGenerator.Geometry
         }
 
         /// <summary>Площадь замкнутого контура без учёта направления обхода.</summary>
-        public static double Area(IReadOnlyList<Point2D> points)
+        public static double Area(IReadOnlyList<Point2D>? points)
             => Math.Abs(SignedArea(points));
 
         /// <summary>
@@ -75,7 +76,7 @@ namespace GCodeGenerator.Geometry
         /// </summary>
         /// <param name="points">Вершины контура.</param>
         /// <param name="degenerateArea">Порог вырожденной площади.</param>
-        public static (double x, double y) Centroid(IReadOnlyList<Point2D> points, double degenerateArea)
+        public static (double x, double y) Centroid(IReadOnlyList<Point2D>? points, double degenerateArea)
         {
             if (points == null || points.Count == 0)
                 return (0, 0);
@@ -229,7 +230,7 @@ namespace GCodeGenerator.Geometry
         /// <param name="y4">Y конца второго отрезка.</param>
         /// <param name="parallelTolerance">Порог определителя: ниже него отрезки считаются параллельными.</param>
         /// <param name="boundsTolerance">Допуск выхода параметра за пределы [0; 1].</param>
-        public static Point2D SegmentIntersectionPoint(
+        public static Point2D? SegmentIntersectionPoint(
             double x1, double y1, double x2, double y2,
             double x3, double y3, double x4, double y4,
             double parallelTolerance,

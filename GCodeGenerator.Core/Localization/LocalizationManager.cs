@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -13,16 +14,18 @@ namespace GCodeGenerator.Localization
         /// </summary>
         private readonly List<ResourceManager> _resourceManagers = new List<ResourceManager>();
 
-        private CultureInfo _culture;
+        /// <summary>Выбранная культура; null — культура интерфейса системы.</summary>
+        private CultureInfo? _culture;
+
         public void AddAssembly(string assemblyName, string resourcePath = "Resources.LocalizableResources")
         {
             var assembly = Assembly.Load(new AssemblyName(assemblyName));
             AddAssembly(assembly, resourcePath);
         }
 
-        public event EventHandler CultureChanged;
+        public event EventHandler? CultureChanged;
 
-        public CultureInfo Culture
+        public CultureInfo? Culture
         {
             get => _culture;
             set
@@ -66,9 +69,8 @@ namespace GCodeGenerator.Localization
                 $"[Localization] Missing localization key: {key} (culture: {Culture?.Name ?? "CurrentUICulture"})");
         }
 
-        private static string GetString(ResourceManager manager, string stringName, CultureInfo cultureInfo, params object[] parameters)
+        private static string GetString(ResourceManager manager, string stringName, CultureInfo? cultureInfo, params object[] parameters)
         {
-            if (manager == null) return null;
             string str;
             var unFormattedString = string.Empty;
             try

@@ -1,4 +1,5 @@
-﻿using System;
+﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using GCodeGenerator.Geometry;
@@ -144,8 +145,10 @@ namespace GCodeGenerator.Import
             }
         }
 
-        private static void Add(List<Polyline2D> result, IReadOnlyList<Point2D> points)
+        private static void Add(List<Polyline2D> result, IReadOnlyList<Point2D>? points)
         {
+            // null — сущность выродилась (нулевой радиус, слишком мало
+            // вершин) и контура не даёт.
             if (points == null || points.Count < 2)
                 return;
             result.Add(new Polyline2D { Points = new List<Point2D>(points) });
@@ -154,7 +157,7 @@ namespace GCodeGenerator.Import
         private static Point2D Point(double x, double y, double scale)
             => new Point2D { X = x * scale, Y = y * scale };
 
-        private static List<Point2D> ApproximateCircle(Circle circle, double scale)
+        private static List<Point2D>? ApproximateCircle(Circle circle, double scale)
         {
             if (circle.Radius <= 0)
                 return null;
@@ -171,7 +174,7 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<Point2D> ApproximateArc(Arc arc, double scale)
+        private static List<Point2D>? ApproximateArc(Arc arc, double scale)
         {
             if (arc.Radius <= 0)
                 return null;
@@ -196,7 +199,7 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<Point2D> ApproximateEllipse(Ellipse ellipse, double scale)
+        private static List<Point2D>? ApproximateEllipse(Ellipse ellipse, double scale)
         {
             double majorRadius = ellipse.MajorAxis / 2.0;
             double minorRadius = ellipse.MinorAxis / 2.0;
@@ -237,7 +240,7 @@ namespace GCodeGenerator.Import
         /// с повторением первой вершины в конце, как её и ожидает сборка
         /// контуров.
         /// </summary>
-        private static List<Point2D> ReadPolyline(DrawingPolyline polyline, double scale)
+        private static List<Point2D>? ReadPolyline(DrawingPolyline polyline, double scale)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;
@@ -245,7 +248,7 @@ namespace GCodeGenerator.Import
             var points = new List<Point2D>();
             foreach (var segment in polyline.Explode())
             {
-                List<Point2D> segmentPoints;
+                List<Point2D>? segmentPoints;
                 switch (segment)
                 {
                     case Line line:
@@ -289,7 +292,7 @@ namespace GCodeGenerator.Import
         /// шаг хорды — полмиллиметра, та же плотность, с которой продукт
         /// тесселирует собственные фигуры.
         /// </summary>
-        private static List<Point2D> ApproximateSpline(Spline spline, double scale)
+        private static List<Point2D>? ApproximateSpline(Spline spline, double scale)
         {
             var probe = spline.PolygonalVertexes(SplineProbeSegments);
             if (probe == null || probe.Count < 2)
@@ -328,7 +331,7 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<Point2D> ReadPolyline3D(Polyline3D polyline, double scale)
+        private static List<Point2D>? ReadPolyline3D(Polyline3D polyline, double scale)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;

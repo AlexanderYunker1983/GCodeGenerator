@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 
@@ -113,22 +114,31 @@ namespace GCodeGenerator.Toolpath
                 clockwise ? ToolMoveKind.ArcClockwise : ToolMoveKind.ArcCounterClockwise,
                 x, y, null, centerOffsetX, centerOffsetY, feed)
         {
+            // Пять величин хранятся и как необязательные слова базового
+            // перемещения (их читает общий вывод), и как собственные
+            // обязательные числа дуги: обязательность выражена типом,
+            // без утверждений о непустоте при чтении.
+            EndX = x;
+            EndY = y;
+            ArcCenterOffsetX = centerOffsetX;
+            ArcCenterOffsetY = centerOffsetY;
+            ArcFeed = feed;
         }
 
         /// <summary>Конечная точка дуги, X.</summary>
-        public double EndX => X.Value;
+        public double EndX { get; }
 
         /// <summary>Конечная точка дуги, Y.</summary>
-        public double EndY => Y.Value;
+        public double EndY { get; }
 
         /// <summary>Смещение центра от начала дуги по X (слово I).</summary>
-        public double ArcCenterOffsetX => CenterOffsetX.Value;
+        public double ArcCenterOffsetX { get; }
 
         /// <summary>Смещение центра от начала дуги по Y (слово J).</summary>
-        public double ArcCenterOffsetY => CenterOffsetY.Value;
+        public double ArcCenterOffsetY { get; }
 
         /// <summary>Подача дуги, мм/мин.</summary>
-        public double ArcFeed => Feed.Value;
+        public double ArcFeed { get; }
     }
 
     /// <summary>
@@ -136,7 +146,7 @@ namespace GCodeGenerator.Toolpath
     /// </summary>
     public sealed class ToolPathOperation
     {
-        public ToolPathOperation(string name, string description, int decimals, object source = null)
+        public ToolPathOperation(string name, string description, int decimals, object? source = null)
         {
             Name = name ?? string.Empty;
             Description = description ?? string.Empty;
@@ -145,11 +155,12 @@ namespace GCodeGenerator.Toolpath
         }
 
         /// <summary>
-        /// Операция, породившая эту траекторию. Нужна предпросмотру: он
-        /// подсвечивает выбранную операцию и открывает её по двойному щелчку,
-        /// поэтому обязан знать, чей участок траектории показывает.
+        /// Операция, породившая эту траекторию; null — траектория собрана
+        /// без неё (тесты построителя). Нужна предпросмотру: он подсвечивает
+        /// выбранную операцию и открывает её по двойному щелчку, поэтому
+        /// обязан знать, чей участок траектории показывает.
         /// </summary>
-        public object Source { get; }
+        public object? Source { get; }
 
         /// <summary>Имя операции, заданное пользователем.</summary>
         public string Name { get; }

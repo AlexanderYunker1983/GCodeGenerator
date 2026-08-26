@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Globalization;
 
@@ -24,7 +25,7 @@ namespace GCodeGenerator.Trajectory
 
         public bool Equals(Vec3 other) => X == other.X && Y == other.Y && Z == other.Z;
 
-        public override bool Equals(object obj) => obj is Vec3 other && Equals(other);
+        public override bool Equals(object? obj) => obj is Vec3 other && Equals(other);
 
         public override int GetHashCode() => HashCode.Combine(X, Y, Z);
 

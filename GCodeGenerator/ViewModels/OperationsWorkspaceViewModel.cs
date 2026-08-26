@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
@@ -39,9 +39,9 @@ namespace GCodeGenerator.ViewModels
             AllOperations.CollectionChanged += OnAllOperationsCollectionChanged;
 
             // Пункт 25 плана: история изменений. Добавление, удаление и
-            // перестановку сервис слышит от самой коллекции; правку диалогом
+            // перестановку она слышит от самой коллекции; правку диалогом
             // оборачивает EditSelectedOperation.
-            UndoRedo = new UndoService(AllOperations);
+            History = new OperationHistory(AllOperations);
 
             DrillOperations = new DrillOperationsViewModel(
                 localizationManager,
@@ -68,9 +68,9 @@ namespace GCodeGenerator.ViewModels
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
-            UndoCommand = new RelayCommand(UndoRedo.Undo, () => UndoRedo.CanUndo);
-            RedoCommand = new RelayCommand(UndoRedo.Redo, () => UndoRedo.CanRedo);
-            UndoRedo.StateChanged += (_, _) =>
+            UndoCommand = new RelayCommand(History.Undo, () => History.CanUndo);
+            RedoCommand = new RelayCommand(History.Redo, () => History.CanRedo);
+            History.StateChanged += (_, _) =>
             {
                 ((RelayCommand)UndoCommand).NotifyCanExecuteChanged();
                 ((RelayCommand)RedoCommand).NotifyCanExecuteChanged();
@@ -120,7 +120,7 @@ namespace GCodeGenerator.ViewModels
         public ICommand RedoCommand { get; }
 
         /// <summary>История изменений; замену документа приостанавливает MainViewModel.</summary>
-        public UndoService UndoRedo { get; }
+        public OperationHistory History { get; }
 
         public void NotifyOperationsChanged()
         {
@@ -302,7 +302,7 @@ namespace GCodeGenerator.ViewModels
             // предпросмотр обновляется один раз, а не на каждый из них.
             // Правка входит в историю одним шагом: слепки до и после диалога,
             // отмена диалога шага не оставляет.
-            using (UndoRedo.BeginEdit(SelectedOperation))
+            using (History.BeginEdit(SelectedOperation))
             using (BeginBatchUpdate())
                 _operationEditorFactory.ShowEditor(SelectedOperation, AllOperations);
         }

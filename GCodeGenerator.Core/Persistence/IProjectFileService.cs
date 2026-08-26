@@ -1,3 +1,4 @@
+﻿#nullable enable
 using System.Collections.Generic;
 using GCodeGenerator.Models;
 
@@ -16,14 +17,14 @@ namespace GCodeGenerator.Persistence
         /// генерации из <paramref name="settings"/>. Запись атомарна: ошибка
         /// не оставляет существующий файл обрезанным.
         /// </summary>
-        void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings);
+        void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings? settings);
 
         /// <summary>
         /// Сериализует проект в текст текущего формата — первую стадию
         /// сохранения, выполняемую на потоке интерфейса: документ нельзя
         /// читать из фона, пока его может править пользователь.
         /// </summary>
-        string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings);
+        string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings? settings);
 
         /// <summary>
         /// Записывает уже сериализованный проект — вторую стадию сохранения,

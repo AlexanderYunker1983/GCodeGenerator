@@ -1,3 +1,4 @@
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +28,7 @@ namespace GCodeGenerator.Persistence
         /// </summary>
         /// <param name="operations">Операции в том порядке, в котором они должны сохраниться.</param>
         /// <param name="settings">Настройки генерации (null — секции не пишутся).</param>
-        public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+        public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings? settings)
             => ProjectFileWriter.Serialize(operations, settings);
 
         /// <summary>
@@ -38,7 +39,7 @@ namespace GCodeGenerator.Persistence
             => ProjectFileReader.Deserialize(json);
 
         /// <summary>Сохраняет проект в файл (UTF-8 с BOM, как раньше).</summary>
-        public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+        public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings? settings)
             => SaveSerialized(filePath, Serialize(operations, settings));
 
         /// <summary>
@@ -59,7 +60,10 @@ namespace GCodeGenerator.Persistence
             // каталоге и атомарно заменяем назначение. Ошибка записи не
             // должна оставлять существующий .ygc частично обрезанным.
             var destinationPath = Path.GetFullPath(filePath);
-            var directory = Path.GetDirectoryName(destinationPath);
+            // Каталога нет только у корня файловой системы — файлом проекта
+            // такой путь быть не может.
+            var directory = Path.GetDirectoryName(destinationPath)
+                ?? throw new ArgumentException("The project file path points to a filesystem root.", nameof(filePath));
             var temporaryPath = Path.Combine(
                 directory,
                 $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");

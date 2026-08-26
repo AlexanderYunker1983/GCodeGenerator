@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
@@ -126,7 +127,7 @@ namespace GCodeGenerator.Persistence
             return version;
         }
 
-        private static T ReadSection<T>(JsonElement root, string sectionName) where T : class
+        private static T? ReadSection<T>(JsonElement root, string sectionName) where T : class
         {
             if (!root.TryGetProperty(sectionName, out var section) || section.ValueKind == JsonValueKind.Null)
                 return null;
@@ -139,7 +140,7 @@ namespace GCodeGenerator.Persistence
             return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
         }
 
-        private static List<OperationBase> ReadOperationsArray(JsonElement operationsElement)
+        private static List<OperationBase>? ReadOperationsArray(JsonElement operationsElement)
         {
             if (operationsElement.ValueKind == JsonValueKind.Null)
                 return null;
@@ -162,16 +163,17 @@ namespace GCodeGenerator.Persistence
                         FormattableString.Invariant($"operation [{operationIndex}] is not a JSON object"));
                 }
 
-                if (!entry.TryGetProperty("type", out var typeElement)
-                    || typeElement.ValueKind != JsonValueKind.String
-                    || string.IsNullOrWhiteSpace(typeElement.GetString()))
+                var typeName = entry.TryGetProperty("type", out var typeElement)
+                    && typeElement.ValueKind == JsonValueKind.String
+                    ? typeElement.GetString()
+                    : null;
+                if (string.IsNullOrWhiteSpace(typeName))
                 {
                     throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
                         "The project file is damaged or has an unexpected structure ({0}).",
                         FormattableString.Invariant($"operation [{operationIndex}] is missing the string field 'type'"));
                 }
 
-                var typeName = typeElement.GetString();
                 if (!entry.TryGetProperty("data", out var dataElement) || dataElement.ValueKind == JsonValueKind.Null)
                 {
                     throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
