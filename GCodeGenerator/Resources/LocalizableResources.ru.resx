@@ -369,6 +369,30 @@
   <data name="ProjectUpgradedFromOlderVersionInfo" xml:space="preserve">
     <value>Файл проекта был в формате версии {0}. Он сохранён в текущей версии {1}: прежние сборки программы его больше не откроют.</value>
   </data>
+  <data name="CoreError_ProjectFileCorrupt" xml:space="preserve">
+    <value>Файл проекта повреждён или имеет неожиданную структуру ({0}).</value>
+  </data>
+  <data name="CoreError_ProjectFileUnsupportedVersion" xml:space="preserve">
+    <value>Файл проекта записан в формате версии {0}; эта сборка поддерживает версии с {1} по {2}.</value>
+  </data>
+  <data name="CoreError_ProjectFileLegacyVersion" xml:space="preserve">
+    <value>Файл проекта без версии формата: так выглядят файлы первой версии, которые больше не читаются. Откройте файл прежней сборкой программы и пересохраните.</value>
+  </data>
+  <data name="CoreError_ProjectFileUnknownSection" xml:space="preserve">
+    <value>В файле проекта неизвестная секция «{0}»: вероятно, он сохранён более новой версией программы.</value>
+  </data>
+  <data name="CoreError_ProjectFileUnknownOperationType" xml:space="preserve">
+    <value>Тип операции «{0}» (позиция {1}) не поддерживается этой сборкой.</value>
+  </data>
+  <data name="CoreError_DxfNotADrawing" xml:space="preserve">
+    <value>Файл не является чертежом DXF: {0}.</value>
+  </data>
+  <data name="CoreError_DxfTooComplex" xml:space="preserve">
+    <value>Чертёж слишком сложен для поиска замкнутых контуров: превышен предел перебора. Уменьшите число пересекающихся линий или замкните контур полилинией.</value>
+  </data>
+  <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
+    <value>Инструмент не помещается внутри эллипса: эквидистанта с таким смещением пуста. Уменьшите диаметр инструмента или увеличьте эллипс.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Ошибка при загрузке проекта:</value>
   </data>

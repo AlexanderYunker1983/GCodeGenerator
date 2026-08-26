@@ -369,6 +369,30 @@
   <data name="ProjectUpgradedFromOlderVersionInfo" xml:space="preserve">
     <value>The project file used format version {0}. It has been saved in the current version {1}: older builds of the program will no longer open it.</value>
   </data>
+  <data name="CoreError_ProjectFileCorrupt" xml:space="preserve">
+    <value>The project file is damaged or has an unexpected structure ({0}).</value>
+  </data>
+  <data name="CoreError_ProjectFileUnsupportedVersion" xml:space="preserve">
+    <value>The project file uses format version {0}; this build supports versions {1} through {2}.</value>
+  </data>
+  <data name="CoreError_ProjectFileLegacyVersion" xml:space="preserve">
+    <value>The project file has no format version: first-format files are no longer readable. Open the file with an earlier build of the program and save it again.</value>
+  </data>
+  <data name="CoreError_ProjectFileUnknownSection" xml:space="preserve">
+    <value>The project file contains an unknown section '{0}': it was probably saved by a newer version of the program.</value>
+  </data>
+  <data name="CoreError_ProjectFileUnknownOperationType" xml:space="preserve">
+    <value>The operation type '{0}' (position {1}) is not supported by this build.</value>
+  </data>
+  <data name="CoreError_DxfNotADrawing" xml:space="preserve">
+    <value>The file is not a DXF drawing: {0}.</value>
+  </data>
+  <data name="CoreError_DxfTooComplex" xml:space="preserve">
+    <value>The drawing is too complex for closed-contour search: the traversal limit was exceeded. Reduce the number of intersecting lines or close the contour with a polyline.</value>
+  </data>
+  <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
+    <value>The tool does not fit inside the ellipse: the offset contour is empty. Use a smaller tool or a larger ellipse.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Error loading project:</value>
   </data>

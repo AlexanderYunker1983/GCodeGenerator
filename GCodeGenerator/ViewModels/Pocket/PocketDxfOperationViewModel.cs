@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -128,7 +128,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             {
                 _logger.Error($"DXF import failed: {fileName}", ex);
                 var msg = _localizationManager?.GetString("DxfImportFailed") ?? "DxfImportFailed";
-                _messageService?.ShowError($"{msg} {ex.Message}", title);
+                _messageService?.ShowError($"{msg} {CoreErrorMessages.Describe(ex, _localizationManager)}", title);
             }
         }
 

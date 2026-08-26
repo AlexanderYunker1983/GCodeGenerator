@@ -28,17 +28,35 @@ namespace GCodeGenerator.Persistence
         /// </summary>
         public static ProjectFileData Deserialize(string json)
         {
-            using var doc = JsonDocument.Parse(json); // бросает JsonException при некорректном JSON
-            var root = doc.RootElement;
+            // Отказы адресованы пользователю, поэтому идут кодами CoreException:
+            // нейтральный английский — в журнал, перевод подставляет интерфейс.
+            JsonDocument doc;
+            try
+            {
+                doc = JsonDocument.Parse(json);
+            }
+            catch (JsonException parseFailure)
+            {
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    parseFailure.Message);
+            }
+
+            using var document = doc;
+            var root = document.RootElement;
             if (root.ValueKind != JsonValueKind.Object)
-                throw new JsonException("Файл проекта должен содержать JSON-объект.");
+            {
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    "the root is not a JSON object");
+            }
 
             if (!root.TryGetProperty("version", out var versionElement))
             {
-                throw new NotSupportedException(
-                    "Файл проекта не содержит версии формата. Так выглядят файлы первой версии, "
-                    + "которые больше не читаются: откройте такой файл прежней сборкой программы "
-                    + "и пересохраните.");
+                // Так выглядят файлы первой версии, которые больше не читаются.
+                throw new CoreException(CoreErrorCodes.ProjectFileLegacyVersion,
+                    "The project file has no format version: first-format files are no longer readable. "
+                    + "Open the file with an earlier build of the program and save it again.");
             }
 
             var version = ValidateVersionedEnvelope(root, versionElement);
@@ -61,12 +79,17 @@ namespace GCodeGenerator.Persistence
         private static int ValidateVersionedEnvelope(JsonElement root, JsonElement versionElement)
         {
             if (versionElement.ValueKind != JsonValueKind.Number || !versionElement.TryGetInt32(out int version))
-                throw new JsonException("Версия формата проекта должна быть целым числом.");
+            {
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    "the format version is not an integer");
+            }
 
             if (version < 2 || version > ProjectFileWriter.Version)
             {
-                throw new NotSupportedException(
-                    $"Версия формата проекта {version} не поддерживается. Поддерживаются версии 2-{ProjectFileWriter.Version}.");
+                throw new CoreException(CoreErrorCodes.ProjectFileUnsupportedVersion,
+                    "The project file uses format version {0}; this build supports versions {1} through {2}.",
+                    version, 2, ProjectFileWriter.Version);
             }
 
             var allowedProperties = new HashSet<string>(StringComparer.Ordinal)
@@ -85,11 +108,18 @@ namespace GCodeGenerator.Persistence
             foreach (var property in root.EnumerateObject())
             {
                 if (!seenProperties.Add(property.Name))
-                    throw new JsonException($"Поле проекта '{property.Name}' указано несколько раз.");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"the field '{property.Name}' occurs more than once"));
+                }
+
                 if (!allowedProperties.Contains(property.Name))
                 {
-                    throw new NotSupportedException(
-                        $"Файл проекта содержит неизвестную секцию '{property.Name}'.");
+                    throw new CoreException(CoreErrorCodes.ProjectFileUnknownSection,
+                        "The project file contains an unknown section '{0}': it was probably saved "
+                        + "by a newer version of the program.",
+                        property.Name);
                 }
             }
 
@@ -101,7 +131,11 @@ namespace GCodeGenerator.Persistence
             if (!root.TryGetProperty(sectionName, out var section) || section.ValueKind == JsonValueKind.Null)
                 return null;
             if (section.ValueKind != JsonValueKind.Object)
-                throw new JsonException($"Секция {sectionName} должна быть JSON-объектом.");
+            {
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    FormattableString.Invariant($"the section '{sectionName}' is not a JSON object"));
+            }
             return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
         }
 
@@ -111,44 +145,74 @@ namespace GCodeGenerator.Persistence
                 return null;
 
             if (operationsElement.ValueKind != JsonValueKind.Array)
-                throw new JsonException("Секция операций должна быть массивом.");
+            {
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    "the operations section is not an array");
+            }
 
             var result = new List<OperationBase>();
             int operationIndex = 0;
             foreach (var entry in operationsElement.EnumerateArray())
             {
                 if (entry.ValueKind != JsonValueKind.Object)
-                    throw new JsonException($"Операция [{operationIndex}] должна быть JSON-объектом.");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation [{operationIndex}] is not a JSON object"));
+                }
 
                 if (!entry.TryGetProperty("type", out var typeElement)
                     || typeElement.ValueKind != JsonValueKind.String
                     || string.IsNullOrWhiteSpace(typeElement.GetString()))
                 {
-                    throw new JsonException($"У операции [{operationIndex}] отсутствует строковое поле type.");
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation [{operationIndex}] is missing the string field 'type'"));
                 }
+
                 var typeName = typeElement.GetString();
                 if (!entry.TryGetProperty("data", out var dataElement) || dataElement.ValueKind == JsonValueKind.Null)
-                    throw new JsonException($"У операции [{operationIndex}] (type={typeName}) отсутствует поле data.");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation [{operationIndex}] ({typeName}) is missing the 'data' field"));
+                }
+
                 if (dataElement.ValueKind != JsonValueKind.Object)
-                    throw new JsonException($"Данные операции (type={typeName}) должны быть JSON-объектом.");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation data ({typeName}) is not a JSON object"));
+                }
+
                 var dataJson = dataElement.GetRawText();
 
                 var type = OperationTypeNames.Resolve(typeName);
                 if (type == null)
                 {
-                    throw new NotSupportedException(
-                        $"Тип операции '{typeName}' в позиции [{operationIndex}] не поддерживается.");
+                    throw new CoreException(CoreErrorCodes.ProjectFileUnknownOperationType,
+                        "The operation type '{0}' (position {1}) is not supported by this build.",
+                        typeName, operationIndex);
                 }
 
                 using var payloadDocument = JsonDocument.Parse(dataJson);
                 var payload = payloadDocument.RootElement;
                 if (payload.ValueKind != JsonValueKind.Object)
-                    throw new JsonException($"Данные операции [{operationIndex}] (type={typeName}) должны быть JSON-объектом.");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation data [{operationIndex}] ({typeName}) is not a JSON object"));
+                }
 
                 // Валидный тип + не-объектный JSON данных — исключение (как в прежнем JavaScriptSerializer).
                 var operation = JsonSerializer.Deserialize(payload.GetRawText(), type, PayloadOptions) as OperationBase;
                 if (operation == null)
-                    throw new JsonException($"Не удалось прочитать операцию [{operationIndex}] (type={typeName}).");
+                {
+                    throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                        "The project file is damaged or has an unexpected structure ({0}).",
+                        FormattableString.Invariant($"operation [{operationIndex}] ({typeName}) could not be read"));
+                }
 
                 RejectCurrentMetadata(payload, typeName, operationIndex);
 
@@ -163,9 +227,10 @@ namespace GCodeGenerator.Persistence
         {
             if (TryGetSingleMetadata(payload, typeName, operationIndex, out _))
             {
-                throw new NotSupportedException(
-                    $"Операция [{operationIndex}] (type={typeName}) содержит удалённое поле Metadata, "
-                    + "которое не поддерживается форматом v4.");
+                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                    "The project file is damaged or has an unexpected structure ({0}).",
+                    FormattableString.Invariant(
+                        $"operation [{operationIndex}] ({typeName}) contains the removed Metadata field"));
             }
         }
 

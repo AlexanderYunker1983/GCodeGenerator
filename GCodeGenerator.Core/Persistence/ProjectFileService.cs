@@ -41,7 +41,7 @@ namespace GCodeGenerator.Persistence
         public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
         {
             if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("Путь к файлу проекта не задан.", nameof(filePath));
+                throw new ArgumentException("The project file path is not set.", nameof(filePath));
 
             // Сначала полностью строим JSON в памяти, затем пишем временный файл
             // в том же каталоге и атомарно заменяем назначение. Ошибка сериализации

@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.GCodeGenerators;
@@ -210,7 +210,7 @@ namespace GCodeGenerator.ViewModels
                 _logger.Error("G-code generation failed", ex);
                 var message = _localizationManager?.GetString("ErrorGeneratingGCode") ?? "ErrorGeneratingGCode";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _messageService.ShowError($"{message}\n{ex.Message}", errorTitle);
+                _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", errorTitle);
             }
             finally
             {
@@ -243,7 +243,7 @@ namespace GCodeGenerator.ViewModels
                 _logger.Error($"Saving G-code failed: {fileName}", ex);
                 var message = _localizationManager?.GetString("ErrorSavingGCodeFile") ?? "ErrorSavingGCodeFile";
                 var errorTitle = _localizationManager?.GetString("Error") ?? "Error";
-                _messageService.ShowError($"{message}\n{ex.Message}", errorTitle);
+                _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", errorTitle);
             }
         }
 

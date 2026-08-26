@@ -523,7 +523,8 @@ namespace GCodeGenerator.Models
             if (TryFor(mode, out var pattern))
                 return pattern;
 
-            throw new NotSupportedException($"Способ расстановки отверстий {(int)mode} не поддерживается.");
+            throw new NotSupportedException(
+                FormattableString.Invariant($"Drill pattern for mode {(int)mode} is not registered."));
         }
     }
 }

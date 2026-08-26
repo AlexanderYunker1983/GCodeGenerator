@@ -59,7 +59,8 @@ namespace GCodeGenerator.Import
         {
             var document = DxfDocument.Load(path);
             if (document == null)
-                throw new InvalidDataException($"Файл не является DXF-документом: {path}");
+                throw new CoreException(CoreErrorCodes.DxfNotADrawing,
+                    "The file is not a DXF drawing: {0}.", path);
 
             double scale = GetMillimeterScale(document.DrawingVariables.InsUnits);
 

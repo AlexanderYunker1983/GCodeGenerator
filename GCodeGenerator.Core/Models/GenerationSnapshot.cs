@@ -72,7 +72,7 @@ namespace GCodeGenerator.Models
         {
             var json = JsonSerializer.Serialize(settings, SettingsOptions);
             return JsonSerializer.Deserialize<GCodeSettings>(json, SettingsOptions)
-                ?? throw new InvalidOperationException("Не удалось создать копию настроек генерации.");
+                ?? throw new InvalidOperationException("Failed to clone the generation settings.");
         }
     }
 }

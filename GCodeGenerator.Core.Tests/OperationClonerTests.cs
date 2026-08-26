@@ -178,5 +178,23 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(12.0, ((PocketEllipseOperation)clone).RadiusX);
             Assert.AreEqual(8.0, ((PocketEllipseOperation)clone).RadiusY);
         }
+
+        /// <summary>
+        /// Копия несёт идентификатор оригинала: рабочая копия диалога и слепок
+        /// генерации представляют ту же операцию документа, и по идентификатору
+        /// траектория ведёт обратно к ней. В файл идентификатор не пишется,
+        /// сериализация выдала бы копии новый — клонер переносит его явно.
+        /// </summary>
+        [TestMethod]
+        public void Clone_PreservesOperationId()
+        {
+            var source = new PocketCircleOperation();
+
+            var clone = OperationCloner.Clone(source);
+
+            Assert.AreEqual(source.Id, clone.Id, "копия — та же операция документа");
+            Assert.AreNotEqual(source.Id, new PocketCircleOperation().Id,
+                "новая операция получает собственный идентификатор");
+        }
     }
 }

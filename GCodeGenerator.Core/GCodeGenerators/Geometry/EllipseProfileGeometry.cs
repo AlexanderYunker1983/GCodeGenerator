@@ -169,9 +169,9 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                     // радиуса внутри эллипса не помещается. Подставить
                     // «маленький эллипс», как раньше, значит выдать не ту
                     // траекторию — честный отказ называет причину.
-                    throw new InvalidOperationException(
-                        "Инструмент не помещается внутри эллипса: эквидистанта с таким смещением пуста. "
-                        + "Уменьшите диаметр инструмента или увеличьте эллипс.");
+                    throw new CoreException(CoreErrorCodes.EllipseToolDoesNotFit,
+                        "The tool does not fit inside the ellipse: the offset contour is empty. "
+                        + "Use a smaller tool or a larger ellipse.");
                 }
             }
 

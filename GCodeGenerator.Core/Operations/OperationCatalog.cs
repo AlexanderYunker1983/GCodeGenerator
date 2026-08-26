@@ -187,7 +187,7 @@ namespace GCodeGenerator.Operations
             if (ByOperationType.TryGetValue(operationType, out var descriptor))
                 return descriptor;
 
-            throw new NotSupportedException($"Тип операции {operationType.FullName} отсутствует в каталоге операций.");
+            throw new NotSupportedException($"Operation type {operationType.FullName} is not registered in the operation catalog.");
         }
 
         /// <summary>Описание типа операции или <c>null</c>, если тип не зарегистрирован.</summary>

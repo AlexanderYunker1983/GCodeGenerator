@@ -128,9 +128,9 @@ namespace GCodeGenerator.Import
             // лучше поиска, который нельзя ни дождаться, ни прервать.
             if (++steps > MaxSearchSteps)
             {
-                throw new InvalidOperationException(
-                    "Чертёж слишком сложен для поиска замкнутых контуров: превышен предел перебора. "
-                    + "Уменьшите число пересекающихся линий или замкните контур полилинией.");
+                throw new CoreException(CoreErrorCodes.DxfTooComplex,
+                    "The drawing is too complex for closed-contour search: the traversal limit was exceeded. "
+                    + "Reduce the number of intersecting lines or close the contour with a polyline.");
             }
 
             // Ограничиваем длину пути

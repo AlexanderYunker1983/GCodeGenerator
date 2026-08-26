@@ -25,7 +25,7 @@ namespace GCodeGenerator.Tests.Fixtures
             generator.Generate(operation, new ToolPathBuilder(pathOperation), settings);
 
             var toolPath = new ToolPath();
-            toolPath.Operations.Add(pathOperation);
+            toolPath.AddOperation(pathOperation);
             return toolPath;
         }
 

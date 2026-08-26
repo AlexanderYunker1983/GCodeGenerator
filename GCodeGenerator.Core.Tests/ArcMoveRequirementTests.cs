@@ -10,10 +10,12 @@ namespace GCodeGenerator.Tests
     /// Обязательные величины дуги.
     ///
     /// Кадр G2/G3 описывается конечной точкой, смещением центра и подачей:
-    /// без любой из пяти величин он не имеет смысла. Построитель траектории
-    /// задаёт их всегда, но траектория может прийти и из чужого кода — тогда
-    /// отсутствие величины должно называться, а не превращаться в исключение
-    /// без единого указания на то, какая именно величина потерялась.
+    /// без любой из пяти величин он не имеет смысла. Обязательность
+    /// обеспечивает система типов: дуга представима только типом ArcMove,
+    /// чей конструктор требует все пять величин, а попытка собрать дугу
+    /// из обычного перемещения отклоняется при создании — раньше того же
+    /// добивались проверки постпроцессора при выводе, и отказ приходил
+    /// позже места, где дугу собрали.
     /// </summary>
     [TestClass]
     public class ArcMoveRequirementTests
@@ -21,10 +23,21 @@ namespace GCodeGenerator.Tests
         private static ToolPath PathWith(ToolMove move)
         {
             var operation = new ToolPathOperation("Дуга", "описание", 3);
-            operation.Items.Add(move);
+            var builder = new ToolPathBuilder(operation);
+            if (move is ArcMove arc)
+            {
+                if (arc.Kind == ToolMoveKind.ArcClockwise)
+                    builder.ArcCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed);
+                else
+                    builder.ArcCCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed);
+            }
+            else
+            {
+                builder.LinearTo(move.X, move.Y, move.Z, move.Feed);
+            }
 
             var path = new ToolPath();
-            path.Operations.Add(operation);
+            path.AddOperation(operation);
             return path;
         }
 
@@ -34,8 +47,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void CompleteArc_IsWrittenAsProgram()
         {
-            var move = new ToolMove(ToolMoveKind.ArcClockwise,
-                x: 10, y: 20, z: null, centerOffsetX: 5, centerOffsetY: 0, feed: 300);
+            var move = new ArcMove(clockwise: true, x: 10, y: 20, centerOffsetX: 5, centerOffsetY: 0, feed: 300);
 
             var program = Build(move);
 
@@ -43,27 +55,20 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Каждая недостающая величина названа по имени, а вместе с ней —
-        /// вид перемещения: по такому сообщению видно, что искать.
+        /// Дуга из обычного перемещения непредставима: пять величин дуги
+        /// обязательны, и это выражено типом — отказ называет требуемый тип
+        /// в момент создания, а не при выводе программы.
         /// </summary>
         [TestMethod]
-        public void ArcWithoutRequiredValue_IsRefusedByName()
+        public void ArcAsPlainMove_IsRefusedAtConstruction()
         {
-            var cases = new (string Name, ToolMove Move)[]
+            foreach (var kind in new[] { ToolMoveKind.ArcClockwise, ToolMoveKind.ArcCounterClockwise })
             {
-                ("X", new ToolMove(ToolMoveKind.ArcClockwise, null, 20, null, 5, 0, 300)),
-                ("Y", new ToolMove(ToolMoveKind.ArcClockwise, 10, null, null, 5, 0, 300)),
-                ("CenterOffsetX", new ToolMove(ToolMoveKind.ArcClockwise, 10, 20, null, null, 0, 300)),
-                ("CenterOffsetY", new ToolMove(ToolMoveKind.ArcClockwise, 10, 20, null, 5, null, 300)),
-                ("Feed", new ToolMove(ToolMoveKind.ArcCounterClockwise, 10, 20, null, 5, 0, null)),
-            };
+                var failure = Assert.Throws<ArgumentException>(
+                    () => new ToolMove(kind, x: 10, y: 20, centerOffsetX: 5, centerOffsetY: 0, feed: 300));
 
-            foreach (var (name, move) in cases)
-            {
-                var failure = Assert.Throws<InvalidOperationException>(() => Build(move));
-
-                StringAssert.Contains(failure.Message, name, $"Сообщение должно называть {name}");
-                StringAssert.Contains(failure.Message, move.Kind.ToString(), "и вид перемещения");
+                StringAssert.Contains(failure.Message, nameof(ArcMove),
+                    "отказ называет тип, которым описывается дуга");
             }
         }
 

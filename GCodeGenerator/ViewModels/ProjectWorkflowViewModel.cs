@@ -263,7 +263,7 @@ namespace GCodeGenerator.ViewModels
             {
                 _logger.Error($"Saving project failed: {fileName}", ex);
                 var message = Localize("ErrorSavingProject");
-                _messageService.ShowError($"{message}\n{ex.Message}", Localize("SaveProjectTitle"));
+                _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", Localize("SaveProjectTitle"));
                 return false;
             }
         }
@@ -307,7 +307,7 @@ namespace GCodeGenerator.ViewModels
             {
                 _logger.Error($"Opening project failed: {fileName}", ex);
                 var message = Localize("ErrorOpeningProject");
-                _messageService.ShowError($"{message}\n{ex.Message}", title);
+                _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", title);
             }
         }
 

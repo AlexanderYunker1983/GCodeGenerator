@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text.Json;
 using GCodeGenerator.Models;
 using GCodeGenerator.Operations;
 using GCodeGenerator.Tests.Fixtures;
@@ -259,8 +258,11 @@ namespace GCodeGenerator.Tests
             var newer = "{\"version\":5,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{}}]}";
             var olderTagged = "{\"version\":1,\"operations\":[]}";
 
-            Assert.Throws<NotSupportedException>(() => Service.Deserialize(newer));
-            Assert.Throws<NotSupportedException>(() => Service.Deserialize(olderTagged));
+            // Отказ несёт код: по нему интерфейс подбирает перевод.
+            Assert.AreEqual(CoreErrorCodes.ProjectFileUnsupportedVersion,
+                Assert.Throws<CoreException>(() => Service.Deserialize(newer)).Code);
+            Assert.AreEqual(CoreErrorCodes.ProjectFileUnsupportedVersion,
+                Assert.Throws<CoreException>(() => Service.Deserialize(olderTagged)).Code);
         }
 
         [TestMethod]
@@ -268,7 +270,10 @@ namespace GCodeGenerator.Tests
         {
             const string json = "{\"version\":2,\"operations\":[],\"futureData\":{\"keep\":true}}";
 
-            Assert.Throws<NotSupportedException>(() => Service.Deserialize(json));
+            var failure = Assert.Throws<CoreException>(() => Service.Deserialize(json));
+
+            Assert.AreEqual(CoreErrorCodes.ProjectFileUnknownSection, failure.Code);
+            StringAssert.Contains(failure.Message, "futureData");
         }
 
         [TestMethod]
@@ -510,9 +515,10 @@ namespace GCodeGenerator.Tests
             var legacy = "{\"Operations\":[{\"Type\":\"GCodeGenerator.Models.ProfileCircleOperation, GCodeGenerator\","
                 + "\"Data\":\"{\\\"Radius\\\":10}\"}]}";
 
-            var failure = Assert.Throws<NotSupportedException>(() => Service.Deserialize(legacy));
+            var failure = Assert.Throws<CoreException>(() => Service.Deserialize(legacy));
 
-            StringAssert.Contains(failure.Message, "версии формата");
+            Assert.AreEqual(CoreErrorCodes.ProjectFileLegacyVersion, failure.Code);
+            StringAssert.Contains(failure.Message, "first-format");
         }
 
         /// <summary>
@@ -522,8 +528,10 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_ObjectWithoutVersion_IsRefused()
         {
-            Assert.Throws<NotSupportedException>(() => Service.Deserialize("{}"));
-            Assert.Throws<NotSupportedException>(() => Service.Deserialize("{\"Foo\":\"bar\"}"));
+            Assert.AreEqual(CoreErrorCodes.ProjectFileLegacyVersion,
+                Assert.Throws<CoreException>(() => Service.Deserialize("{}")).Code);
+            Assert.AreEqual(CoreErrorCodes.ProjectFileLegacyVersion,
+                Assert.Throws<CoreException>(() => Service.Deserialize("{\"Foo\":\"bar\"}")).Code);
         }
 
         /// <summary>
@@ -550,32 +558,18 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Deserialize_NonObjectSettingsSection_Throws()
         {
-            var json = "{\"version\":2,\"operations\":[],\"spindle\":42}";
-            try
+            var sections = new[]
             {
-                Service.Deserialize(json);
-                Assert.Fail("Ожидалось исключение при не-объектной секции spindle");
-            }
-            catch (JsonException)
-            {
-                // Ожидаемо
-            }
+                "{\"version\":2,\"operations\":[],\"spindle\":42}",
+                "{\"version\":3,\"operations\":[],\"format\":true}",
+                "{\"version\":3,\"operations\":[],\"workCoordinate\":[]}",
+                "{\"version\":2,\"operations\":[],\"coolant\":\"x\"}",
+            };
 
-            var json3 = "{\"version\":3,\"operations\":[],\"format\":true}";
-            Assert.Throws<JsonException>(() => Service.Deserialize(json3));
-
-            var json4 = "{\"version\":3,\"operations\":[],\"workCoordinate\":[]}";
-            Assert.Throws<JsonException>(() => Service.Deserialize(json4));
-
-            var json2 = "{\"version\":2,\"operations\":[],\"coolant\":\"x\"}";
-            try
+            foreach (var json in sections)
             {
-                Service.Deserialize(json2);
-                Assert.Fail("Ожидалось исключение при не-объектной секции coolant");
-            }
-            catch (JsonException)
-            {
-                // Ожидаемо
+                Assert.AreEqual(CoreErrorCodes.ProjectFileCorrupt,
+                    Assert.Throws<CoreException>(() => Service.Deserialize(json)).Code, json);
             }
         }
 
@@ -605,6 +599,13 @@ namespace GCodeGenerator.Tests
             {
                 if (!prop.CanRead)
                     continue;
+
+                // Идентификатор — идентичность операции на время жизни
+                // процесса, а не данные файла: он не сериализуется, и у двух
+                // независимых загрузок он законно разный.
+                if (prop.Name == nameof(OperationBase.Id) && prop.DeclaringType == typeof(OperationBase))
+                    continue;
+
                 CompareValues($"{label}.{prop.Name}", prop.GetValue(a), prop.GetValue(b));
             }
         }
@@ -661,6 +662,12 @@ namespace GCodeGenerator.Tests
             foreach (var prop in a.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (!prop.CanRead)
+                    continue;
+
+                // Идентификатор — идентичность операции на время жизни
+                // процесса, а не данные файла: он не сериализуется, и у двух
+                // независимых загрузок он законно разный.
+                if (prop.Name == nameof(OperationBase.Id) && prop.DeclaringType == typeof(OperationBase))
                     continue;
                 CompareValues($"{path}.{prop.Name}", prop.GetValue(a), prop.GetValue(b));
             }

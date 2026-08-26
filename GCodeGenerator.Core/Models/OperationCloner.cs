@@ -49,7 +49,7 @@ namespace GCodeGenerator.Models
                 return clone;
             }
 
-            throw new InvalidOperationException($"Не удалось создать копию операции {type.Name}.");
+            throw new InvalidOperationException($"Failed to clone the operation {type.Name}.");
         }
 
         /// <summary>
@@ -64,7 +64,7 @@ namespace GCodeGenerator.Models
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
             if (!(source is OperationBase operation))
-                throw new InvalidOperationException($"Тип {typeof(T).Name} не является операцией.");
+                throw new InvalidOperationException($"The type {typeof(T).Name} is not an operation.");
 
             return (T)(object)Clone(operation);
         }

@@ -152,7 +152,7 @@ namespace GCodeGenerator.Tests
             public Toolpath.ToolPath ToToolPath()
             {
                 var path = new Toolpath.ToolPath();
-                path.Operations.Add(_operation);
+                path.AddOperation(_operation);
                 return path;
             }
         }

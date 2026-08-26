@@ -70,10 +70,10 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void FindContours_DenseGrid_FailsFastInsteadOfSearchingForever()
         {
-            var failure = Assert.Throws<InvalidOperationException>(
+            var failure = Assert.Throws<CoreException>(
                 () => new DxfPointCycleFinder(0.001).FindContours(GridSegments(7)));
 
-            StringAssert.Contains(failure.Message, "слишком слож");
+            Assert.AreEqual(CoreErrorCodes.DxfTooComplex, failure.Code);
         }
 
         /// <summary>

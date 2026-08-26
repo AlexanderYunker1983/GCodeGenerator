@@ -18,7 +18,7 @@ namespace GCodeGenerator.Services
         public void Save(string filePath, string gCode)
         {
             if (string.IsNullOrWhiteSpace(filePath))
-                throw new ArgumentException("Путь к файлу G-code не задан.", nameof(filePath));
+                throw new ArgumentException("The G-code file path is not set.", nameof(filePath));
 
             File.WriteAllText(filePath, gCode ?? string.Empty, Utf8WithoutBom);
         }
