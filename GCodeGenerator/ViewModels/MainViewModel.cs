@@ -31,6 +31,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IProgramInfo _programInfo;
         private readonly string _programTitle;
         private IDisposable? _documentBatch;
+        private IDisposable? _undoSuspension;
         private string _displayName = string.Empty;
 
         public MainViewModel(
@@ -154,12 +155,19 @@ namespace GCodeGenerator.ViewModels
         {
             _documentBatch?.Dispose();
             _documentBatch = _operationsWorkspace.BeginBatchUpdate();
+
+            // Замена документа — не правка, а другой документ: история
+            // изменений на её время не пишется, а затем очищается.
+            _undoSuspension?.Dispose();
+            _undoSuspension = _operationsWorkspace.UndoRedo.SuspendAndClear();
         }
 
         private void OnDocumentApplied(object? sender, EventArgs e)
         {
             _documentBatch?.Dispose();
             _documentBatch = null;
+            _undoSuspension?.Dispose();
+            _undoSuspension = null;
         }
 
         private void OnGenerationSettingsChanged(object? sender, EventArgs e)
