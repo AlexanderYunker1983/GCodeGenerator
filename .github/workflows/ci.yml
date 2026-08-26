@@ -1,4 +1,4 @@
-﻿name: CI
+name: CI
 
 on:
   push:
@@ -13,6 +13,9 @@ jobs:
     name: Build & Test (Windows)
     # WPF (net10.0-windows) собирается и тестируется только на Windows-раннере.
     runs-on: windows-latest
+    # Зависший шаг не должен держать раннер часами: обычный прогон занимает
+    # минуты, получасовой предел оставляет запас на холодный кэш.
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,6 +32,11 @@ jobs:
           # Версия пакета разработки берётся из global.json: раннер собирает
           # тем же набором инструментов, что и разработчик.
           global-json-file: global.json
+          # Кэш пакетов NuGet между прогонами. Ключ — по файлам-замкам
+          # зависимостей: они перечисляют точное дерево пакетов, поэтому кэш
+          # обновляется ровно тогда, когда меняются сами зависимости.
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       # Репозиторного NuGet.config нет — раннер восстанавливает пакеты из nuget.org
       # по умолчанию (все используемые пакеты там доступны).
@@ -47,8 +55,29 @@ jobs:
 
       # Тесты ядра не ссылаются на приложение и собираются под net10.0:
       # их прохождение подтверждает, что ядро работает без WPF.
+      # TRX-отчёты и покрытие складываются в артефакт: упавший тест можно
+      # разобрать по отчёту, не воспроизводя прогон на своей машине.
       - name: Run core tests
-        run: dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Release --no-build
+        run: >
+          dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=core-tests.trx"
+          --collect "Code Coverage"
+          --results-directory TestResults
 
       - name: Run application tests
-        run: dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
+        run: >
+          dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=app-tests.trx"
+          --collect "Code Coverage"
+          --results-directory TestResults
+
+      # Отчёты выгружаются и при падении тестов — ради него они и нужны.
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TestResults
+          retention-days: 14

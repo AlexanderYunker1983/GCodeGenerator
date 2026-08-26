@@ -192,7 +192,6 @@ GCodeGenerator/
 ├── install/                 # Инсталлятор (Inno Setup)
 ├── docs/                    # Документация (smoke-чек-лист)
 ├── GCodeGenerator.sln       # Решение Visual Studio
-├── Plan.md                  # План рефакторинга
 └── LICENSE                  # Лицензия MIT
 ```
 
