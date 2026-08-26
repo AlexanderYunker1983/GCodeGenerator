@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Operations
@@ -272,7 +271,7 @@ namespace GCodeGenerator.Operations
         /// </summary>
         private static IEnumerable<OperationOutline> ProfileOutlines(OperationBase operation)
         {
-            var profile = (IProfileOperation)operation;
+            var profile = (ProfileOperationBase)operation;
             var points = CreateProfileGeometry(operation)
                 .GetContourPoints(0, profile.Direction)
                 .Select(point => (point.x, point.y))

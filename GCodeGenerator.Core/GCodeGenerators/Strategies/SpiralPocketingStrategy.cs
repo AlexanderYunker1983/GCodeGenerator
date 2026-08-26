@@ -1,9 +1,8 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -344,7 +343,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// Движение строго по контуру через все вершины.
         /// </summary>
         private void FollowContourToReentry(
-            IPocketOperation op,
+            PocketOperationBase op,
             (double x, double y) exitPoint,
             (double x, double y) reentryPoint,
             List<(double x, double y)> contourPoints,
@@ -430,7 +429,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// Обходит контур полностью от точки выхода.
         /// </summary>
         private void FollowContourFull(
-            IPocketOperation op,
+            PocketOperationBase op,
             (double x, double y) startPoint,
             List<(double x, double y)> contourPoints,
             ToolPathBuilder builder,
@@ -450,7 +449,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// Обходит контур полностью начиная с указанной точки.
         /// </summary>
         private void FollowContourFromPoint(
-            IPocketOperation op,
+            PocketOperationBase op,
             int startIndex,
             List<(double x, double y)> contourPoints,
             ToolPathBuilder builder,

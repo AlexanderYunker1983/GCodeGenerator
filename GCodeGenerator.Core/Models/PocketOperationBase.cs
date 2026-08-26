@@ -1,6 +1,4 @@
 #nullable enable
-using GCodeGenerator.GCodeGenerators.Interfaces;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace GCodeGenerator.Models
@@ -14,7 +12,7 @@ namespace GCodeGenerator.Models
     /// чертежа. Раньше каждая модель объявляла их заново — восемь свойств в
     /// четырёх экземплярах, и новый параметр приходилось добавлять во все.
     /// </summary>
-    public abstract partial class PocketOperationBase : MillingOperationBase, IPocketOperation
+    public abstract partial class PocketOperationBase : MillingOperationBase
     {
         protected PocketOperationBase(OperationCategory category, string name)
             : base(category, name)

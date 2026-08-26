@@ -1,8 +1,7 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Helpers;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 using GCodeGenerator.Operations;
 
@@ -21,7 +20,7 @@ namespace GCodeGenerator.GCodeGenerators
     /// <summary>Один проход обработки: что фрезеровать и каким способом.</summary>
     public sealed class PocketPass
     {
-        public PocketPass(IPocketOperation operation, PocketPassKind kind, double allowance = 0.0)
+        public PocketPass(PocketOperationBase operation, PocketPassKind kind, double allowance = 0.0)
         {
             Operation = operation ?? throw new ArgumentNullException(nameof(operation));
             Kind = kind;
@@ -29,7 +28,7 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>Операция прохода: копия исходной с изменённой глубиной.</summary>
-        public IPocketOperation Operation { get; }
+        public PocketOperationBase Operation { get; }
 
         /// <summary>Способ обработки.</summary>
         public PocketPassKind Kind { get; }
@@ -92,7 +91,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <summary>Глубина ниже этого значения считается нулевой, мм.</summary>
         private const double NegligibleDepth = 1e-6;
 
-        public static PocketPassPlan Plan(IPocketOperation operation)
+        public static PocketPassPlan Plan(PocketOperationBase operation)
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
@@ -133,7 +132,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Черновой проход: не доходит до дна на величину припуска и идёт
         /// «толстым» инструментом, оставляя припуск и на стенке.
         /// </summary>
-        private static PocketPass? PlanRoughing(IPocketOperation operation, double allowance, out string? skipComment)
+        private static PocketPass? PlanRoughing(PocketOperationBase operation, double allowance, out string? skipComment)
         {
             skipComment = null;
 
@@ -162,7 +161,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// в слое припуска у дна — выше карман оставался уже задуманного
         /// на величину припуска.
         /// </summary>
-        private static void AddFinishingPasses(IPocketOperation operation, double allowance, List<PocketPass> passes)
+        private static void AddFinishingPasses(PocketOperationBase operation, double allowance, List<PocketPass> passes)
         {
             var depthAllowance = Math.Min(allowance, Math.Max(0.0, operation.TotalDepth));
             if (depthAllowance < NegligibleDepth)
@@ -200,11 +199,11 @@ namespace GCodeGenerator.GCodeGenerators
         /// Не исчез ли карман после припуска: контур проверяется в худшем
         /// месте — на дне, где уклон стенки съедает больше всего.
         /// </summary>
-        private static bool IsTooSmall(IPocketOperation operation, double allowance)
+        private static bool IsTooSmall(PocketOperationBase operation, double allowance)
         {
             var contourOffset = operation.ToolDiameter / 2.0 + allowance;
             var taperOffset = GCodeGenerationHelper.CalculateTaperOffset(operation.TotalDepth, operation.WallTaperAngleDeg);
-            return OperationCatalog.CreatePocketGeometry((OperationBase)operation).IsContourTooSmall(contourOffset, taperOffset);
+            return OperationCatalog.CreatePocketGeometry(operation).IsContourTooSmall(contourOffset, taperOffset);
         }
     }
 }

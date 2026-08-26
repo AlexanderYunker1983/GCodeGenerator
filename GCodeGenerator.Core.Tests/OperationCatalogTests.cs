@@ -1,7 +1,6 @@
-using System;
+﻿using System;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 using GCodeGenerator.Operations;
 using GCodeGenerator.Preview;
@@ -132,13 +131,13 @@ namespace GCodeGenerator.Tests
                 switch (descriptor.Category)
                 {
                     case OperationCategory.Profile:
-                        Assert.IsInstanceOfType(operation, typeof(IProfileOperation), descriptor.PersistentName);
+                        Assert.IsInstanceOfType(operation, typeof(ProfileOperationBase), descriptor.PersistentName);
                         Assert.IsNotNull(OperationCatalog.CreateProfileGeometry(operation), descriptor.PersistentName);
                         Assert.IsNull(descriptor.CreatePocketGeometry,
                             $"{descriptor.PersistentName}: профилю задана геометрия кармана");
                         break;
                     case OperationCategory.Pocket:
-                        Assert.IsInstanceOfType(operation, typeof(IPocketOperation), descriptor.PersistentName);
+                        Assert.IsInstanceOfType(operation, typeof(PocketOperationBase), descriptor.PersistentName);
                         Assert.IsNotNull(OperationCatalog.CreatePocketGeometry(operation), descriptor.PersistentName);
                         Assert.IsNull(descriptor.CreateProfileGeometry,
                             $"{descriptor.PersistentName}: карману задана геометрия профиля");

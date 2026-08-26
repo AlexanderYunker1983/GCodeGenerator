@@ -1,10 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.Trajectory;
@@ -314,7 +313,7 @@ namespace GCodeGenerator.Tests
             bool roughing = false, bool finishing = false,
             PocketFinishingMode mode = PocketFinishingMode.All)
         {
-            if (op is IPocketOperation pocket)
+            if (op is PocketOperationBase pocket)
             {
                 pocket.PocketStrategy = strategy;
                 pocket.TotalDepth = 2.0;

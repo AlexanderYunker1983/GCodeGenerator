@@ -1,8 +1,7 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Models;
 
@@ -41,7 +40,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <returns>true, если хотя бы одна область была обработана и обработку нужно продолжить; false, если областей не осталось</returns>
         public bool GenerateLayer(
-            IPocketOperation op,
+            PocketOperationBase op,
             IPocketGeometry geometry,
             double toolRadius,
             double allowance,

@@ -1,6 +1,4 @@
 #nullable enable
-using GCodeGenerator.GCodeGenerators.Interfaces;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace GCodeGenerator.Models
@@ -16,7 +14,7 @@ namespace GCodeGenerator.Models
     /// пропущено у операции по чертежу — диалог показывал поле, значение
     /// которого некуда было сохранить.
     /// </summary>
-    public abstract partial class ProfileOperationBase : MillingOperationBase, IProfileOperation
+    public abstract partial class ProfileOperationBase : MillingOperationBase
     {
         protected ProfileOperationBase(OperationCategory category, string name)
             : base(category, name)

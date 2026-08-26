@@ -1,11 +1,10 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Operations;
@@ -29,7 +28,7 @@ namespace GCodeGenerator.GCodeGenerators
         public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {
             // Проверяем, что операция является профилем
-            if (!(operation is IProfileOperation profileOp))
+            if (!(operation is ProfileOperationBase profileOp))
                 return;
 
             // Создаем геометрию профиля
@@ -61,7 +60,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Генерирует один слой профиля.
         /// </summary>
         private void GenerateLayer(
-            IProfileOperation op,
+            ProfileOperationBase op,
             IProfileGeometry geometry,
             double toolOffset,
             double currentZ,
@@ -110,7 +109,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Генерирует контур из точек.
         /// </summary>
         private void GenerateContourFromPoints(
-            IProfileOperation op,
+            ProfileOperationBase op,
             IProfileGeometry geometry,
             double toolOffset,
             (double x, double y) currentPosition,
@@ -217,7 +216,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="workingZ">Рабочая высота слоя.</param>
         /// <param name="builder">Построитель траектории.</param>
         private static void GenerateOrderedContours(
-            IProfileOperation op,
+            ProfileOperationBase op,
             IProfileGeometry geometry,
             double workingZ,
             ToolPathBuilder builder)
@@ -263,7 +262,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// Генерирует контур с использованием дуг.
         /// </summary>
         private void GenerateContourWithArcs(
-            IProfileOperation op,
+            ProfileOperationBase op,
             IProfileGeometry geometry,
             double toolOffset,
             System.Collections.Generic.List<IArcSegment> arcSegments,

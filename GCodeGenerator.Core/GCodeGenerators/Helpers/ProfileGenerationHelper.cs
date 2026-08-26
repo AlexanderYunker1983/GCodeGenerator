@@ -1,7 +1,6 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Globalization;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -23,7 +22,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
-            IProfileOperation op,
+            ProfileOperationBase op,
             Action<double, double, int> generateLayer,
             ToolPathBuilder builder,
             GCodeSettings settings)
@@ -73,7 +72,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateEntry(
-            IProfileOperation op,
+            ProfileOperationBase op,
             (double x, double y) startPoint,
             double currentZ,
             double nextZ,
@@ -118,7 +117,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// длины контура.
         /// </summary>
         private void GenerateRampEntry(
-            IProfileOperation op,
+            ProfileOperationBase op,
             (double x, double y) startPoint,
             double currentZ,
             double nextZ,
@@ -166,7 +165,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
         /// <summary>Один виток рампы: спуск от <paramref name="zFrom"/> к <paramref name="zTo"/> вдоль контура.</summary>
         private static void EmitRampLap(
-            IProfileOperation op,
+            ProfileOperationBase op,
             double zFrom,
             double zTo,
             double distance,
@@ -201,7 +200,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// используется безопасная высота, как было до его появления.
         /// </summary>
         private static void ReturnToStart(
-            IProfileOperation op,
+            ProfileOperationBase op,
             (double x, double y) startPoint,
             double z,
             ToolPathBuilder builder,

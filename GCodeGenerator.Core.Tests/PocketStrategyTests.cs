@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 using GCodeGenerator.Operations;
 using GCodeGenerator.Tests.Fixtures;
@@ -47,7 +46,7 @@ namespace GCodeGenerator.Tests
         // Фабрики операций и генерация
         // ------------------------------------------------------------------
 
-        private static T Configure<T>(T op, PocketStrategy strategy) where T : IPocketOperation
+        private static T Configure<T>(T op, PocketStrategy strategy) where T : PocketOperationBase
         {
             op.PocketStrategy = strategy;
             op.TotalDepth = TotalDepth;

@@ -1,10 +1,9 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Helpers;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.GCodeGenerators.Strategies;
 using GCodeGenerator.Models;
 
@@ -32,17 +31,14 @@ namespace GCodeGenerator.GCodeGenerators
             _dxfLayerGenerator = new DxfPocketLayerGenerator();
         }
 
-        /// <summary>
-        /// Создаёт геометрию для операции кармана. Все реализации
-        /// <see cref="IPocketOperation"/> наследуются от <see cref="OperationBase"/>.
-        /// </summary>
-        private static IPocketGeometry CreateGeometry(IPocketOperation op)
-            => OperationCatalog.CreatePocketGeometry((OperationBase)op);
+        /// <summary>Создаёт геометрию для операции кармана.</summary>
+        private static IPocketGeometry CreateGeometry(PocketOperationBase op)
+            => OperationCatalog.CreatePocketGeometry(op);
 
         public void Generate(OperationBase operation, ToolPathBuilder builder, GCodeSettings settings)
         {
             // Проверяем, что операция является карманом
-            if (!(operation is IPocketOperation pocketOp))
+            if (!(operation is PocketOperationBase pocketOp))
                 return;
 
             // Пункт 5.6: черновой и чистовые проходы. Состав и порядок проходов
@@ -77,7 +73,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
         private void MillPocket(
-            IPocketOperation op,
+            PocketOperationBase op,
             IPocketPocketingStrategy strategy,
             double allowance,
             ToolPathBuilder builder,
@@ -125,7 +121,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
         /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
         private bool GenerateLayer(
-            IPocketOperation op,
+            PocketOperationBase op,
             IPocketGeometry geometry,
             double toolRadius,
             double allowance,

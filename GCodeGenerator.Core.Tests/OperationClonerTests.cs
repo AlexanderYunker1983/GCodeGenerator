@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -169,7 +169,7 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Clone_Generic_KeepsConcreteType()
         {
-            GCodeGenerator.GCodeGenerators.Interfaces.IPocketOperation operation =
+            PocketOperationBase operation =
                 new PocketEllipseOperation { RadiusX = 12, RadiusY = 8 };
 
             var clone = OperationCloner.Clone(operation);

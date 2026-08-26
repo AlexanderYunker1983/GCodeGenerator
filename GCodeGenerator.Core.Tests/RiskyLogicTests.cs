@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -32,7 +32,7 @@ namespace GCodeGenerator.Tests
     /// - Helpers_CalculateStep фиксирует оставшийся guard `step &lt; 1e-6` — no-op
     ///   (переприсваивает то же значение).
     /// - У профилей НЕТ параметра taper (в плане пункт упоминает «taper на профилях и карманах»,
-    ///   но в моделях профилей/`IProfileOperation` WallTaperAngleDeg отсутствует — только у карманов).
+    ///   но в моделях профилей/`ProfileOperationBase` WallTaperAngleDeg отсутствует — только у карманов).
     ///   Поэтому taper покрывается только для карманов.
     /// - Тесты «песочных часов» и П-образного контура фиксируют поведение после
     ///   перехода на корректное смещение контура: область, распавшаяся на части,

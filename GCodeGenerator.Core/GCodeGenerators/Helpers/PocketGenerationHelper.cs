@@ -1,7 +1,6 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Globalization;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -23,7 +22,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// <param name="builder">Построитель траектории</param>
         /// <param name="settings">Настройки генерации G-кода</param>
         public void GenerateLayerLoop(
-            IPocketOperation op,
+            PocketOperationBase op,
             Func<double, double, int, bool> generateLayer,
             ToolPathBuilder builder,
             GCodeSettings settings)

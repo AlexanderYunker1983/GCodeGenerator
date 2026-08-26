@@ -1,7 +1,6 @@
-#nullable enable
+﻿#nullable enable
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Geometry;
-using GCodeGenerator.GCodeGenerators.Interfaces;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.GCodeGenerators.Strategies
@@ -23,7 +22,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     public sealed class PocketLayerContext
     {
         public PocketLayerContext(
-            IPocketOperation operation,
+            PocketOperationBase operation,
             IPocketGeometry geometry,
             double toolRadius,
             double allowance,
@@ -47,7 +46,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         }
 
         /// <summary>Операция кармана: подачи, направление, число знаков.</summary>
-        public IPocketOperation Operation { get; }
+        public PocketOperationBase Operation { get; }
 
         /// <summary>Геометрия контура: смещённые контуры и проверка вырождения.</summary>
         public IPocketGeometry Geometry { get; }
