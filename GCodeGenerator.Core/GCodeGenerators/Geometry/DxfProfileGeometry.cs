@@ -55,6 +55,30 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
         }
 
+        // Кеш смещённой геометрии, по образцу DxfPocketGeometry. Рампа
+        // запрашивает точку контура на каждый свой сегмент, и без кеша
+        // каждый запрос заново гонял смещение всех полилиний через Clipper —
+        // тысячи полных прогонов на один вход в слой. Смещение зависит
+        // только от режима траектории операции и за время жизни экземпляра
+        // не меняется; цепочки контуров дополнительно зависят от допуска
+        // стыковки, поэтому их кеш хранит свой ключ.
+        private List<(double x, double y)>? _cachedContourPoints;
+        private MillingDirection _cachedContourDirection;
+        private IReadOnlyList<IReadOnlyList<(double x, double y)>>? _cachedOrderedContours;
+        private double _cachedOrderedTolerance;
+
+        /// <summary>Точки контура в направлении обхода — материализованные один раз.</summary>
+        private List<(double x, double y)> CachedContourPoints(MillingDirection direction)
+        {
+            if (_cachedContourPoints == null || _cachedContourDirection != direction)
+            {
+                _cachedContourPoints = GetContourPoints(ToolOffset, direction).ToList();
+                _cachedContourDirection = direction;
+            }
+
+            return _cachedContourPoints;
+        }
+
         public IEnumerable<(double x, double y)> GetContourPoints(
             double toolOffset,
             MillingDirection direction)
@@ -92,6 +116,16 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// </summary>
         /// <param name="tolerance">Допуск стыковки концов полилиний.</param>
         public IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOrderedContours(double tolerance)
+        {
+            if (_cachedOrderedContours != null && _cachedOrderedTolerance.Equals(tolerance))
+                return _cachedOrderedContours;
+
+            _cachedOrderedContours = BuildOrderedContours(tolerance);
+            _cachedOrderedTolerance = tolerance;
+            return _cachedOrderedContours;
+        }
+
+        private IReadOnlyList<IReadOnlyList<(double x, double y)>> BuildOrderedContours(double tolerance)
         {
             var result = new List<IReadOnlyList<(double x, double y)>>();
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)
@@ -382,7 +416,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public (double x, double y) GetPointOnContour(double distance, double toolOffset)
         {
-            var points = GetContourPoints(toolOffset, _operation.Direction).ToList();
+            var points = CachedContourPoints(_operation.Direction);
             if (points.Count == 0)
                 return (0, 0);
 

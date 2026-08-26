@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System;
 using System.Collections.Generic;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.Models;
@@ -99,5 +100,25 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
 
         /// <summary>Рабочая подача в плоскости — из операции.</summary>
         public double FeedXYWork => Operation.FeedXYWork;
+
+        /// <summary>
+        /// Наибольшее расстояние от центра слоя до вершин контура — внешний
+        /// предел, до которого стратегии доводят спираль, кольца и лучи.
+        /// Формула жила дословно в трёх стратегиях.
+        /// </summary>
+        public double MaxContourDistanceFromCenter()
+        {
+            double maxDistance = 0.0;
+            foreach (var point in ContourPoints)
+            {
+                double dx = point.x - Center.x;
+                double dy = point.y - Center.y;
+                double distance = Math.Sqrt(dx * dx + dy * dy);
+                if (distance > maxDistance)
+                    maxDistance = distance;
+            }
+
+            return maxDistance;
+        }
     }
 }

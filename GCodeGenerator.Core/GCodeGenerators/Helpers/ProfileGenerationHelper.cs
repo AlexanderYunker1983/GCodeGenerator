@@ -44,20 +44,20 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (nextZ < finalZ) nextZ = finalZ;
                 passNumber++;
 
-                builder.Comment(ProgramComments.Pass(passNumber, GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))));
+                builder.Comment(ProgramComments.Pass(passNumber, GCodeGenerationHelper.FormatNumber(nextZ, GCodeGenerationHelper.DecimalFormat(decimals))));
 
                 generateLayer(currentZ, nextZ, passNumber);
 
                 if (nextZ > finalZ)
                 {
                     var retractZAfterPass = nextZ + op.RetractHeight;
-                    builder.RapidTo(z: retractZAfterPass, feed: op.FeedZRapid, decimals: decimals);
+                    builder.RapidTo(z: retractZAfterPass, feed: op.FeedZRapid);
                 }
 
                 currentZ = nextZ;
             }
 
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
         }
 
         /// <summary>
@@ -83,13 +83,13 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         {
             int decimals = op.Decimals;
 
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
-            builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid, decimals: decimals);
+            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+            builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid);
 
             if (op.EntryMode == EntryMode.Vertical)
             {
-                builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
-                builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
+                builder.RapidTo(z: currentZ, feed: op.FeedZRapid);
+                builder.LinearTo(z: nextZ, feed: op.FeedZWork);
             }
             else
             {
@@ -129,7 +129,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
             var retractZ = currentZ + op.RetractHeight;
 
-            builder.RapidTo(z: retractZ, feed: op.FeedZRapid, decimals: decimals);
+            builder.RapidTo(z: retractZ, feed: op.FeedZRapid);
 
             var totalDepth = retractZ - nextZ;
             var tangent = Math.Tan(entryAngleRad);
@@ -187,7 +187,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 var t = (double)i / segments;
                 var point = getPointOnContour(distance * t);
                 var z = zFrom - t * depth;
-                builder.LinearTo(x: point.x, y: point.y, z: z, feed: op.FeedXYWork, decimals: decimals);
+                builder.LinearTo(x: point.x, y: point.y, z: z, feed: op.FeedXYWork);
             }
         }
 
@@ -210,11 +210,9 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 ? z + op.SafeDistanceBetweenPasses
                 : op.SafeZHeight;
 
-            builder.RapidTo(z: retractZ, feed: op.FeedZRapid, decimals: decimals);
-            builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid, decimals: decimals);
-            builder.RapidTo(z: z, feed: op.FeedZRapid, decimals: decimals);
+            builder.RapidTo(z: retractZ, feed: op.FeedZRapid);
+            builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid);
+            builder.RapidTo(z: z, feed: op.FeedZRapid);
         }
-
-        private static string Fmt(int decimals) => "0." + new string('0', decimals);
     }
 }

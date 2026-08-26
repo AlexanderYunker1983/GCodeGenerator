@@ -45,7 +45,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 if (nextZ < finalZ) nextZ = finalZ;
                 pass++;
 
-                builder.Comment(ProgramComments.Pass(pass, GCodeGenerationHelper.FormatNumber(nextZ, Fmt(decimals))));
+                builder.Comment(ProgramComments.Pass(pass, GCodeGenerationHelper.FormatNumber(nextZ, GCodeGenerationHelper.DecimalFormat(decimals))));
 
                 // Если generateLayer возвращает false, прекращаем обработку
                 if (!generateLayer(currentZ, nextZ, pass))
@@ -57,8 +57,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 currentZ = nextZ;
             }
         }
-
-        private static string Fmt(int decimals) => "0." + new string('0', decimals);
     }
 }
 

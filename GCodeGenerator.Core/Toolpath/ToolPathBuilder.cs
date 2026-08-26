@@ -32,26 +32,33 @@ namespace GCodeGenerator.Toolpath
             _operation.Items.Add(new ToolPathNote(text));
         }
 
+        // Параметра точности у перемещений нет намеренно: точность вывода
+        // координат — свойство всей операции (ToolPathOperation.Decimals),
+        // и словами кадра её распоряжается постпроцессор. Прежде методы
+        // принимали и молча игнорировали decimals, а шесть десятков вызовов
+        // старательно передавали его в никуда — интерфейс обещал управлять
+        // точностью каждого перемещения и обманывал.
+
         /// <summary>Холостой ход к заданным осям; незаданные не меняются.</summary>
-        public void RapidTo(double? x = null, double? y = null, double? z = null, double? feed = null, int decimals = -1)
+        public void RapidTo(double? x = null, double? y = null, double? z = null, double? feed = null)
         {
             Add(ToolMoveKind.Rapid, x, y, z, null, null, feed);
         }
 
         /// <summary>Рабочее прямолинейное перемещение к заданным осям.</summary>
-        public void LinearTo(double? x = null, double? y = null, double? z = null, double? feed = null, int decimals = -1)
+        public void LinearTo(double? x = null, double? y = null, double? z = null, double? feed = null)
         {
             Add(ToolMoveKind.Linear, x, y, z, null, null, feed);
         }
 
         /// <summary>Дуга по часовой стрелке в точку (x, y) вокруг центра (i, j).</summary>
-        public void ArcCW(double x, double y, double i, double j, double feed, int decimals)
+        public void ArcCW(double x, double y, double i, double j, double feed)
         {
             Add(ToolMoveKind.ArcClockwise, x, y, null, i, j, feed);
         }
 
         /// <summary>Дуга против часовой стрелки в точку (x, y) вокруг центра (i, j).</summary>
-        public void ArcCCW(double x, double y, double i, double j, double feed, int decimals)
+        public void ArcCCW(double x, double y, double i, double j, double feed)
         {
             Add(ToolMoveKind.ArcCounterClockwise, x, y, null, i, j, feed);
         }

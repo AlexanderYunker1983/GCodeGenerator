@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Globalization;
 using GCodeGenerator.Models;
@@ -14,8 +14,6 @@ namespace GCodeGenerator.GCodeGenerators
             if (!(operation is DrillPointsOperation drill))
                 return;
 
-            int decimals = drill.Decimals;
-
             int holeIndex = 0;
             foreach (var hole in drill.HolesToDrill)
             {
@@ -25,8 +23,8 @@ namespace GCodeGenerator.GCodeGenerators
                     throw new ArgumentOutOfRangeException(nameof(drill),
                         $"StepDepth of hole {holeIndex + 1} must be greater than zero (got {hole.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the drilling loop would run forever.");
 
-                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid, decimals: decimals);
-                builder.RapidTo(x: hole.X, y: hole.Y, feed: drill.FeedXYRapid, decimals: decimals);
+                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid);
+                builder.RapidTo(x: hole.X, y: hole.Y, feed: drill.FeedXYRapid);
 
                 var currentZ = hole.Z;
                 var finalZ = hole.Z - hole.TotalDepth;
@@ -37,16 +35,16 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ)
                         nextZ = finalZ;
 
-                    builder.RapidTo(z: currentZ, feed: hole.FeedZRapid, decimals: decimals);
-                    builder.LinearTo(z: nextZ, feed: hole.FeedZWork, decimals: decimals);
+                    builder.RapidTo(z: currentZ, feed: hole.FeedZRapid);
+                    builder.LinearTo(z: nextZ, feed: hole.FeedZWork);
 
                     currentZ = nextZ;
 
                     if (currentZ > finalZ)
-                        builder.RapidTo(z: hole.RetractHeight, feed: hole.FeedZRapid, decimals: decimals);
+                        builder.RapidTo(z: hole.RetractHeight, feed: hole.FeedZRapid);
                 }
 
-                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid, decimals: decimals);
+                builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid);
 
                 holeIndex++;
             }

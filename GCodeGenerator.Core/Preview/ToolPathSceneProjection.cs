@@ -94,25 +94,14 @@ namespace GCodeGenerator.Preview
 
             var centerX = start.x + move.CenterOffsetX.Value;
             var centerY = start.y + move.CenterOffsetY.Value;
-            var radius = Math.Sqrt(Math.Pow(start.x - centerX, 2) + Math.Pow(start.y - centerY, 2));
 
-            var startAngle = Math.Atan2(start.y - centerY, start.x - centerX);
-            var endAngle = Math.Atan2(end.y - centerY, end.x - centerX);
-
-            if (move.Kind == ToolMoveKind.ArcClockwise)
+            // Формула разбиения общая для всех предпросмотров
+            // (ArcInterpolation): начальная точка уже лежит в ломаной.
+            foreach (var (a, b, _) in Trajectory.ArcInterpolation.Points(
+                         start.x, start.y, end.x, end.y, centerX, centerY,
+                         move.Kind == ToolMoveKind.ArcClockwise, includeStart: false))
             {
-                if (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-            }
-            else
-            {
-                if (endAngle <= startAngle) endAngle += 2 * Math.PI;
-            }
-
-            var segments = Math.Max((int)(Math.Abs(endAngle - startAngle) / (Math.PI / 16)), 4);
-            for (int i = 1; i <= segments; i++)
-            {
-                var angle = startAngle + (endAngle - startAngle) * i / segments;
-                points.Add((centerX + radius * Math.Cos(angle), centerY + radius * Math.Sin(angle)));
+                points.Add((a, b));
             }
         }
 

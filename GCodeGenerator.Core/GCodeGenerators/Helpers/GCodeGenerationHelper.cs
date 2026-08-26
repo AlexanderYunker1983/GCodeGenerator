@@ -1,7 +1,9 @@
 #nullable enable
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using GCodeGenerator.Models;
+using GCodeGenerator.Toolpath;
 
 namespace GCodeGenerator.GCodeGenerators.Helpers
 {
@@ -98,6 +100,40 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                 default:
                     return 0.0;
             }
+        }
+
+        /// <summary>
+        /// Строка формата числа с заданным числом знаков после запятой:
+        /// «0.000» для трёх. Формула жила в трёх местах — у слоёв профиля,
+        /// слоёв кармана и форматирования слов кадра.
+        /// </summary>
+        /// <param name="decimals">Число знаков после запятой.</param>
+        public static string DecimalFormat(int decimals) => "0." + new string('0', decimals);
+
+        /// <summary>
+        /// Замыкает контур: если последняя точка списка не совпадает
+        /// с первой в пределах допуска, добавляет рабочий ход к первой.
+        /// Сравнение поосевое, как в каждой из трёх прежних копий этого
+        /// замыкания; допуск задаёт вызывающий — исторически копии
+        /// пользовались разными.
+        /// </summary>
+        /// <param name="builder">Построитель траектории.</param>
+        /// <param name="points">Точки контура по порядку обхода.</param>
+        /// <param name="feed">Подача замыкающего хода.</param>
+        /// <param name="tolerance">Допуск совпадения концов, мм.</param>
+        public static void CloseContour(
+            ToolPathBuilder builder,
+            IReadOnlyList<(double x, double y)> points,
+            double feed,
+            double tolerance)
+        {
+            if (points == null || points.Count < 2)
+                return;
+
+            var first = points[0];
+            var last = points[points.Count - 1];
+            if (Math.Abs(first.x - last.x) > tolerance || Math.Abs(first.y - last.y) > tolerance)
+                builder.LinearTo(x: first.x, y: first.y, feed: feed);
         }
     }
 }

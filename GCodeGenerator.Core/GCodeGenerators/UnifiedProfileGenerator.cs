@@ -179,7 +179,7 @@ namespace GCodeGenerator.GCodeGenerators
             for (int i = startIndex; i < cleanedPoints.Count; i++)
             {
                 var point = cleanedPoints[i];
-                builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
             }
             
             // Если мы начали не с начала, обрабатываем точки от начала до startIndex
@@ -188,22 +188,12 @@ namespace GCodeGenerator.GCodeGenerators
                 for (int i = 0; i < startIndex; i++)
                 {
                     var point = cleanedPoints[i];
-                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                 }
             }
             
             // Замыкаем контур - возвращаемся к первой точке, если она не совпадает с последней
-            if (cleanedPoints.Count > 1)
-            {
-                var firstPoint = cleanedPoints[0];
-                var lastPoint = cleanedPoints[cleanedPoints.Count - 1];
-                
-                if (Math.Abs(firstPoint.x - lastPoint.x) > tolerance || 
-                    Math.Abs(firstPoint.y - lastPoint.y) > tolerance)
-                {
-                    builder.LinearTo(x: firstPoint.x, y: firstPoint.y, feed: op.FeedXYWork, decimals: decimals);
-                }
-            }
+            GCodeGenerationHelper.CloseContour(builder, cleanedPoints, op.FeedXYWork, tolerance);
         }
 
         /// <summary>
@@ -231,10 +221,10 @@ namespace GCodeGenerator.GCodeGenerators
 
                 if (!isFirstContour)
                 {
-                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
                     var entryPoint = contourPoints[0];
-                    builder.RapidTo(x: entryPoint.x, y: entryPoint.y, feed: op.FeedXYRapid, decimals: decimals);
-                    builder.LinearTo(z: workingZ, feed: op.FeedZWork, decimals: decimals);
+                    builder.RapidTo(x: entryPoint.x, y: entryPoint.y, feed: op.FeedXYRapid);
+                    builder.LinearTo(z: workingZ, feed: op.FeedZWork);
                 }
 
                 if (op.Direction == MillingDirection.Clockwise)
@@ -242,7 +232,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = contourPoints.Count - 1; i >= 0; i--)
                     {
                         var point = contourPoints[i];
-                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                     }
                 }
                 else
@@ -250,7 +240,7 @@ namespace GCodeGenerator.GCodeGenerators
                     for (int i = 0; i < contourPoints.Count; i++)
                     {
                         var point = contourPoints[i];
-                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                     }
                 }
 
@@ -277,9 +267,9 @@ namespace GCodeGenerator.GCodeGenerators
                 var j = arc.Center.y - arc.StartPoint.y;
 
                 if (arc.IsClockwise)
-                    builder.ArcCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork, decimals);
+                    builder.ArcCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork);
                 else
-                    builder.ArcCCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork, decimals);
+                    builder.ArcCCW(arc.EndPoint.x, arc.EndPoint.y, i, j, op.FeedXYWork);
             }
         }
     }

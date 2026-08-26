@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using GCodeGenerator.Toolpath;
 
@@ -28,8 +28,6 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         {
             var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
-            int decimals = op.Decimals;
-
             if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
@@ -63,8 +61,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     // обещанный шапкой, не выполнялся никогда, траектория
                     // вырождалась в диагонали через весь карман, а у стенок
                     // шаг между реально пройденными путями удваивался.
-                    builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork, decimals: decimals);
-                    builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork, decimals: decimals);
+                    builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork);
+                    builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork);
                 }
             }
         }

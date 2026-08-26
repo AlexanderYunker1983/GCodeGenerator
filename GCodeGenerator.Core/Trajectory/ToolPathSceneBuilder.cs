@@ -105,35 +105,15 @@ namespace GCodeGenerator.Trajectory
         /// <summary>
         /// Точки дуги в плоскости XY: другие плоскости генератор не выводит,
         /// а разбор чужих программ живёт в <see cref="SceneBuilder"/>.
+        /// Формула разбиения общая для всех предпросмотров — <see cref="ArcInterpolation"/>.
         /// </summary>
         private static List<Vec3> InterpolateArc(Vec3 start, Vec3 end, Vec3 center, bool clockwise)
         {
             var points = new List<Vec3>();
-
-            var startAngle = Math.Atan2(start.Y - center.Y, start.X - center.X);
-            var endAngle = Math.Atan2(end.Y - center.Y, end.X - center.X);
-            var radius = Math.Sqrt(Math.Pow(start.X - center.X, 2) + Math.Pow(start.Y - center.Y, 2));
-
-            if (clockwise)
+            foreach (var (a, b, t) in ArcInterpolation.Points(
+                         start.X, start.Y, end.X, end.Y, center.X, center.Y, clockwise, includeStart: true))
             {
-                if (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-            }
-            else
-            {
-                if (endAngle <= startAngle) endAngle += 2 * Math.PI;
-            }
-
-            var totalAngle = Math.Abs(endAngle - startAngle);
-            var segments = Math.Max((int)(totalAngle / (Math.PI / 16)), 4);
-
-            for (int i = 0; i <= segments; i++)
-            {
-                var t = (double)i / segments;
-                var angle = startAngle + t * (endAngle - startAngle);
-                points.Add(new Vec3(
-                    center.X + radius * Math.Cos(angle),
-                    center.Y + radius * Math.Sin(angle),
-                    start.Z + t * (end.Z - start.Z)));
+                points.Add(new Vec3(a, b, start.Z + t * (end.Z - start.Z)));
             }
 
             return points;

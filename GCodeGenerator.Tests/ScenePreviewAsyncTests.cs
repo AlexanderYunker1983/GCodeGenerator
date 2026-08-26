@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using GCodeGenerator.Toolpath;
 using GCodeGenerator.Trajectory;
 using GCodeGenerator.ViewModels;
@@ -22,7 +22,7 @@ namespace GCodeGenerator.Tests
             var operation = new ToolPathOperation("Операция", "описание", 3);
             var builder = new ToolPathBuilder(operation);
             for (var i = 0; i < moveCount; i++)
-                builder.LinearTo(x: startX + i, y: i, z: -1, feed: 100, decimals: 3);
+                builder.LinearTo(x: startX + i, y: i, z: -1, feed: 100);
 
             var path = new ToolPath();
             path.Operations.Add(operation);

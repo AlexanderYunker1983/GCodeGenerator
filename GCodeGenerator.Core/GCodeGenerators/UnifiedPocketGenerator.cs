@@ -1,5 +1,4 @@
 ﻿#nullable enable
-using System;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
@@ -175,10 +174,10 @@ namespace GCodeGenerator.GCodeGenerators
                 geometry, contourOffset, taperOffset, contourPoints, geometry.GetCenter(), step);
 
             // Перемещаемся к точке врезания кармана
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
-            builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid, decimals: decimals);
-            builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
-            builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
+            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+            builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid);
+            builder.RapidTo(z: currentZ, feed: op.FeedZRapid);
+            builder.LinearTo(z: nextZ, feed: op.FeedZWork);
 
             // Обработка слоя выбранным способом обхода.
             strategy.MillContour(
@@ -187,8 +186,8 @@ namespace GCodeGenerator.GCodeGenerators
                 builder);
 
             // Возврат в центр и подъем
-            builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+            builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
+            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
 
             return true; // Обработка успешно завершена, продолжаем
         }
@@ -207,7 +206,6 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 // Стратегия работает на рабочей Z без отводов — WorkingZ не используется.
                 var op = layer.Operation;
-                int decimals = op.Decimals;
                 var contourPoints = layer.ContourPoints;
 
                 if (contourPoints == null || contourPoints.Count < 3)
@@ -216,17 +214,12 @@ namespace GCodeGenerator.GCodeGenerators
                 // Фрезеруем замкнутый контур (инструмент на рабочей Z)
                 foreach (var point in contourPoints)
                 {
-                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                 }
 
                 // Замыкаем контур, если первая точка не совпадает с последней
-                var first = contourPoints[0];
-                var last = contourPoints[contourPoints.Count - 1];
-                const double tolerance = GeometryTolerances.Degenerate;
-                if (Math.Abs(first.x - last.x) > tolerance || Math.Abs(first.y - last.y) > tolerance)
-                {
-                    builder.LinearTo(x: first.x, y: first.y, feed: op.FeedXYWork, decimals: decimals);
-                }
+                GCodeGenerationHelper.CloseContour(
+                    builder, contourPoints, op.FeedXYWork, GeometryTolerances.Degenerate);
             }
         }
     }

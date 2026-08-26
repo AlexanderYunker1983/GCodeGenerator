@@ -262,30 +262,12 @@ namespace GCodeGenerator.Trajectory
             var (endA, endB, endC) = PlaneAxes(end, plane);
             var (centerA, centerB, _) = PlaneAxes(center, plane);
 
-            // Calculate start and end angles
-            var startAngle = Math.Atan2(startB - centerB, startA - centerA);
-            var endAngle = Math.Atan2(endB - centerB, endA - centerA);
-            var radius = Math.Sqrt(Math.Pow(startA - centerA, 2) + Math.Pow(startB - centerB, 2));
-
-            // Adjust angles for direction
-            if (clockwise)
+            // Формула разбиения общая для всех предпросмотров
+            // (ArcInterpolation); здесь остаётся только работа с плоскостью
+            // дуги — разбор чужих программ обязан понимать G18/G19.
+            foreach (var (a, b, t) in ArcInterpolation.Points(
+                         startA, startB, endA, endB, centerA, centerB, clockwise, includeStart: true))
             {
-                if (endAngle >= startAngle) endAngle -= 2 * Math.PI;
-            }
-            else
-            {
-                if (endAngle <= startAngle) endAngle += 2 * Math.PI;
-            }
-
-            var totalAngle = Math.Abs(endAngle - startAngle);
-            var segments = Math.Max((int)(totalAngle / (Math.PI / 16)), 4); // At least 4 segments
-
-            for (int i = 0; i <= segments; i++)
-            {
-                var t = (double)i / segments;
-                var angle = startAngle + t * (endAngle - startAngle);
-                var a = centerA + radius * Math.Cos(angle);
-                var b = centerB + radius * Math.Sin(angle);
                 var c = startC + t * (endC - startC); // Linear interpolation for third axis
                 points.Add(FromPlaneAxes(a, b, c, plane));
             }

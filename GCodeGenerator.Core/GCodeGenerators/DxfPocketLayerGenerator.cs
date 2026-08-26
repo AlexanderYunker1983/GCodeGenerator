@@ -57,8 +57,6 @@ namespace GCodeGenerator.GCodeGenerators
             if (geometry == null)
                 throw new ArgumentNullException(nameof(geometry));
 
-            int decimals = op.Decimals;
-
             bool isFirstArea = true;
             bool atLeastOneAreaProcessed = false;
 
@@ -81,11 +79,11 @@ namespace GCodeGenerator.GCodeGenerators
                 // Поднимаем инструмент перед переходом к следующей области (кроме первой)
                 if (!isFirstArea)
                 {
-                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
                 }
 
                 // Перемещаемся к точке врезания области
-                builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid, decimals: decimals);
+                builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid);
 
                 // Опускаемся на рабочую высоту слоя: быстрым ходом только до
                 // его верха — выше материал сняли предыдущие слои, — дальше
@@ -93,8 +91,8 @@ namespace GCodeGenerator.GCodeGenerators
                 // материал слоя цел под каждой из них, на первом слое центр
                 // второй области — сплошная заготовка, и быстрый ход на
                 // рабочую глубину здесь был бы ударом инструмента в металл.
-                builder.RapidTo(z: currentZ, feed: op.FeedZRapid, decimals: decimals);
-                builder.LinearTo(z: nextZ, feed: op.FeedZWork, decimals: decimals);
+                builder.RapidTo(z: currentZ, feed: op.FeedZRapid);
+                builder.LinearTo(z: nextZ, feed: op.FeedZWork);
 
                 strategy.MillContour(
                     new PocketLayerContext(
@@ -102,8 +100,8 @@ namespace GCodeGenerator.GCodeGenerators
                     builder);
 
                 // Возврат в центр области и подъем
-                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork, decimals: decimals);
-                builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
+                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
+                builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
 
                 isFirstArea = false;
                 atLeastOneAreaProcessed = true;

@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 
 using GCodeGenerator.Toolpath;
 
@@ -28,8 +28,6 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
             var op = layer.Operation;
-            int decimals = op.Decimals;
-
             if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
@@ -43,10 +41,10 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     var exit = PocketScanLines.ToWorld((seg.x2, line.Y), layer.Center, op.LineAngleDeg);
 
                     // Независимый рез: подъём → подход → вход в слой → рез
-                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid, decimals: decimals);
-                    builder.RapidTo(x: entry.x, y: entry.y, feed: op.FeedXYRapid, decimals: decimals);
-                    builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid, decimals: decimals);
-                    builder.LinearTo(x: exit.x, y: exit.y, feed: op.FeedXYWork, decimals: decimals);
+                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                    builder.RapidTo(x: entry.x, y: entry.y, feed: op.FeedXYRapid);
+                    builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    builder.LinearTo(x: exit.x, y: exit.y, feed: op.FeedXYWork);
                 }
             }
         }

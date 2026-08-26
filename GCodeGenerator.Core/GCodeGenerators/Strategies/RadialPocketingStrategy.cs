@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Collections.Generic;
 using GCodeGenerator.Geometry;
@@ -26,21 +26,11 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         {
             var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
-            int decimals = op.Decimals;
-
             if (layer.ContourPoints == null || layer.ContourPoints.Count == 0 || layer.Step <= 0)
                 return;
 
             // Максимальное расстояние от центра до контура
-            double maxDistance = 0.0;
-            foreach (var point in layer.ContourPoints)
-            {
-                double dx = point.x - layer.Center.x;
-                double dy = point.y - layer.Center.y;
-                double distance = Math.Sqrt(dx * dx + dy * dy);
-                if (distance > maxDistance)
-                    maxDistance = distance;
-            }
+            double maxDistance = layer.MaxContourDistanceFromCenter();
             if (maxDistance <= 0)
                 return;
 
@@ -54,8 +44,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 var boundary = FarthestRayIntersection(layer.Center, theta, layer.ContourPoints);
 
                 // Проход: центр → граница → центр
-                builder.LinearTo(x: boundary.x, y: boundary.y, feed: op.FeedXYWork, decimals: decimals);
-                builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork, decimals: decimals);
+                builder.LinearTo(x: boundary.x, y: boundary.y, feed: op.FeedXYWork);
+                builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork);
             }
         }
 

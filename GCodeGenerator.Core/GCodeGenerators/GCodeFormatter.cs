@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -123,7 +123,7 @@ namespace GCodeGenerator.GCodeGenerators
             }
 
             if (word.Decimals >= 0)
-                return word.Letter + GCodeGenerationHelper.FormatNumber(word.Number, "0." + new string('0', word.Decimals));
+                return word.Letter + GCodeGenerationHelper.FormatNumber(word.Number, GCodeGenerationHelper.DecimalFormat(word.Decimals));
             return word.Letter + word.Number.ToString(CultureInfo.InvariantCulture);
         }
     }

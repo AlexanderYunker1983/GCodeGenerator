@@ -1,8 +1,8 @@
-#nullable enable
-using System;
+﻿#nullable enable
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
+using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -31,21 +31,11 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         {
             var op = layer.Operation;
             // Стратегия работает на рабочей Z без отводов — workingZ не используется.
-            int decimals = op.Decimals;
-
             if (layer.ContourPoints == null || layer.ContourPoints.Count == 0 || layer.Step <= 0)
                 return;
 
             // Максимальное расстояние от центра до контура — страховочный предел смещения
-            double maxDistance = 0.0;
-            foreach (var point in layer.ContourPoints)
-            {
-                double dx = point.x - layer.Center.x;
-                double dy = point.y - layer.Center.y;
-                double distance = Math.Sqrt(dx * dx + dy * dy);
-                if (distance > maxDistance)
-                    maxDistance = distance;
-            }
+            double maxDistance = layer.MaxContourDistanceFromCenter();
             if (maxDistance <= 0)
                 return;
 
@@ -80,17 +70,11 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 // Фрезеруем замкнутый контур (инструмент на рабочей Z)
                 foreach (var point in points)
                 {
-                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork, decimals: decimals);
+                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                 }
 
                 // Замыкаем контур, если первая точка не совпадает с последней
-                var first = points[0];
-                var last = points[points.Count - 1];
-                if (Math.Abs(first.x - last.x) > tolerance || Math.Abs(first.y - last.y) > tolerance)
-                {
-                    builder.LinearTo(x: first.x, y: first.y, feed: op.FeedXYWork, decimals: decimals);
-                }
-
+                GCodeGenerationHelper.CloseContour(builder, points, op.FeedXYWork, tolerance);
             }
         }
     }
