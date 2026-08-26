@@ -63,8 +63,15 @@ namespace GCodeGenerator.Tests
             Assert.IsNotNull(plan.SkipComment);
         }
 
+        /// <summary>
+        /// Чистовая стенка проходит всю глубину кармана. Черновой проход
+        /// отступает от стенки на припуск в каждом слое, поэтому припуск
+        /// лежит на всей высоте стенки; прежний план ограничивал обход
+        /// слоем припуска у дна — выше карман оставался уже задуманного
+        /// на величину припуска.
+        /// </summary>
         [TestMethod]
-        public void FinishingWalls_WorksOnlyInsideAllowanceLayer()
+        public void FinishingWalls_RunsFullDepthAlongTheWall()
         {
             var operation = Pocket();
             operation.IsFinishingEnabled = true;
@@ -76,8 +83,8 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(PocketPassKind.WallFinishing, walls.Kind);
             Assert.AreEqual(0.0, walls.Allowance, 1e-9, "стенка доводится начисто, без отступа");
-            Assert.AreEqual(0.4, walls.Operation.TotalDepth, 1e-9, "снимается только припуск");
-            Assert.AreEqual(-4.6, walls.Operation.ContourHeight, 1e-9, "слой начинается у самого дна");
+            Assert.AreEqual(5.0, walls.Operation.TotalDepth, 1e-9, "обход контура на каждом слое до полной глубины");
+            Assert.AreEqual(0.0, walls.Operation.ContourHeight, 1e-9, "с самого верха кармана");
             Assert.AreEqual(0.0, plan.TaperOriginZ, 1e-9, "уклон продолжает стенку исходного кармана");
         }
 

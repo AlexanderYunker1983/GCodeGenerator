@@ -154,8 +154,13 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
-        /// Чистовые проходы работают только в слое припуска: дно снимается
-        /// выборкой «толстым» инструментом, стенка — обходом по контуру.
+        /// Чистовые проходы. Дно снимается выборкой в слое припуска у дна:
+        /// выше него материала на дне нет. Стенка — другое дело: черновой
+        /// проход отступает от неё на припуск в каждом слое, поэтому припуск
+        /// лежит на всей высоте стенки, и чистовой обход контура выполняется
+        /// по всем слоям до полной глубины. Прежде стенка доводилась только
+        /// в слое припуска у дна — выше карман оставался уже задуманного
+        /// на величину припуска.
         /// </summary>
         private static void AddFinishingPasses(IPocketOperation operation, double allowance, List<PocketPass> passes)
         {
@@ -163,26 +168,32 @@ namespace GCodeGenerator.GCodeGenerators
             if (depthAllowance < NegligibleDepth)
                 return;
 
-            var layer = OperationCloner.Clone(operation);
-            layer.ContourHeight = operation.ContourHeight - (operation.TotalDepth - depthAllowance);
-            layer.TotalDepth = depthAllowance;
-            layer.IsRoughingEnabled = false;
-            layer.IsFinishingEnabled = false;
-            layer.FinishAllowance = allowance;
-
             var finishesBottom = operation.FinishingMode != PocketFinishingMode.Walls;
             var finishesWalls = operation.FinishingMode != PocketFinishingMode.Bottom;
 
             if (finishesBottom)
             {
+                var bottom = OperationCloner.Clone(operation);
+                bottom.ContourHeight = operation.ContourHeight - (operation.TotalDepth - depthAllowance);
+                bottom.TotalDepth = depthAllowance;
+                bottom.IsRoughingEnabled = false;
+                bottom.IsFinishingEnabled = false;
+                bottom.FinishAllowance = allowance;
+
                 // Дно слоя припуска снимается с тем же отступом от стенки:
                 // саму стенку доводит отдельный проход.
-                if (!IsTooSmall(layer, allowance))
-                    passes.Add(new PocketPass(OperationCloner.Clone(layer), PocketPassKind.Pocketing, allowance));
+                if (!IsTooSmall(bottom, allowance))
+                    passes.Add(new PocketPass(bottom, PocketPassKind.Pocketing, allowance));
             }
 
             if (finishesWalls)
-                passes.Add(new PocketPass(layer, PocketPassKind.WallFinishing));
+            {
+                var walls = OperationCloner.Clone(operation);
+                walls.IsRoughingEnabled = false;
+                walls.IsFinishingEnabled = false;
+                walls.FinishAllowance = allowance;
+                passes.Add(new PocketPass(walls, PocketPassKind.WallFinishing));
+            }
         }
 
         /// <summary>
