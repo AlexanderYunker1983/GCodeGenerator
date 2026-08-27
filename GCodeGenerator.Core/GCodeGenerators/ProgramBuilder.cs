@@ -58,13 +58,13 @@ namespace GCodeGenerator.GCodeGenerators
         public void LinearTo(double? x = null, double? y = null, double? z = null, double? feed = null, int decimals = -1)
             => Move(1, x, y, z, feed, null, null, decimals);
 
-        /// <summary>Clockwise arc (G2) to (x, y) with center offsets (i, j).</summary>
-        public void ArcCW(double x, double y, double i, double j, double feed, int decimals)
-            => Move(2, x, y, null, feed, i, j, decimals);
+        /// <summary>Clockwise arc (G2) to (x, y[, z]) with center offsets (i, j).</summary>
+        public void ArcCW(double x, double y, double i, double j, double feed, int decimals, double? z = null)
+            => Move(2, x, y, z, feed, i, j, decimals);
 
-        /// <summary>Counter-clockwise arc (G3) to (x, y) with center offsets (i, j).</summary>
-        public void ArcCCW(double x, double y, double i, double j, double feed, int decimals)
-            => Move(3, x, y, null, feed, i, j, decimals);
+        /// <summary>Counter-clockwise arc (G3) to (x, y[, z]) with center offsets (i, j).</summary>
+        public void ArcCCW(double x, double y, double i, double j, double feed, int decimals, double? z = null)
+            => Move(3, x, y, z, feed, i, j, decimals);
 
         private void Move(int gCode, double? x, double? y, double? z, double? feed, double? i, double? j, int decimals)
         {

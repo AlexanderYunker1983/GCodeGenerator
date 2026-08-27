@@ -67,5 +67,8 @@ namespace GCodeGenerator.Models
 
         /// <summary>Инструмент не помещается внутри эллипса.</summary>
         public const string EllipseToolDoesNotFit = "EllipseToolDoesNotFit";
+
+        /// <summary>Окружность винтового подвода не помещается в кармане.</summary>
+        public const string HelicalEntryDoesNotFit = "HelicalEntryDoesNotFit";
     }
 }

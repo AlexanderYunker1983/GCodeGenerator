@@ -27,9 +27,13 @@ namespace GCodeGenerator.Tests
             if (move is ArcMove arc)
             {
                 if (arc.Kind == ToolMoveKind.ArcClockwise)
-                    builder.ArcCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed);
+                    builder.ArcCW(
+                        arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY,
+                        arc.ArcFeed, arc.EndZ);
                 else
-                    builder.ArcCCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed);
+                    builder.ArcCCW(
+                        arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY,
+                        arc.ArcFeed, arc.EndZ);
             }
             else
             {

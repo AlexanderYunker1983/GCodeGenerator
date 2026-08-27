@@ -154,8 +154,6 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings,
             double? taperOriginZ = null)
         {
-            int decimals = op.Decimals;
-
             double depthFromTop = (taperOriginZ ?? op.ContourHeight) - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
 
@@ -193,13 +191,28 @@ namespace GCodeGenerator.GCodeGenerators
             // вогнутого контура — внутренняя точка по скан-линии. Базовые
             // фигуры выпуклы, и для них проверка ничего не меняет.
             var center = PocketEntryPoint.Choose(
-                geometry, contourOffset, taperOffset, contourPoints, geometry.GetCenter(), step);
+                geometry,
+                contourOffset,
+                taperOffset,
+                contourPoints,
+                geometry.GetCenter(),
+                step,
+                op.EntryMode == PocketEntryMode.Helical ? op.HelicalEntryDiameter / 2.0 : 0.0);
 
-            // Перемещаемся к точке врезания кармана
-            builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-            builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid);
-            builder.RapidTo(z: currentZ, feed: op.FeedZRapid);
-            builder.LinearTo(z: nextZ, feed: op.FeedZWork);
+            // Общий подвод для всех геометрий и стратегий: вертикальная
+            // колонна или винтовая траектория заданного диаметра и угла.
+            PocketEntryGenerator.Generate(
+                op,
+                geometry,
+                contourOffset,
+                taperOffset,
+                contourPoints,
+                center,
+                currentZ,
+                nextZ,
+                moveToSafeZ: true,
+                builder,
+                settings);
 
             // Обработка слоя выбранным способом обхода.
             strategy.MillContour(

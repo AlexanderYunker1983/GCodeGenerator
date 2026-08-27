@@ -151,9 +151,13 @@ namespace GCodeGenerator.GCodeGenerators
         private static void WriteArc(ProgramBuilder builder, ArcMove arc, int decimals)
         {
             if (arc.Kind == ToolMoveKind.ArcClockwise)
-                builder.ArcCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed, decimals);
+                builder.ArcCW(
+                    arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY,
+                    arc.ArcFeed, decimals, arc.EndZ);
             else
-                builder.ArcCCW(arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY, arc.ArcFeed, decimals);
+                builder.ArcCCW(
+                    arc.EndX, arc.EndY, arc.ArcCenterOffsetX, arc.ArcCenterOffsetY,
+                    arc.ArcFeed, decimals, arc.EndZ);
         }
 
         /// <summary>

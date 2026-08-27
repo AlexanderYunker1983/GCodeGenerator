@@ -142,6 +142,42 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void HelicalEntryParametersOutOfRange_AreRejected()
+        {
+            var operation = ValidPocket();
+            operation.EntryMode = PocketEntryMode.Helical;
+            operation.EntryAngle = 0;
+            operation.HelicalEntryDiameter = 0;
+
+            var issues = Check(operation);
+
+            Assert.IsTrue(issues.Any(i => i.Property == nameof(operation.EntryAngle)),
+                "нулевой угол не опускает инструмент по спирали");
+            Assert.IsTrue(issues.Any(i => i.Property == nameof(operation.HelicalEntryDiameter)),
+                "нулевой диаметр превращает спираль в вертикальную линию");
+
+            operation.EntryAngle = 0.1;
+            operation.HelicalEntryDiameter = double.Epsilon;
+            Assert.IsTrue(Check(operation).Any(i => i.Code == ValidationCode.Inconsistent),
+                "практически нулевой диаметр не должен порождать бесконечное число кадров");
+        }
+
+        /// <summary>
+        /// Параметры спирали не влияют на вертикальный вход: старый проект
+        /// без них использует конструкторские значения и остаётся валидным.
+        /// </summary>
+        [TestMethod]
+        public void VerticalPocketEntry_IgnoresHelicalParameters()
+        {
+            var operation = ValidPocket();
+            operation.EntryMode = PocketEntryMode.Vertical;
+            operation.EntryAngle = 0;
+            operation.HelicalEntryDiameter = 0;
+
+            Assert.AreEqual(0, Check(operation).Count);
+        }
+
+        [TestMethod]
         public void RampEntryAngleOutOfRange_IsRejected()
         {
             var operation = ValidProfile();

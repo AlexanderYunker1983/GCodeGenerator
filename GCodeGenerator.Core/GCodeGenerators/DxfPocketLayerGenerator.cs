@@ -74,25 +74,30 @@ namespace GCodeGenerator.GCodeGenerators
                 // получает эту же точку центром: спираль и радиальные проходы
                 // расходятся из неё, и она обязана лежать в области.
                 var center = PocketEntryPoint.Choose(
-                    area, 0, 0, contourPoints, area.GetCenter(), step);
+                    area,
+                    0,
+                    0,
+                    contourPoints,
+                    area.GetCenter(),
+                    step,
+                    op.EntryMode == PocketEntryMode.Helical ? op.HelicalEntryDiameter / 2.0 : 0.0);
 
-                // Поднимаем инструмент перед переходом к следующей области (кроме первой)
-                if (!isFirstArea)
-                {
-                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                }
-
-                // Перемещаемся к точке врезания области
-                builder.RapidTo(x: center.x, y: center.y, feed: op.FeedXYRapid);
-
-                // Опускаемся на рабочую высоту слоя: быстрым ходом только до
-                // его верха — выше материал сняли предыдущие слои, — дальше
-                // врезание на рабочей подаче. Схема одна для всех областей:
-                // материал слоя цел под каждой из них, на первом слое центр
-                // второй области — сплошная заготовка, и быстрый ход на
-                // рабочую глубину здесь был бы ударом инструмента в металл.
-                builder.RapidTo(z: currentZ, feed: op.FeedZRapid);
-                builder.LinearTo(z: nextZ, feed: op.FeedZWork);
+                // Для первой области сохраняется исходное положение после
+                // подхода операции; перед каждой следующей выполняется
+                // отдельный безопасный подъём. Сам вход общий с обычными
+                // карманами и умеет вертикальную и винтовую траектории.
+                PocketEntryGenerator.Generate(
+                    op,
+                    area,
+                    0,
+                    0,
+                    contourPoints,
+                    center,
+                    currentZ,
+                    nextZ,
+                    moveToSafeZ: !isFirstArea,
+                    builder,
+                    settings);
 
                 strategy.MillContour(
                     new PocketLayerContext(

@@ -4,8 +4,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 namespace GCodeGenerator.Models
 {
     /// <summary>
-    /// Общая часть операций выборки кармана: стратегия обхода, шаг между
-    /// проходами, уклон стенки и черновой/чистовой проход с припуском.
+    /// Общая часть операций выборки кармана: подвод инструмента, стратегия
+    /// обхода, шаг между проходами, уклон стенки и черновой/чистовой проход
+    /// с припуском.
     ///
     /// Эти параметры описывают не форму кармана, а способ снятия материала,
     /// поэтому одинаковы для окружности, эллипса, прямоугольника и контура из
@@ -14,10 +15,36 @@ namespace GCodeGenerator.Models
     /// </summary>
     public abstract partial class PocketOperationBase : MillingOperationBase
     {
+        /// <summary>
+        /// Защитный предел числа оборотов винтового входа на один слой.
+        /// Тысяча оборотов уже означает практически нулевой угол или диаметр
+        /// и дала бы тысячи кадров до начала самой обработки.
+        /// </summary>
+        public const int MaxHelicalEntryTurnsPerLayer = 1000;
+
         protected PocketOperationBase(OperationCategory category, string name)
             : base(category, name)
         {
         }
+
+        /// <summary>Вход в слой вертикально или по винтовой траектории.</summary>
+        [ObservableProperty]
+        private PocketEntryMode _entryMode = PocketEntryMode.Vertical;
+
+        /// <summary>
+        /// Угол винтового подвода к плоскости XY, градусы. Чем меньше угол,
+        /// тем больше оборотов инструмент делает на ту же глубину.
+        /// </summary>
+        [ObservableProperty]
+        private double _entryAngle = 5.0;
+
+        /// <summary>
+        /// Диаметр окружности, по которой движется центр фрезы при винтовом
+        /// подводе, мм. Диаметр самой фрезы учитывается отдельно при проверке
+        /// вписывания траектории в карман.
+        /// </summary>
+        [ObservableProperty]
+        private double _helicalEntryDiameter = 3.0;
 
         /// <summary>Как инструмент обходит карман: по спирали или строками.</summary>
         [ObservableProperty]

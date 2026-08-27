@@ -7,9 +7,9 @@ namespace GCodeGenerator.ViewModels.Pocket
     /// <summary>
     /// Общая часть диалогов карманов.
     ///
-    /// Параметры выборки — стратегия, шаг, уклон, припуск — окно правит прямо
-    /// в операции, поэтому здесь остаётся только то, чего в операции нет:
-    /// какие поля показывать для выбранной стратегии.
+    /// Параметры выборки — подвод, стратегия, шаг, уклон, припуск — окно
+    /// правит прямо в операции, поэтому здесь остаётся только то, чего в
+    /// операции нет: какие поля показывать для выбранных режимов.
     /// </summary>
     public abstract class PocketOperationEditorViewModelBase<TOperation>
         : OperationEditorViewModelBase<TOperation>
@@ -17,6 +17,9 @@ namespace GCodeGenerator.ViewModels.Pocket
     {
         /// <summary>Угол линий задаётся только для стратегии параллельных линий.</summary>
         public bool IsLinesStrategy => Operation?.PocketStrategy == PocketStrategy.Lines;
+
+        /// <summary>Угол и диаметр подвода задаются только для винтового входа.</summary>
+        public bool IsHelicalEntry => Operation?.EntryMode == PocketEntryMode.Helical;
 
         /// <summary>Шаг между проходами задаётся для линейных стратегий.</summary>
         public bool IsLinesOrZigZagStrategy
@@ -37,12 +40,15 @@ namespace GCodeGenerator.ViewModels.Pocket
         {
             if (e.PropertyName == nameof(PocketOperationBase.PocketStrategy) || string.IsNullOrEmpty(e.PropertyName))
                 RaiseStrategyDependentProperties();
+            if (e.PropertyName == nameof(PocketOperationBase.EntryMode) || string.IsNullOrEmpty(e.PropertyName))
+                OnPropertyChanged(nameof(IsHelicalEntry));
         }
 
         private void RaiseStrategyDependentProperties()
         {
             OnPropertyChanged(nameof(IsLinesStrategy));
             OnPropertyChanged(nameof(IsLinesOrZigZagStrategy));
+            OnPropertyChanged(nameof(IsHelicalEntry));
         }
     }
 }

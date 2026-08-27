@@ -411,6 +411,9 @@
   <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
     <value>The tool does not fit inside the ellipse: the offset contour is empty. Use a smaller tool or a larger ellipse.</value>
   </data>
+  <data name="CoreError_HelicalEntryDoesNotFit" xml:space="preserve">
+    <value>The {0:0.###} mm helical entry does not fit in this pocket area: no more than {1:0.###} mm is available at the entry point. Use a smaller helix diameter.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Error loading project:</value>
   </data>
@@ -669,8 +672,14 @@
   <data name="EntryModeAngled" xml:space="preserve">
     <value>Enter at an angle</value>
   </data>
+  <data name="EntryModeHelical" xml:space="preserve">
+    <value>Enter the tool helically</value>
+  </data>
   <data name="EntryAngleDeg" xml:space="preserve">
     <value>Entry angle (deg):</value>
+  </data>
+  <data name="HelicalEntryDiameter" xml:space="preserve">
+    <value>Helical entry diameter:</value>
   </data>
   <data name="SafeDistanceBetweenPasses" xml:space="preserve">
     <value>Safe distance between passes:</value>

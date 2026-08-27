@@ -86,6 +86,10 @@ namespace GCodeGenerator.Tests
             ops[0].Name = "Сверление: точки";
             ops[0].IsEnabled = false;
             ops[11].Name = "Профиль: окружность";
+            var helicalPocket = (PocketCircleOperation)ops[16];
+            helicalPocket.EntryMode = PocketEntryMode.Helical;
+            helicalPocket.EntryAngle = 7.5;
+            helicalPocket.HelicalEntryDiameter = 4.25;
             ops[18].Name = "Карман: DXF";
 
             return ops;
@@ -250,6 +254,8 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(210.0, pocket.FeedZWork, 1e-9);
             Assert.AreEqual(4.0, pocket.ToolDiameter, 1e-9);
             Assert.AreEqual(4, pocket.Decimals);
+            Assert.AreEqual(PocketEntryMode.Vertical, pocket.EntryMode,
+                "в старом файле без настройки подвода сохраняется прежний вертикальный вход");
         }
 
         [TestMethod]

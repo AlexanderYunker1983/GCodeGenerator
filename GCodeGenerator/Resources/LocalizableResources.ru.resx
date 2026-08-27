@@ -411,6 +411,9 @@
   <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
     <value>Инструмент не помещается внутри эллипса: эквидистанта с таким смещением пуста. Уменьшите диаметр инструмента или увеличьте эллипс.</value>
   </data>
+  <data name="CoreError_HelicalEntryDoesNotFit" xml:space="preserve">
+    <value>Спираль подвода диаметром {0:0.###} мм не помещается в этой области кармана: в точке входа доступен диаметр не более {1:0.###} мм. Уменьшите диаметр спирали.</value>
+  </data>
   <data name="ErrorOpeningProject" xml:space="preserve">
     <value>Ошибка при загрузке проекта:</value>
   </data>
@@ -669,8 +672,14 @@
   <data name="EntryModeAngled" xml:space="preserve">
     <value>Подводить под углом</value>
   </data>
+  <data name="EntryModeHelical" xml:space="preserve">
+    <value>Вводить фрезу по спирали</value>
+  </data>
   <data name="EntryAngleDeg" xml:space="preserve">
     <value>Угол подвода (град):</value>
+  </data>
+  <data name="HelicalEntryDiameter" xml:space="preserve">
+    <value>Диаметр спирали подвода:</value>
   </data>
   <data name="SafeDistanceBetweenPasses" xml:space="preserve">
     <value>Безопасное расстояние между проходами:</value>

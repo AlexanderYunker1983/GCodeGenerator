@@ -101,7 +101,8 @@ namespace GCodeGenerator.Toolpath
 
     /// <summary>
     /// Дуга траектории. Пять величин обязательны — кадр G2/G3 без любой
-    /// из них не имеет смысла, — и обязательность обеспечивает конструктор:
+    /// из них не имеет смысла, — а необязательная конечная Z превращает
+    /// плоскую дугу в винтовое перемещение. Обязательность обеспечивает конструктор:
     /// нелегальная дуга непредставима, и ни постпроцессору, ни превью
     /// не приходится перепроверять её при выводе. Прежде обязательность
     /// восстанавливали проверки постпроцессора; отказ теперь приходит
@@ -109,10 +110,17 @@ namespace GCodeGenerator.Toolpath
     /// </summary>
     public sealed class ArcMove : ToolMove
     {
-        public ArcMove(bool clockwise, double x, double y, double centerOffsetX, double centerOffsetY, double feed)
+        public ArcMove(
+            bool clockwise,
+            double x,
+            double y,
+            double centerOffsetX,
+            double centerOffsetY,
+            double feed,
+            double? z = null)
             : base(
                 clockwise ? ToolMoveKind.ArcClockwise : ToolMoveKind.ArcCounterClockwise,
-                x, y, null, centerOffsetX, centerOffsetY, feed)
+                x, y, z, centerOffsetX, centerOffsetY, feed)
         {
             // Пять величин хранятся и как необязательные слова базового
             // перемещения (их читает общий вывод), и как собственные
@@ -123,6 +131,7 @@ namespace GCodeGenerator.Toolpath
             ArcCenterOffsetX = centerOffsetX;
             ArcCenterOffsetY = centerOffsetY;
             ArcFeed = feed;
+            EndZ = z;
         }
 
         /// <summary>Конечная точка дуги, X.</summary>
@@ -139,6 +148,11 @@ namespace GCodeGenerator.Toolpath
 
         /// <summary>Подача дуги, мм/мин.</summary>
         public double ArcFeed { get; }
+
+        /// <summary>
+        /// Конечная Z винтового перемещения; <c>null</c> у плоской дуги.
+        /// </summary>
+        public double? EndZ { get; }
     }
 
     /// <summary>

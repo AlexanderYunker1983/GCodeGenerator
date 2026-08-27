@@ -82,6 +82,13 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void HelicalArc_Words()
+        {
+            _builder.ArcCW(10.0, 0.0, 5.0, 0.0, 300.0, 3, z: -1.0);
+            AssertBlock(0, "G:2(-1) X:10(3) Y:0(3) Z:-1(3) I:5(3) J:0(3) F:300(3)");
+        }
+
+        [TestMethod]
         public void Dwell_Words()
         {
             _builder.Dwell(2000.0);

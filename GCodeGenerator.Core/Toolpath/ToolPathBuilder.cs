@@ -52,16 +52,22 @@ namespace GCodeGenerator.Toolpath
             Add(ToolMoveKind.Linear, x, y, z, null, null, feed);
         }
 
-        /// <summary>Дуга по часовой стрелке в точку (x, y) вокруг центра (i, j).</summary>
-        public void ArcCW(double x, double y, double i, double j, double feed)
+        /// <summary>
+        /// Дуга по часовой стрелке в точку (x, y) вокруг центра (i, j).
+        /// Заданная Z образует винтовое перемещение.
+        /// </summary>
+        public void ArcCW(double x, double y, double i, double j, double feed, double? z = null)
         {
-            _operation.Add(new ArcMove(clockwise: true, x, y, i, j, feed));
+            _operation.Add(new ArcMove(clockwise: true, x, y, i, j, feed, z));
         }
 
-        /// <summary>Дуга против часовой стрелки в точку (x, y) вокруг центра (i, j).</summary>
-        public void ArcCCW(double x, double y, double i, double j, double feed)
+        /// <summary>
+        /// Дуга против часовой стрелки в точку (x, y) вокруг центра (i, j).
+        /// Заданная Z образует винтовое перемещение.
+        /// </summary>
+        public void ArcCCW(double x, double y, double i, double j, double feed, double? z = null)
         {
-            _operation.Add(new ArcMove(clockwise: false, x, y, i, j, feed));
+            _operation.Add(new ArcMove(clockwise: false, x, y, i, j, feed, z));
         }
 
         private void Add(

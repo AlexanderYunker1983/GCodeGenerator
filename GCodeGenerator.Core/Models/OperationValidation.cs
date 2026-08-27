@@ -150,7 +150,7 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>
-        /// Проверки, общие для карманов: шаг выборки и припуск.
+        /// Проверки, общие для карманов: подвод, шаг выборки и припуск.
         ///
         /// Шаг больше диаметра фрезы оставляет между проходами нетронутый
         /// материал — карман получится не выбранным, а расчерченным.
@@ -159,12 +159,48 @@ namespace GCodeGenerator.Models
         {
             AddMillingIssues(issues, operation);
 
+            EnumValidation.AddIfUndefined(issues, nameof(operation.EntryMode), operation.EntryMode);
             EnumValidation.AddIfUndefined(issues, nameof(operation.PocketStrategy), operation.PocketStrategy);
             EnumValidation.AddIfUndefined(issues, nameof(operation.FinishingMode), operation.FinishingMode);
 
             AddIfOutOfRange(issues, nameof(operation.StepPercentOfTool), operation.StepPercentOfTool, 1, 100);
             AddIfNegative(issues, nameof(operation.FinishAllowance), operation.FinishAllowance);
             AddIfNotFinite(issues, nameof(operation.LineAngleDeg), operation.LineAngleDeg);
+
+            // Угол и диаметр не влияют на вертикальный вход: старые проекты
+            // могут не содержать этих полей и всё равно должны открываться.
+            if (operation.EntryMode == PocketEntryMode.Helical)
+            {
+                AddIfOutOfRange(issues, nameof(operation.EntryAngle), operation.EntryAngle, 0.1, 89.9);
+                AddIfNotPositive(issues, nameof(operation.HelicalEntryDiameter), operation.HelicalEntryDiameter);
+
+                if (double.IsFinite(operation.EntryAngle)
+                    && operation.EntryAngle >= 0.1
+                    && operation.EntryAngle <= 89.9
+                    && double.IsFinite(operation.HelicalEntryDiameter)
+                    && operation.HelicalEntryDiameter > 0
+                    && double.IsFinite(operation.TotalDepth)
+                    && operation.TotalDepth > 0
+                    && double.IsFinite(operation.StepDepth)
+                    && operation.StepDepth > 0)
+                {
+                    // Винтовой вход начинается над верхом слоя на высоте
+                    // отвода, поэтому длина спуска больше глубины самого слоя.
+                    var layerDepth = Math.Min(operation.TotalDepth, operation.StepDepth)
+                        + operation.RetractHeight;
+                    var depthPerTurn = Math.PI * operation.HelicalEntryDiameter
+                        * Math.Tan(operation.EntryAngle * Math.PI / 180.0);
+                    var turns = layerDepth / depthPerTurn;
+                    if (!double.IsFinite(turns) || turns > PocketOperationBase.MaxHelicalEntryTurnsPerLayer)
+                    {
+                        issues.Add(new ValidationIssue(
+                            nameof(operation.EntryAngle),
+                            ValidationCode.Inconsistent,
+                            $"angle and diameter require {turns.ToString("0.###", CultureInfo.InvariantCulture)} "
+                            + $"turns per layer; at most {PocketOperationBase.MaxHelicalEntryTurnsPerLayer} are allowed"));
+                    }
+                }
+            }
 
             if (operation.IsFinishingEnabled && operation.FinishAllowance <= 0)
             {
