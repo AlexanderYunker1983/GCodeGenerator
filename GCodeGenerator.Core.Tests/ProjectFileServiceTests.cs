@@ -159,6 +159,22 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        [TestMethod]
+        public void RoundTrip_PreservesPocketIslandMode_AndOldFileDefaultsToMachining()
+        {
+            var island = OperationFixtures.PocketDxf();
+            island.PocketMode = PocketMode.Island;
+
+            var loaded = (PocketDxfOperation)Service.Deserialize(
+                Service.Serialize(new OperationBase[] { island }, null)).Operations[0];
+            Assert.AreEqual(PocketMode.Island, loaded.PocketMode);
+
+            var oldJson = "{\"version\":4,\"operations\":[{\"type\":\"PocketCircle\",\"data\":{" +
+                "\"Radius\":10,\"Name\":\"Старый карман\",\"IsEnabled\":true}}]}";
+            var oldPocket = (PocketCircleOperation)Service.Deserialize(oldJson).Operations[0];
+            Assert.AreEqual(PocketMode.Machining, oldPocket.PocketMode);
+        }
+
         // ------------------------------------------------------------------
         // Текущий формат v4
         // ------------------------------------------------------------------

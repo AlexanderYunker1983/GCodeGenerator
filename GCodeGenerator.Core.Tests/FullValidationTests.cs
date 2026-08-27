@@ -139,6 +139,13 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(issues.Any(i => i.Property == nameof(operation.PocketStrategy)
                                           && i.Code == ValidationCode.NotAllowed),
                 "Неизвестная стратегия не должна молча становиться спиралью");
+
+            operation = ValidPocket();
+            operation.PocketMode = (PocketMode)99;
+            issues = Check(operation);
+            Assert.IsTrue(issues.Any(i => i.Property == nameof(operation.PocketMode)
+                                          && i.Code == ValidationCode.NotAllowed),
+                "Неизвестное назначение геометрии не должно считаться обычным карманом");
         }
 
         [TestMethod]

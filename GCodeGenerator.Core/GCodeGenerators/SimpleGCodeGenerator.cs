@@ -81,6 +81,7 @@ namespace GCodeGenerator.GCodeGenerators
             // ошибке вызывающая сторона не получит частичный, внешне
             // корректный результат.
             var resolvedGenerators = ValidateAndResolveGenerators(operations, settings);
+            var generationContext = OperationGenerationContext.FromOperations(operations);
 
             var toolPath = new ToolPath();
 
@@ -98,11 +99,32 @@ namespace GCodeGenerator.GCodeGenerators
                 if (operation == null || !operation.IsEnabled)
                     continue;
 
+                // Остров — входная геометрия для других карманов, а не
+                // самостоятельная обработка. Он проверен предполётно и уже
+                // присутствует в generationContext, но траектории не создаёт.
+                if (operation is PocketOperationBase pocket
+                    && pocket.PocketMode == PocketMode.Island)
+                {
+                    if (total > 0)
+                        progress?.Report((index + 1) * 100 / total);
+                    continue;
+                }
+
                 var pathOperation = new ToolPathOperation(
                     operation.Name, operation.GetDescription(), OperationDecimals(operation), operation);
                 toolPath.AddOperation(pathOperation);
 
-                resolvedGenerators[index].Generate(operation, new ToolPathBuilder(pathOperation), settings, cancellation);
+                var operationBuilder = new ToolPathBuilder(pathOperation);
+                if (resolvedGenerators[index] is IContextualOperationGenerator contextual)
+                {
+                    contextual.Generate(
+                        operation, operationBuilder, settings, generationContext, cancellation);
+                }
+                else
+                {
+                    resolvedGenerators[index].Generate(
+                        operation, operationBuilder, settings, cancellation);
+                }
 
                 if (total > 0)
                     progress?.Report((index + 1) * 100 / total);

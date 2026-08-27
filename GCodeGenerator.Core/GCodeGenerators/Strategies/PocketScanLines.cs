@@ -47,9 +47,28 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             (double x, double y) center,
             double angleDeg,
             double step)
+            => Build(
+                contourPoints == null
+                    ? Array.Empty<List<(double x, double y)>>()
+                    : new[] { contourPoints },
+                center,
+                angleDeg,
+                step);
+
+        /// <summary>
+        /// Строит скан-линии по нескольким границам. Пересечения всех
+        /// контуров сортируются вместе и объединяются по правилу even-odd:
+        /// поэтому отверстия-острова естественно разрывают рез на два
+        /// безопасных сегмента.
+        /// </summary>
+        public static List<ScanLine> Build(
+            IReadOnlyList<List<(double x, double y)>> contours,
+            (double x, double y) center,
+            double angleDeg,
+            double step)
         {
             var result = new List<ScanLine>();
-            if (contourPoints == null || contourPoints.Count < 3 || step <= 0)
+            if (contours == null || contours.Count == 0 || step <= 0)
                 return result;
 
             double angle = -angleDeg * Math.PI / 180.0;
@@ -57,19 +76,30 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double sin = Math.Sin(angle);
 
             // Локальные координаты: направление резания — вдоль X
-            var local = new List<(double x, double y)>(contourPoints.Count);
+            var localContours = new List<List<(double x, double y)>>(contours.Count);
             double yMin = double.MaxValue;
             double yMax = double.MinValue;
-            foreach (var p in contourPoints)
+            foreach (var contour in contours)
             {
-                double dx = p.x - center.x;
-                double dy = p.y - center.y;
-                double lx = dx * cos - dy * sin;
-                double ly = dx * sin + dy * cos;
-                local.Add((lx, ly));
-                if (ly < yMin) yMin = ly;
-                if (ly > yMax) yMax = ly;
+                if (contour == null || contour.Count < 3)
+                    continue;
+
+                var local = new List<(double x, double y)>(contour.Count);
+                foreach (var p in contour)
+                {
+                    double dx = p.x - center.x;
+                    double dy = p.y - center.y;
+                    double lx = dx * cos - dy * sin;
+                    double ly = dx * sin + dy * cos;
+                    local.Add((lx, ly));
+                    if (ly < yMin) yMin = ly;
+                    if (ly > yMax) yMax = ly;
+                }
+                localContours.Add(local);
             }
+
+            if (localContours.Count == 0)
+                return result;
 
             double height = yMax - yMin;
             if (height <= GeometryTolerances.Degenerate)
@@ -82,7 +112,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             for (int k = 0; k < bands; k++)
             {
                 double y = yMin + (k + 0.5) * band;
-                var segments = IntersectLine(local, y);
+                var segments = IntersectLine(localContours, y);
                 if (segments.Count > 0)
                     result.Add(new ScanLine(y, segments));
             }
@@ -91,7 +121,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         }
 
         /// <summary>
-        /// Переводит локальную точку в мировые координаты (обратное к <see cref="Build"/>).
+        /// Переводит локальную точку в мировые координаты (обратное к построению скан-линий).
         /// </summary>
         public static (double x, double y) ToWorld(
             (double x, double y) local,
@@ -111,34 +141,37 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// X-координаты отсортированы, сгруппированы в пары (сегменты).
         /// </summary>
         private static List<(double x1, double x2)> IntersectLine(
-            List<(double x, double y)> local,
+            IReadOnlyList<List<(double x, double y)>> contours,
             double y)
         {
             const double eps = GeometryTolerances.Degenerate;
             var xs = new List<double>();
 
-            for (int i = 0; i < local.Count; i++)
+            foreach (var local in contours)
             {
-                var p1 = local[i];
-                var p2 = local[(i + 1) % local.Count];
+                for (int i = 0; i < local.Count; i++)
+                {
+                    var p1 = local[i];
+                    var p2 = local[(i + 1) % local.Count];
 
-                double dy = p2.y - p1.y;
-                if (Math.Abs(dy) < eps)
-                    continue; // горизонтальный сегмент скан-линию не пересекает
+                    double dy = p2.y - p1.y;
+                    if (Math.Abs(dy) < eps)
+                        continue; // горизонтальный сегмент скан-линию не пересекает
 
-                double t = (y - p1.y) / dy;
+                    double t = (y - p1.y) / dy;
 
-                // Допуск попадания в конец ребра выражается в единицах
-                // параметра: t безразмерен, а Vertex — миллиметры, и прямое
-                // сравнение делало допуск тем грубее, чем короче ребро,
-                // и тем строже, чем длиннее.
-                double length = Math.Sqrt(Math.Pow(p2.x - p1.x, 2) + dy * dy);
-                double tTolerance = length > eps ? GeometryTolerances.Vertex / length : 0.0;
-                if (t < -tTolerance || t > 1.0 + tTolerance)
-                    continue;
+                    // Допуск попадания в конец ребра выражается в единицах
+                    // параметра: t безразмерен, а Vertex — миллиметры, и прямое
+                    // сравнение делало допуск тем грубее, чем короче ребро,
+                    // и тем строже, чем длиннее.
+                    double length = Math.Sqrt(Math.Pow(p2.x - p1.x, 2) + dy * dy);
+                    double tTolerance = length > eps ? GeometryTolerances.Vertex / length : 0.0;
+                    if (t < -tTolerance || t > 1.0 + tTolerance)
+                        continue;
 
-                double x = p1.x + t * (p2.x - p1.x);
-                xs.Add(x);
+                    double x = p1.x + t * (p2.x - p1.x);
+                    xs.Add(x);
+                }
             }
 
             xs.Sort();

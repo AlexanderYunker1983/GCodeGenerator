@@ -31,7 +31,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
-            var scanLines = PocketScanLines.Build(layer.ContourPoints, layer.Center, op.LineAngleDeg, layer.Step);
+            var scanLines = PocketScanLines.Build(layer.BoundaryContours, layer.Center, op.LineAngleDeg, layer.Step);
 
             foreach (var line in scanLines)
             {

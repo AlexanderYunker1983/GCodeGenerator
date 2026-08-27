@@ -60,21 +60,35 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 if (contour == null)
                     break;
 
-                var points = contour.GetPoints().ToList();
-                if (points.Count < 3)
+                var contours = layer.RequiresSafeTransitions
+                    ? PocketGeometryContours.Get(layer.Geometry, effectiveToolRadius, layer.TaperOffset)
+                    : new[] { contour };
+                if (contours.Count == 0)
                     break;
 
-                if (clockwise)
-                    points.Reverse();
-
-                // Фрезеруем замкнутый контур (инструмент на рабочей Z)
-                foreach (var point in points)
+                foreach (var passContour in contours)
                 {
-                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
-                }
+                    var points = passContour.GetPoints().ToList();
+                    if (points.Count < 3)
+                        continue;
 
-                // Замыкаем контур, если первая точка не совпадает с последней
-                GCodeGenerationHelper.CloseContour(builder, points, op.FeedXYWork, tolerance);
+                    if (clockwise)
+                        points.Reverse();
+
+                    if (layer.RequiresSafeTransitions)
+                    {
+                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                        builder.RapidTo(x: points[0].x, y: points[0].y, feed: op.FeedXYRapid);
+                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    }
+
+                    // Фрезеруем замкнутый контур (инструмент на рабочей Z)
+                    foreach (var point in points)
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
+
+                    // Замыкаем контур, если первая точка не совпадает с последней
+                    GCodeGenerationHelper.CloseContour(builder, points, op.FeedXYWork, tolerance);
+                }
             }
         }
     }

@@ -99,13 +99,14 @@ namespace GCodeGenerator.GCodeGenerators
                     builder,
                     settings);
 
-                strategy.MillContour(
-                    new PocketLayerContext(
-                        op, area, 0, 0, 0, step, nextZ, contourPoints, center, settings),
-                    builder);
+                var layer = new PocketLayerContext(
+                    op, area, 0, 0, 0, step, nextZ, contourPoints, center, settings);
+                strategy.MillContour(layer, builder);
 
-                // Возврат в центр области и подъем
-                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
+                // При островах прямая связка к центру может пересечь
+                // запрещённую область, поэтому сначала выполняется подъём.
+                if (!layer.RequiresSafeTransitions)
+                    builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
                 builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
 
                 isFirstArea = false;

@@ -867,6 +867,15 @@
   <data name="IslandMillingEnabled" xml:space="preserve">
     <value>Enable island milling</value>
   </data>
+  <data name="PocketModeHeader" xml:space="preserve">
+    <value>Geometry purpose</value>
+  </data>
+  <data name="PocketModeMachining" xml:space="preserve">
+    <value>Machine as pocket</value>
+  </data>
+  <data name="PocketModeIsland" xml:space="preserve">
+    <value>Island (keep this area unmachined)</value>
+  </data>
   <data name="OuterBoundaryTypeLabel" xml:space="preserve">
     <value>Outer boundary type:</value>
   </data>

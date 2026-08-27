@@ -867,6 +867,15 @@
   <data name="IslandMillingEnabled" xml:space="preserve">
     <value>Включить фрезерование острова</value>
   </data>
+  <data name="PocketModeHeader" xml:space="preserve">
+    <value>Назначение геометрии</value>
+  </data>
+  <data name="PocketModeMachining" xml:space="preserve">
+    <value>Обрабатывать как карман</value>
+  </data>
+  <data name="PocketModeIsland" xml:space="preserve">
+    <value>Остров (оставить область необработанной)</value>
+  </data>
   <data name="OuterBoundaryTypeLabel" xml:space="preserve">
     <value>Тип внешней границы:</value>
   </data>

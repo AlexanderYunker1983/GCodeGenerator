@@ -27,6 +27,14 @@ namespace GCodeGenerator.Models
         {
         }
 
+        /// <summary>
+        /// Обычный карман или остров — необрабатываемая геометрия, которую
+        /// остальные операции карманов должны обходить. Обычный режим остаётся
+        /// значением по умолчанию для совместимости со старыми проектами.
+        /// </summary>
+        [ObservableProperty]
+        private PocketMode _pocketMode = PocketMode.Machining;
+
         /// <summary>Вход в слой вертикально или по винтовой траектории.</summary>
         [ObservableProperty]
         private PocketEntryMode _entryMode = PocketEntryMode.Vertical;

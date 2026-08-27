@@ -21,7 +21,7 @@ namespace GCodeGenerator.GCodeGenerators
     /// Пункт 5.6 плана: состав и порядок черновых и чистовых проходов
     /// определяет <see cref="PocketPassPlanner"/>, генератор их исполняет.
     /// </summary>
-    public class UnifiedPocketGenerator : IOperationGenerator
+    public class UnifiedPocketGenerator : IContextualOperationGenerator
     {
         private readonly PocketGenerationHelper _helper;
         private readonly DxfPocketLayerGenerator _dxfLayerGenerator;
@@ -54,9 +54,23 @@ namespace GCodeGenerator.GCodeGenerators
             ToolPathBuilder builder,
             GCodeSettings settings,
             CancellationToken cancellation = default)
+            => Generate(operation, builder, settings, OperationGenerationContext.Empty, cancellation);
+
+        public void Generate(
+            OperationBase operation,
+            ToolPathBuilder builder,
+            GCodeSettings settings,
+            OperationGenerationContext context,
+            CancellationToken cancellation = default)
         {
             // Проверяем, что операция является карманом
             if (!(operation is PocketOperationBase pocketOp))
+                return;
+
+            // При прямом вызове генератора остров также не должен внезапно
+            // превратиться в обычную выборку. В составе проекта SimpleGCodeGenerator
+            // отфильтровывает его раньше, не создавая пустую операцию траектории.
+            if (pocketOp.PocketMode == PocketMode.Island)
                 return;
 
             // Пункт 5.6: черновой и чистовые проходы. Состав и порядок проходов
@@ -76,7 +90,15 @@ namespace GCodeGenerator.GCodeGenerators
                     ? WallFinishingStrategy.Instance
                     : _strategies.For(pass.Operation.PocketStrategy);
 
-                MillPocket(pass.Operation, strategy, pass.Allowance, builder, settings, plan.TaperOriginZ, cancellation);
+                MillPocket(
+                    pass.Operation,
+                    strategy,
+                    pass.Allowance,
+                    builder,
+                    settings,
+                    context.PocketIslands,
+                    plan.TaperOriginZ,
+                    cancellation);
             }
         }
 
@@ -88,6 +110,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="allowance">Припуск у стенки: отступ траектории внутрь.</param>
         /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
+        /// <param name="islands">Включённые острова всего проекта.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
         /// <param name="cancellation">Отмена: проверяется перед каждым слоем.</param>
@@ -97,6 +120,7 @@ namespace GCodeGenerator.GCodeGenerators
             double allowance,
             ToolPathBuilder builder,
             GCodeSettings settings,
+            System.Collections.Generic.IReadOnlyList<PocketOperationBase> islands,
             double? taperOriginZ = null,
             CancellationToken cancellation = default)
         {
@@ -120,6 +144,7 @@ namespace GCodeGenerator.GCodeGenerators
                     strategy,
                     builder,
                     settings,
+                    islands,
                     taperOriginZ),
                 builder,
                 settings,
@@ -139,6 +164,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="builder">Построитель траектории.</param>
         /// <param name="settings">Настройки генерации G-кода.</param>
         /// <param name="strategy">Способ обхода слоя.</param>
+        /// <param name="islands">Включённые острова всего проекта.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
         /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
         private bool GenerateLayer(
@@ -152,6 +178,7 @@ namespace GCodeGenerator.GCodeGenerators
             IPocketPocketingStrategy strategy,
             ToolPathBuilder builder,
             GCodeSettings settings,
+            System.Collections.Generic.IReadOnlyList<PocketOperationBase> islands,
             double? taperOriginZ = null)
         {
             double depthFromTop = (taperOriginZ ?? op.ContourHeight) - nextZ;
@@ -160,6 +187,20 @@ namespace GCodeGenerator.GCodeGenerators
             // Отступ траектории от стенки: радиус фрезы и припуск, который
             // проход оставляет для чистовой обработки.
             double contourOffset = toolRadius + allowance;
+
+            // Острова задаются отдельными операциями проекта. На каждом слое
+            // строится область движения центра фрезы: карман уже уменьшен на
+            // радиус инструмента, а острова увеличены на ту же величину.
+            // Если остров не пересекает этот слой, остаётся прежняя геометрия
+            // и G-code операции не меняется.
+            var region = PocketRegionGeometry.TryCreate(
+                geometry, islands, contourOffset, taperOffset);
+            if (region != null)
+            {
+                return _dxfLayerGenerator.GenerateLayer(
+                    op, region, 0, 0, 0, step,
+                    currentZ, nextZ, strategy, builder, settings);
+            }
 
             // Смещение внутрь может разбить карман на отдельные области —
             // тогда каждая фрезеруется как самостоятельный карман
@@ -241,20 +282,36 @@ namespace GCodeGenerator.GCodeGenerators
             {
                 // Стратегия работает на рабочей Z без отводов — WorkingZ не используется.
                 var op = layer.Operation;
-                var contourPoints = layer.ContourPoints;
-
-                if (contourPoints == null || contourPoints.Count < 3)
+                if (layer.ContourPoints == null || layer.ContourPoints.Count < 3)
                     return;
 
-                // Фрезеруем замкнутый контур (инструмент на рабочей Z)
-                foreach (var point in contourPoints)
-                {
-                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
-                }
+                var contours = layer.RequiresSafeTransitions
+                    ? layer.BoundaryContours
+                    : new[] { layer.ContourPoints };
 
-                // Замыкаем контур, если первая точка не совпадает с последней
-                GCodeGenerationHelper.CloseContour(
-                    builder, contourPoints, op.FeedXYWork, GeometryTolerances.Degenerate);
+                foreach (var contourPoints in contours)
+                {
+                    if (contourPoints == null || contourPoints.Count < 3)
+                        continue;
+
+                    if (layer.RequiresSafeTransitions)
+                    {
+                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                        builder.RapidTo(
+                            x: contourPoints[0].x,
+                            y: contourPoints[0].y,
+                            feed: op.FeedXYRapid);
+                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    }
+
+                    // Фрезеруем замкнутый контур (инструмент на рабочей Z)
+                    foreach (var point in contourPoints)
+                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
+
+                    // Замыкаем контур, если первая точка не совпадает с последней
+                    GCodeGenerationHelper.CloseContour(
+                        builder, contourPoints, op.FeedXYWork, GeometryTolerances.Degenerate);
+                }
             }
         }
     }

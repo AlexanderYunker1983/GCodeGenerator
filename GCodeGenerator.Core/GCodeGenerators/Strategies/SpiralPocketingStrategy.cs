@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
+using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -30,6 +31,16 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             // Спираль работает на рабочей Z без отводов — workingZ не используется.
             if (layer.ContourPoints == null || layer.ContourPoints.Count == 0)
                 return;
+
+            // В области с островами прямой обход одного контура недостаточен:
+            // спираль может несколько раз входить и выходить из запрещённых
+            // зон. Каждый её короткий сегмент обрезается всеми границами, а
+            // несвязные допустимые части соединяются через безопасную высоту.
+            if (layer.RequiresSafeTransitions)
+            {
+                MillRegionWithObstacles(layer, builder);
+                return;
+            }
 
             // Максимальное расстояние от центра до контура — предел спирали
             double maxDistance = layer.MaxContourDistanceFromCenter();
@@ -171,6 +182,159 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 // Возвращаемся в центр без подъема инструмента
                 builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork);
             }
+        }
+
+        private static void MillRegionWithObstacles(PocketLayerContext layer, ToolPathBuilder builder)
+        {
+            var op = layer.Operation;
+            var maxDistance = layer.MaxContourDistanceFromCenter();
+            if (maxDistance <= 0 || layer.Step <= 0)
+                return;
+
+            var b = layer.Step / (2.0 * Math.PI);
+            var direction = op.Direction == MillingDirection.Clockwise ? -1.0 : 1.0;
+            var stepAngle = 2.0 * Math.PI / 128.0;
+            var thetaMax = maxDistance / b;
+            var previous = layer.Center;
+            var currentCutEnd = layer.Center;
+            var hasContinuousCut = layer.Geometry.IsPointInside(
+                previous.x, previous.y, layer.ContourOffset, layer.TaperOffset);
+
+            for (var theta = stepAngle; theta <= thetaMax + stepAngle / 2.0; theta += stepAngle)
+            {
+                var boundedTheta = Math.Min(theta, thetaMax);
+                var radius = b * boundedTheta;
+                var angle = boundedTheta * direction;
+                var next = (
+                    x: layer.Center.x + radius * Math.Cos(angle),
+                    y: layer.Center.y + radius * Math.Sin(angle));
+
+                var pieces = AllowedPieces(layer, previous, next);
+                foreach (var piece in pieces)
+                {
+                    var continuous = hasContinuousCut
+                        && Geometry2D.Distance(
+                            currentCutEnd.x, currentCutEnd.y, piece.from.x, piece.from.y)
+                           <= GeometryTolerances.Vertex;
+                    if (!continuous)
+                    {
+                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                        builder.RapidTo(x: piece.from.x, y: piece.from.y, feed: op.FeedXYRapid);
+                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    }
+                    else
+                    {
+                        builder.LinearTo(x: piece.from.x, y: piece.from.y, feed: op.FeedXYWork);
+                    }
+
+                    builder.LinearTo(x: piece.to.x, y: piece.to.y, feed: op.FeedXYWork);
+                    currentCutEnd = piece.to;
+                    hasContinuousCut = true;
+                }
+
+                if (pieces.Count == 0
+                    || Geometry2D.Distance(
+                        pieces[pieces.Count - 1].to.x,
+                        pieces[pieces.Count - 1].to.y,
+                        next.x,
+                        next.y) > GeometryTolerances.Vertex)
+                {
+                    hasContinuousCut = false;
+                }
+
+                previous = next;
+                if (boundedTheta >= thetaMax)
+                    break;
+            }
+
+            // Спираль выбирает площадь, а точный проход по каждой границе
+            // гарантирует обработку стенки кармана и подход к острову ровно
+            // до допустимого центра фрезы.
+            foreach (var boundary in layer.BoundaryContours)
+            {
+                if (boundary == null || boundary.Count < 3)
+                    continue;
+
+                var points = new List<(double x, double y)>(boundary);
+                if (op.Direction == MillingDirection.Clockwise)
+                    points.Reverse();
+
+                builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                builder.RapidTo(x: points[0].x, y: points[0].y, feed: op.FeedXYRapid);
+                builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                foreach (var point in points)
+                    builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
+                GCodeGenerationHelper.CloseContour(
+                    builder, points, op.FeedXYWork, GeometryTolerances.Degenerate);
+            }
+        }
+
+        /// <summary>Допустимые части одного короткого сегмента спирали.</summary>
+        private static List<((double x, double y) from, (double x, double y) to)> AllowedPieces(
+            PocketLayerContext layer,
+            (double x, double y) from,
+            (double x, double y) to)
+        {
+            var parameters = new List<double> { 0.0, 1.0 };
+            var dx = to.x - from.x;
+            var dy = to.y - from.y;
+            var lengthSquared = dx * dx + dy * dy;
+            if (lengthSquared <= GeometryTolerances.Degenerate)
+                return new List<((double x, double y), (double x, double y))>();
+
+            foreach (var boundary in layer.BoundaryContours)
+            {
+                for (var index = 0; index < boundary.Count; index++)
+                {
+                    var first = boundary[index];
+                    var second = boundary[(index + 1) % boundary.Count];
+                    var intersection = Geometry2D.SegmentIntersection(
+                        from.x, from.y, to.x, to.y,
+                        first.x, first.y, second.x, second.y,
+                        GeometryTolerances.Degenerate,
+                        GeometryTolerances.Vertex);
+                    if (!intersection.HasValue)
+                        continue;
+
+                    var t = ((intersection.Value.x - from.x) * dx
+                             + (intersection.Value.y - from.y) * dy) / lengthSquared;
+                    parameters.Add(Math.Max(0, Math.Min(1, t)));
+                }
+            }
+
+            parameters.Sort();
+            var unique = new List<double>();
+            foreach (var parameter in parameters)
+            {
+                if (unique.Count == 0
+                    || Math.Abs(parameter - unique[unique.Count - 1]) > GeometryTolerances.Degenerate)
+                {
+                    unique.Add(parameter);
+                }
+            }
+
+            var result = new List<((double x, double y) from, (double x, double y) to)>();
+            for (var index = 0; index + 1 < unique.Count; index++)
+            {
+                var start = unique[index];
+                var end = unique[index + 1];
+                if (end - start <= GeometryTolerances.Degenerate)
+                    continue;
+
+                var middle = (start + end) / 2.0;
+                var middleX = from.x + dx * middle;
+                var middleY = from.y + dy * middle;
+                if (!layer.Geometry.IsPointInside(
+                        middleX, middleY, layer.ContourOffset, layer.TaperOffset))
+                {
+                    continue;
+                }
+
+                result.Add((
+                    (from.x + dx * start, from.y + dy * start),
+                    (from.x + dx * end, from.y + dy * end)));
+            }
+            return result;
         }
 
         /// <summary>

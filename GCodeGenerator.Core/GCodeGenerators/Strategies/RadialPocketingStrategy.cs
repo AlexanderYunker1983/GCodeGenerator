@@ -41,12 +41,105 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             for (int i = 0; i < spokes; i++)
             {
                 double theta = 2.0 * Math.PI * i / spokes;
+
+                if (layer.RequiresSafeTransitions)
+                {
+                    foreach (var segment in RaySegments(layer, theta))
+                    {
+                        var from = (
+                            x: layer.Center.x + segment.from * Math.Cos(theta),
+                            y: layer.Center.y + segment.from * Math.Sin(theta));
+                        var to = (
+                            x: layer.Center.x + segment.to * Math.Cos(theta),
+                            y: layer.Center.y + segment.to * Math.Sin(theta));
+
+                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                        builder.RapidTo(x: from.x, y: from.y, feed: op.FeedXYRapid);
+                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                        builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork);
+                        builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork);
+                    }
+                    continue;
+                }
+
                 var boundary = FarthestRayIntersection(layer.Center, theta, layer.ContourPoints);
 
                 // Проход: центр → граница → центр
                 builder.LinearTo(x: boundary.x, y: boundary.y, feed: op.FeedXYWork);
                 builder.LinearTo(x: layer.Center.x, y: layer.Center.y, feed: op.FeedXYWork);
             }
+        }
+
+        /// <summary>
+        /// Допустимые участки луча при наличии островов. Все пересечения со
+        /// внешним и внутренними контурами сортируются по расстоянию, а
+        /// принадлежность промежутка проверяется по его середине. Это не даёт
+        /// лучу пересечь остров и сохраняет обработку участка за ним.
+        /// </summary>
+        private static List<(double from, double to)> RaySegments(
+            PocketLayerContext layer,
+            double theta)
+        {
+            var dx = Math.Cos(theta);
+            var dy = Math.Sin(theta);
+            var intersections = new List<double> { 0.0 };
+            const double eps = GeometryTolerances.Degenerate;
+
+            foreach (var contour in layer.BoundaryContours)
+            {
+                for (var index = 0; index < contour.Count; index++)
+                {
+                    var p1 = contour[index];
+                    var p2 = contour[(index + 1) % contour.Count];
+                    var ex = p2.x - p1.x;
+                    var ey = p2.y - p1.y;
+                    var denom = ex * dy - dx * ey;
+                    if (Math.Abs(denom) < eps)
+                        continue;
+
+                    var wx = p1.x - layer.Center.x;
+                    var wy = p1.y - layer.Center.y;
+                    var t = (ex * wy - wx * ey) / denom;
+                    var u = (dx * wy - wx * dy) / denom;
+                    if (t >= -GeometryTolerances.Vertex
+                        && u >= -GeometryTolerances.Vertex
+                        && u <= 1.0 + GeometryTolerances.Vertex)
+                    {
+                        intersections.Add(Math.Max(0, t));
+                    }
+                }
+            }
+
+            intersections.Sort();
+            var unique = new List<double>();
+            foreach (var distance in intersections)
+            {
+                if (unique.Count == 0
+                    || Math.Abs(distance - unique[unique.Count - 1]) > GeometryTolerances.Vertex)
+                {
+                    unique.Add(distance);
+                }
+            }
+
+            var result = new List<(double from, double to)>();
+            for (var index = 0; index + 1 < unique.Count; index++)
+            {
+                var from = unique[index];
+                var to = unique[index + 1];
+                if (to - from <= GeometryTolerances.Vertex)
+                    continue;
+
+                var middle = (from + to) / 2.0;
+                if (layer.Geometry.IsPointInside(
+                        layer.Center.x + middle * dx,
+                        layer.Center.y + middle * dy,
+                        layer.ContourOffset,
+                        layer.TaperOffset))
+                {
+                    result.Add((from, to));
+                }
+            }
+            return result;
         }
 
         /// <summary>

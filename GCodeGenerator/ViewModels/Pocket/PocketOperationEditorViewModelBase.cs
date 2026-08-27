@@ -21,6 +21,13 @@ namespace GCodeGenerator.ViewModels.Pocket
         /// <summary>Угол и диаметр подвода задаются только для винтового входа.</summary>
         public bool IsHelicalEntry => Operation?.EntryMode == PocketEntryMode.Helical;
 
+        /// <summary>
+        /// Параметры резания исполняются только у обычного кармана. У острова
+        /// редактируется геометрия, а остальные блоки остаются видимыми, но
+        /// недоступными, чтобы назначение режима было очевидно.
+        /// </summary>
+        public bool IsMachiningPocket => Operation?.PocketMode == PocketMode.Machining;
+
         /// <summary>Шаг между проходами задаётся для линейных стратегий.</summary>
         public bool IsLinesOrZigZagStrategy
             => Operation?.PocketStrategy == PocketStrategy.Lines
@@ -42,6 +49,8 @@ namespace GCodeGenerator.ViewModels.Pocket
                 RaiseStrategyDependentProperties();
             if (e.PropertyName == nameof(PocketOperationBase.EntryMode) || string.IsNullOrEmpty(e.PropertyName))
                 OnPropertyChanged(nameof(IsHelicalEntry));
+            if (e.PropertyName == nameof(PocketOperationBase.PocketMode) || string.IsNullOrEmpty(e.PropertyName))
+                OnPropertyChanged(nameof(IsMachiningPocket));
         }
 
         private void RaiseStrategyDependentProperties()
@@ -49,6 +58,7 @@ namespace GCodeGenerator.ViewModels.Pocket
             OnPropertyChanged(nameof(IsLinesStrategy));
             OnPropertyChanged(nameof(IsLinesOrZigZagStrategy));
             OnPropertyChanged(nameof(IsHelicalEntry));
+            OnPropertyChanged(nameof(IsMachiningPocket));
         }
     }
 }

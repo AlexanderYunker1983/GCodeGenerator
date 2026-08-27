@@ -44,6 +44,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             ContourPoints = contourPoints;
             Center = center;
             Settings = settings;
+            BoundaryContours = BuildBoundaryContours(geometry, toolRadius + allowance, taperOffset);
+            RequiresSafeTransitions = PocketGeometryContours.RequiresSafeTransitions(geometry);
         }
 
         /// <summary>Операция кармана: подачи, направление, число знаков.</summary>
@@ -89,6 +91,16 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         /// <summary>Контур слоя — траектория центра инструмента вдоль стенки.</summary>
         public List<(double x, double y)> ContourPoints { get; }
 
+        /// <summary>
+        /// Все границы слоя. Без островов список содержит только
+        /// <see cref="ContourPoints"/>; с островами — внешний контур и
+        /// внутренние запрещённые контуры.
+        /// </summary>
+        public IReadOnlyList<List<(double x, double y)>> BoundaryContours { get; }
+
+        /// <summary>Нельзя связывать раздельные проходы прямой по рабочей Z.</summary>
+        public bool RequiresSafeTransitions { get; }
+
         /// <summary>Центр контура: отсюда инструмент начинает и сюда возвращается.</summary>
         public (double x, double y) Center { get; }
 
@@ -119,6 +131,24 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             }
 
             return maxDistance;
+        }
+
+        private static IReadOnlyList<List<(double x, double y)>> BuildBoundaryContours(
+            IPocketGeometry geometry,
+            double contourOffset,
+            double taperOffset)
+        {
+            var result = new List<List<(double x, double y)>>();
+            foreach (var contour in PocketGeometryContours.Get(geometry, contourOffset, taperOffset))
+            {
+                var points = new List<(double x, double y)>(contour.GetPoints());
+                if (points.Count >= 3)
+                    result.Add(points);
+            }
+
+            if (result.Count == 0 && geometry != null)
+                result.Add(new List<(double x, double y)>());
+            return result;
         }
     }
 }

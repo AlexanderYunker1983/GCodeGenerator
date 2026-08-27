@@ -183,9 +183,29 @@ namespace GCodeGenerator.GCodeGenerators
             double radius)
         {
             var inside = geometry.IsPointInside(center.x, center.y, contourOffset, taperOffset);
-            var clearance = inside
-                ? PocketEntryPoint.ClearanceToContour(center, contourPoints)
-                : 0.0;
+            var clearance = 0.0;
+            if (inside)
+            {
+                if (geometry is IMultiContourPocketGeometry)
+                {
+                    clearance = double.MaxValue;
+                    foreach (var contour in PocketGeometryContours.Get(
+                                 geometry, contourOffset, taperOffset))
+                    {
+                        clearance = Math.Min(
+                            clearance,
+                            PocketEntryPoint.ClearanceToContour(
+                                center,
+                                new List<(double x, double y)>(contour.GetPoints())));
+                    }
+                    if (clearance == double.MaxValue)
+                        clearance = 0.0;
+                }
+                else
+                {
+                    clearance = PocketEntryPoint.ClearanceToContour(center, contourPoints);
+                }
+            }
 
             if (inside && radius <= clearance + GeometryTolerances.Containment)
                 return;

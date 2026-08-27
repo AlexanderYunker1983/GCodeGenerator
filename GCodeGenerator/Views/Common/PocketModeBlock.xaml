@@ -1,0 +1,17 @@
+<UserControl x:Class="GCodeGenerator.Views.Common.PocketModeBlock"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:loc="clr-namespace:GCodeGenerator.Localization"
+             xmlns:models="clr-namespace:GCodeGenerator.Models;assembly=GCodeGenerator.Core">
+    <GroupBox Header="{loc:Loc PocketModeHeader}" Margin="0,0,0,8">
+        <StackPanel Margin="8">
+            <RadioButton Content="{loc:Loc PocketModeMachining}"
+                         GroupName="PocketMode"
+                         IsChecked="{Binding Operation.PocketMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketMode.Machining}}"
+                         Margin="0,0,0,4"/>
+            <RadioButton Content="{loc:Loc PocketModeIsland}"
+                         GroupName="PocketMode"
+                         IsChecked="{Binding Operation.PocketMode, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter={x:Static models:PocketMode.Island}}"/>
+        </StackPanel>
+    </GroupBox>
+</UserControl>

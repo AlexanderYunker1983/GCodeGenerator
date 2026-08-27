@@ -31,7 +31,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
-            var scanLines = PocketScanLines.Build(layer.ContourPoints, layer.Center, op.LineAngleDeg, layer.Step);
+            var scanLines = PocketScanLines.Build(layer.BoundaryContours, layer.Center, op.LineAngleDeg, layer.Step);
             if (scanLines.Count == 0)
                 return;
 
@@ -54,6 +54,13 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     var from = PocketScanLines.ToWorld((xFrom, line.Y), layer.Center, op.LineAngleDeg);
                     var to = PocketScanLines.ToWorld((xTo, line.Y), layer.Center, op.LineAngleDeg);
 
+                    if (layer.RequiresSafeTransitions)
+                    {
+                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                        builder.RapidTo(x: from.x, y: from.y, feed: op.FeedXYRapid);
+                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    }
+
                     // Связка к ближнему концу сегмента (первый раз — из центра,
                     // дальше — от конца предыдущего реза: у соседних линий это
                     // короткий шаг вдоль стенки), затем рез вдоль скан-линии.
@@ -61,7 +68,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     // обещанный шапкой, не выполнялся никогда, траектория
                     // вырождалась в диагонали через весь карман, а у стенок
                     // шаг между реально пройденными путями удваивался.
-                    builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork);
+                    if (!layer.RequiresSafeTransitions)
+                        builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork);
                     builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork);
                 }
             }

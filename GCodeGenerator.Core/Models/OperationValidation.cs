@@ -157,6 +157,14 @@ namespace GCodeGenerator.Models
         /// </summary>
         public static void AddPocketIssues(IList<ValidationIssue> issues, PocketOperationBase operation)
         {
+            EnumValidation.AddIfUndefined(issues, nameof(operation.PocketMode), operation.PocketMode);
+
+            // Остров задаёт только запрещённую для резания геометрию. Подачи,
+            // глубина, инструмент, стратегия и подвод у него не исполняются и
+            // поэтому не должны мешать генерации других операций проекта.
+            if (operation.PocketMode == PocketMode.Island)
+                return;
+
             AddMillingIssues(issues, operation);
 
             EnumValidation.AddIfUndefined(issues, nameof(operation.EntryMode), operation.EntryMode);

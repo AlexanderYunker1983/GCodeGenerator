@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using System.Collections.Generic;
+using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.GCodeGenerators.Strategies;
@@ -40,16 +41,27 @@ namespace GCodeGenerator.GCodeGenerators
             double step,
             double requiredClearance = 0.0)
         {
+            var boundaryContours = geometry is IMultiContourPocketGeometry
+                ? PocketGeometryContours.Get(geometry, contourOffset, taperOffset)
+                    .Select(contour => contour.GetPoints().ToList())
+                    .Where(points => points.Count >= 3)
+                    .ToList()
+                : null;
             var centerIsInside = geometry.IsPointInside(center.x, center.y, contourOffset, taperOffset);
+            var centerClearance = boundaryContours == null
+                ? ClearanceToContour(center, contourPoints)
+                : ClearanceToContours(center, boundaryContours);
             if (centerIsInside
                 && (requiredClearance <= 0
-                    || ClearanceToContour(center, contourPoints) >= requiredClearance))
+                    || centerClearance >= requiredClearance))
                 return center;
 
-            var lines = PocketScanLines.Build(contourPoints, center, 0.0, step);
+            var lines = boundaryContours == null
+                ? PocketScanLines.Build(contourPoints, center, 0.0, step)
+                : PocketScanLines.Build(boundaryContours, center, 0.0, step);
             var bestLength = 0.0;
             var best = center;
-            var bestClearance = centerIsInside ? ClearanceToContour(center, contourPoints) : 0.0;
+            var bestClearance = centerIsInside ? centerClearance : 0.0;
             foreach (var line in lines)
             {
                 foreach (var segment in line.Segments)
@@ -69,7 +81,9 @@ namespace GCodeGenerator.GCodeGenerators
                     }
                     else if (requiredClearance > 0)
                     {
-                        var clearance = ClearanceToContour(candidate, contourPoints);
+                        var clearance = boundaryContours == null
+                            ? ClearanceToContour(candidate, contourPoints)
+                            : ClearanceToContours(candidate, boundaryContours);
                         if (clearance > bestClearance)
                         {
                             bestClearance = clearance;
@@ -108,6 +122,16 @@ namespace GCodeGenerator.GCodeGenerators
                     clearance = distance;
             }
 
+            return clearance == double.MaxValue ? 0.0 : clearance;
+        }
+
+        private static double ClearanceToContours(
+            (double x, double y) point,
+            IReadOnlyList<List<(double x, double y)>> contours)
+        {
+            var clearance = double.MaxValue;
+            foreach (var contour in contours)
+                clearance = System.Math.Min(clearance, ClearanceToContour(point, contour));
             return clearance == double.MaxValue ? 0.0 : clearance;
         }
     }

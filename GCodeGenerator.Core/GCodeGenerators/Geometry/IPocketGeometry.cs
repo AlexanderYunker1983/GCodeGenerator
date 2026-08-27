@@ -74,6 +74,23 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
     }
 
     /// <summary>
+    /// Геометрия области с несколькими границами: внешний контур и контуры
+    /// отверстий-островов. Старые геометрии по-прежнему реализуют только
+    /// <see cref="IPocketGeometry"/> и тем самым описывают одну границу.
+    /// </summary>
+    public interface IMultiContourPocketGeometry
+    {
+        /// <summary>Все границы допустимой для центра инструмента области.</summary>
+        IReadOnlyList<IContour> GetContours(double toolRadius, double taperOffset);
+
+        /// <summary>
+        /// Связочные перемещения внутри слоя должны выполняться через
+        /// безопасную высоту: прямой отрезок может пересечь остров.
+        /// </summary>
+        bool RequiresSafeTransitions { get; }
+    }
+
+    /// <summary>
     /// Контур кармана - последовательность точек, образующих замкнутый контур.
     /// </summary>
     public interface IContour
