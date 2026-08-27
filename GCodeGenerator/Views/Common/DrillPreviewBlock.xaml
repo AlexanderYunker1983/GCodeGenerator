@@ -26,25 +26,30 @@
                 </DataGrid.Columns>
             </DataGrid>
 
-            <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Top">
-                <TextBlock Text="{loc:Loc FeedXYRapid}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.FeedXYRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
+            <ScrollViewer Grid.Column="1"
+                          Margin="8,0,0,0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <StackPanel VerticalAlignment="Top">
+                    <TextBlock Text="{loc:Loc FeedXYRapid}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.FeedXYRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
-                <TextBlock Text="{loc:Loc FeedZRapidLabel}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.FeedZRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
+                    <TextBlock Text="{loc:Loc FeedZRapidLabel}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.FeedZRapid, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
-                <TextBlock Text="{loc:Loc FeedZWorkLabel}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.FeedZWork, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
+                    <TextBlock Text="{loc:Loc FeedZWorkLabel}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.FeedZWork, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
-                <TextBlock Text="{loc:Loc SafeZBetweenHoles}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
+                    <TextBlock Text="{loc:Loc SafeZBetweenHoles}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.SafeZBetweenHoles, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
-                <TextBlock Text="{loc:Loc RetractHeight}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.RetractHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
+                    <TextBlock Text="{loc:Loc RetractHeight}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.RetractHeight, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Decimal" Width="80" Margin="0,0,0,8"/>
 
-                <TextBlock Text="{loc:Loc Decimals}" Margin="0,0,0,4"/>
-                <TextBox Text="{Binding Operation.Decimals, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer" Width="60"/>
-            </StackPanel>
+                    <TextBlock Text="{loc:Loc Decimals}" Margin="0,0,0,4"/>
+                    <TextBox Text="{Binding Operation.Decimals, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}" infrastructure:NumericInput.Mode="Integer" Width="60"/>
+                </StackPanel>
+            </ScrollViewer>
         </Grid>
     </GroupBox>
 </UserControl>

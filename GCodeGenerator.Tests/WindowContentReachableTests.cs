@@ -112,6 +112,53 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Правая колонка общего блока сверления выше таблицы отверстий и на
+        /// стандартной высоте диалога может не поместиться целиком. Последние
+        /// поля должны оставаться доступными через собственную прокрутку.
+        /// </summary>
+        [TestMethod]
+        public void DrillPreviewBlock_FeedParametersScrollOnShortHeight()
+        {
+            double scrollable = 0;
+
+            TestApplication.Run(() =>
+            {
+                var block = new GCodeGenerator.Views.Common.DrillPreviewBlock();
+                var window = new Window
+                {
+                    Width = SmallScreen.Width,
+                    Height = 220,
+                    Content = block,
+                    WindowStartupLocation = WindowStartupLocation.Manual,
+                    ShowInTaskbar = false,
+                    Left = -10000,
+                    Top = -10000,
+                };
+
+                try
+                {
+                    window.Show();
+                    window.UpdateLayout();
+                    window.Dispatcher.Invoke(() => { }, DispatcherPriority.Loaded);
+
+                    scrollable = Descendants(block).OfType<ScrollViewer>()
+                        .Where(viewer => viewer.VerticalScrollBarVisibility == ScrollBarVisibility.Auto)
+                        .Where(viewer => viewer.Content is StackPanel)
+                        .Select(viewer => viewer.ScrollableHeight)
+                        .DefaultIfEmpty(0)
+                        .Max();
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+
+            Assert.IsTrue(scrollable > 0,
+                "Подачи и Z-параметры сверления должны прокручиваться, когда блок ниже своего содержимого");
+        }
+
+        /// <summary>
         /// Раскладывает окно так, будто экран невысок. Размер задаётся самому
         /// окну: разметка называет свою высоту, и без этого окно измерялось бы
         /// ею, а не размером экрана.
