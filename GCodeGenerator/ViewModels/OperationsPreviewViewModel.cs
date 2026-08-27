@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Windows.Input;
+using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.Services;
@@ -35,6 +37,7 @@ namespace GCodeGenerator.ViewModels
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
             _scene = OperationSceneBuilder.Build(_operations);
             _themeService.ThemeChanged += OnThemeServiceChanged;
+            ShowAllCommand = new RelayCommand(RaiseShowAll);
         }
 
         /// <summary>The pure 2D scene of all operations (Core types only).</summary>
@@ -117,6 +120,9 @@ namespace GCodeGenerator.ViewModels
 
         /// <summary>Есть ли что показывать в режиме траектории.</summary>
         public bool HasToolPath => _toolPath != null && !_toolPath.IsEmpty;
+
+        /// <summary>Вписать все контуры или траекторию в область предпросмотра.</summary>
+        public ICommand ShowAllCommand { get; }
 
         /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
         public void RebuildScene()

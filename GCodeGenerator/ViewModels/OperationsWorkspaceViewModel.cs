@@ -63,7 +63,7 @@ namespace GCodeGenerator.ViewModels
             OperationsPreview.SelectionChanged += OnPreviewSelectionChanged;
             OperationsPreview.EditRequested += OnPreviewEditRequested;
 
-            ShowAllPreviewCommand = new RelayCommand(OperationsPreview.RaiseShowAll);
+            ShowAllPreviewCommand = OperationsPreview.ShowAllCommand;
             MoveOperationUpCommand = new RelayCommand(MoveSelectedOperationUp, CanMoveSelectedOperationUp);
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);

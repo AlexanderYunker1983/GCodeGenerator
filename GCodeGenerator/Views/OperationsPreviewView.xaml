@@ -24,12 +24,22 @@
 
             <!-- Контуры показывают замысел, траектория — то, что проделает
                  станок. Переключатель доступен, когда программа построена. -->
-            <CheckBox Content="{loc:Loc ShowToolPath}"
-                      IsChecked="{Binding ShowToolPath}"
-                      IsEnabled="{Binding HasToolPath}"
-                      HorizontalAlignment="Right"
-                      VerticalAlignment="Top"
-                      Margin="0,6,10,0"/>
+            <!-- Обе команды принадлежат одному верхнему блоку. Раньше
+                 «Показать всё» размещалась поверх UserControl из MainView
+                 и при длинной локализации перекрывала этот флажок. -->
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Margin="0,6,10,0">
+                <CheckBox Content="{loc:Loc ShowToolPath}"
+                          IsChecked="{Binding ShowToolPath}"
+                          IsEnabled="{Binding HasToolPath}"
+                          VerticalAlignment="Center"
+                          Margin="0,0,8,0"/>
+                <Button Content="{loc:Loc ShowAll}"
+                        Command="{Binding ShowAllCommand}"
+                        Padding="7,5"/>
+            </StackPanel>
         </Grid>
     </Border>
 </UserControl>

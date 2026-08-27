@@ -171,5 +171,20 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(preview.Scene.Shapes.All(s => s.Kind == OperationShapeKind.Contour),
                 "Обратное переключение возвращает контуры");
         }
+
+        [TestMethod]
+        public void PreviewViewModel_ShowAllCommandRaisesFitRequest()
+        {
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
+            var preview = main.OperationsWorkspace.OperationsPreview;
+            var requested = false;
+            preview.ShowAllRequested += (_, _) => requested = true;
+
+            preview.ShowAllCommand.Execute(null);
+
+            Assert.IsTrue(requested);
+            Assert.AreSame(preview.ShowAllCommand, main.OperationsWorkspace.ShowAllPreviewCommand,
+                "команда рабочей области и кнопка предпросмотра используют один запрос");
+        }
     }
 }

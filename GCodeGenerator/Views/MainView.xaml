@@ -233,12 +233,5 @@
             </Grid>
         </Button>
 
-        <Button Content="{loc:Loc ShowAll}"
-                Grid.Row="4" Grid.Column="2"
-                TabIndex="100"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Top"
-                Padding="7,5"
-                Command="{Binding OperationsWorkspace.ShowAllPreviewCommand}" Margin="0,18,11,0" />
     </Grid>
 </Window>
