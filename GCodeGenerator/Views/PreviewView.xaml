@@ -36,6 +36,12 @@
                     </Model3DGroup>
                 </ModelVisual3D.Content>
             </ModelVisual3D>
+
+            <!-- Каждая плоскость — отдельная модель: переключение кнопки не
+                 пересобирает тяжёлую траекторию и не сбрасывает камеру. -->
+            <ModelVisual3D x:Name="GridXyVisual"/>
+            <ModelVisual3D x:Name="GridXzVisual"/>
+            <ModelVisual3D x:Name="GridYzVisual"/>
             
             <ModelVisual3D x:Name="TrajectoryVisual">
                 <ModelVisual3D.Content>
@@ -43,6 +49,42 @@
                 </ModelVisual3D.Content>
             </ModelVisual3D>
         </Viewport3D>
+
+        <Border HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                Margin="10"
+                Padding="8,6"
+                Panel.ZIndex="10"
+                Background="{DynamicResource MahApps.Brushes.Control.Background}"
+                BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
+                BorderThickness="1"
+                CornerRadius="3">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{loc:Loc CoordinateGrids}"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+                <ToggleButton x:Name="GridXyButton"
+                              Content="XY"
+                              IsChecked="{Binding ShowXyGrid}"
+                              ToolTip="{loc:Loc CoordinateGridXY}"
+                              MinWidth="44"
+                              Padding="8,4"
+                              Margin="0,0,4,0"/>
+                <ToggleButton x:Name="GridXzButton"
+                              Content="XZ"
+                              IsChecked="{Binding ShowXzGrid}"
+                              ToolTip="{loc:Loc CoordinateGridXZ}"
+                              MinWidth="44"
+                              Padding="8,4"
+                              Margin="0,0,4,0"/>
+                <ToggleButton x:Name="GridYzButton"
+                              Content="YZ"
+                              IsChecked="{Binding ShowYzGrid}"
+                              ToolTip="{loc:Loc CoordinateGridYZ}"
+                              MinWidth="44"
+                              Padding="8,4"/>
+            </StackPanel>
+        </Border>
 
         <!-- Пока сцена строится, окно уже открыто: без этой надписи оно
              выглядело бы пустым и неотзывчивым. -->
@@ -54,4 +96,3 @@
                    Visibility="{Binding IsBuilding, Converter={StaticResource BoolToVis}}"/>
     </Grid>
 </Window>
-

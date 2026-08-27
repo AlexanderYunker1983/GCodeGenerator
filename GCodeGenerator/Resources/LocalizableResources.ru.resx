@@ -915,4 +915,16 @@
   <data name="BuildingPreview" xml:space="preserve">
     <value>Построение предпросмотра…</value>
   </data>
+  <data name="CoordinateGrids" xml:space="preserve">
+    <value>Координатные сетки:</value>
+  </data>
+  <data name="CoordinateGridXY" xml:space="preserve">
+    <value>Показать сетку XY (Z = 0)</value>
+  </data>
+  <data name="CoordinateGridXZ" xml:space="preserve">
+    <value>Показать сетку XZ (Y = 0)</value>
+  </data>
+  <data name="CoordinateGridYZ" xml:space="preserve">
+    <value>Показать сетку YZ (X = 0)</value>
+  </data>
 </root>

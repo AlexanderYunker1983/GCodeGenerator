@@ -18,6 +18,9 @@ namespace GCodeGenerator.ViewModels
         private Toolpath.ToolPath? _toolPath;
         private TrajectoryScene? _scene;
         private bool _isBuilding;
+        private bool _showXyGrid;
+        private bool _showXzGrid;
+        private bool _showYzGrid;
 
         public PreviewViewModel(ILocalizationManager localizationManager)
         {
@@ -59,6 +62,42 @@ namespace GCodeGenerator.ViewModels
             {
                 if (value == _isBuilding) return;
                 _isBuilding = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Показывать координатную сетку в плоскости XY (Z = 0).</summary>
+        public bool ShowXyGrid
+        {
+            get => _showXyGrid;
+            set
+            {
+                if (value == _showXyGrid) return;
+                _showXyGrid = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Показывать координатную сетку в плоскости XZ (Y = 0).</summary>
+        public bool ShowXzGrid
+        {
+            get => _showXzGrid;
+            set
+            {
+                if (value == _showXzGrid) return;
+                _showXzGrid = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>Показывать координатную сетку в плоскости YZ (X = 0).</summary>
+        public bool ShowYzGrid
+        {
+            get => _showYzGrid;
+            set
+            {
+                if (value == _showYzGrid) return;
+                _showYzGrid = value;
                 OnPropertyChanged();
             }
         }

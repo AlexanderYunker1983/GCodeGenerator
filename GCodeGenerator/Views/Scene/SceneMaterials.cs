@@ -37,6 +37,16 @@ namespace GCodeGenerator.Views.Scene
             YAxis = Diffuse(ForBackgroundContrast(Color.FromRgb(0, 180, 0)));
             ZAxis = Diffuse(ForBackgroundContrast(Color.FromRgb(0, 80, 220)));
 
+            var gridColor = IsDarkBackground
+                ? Color.FromRgb(105, 105, 105)
+                : Color.FromRgb(195, 195, 195);
+            var gridLabelColor = IsDarkBackground
+                ? Color.FromRgb(205, 205, 205)
+                : Color.FromRgb(85, 85, 85);
+            GridLines = Glowing(gridColor, Color.FromArgb(55, gridColor.R, gridColor.G, gridColor.B));
+            GridLabels = Glowing(gridLabelColor,
+                Color.FromArgb(90, gridLabelColor.R, gridLabelColor.G, gridLabelColor.B));
+
             // Начало координат и маркеры точек лежат поверх фона, поэтому
             // берут противоположную ему яркость.
             Origin = Diffuse(IsDarkBackground ? Colors.White : Color.FromRgb(40, 40, 40));
@@ -87,6 +97,12 @@ namespace GCodeGenerator.Views.Scene
 
         /// <summary>Ось Z.</summary>
         public Material ZAxis { get; }
+
+        /// <summary>Тонкие линии координатных плоскостей.</summary>
+        public Material GridLines { get; }
+
+        /// <summary>Числовые отметки координатных плоскостей.</summary>
+        public Material GridLabels { get; }
 
         /// <summary>Начало координат.</summary>
         public Material Origin { get; }

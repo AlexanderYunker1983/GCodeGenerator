@@ -915,4 +915,16 @@
   <data name="BuildingPreview" xml:space="preserve">
     <value>Building preview…</value>
   </data>
+  <data name="CoordinateGrids" xml:space="preserve">
+    <value>Coordinate grids:</value>
+  </data>
+  <data name="CoordinateGridXY" xml:space="preserve">
+    <value>Show the XY grid (Z = 0)</value>
+  </data>
+  <data name="CoordinateGridXZ" xml:space="preserve">
+    <value>Show the XZ grid (Y = 0)</value>
+  </data>
+  <data name="CoordinateGridYZ" xml:space="preserve">
+    <value>Show the YZ grid (X = 0)</value>
+  </data>
 </root>

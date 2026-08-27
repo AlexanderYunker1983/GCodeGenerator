@@ -2,7 +2,9 @@
 using System;
 using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Media3D;
 using GCodeGenerator.Trajectory;
 using GCodeGenerator.ViewModels;
@@ -16,6 +18,7 @@ namespace GCodeGenerator.Views
         private readonly SceneMaterials _materials = SceneMaterials.ForCurrentTheme();
 
         private PreviewViewModel? _viewModel;
+        private CoordinateGridModels? _coordinateGrids;
 
         /// <summary>
         /// Положение камеры и правила его изменения. Окно только передаёт
@@ -65,13 +68,33 @@ namespace GCodeGenerator.Views
             {
                 RenderScene(viewModel.Scene);
             }
+            else if ((e.PropertyName == nameof(PreviewViewModel.ShowXyGrid)
+                      || e.PropertyName == nameof(PreviewViewModel.ShowXzGrid)
+                      || e.PropertyName == nameof(PreviewViewModel.ShowYzGrid))
+                     && ReferenceEquals(sender, _viewModel))
+            {
+                UpdateCoordinateGrids();
+            }
         }
 
         private void RenderScene(TrajectoryScene? scene)
         {
             // Сцены может не быть, пока траектория не построена: тогда
             // окно показывает пустую модель, а не отказывается рисовать.
-            UpdateTrajectoryModel(SceneRenderer.Render(scene ?? TrajectoryScene.Empty, _materials));
+            var actualScene = scene ?? TrajectoryScene.Empty;
+            _coordinateGrids = CoordinateGridBuilder.Build(actualScene, _materials);
+            UpdateCoordinateGrids();
+            UpdateTrajectoryModel(SceneRenderer.Render(actualScene, _materials));
+        }
+
+        private void UpdateCoordinateGrids()
+        {
+            if (_coordinateGrids == null)
+                return;
+
+            GridXyVisual.Content = _viewModel?.ShowXyGrid == true ? _coordinateGrids.Xy.Model : null;
+            GridXzVisual.Content = _viewModel?.ShowXzGrid == true ? _coordinateGrids.Xz.Model : null;
+            GridYzVisual.Content = _viewModel?.ShowYzGrid == true ? _coordinateGrids.Yz.Model : null;
         }
 
         private void UnhookViewModel()
@@ -93,6 +116,15 @@ namespace GCodeGenerator.Views
                 if (model != null && model.Children.Count > 0)
                 {
                     var bounds = model.Bounds;
+                    if (_coordinateGrids != null)
+                    {
+                        // Камера с самого начала знает полный диапазон сеток,
+                        // поэтому их включение не обрезает отрицательные
+                        // координаты и не требует сбрасывать ракурс.
+                        bounds.Union(_coordinateGrids.Xy.Model.Bounds);
+                        bounds.Union(_coordinateGrids.Xz.Model.Bounds);
+                        bounds.Union(_coordinateGrids.Yz.Model.Bounds);
+                    }
                     if (!bounds.IsEmpty)
                     {
                         // Программа целиком в кадре: камера встаёт над её
@@ -112,7 +144,7 @@ namespace GCodeGenerator.Views
 
         private void Viewport_MouseWheel(object? sender, MouseWheelEventArgs e)
         {
-            if (Camera == null) return;
+            if (Camera == null || IsToolbarInteraction(e.OriginalSource)) return;
 
             _camera.Zoom(closer: e.Delta > 0);
             ApplyCamera();
@@ -120,6 +152,9 @@ namespace GCodeGenerator.Views
 
         private void Viewport_MouseDown(object? sender, MouseButtonEventArgs e)
         {
+            if (IsToolbarInteraction(e.OriginalSource))
+                return;
+
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 _isRotating = true;
@@ -157,11 +192,13 @@ namespace GCodeGenerator.Views
             var deltaX = currentPosition.X - _lastMousePosition.X;
             var deltaY = currentPosition.Y - _lastMousePosition.Y;
 
+            var handled = false;
             if (_isPanning && e.RightButton == MouseButtonState.Pressed)
             {
                 // Панорамирование при правой кнопке мыши
                 _camera.Pan(deltaX, deltaY);
                 ApplyCamera();
+                handled = true;
             }
             else if (_isRotating && e.LeftButton == MouseButtonState.Pressed)
             {
@@ -171,6 +208,7 @@ namespace GCodeGenerator.Views
                     _camera.Orbit(deltaX, deltaY, _camera.Target);
                     ApplyCamera();
                 }
+                handled = true;
             }
             else if (_isRotating && e.RightButton == MouseButtonState.Pressed)
             {
@@ -180,14 +218,19 @@ namespace GCodeGenerator.Views
                     _camera.Orbit(deltaX, deltaY, _rotationPivot);
                     ApplyCamera();
                 }
+                handled = true;
             }
 
             _lastMousePosition = currentPosition;
-            e.Handled = true;
+            if (handled)
+                e.Handled = true;
         }
 
         private void Viewport_MouseUp(object? sender, MouseButtonEventArgs e)
         {
+            if (IsToolbarInteraction(e.OriginalSource))
+                return;
+
             if (e.LeftButton == MouseButtonState.Released)
             {
                 _isRotating = false;
@@ -201,6 +244,23 @@ namespace GCodeGenerator.Views
                 this.ReleaseMouseCapture();
                 e.Handled = true;
             }
+        }
+
+        /// <summary>
+        /// Кнопки лежат поверх области вращения. Предварительные события
+        /// окна приходят раньше ToggleButton, поэтому без этой проверки
+        /// окно захватывало мышь и переключатель не получал Click.
+        /// </summary>
+        private static bool IsToolbarInteraction(object? originalSource)
+        {
+            var current = originalSource as DependencyObject;
+            while (current != null)
+            {
+                if (current is ButtonBase)
+                    return true;
+                current = VisualTreeHelper.GetParent(current);
+            }
+            return false;
         }
 
         /// <summary>Переносит состояние камеры в камеру разметки.</summary>
@@ -273,4 +333,3 @@ namespace GCodeGenerator.Views
         }
     }
 }
-
