@@ -9,6 +9,7 @@ using System.Windows.Media.Media3D;
 using GCodeGenerator.Trajectory;
 using GCodeGenerator.ViewModels;
 using GCodeGenerator.Views.Scene;
+using MahApps.Metro.Controls;
 
 namespace GCodeGenerator.Views
 {
@@ -19,6 +20,7 @@ namespace GCodeGenerator.Views
 
         private PreviewViewModel? _viewModel;
         private CoordinateGridModels? _coordinateGrids;
+        private bool _fitCameraOnNextNonEmptyScene = true;
 
         /// <summary>
         /// Положение камеры и правила его изменения. Окно только передаёт
@@ -44,6 +46,7 @@ namespace GCodeGenerator.Views
             UnhookViewModel();
 
             _viewModel = e.NewValue as PreviewViewModel;
+            _fitCameraOnNextNonEmptyScene = true;
             if (_viewModel != null)
             {
                 _viewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -62,7 +65,14 @@ namespace GCodeGenerator.Views
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(PreviewViewModel.Scene) &&
+            if (e.PropertyName == nameof(PreviewViewModel.ToolPath)
+                && ReferenceEquals(sender, _viewModel))
+            {
+                // Новая программа получает начальное автокадрирование. Смена
+                // диапазона примитивов меняет только Scene и сюда не попадает.
+                _fitCameraOnNextNonEmptyScene = true;
+            }
+            else if (e.PropertyName == nameof(PreviewViewModel.Scene) &&
                 sender is PreviewViewModel viewModel &&
                 ReferenceEquals(viewModel, _viewModel))
             {
@@ -84,7 +94,9 @@ namespace GCodeGenerator.Views
             var actualScene = scene ?? TrajectoryScene.Empty;
             _coordinateGrids = CoordinateGridBuilder.Build(actualScene, _materials);
             UpdateCoordinateGrids();
-            UpdateTrajectoryModel(SceneRenderer.Render(actualScene, _materials));
+            UpdateTrajectoryModel(
+                SceneRenderer.Render(actualScene, _materials),
+                _fitCameraOnNextNonEmptyScene);
         }
 
         private void UpdateCoordinateGrids()
@@ -106,12 +118,15 @@ namespace GCodeGenerator.Views
             }
         }
 
-        private void UpdateTrajectoryModel(Model3DGroup model)
+        private void UpdateTrajectoryModel(Model3DGroup model, bool fitCamera)
         {
             if (TrajectoryVisual != null)
             {
                 TrajectoryVisual.Content = model ?? new Model3DGroup();
-                
+
+                if (!fitCamera)
+                    return;
+
                 // Auto-fit camera to model
                 if (model != null && model.Children.Count > 0)
                 {
@@ -137,6 +152,7 @@ namespace GCodeGenerator.Views
 
                         _camera.LookAt(center, maxSize * 2);
                         ApplyCamera();
+                        _fitCameraOnNextNonEmptyScene = false;
                     }
                 }
             }
@@ -144,7 +160,7 @@ namespace GCodeGenerator.Views
 
         private void Viewport_MouseWheel(object? sender, MouseWheelEventArgs e)
         {
-            if (Camera == null || IsToolbarInteraction(e.OriginalSource)) return;
+            if (Camera == null || IsPreviewControlInteraction(e.OriginalSource)) return;
 
             _camera.Zoom(closer: e.Delta > 0);
             ApplyCamera();
@@ -152,7 +168,7 @@ namespace GCodeGenerator.Views
 
         private void Viewport_MouseDown(object? sender, MouseButtonEventArgs e)
         {
-            if (IsToolbarInteraction(e.OriginalSource))
+            if (IsPreviewControlInteraction(e.OriginalSource))
                 return;
 
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -228,7 +244,7 @@ namespace GCodeGenerator.Views
 
         private void Viewport_MouseUp(object? sender, MouseButtonEventArgs e)
         {
-            if (IsToolbarInteraction(e.OriginalSource))
+            if (IsPreviewControlInteraction(e.OriginalSource))
                 return;
 
             if (e.LeftButton == MouseButtonState.Released)
@@ -247,16 +263,16 @@ namespace GCodeGenerator.Views
         }
 
         /// <summary>
-        /// Кнопки лежат поверх области вращения. Предварительные события
-        /// окна приходят раньше ToggleButton, поэтому без этой проверки
-        /// окно захватывало мышь и переключатель не получал Click.
+        /// Кнопки и диапазонный слайдер лежат поверх области вращения.
+        /// Предварительные события окна приходят раньше элементов управления,
+        /// поэтому без этой проверки окно захватывает мышь и не отдаёт им ввод.
         /// </summary>
-        private static bool IsToolbarInteraction(object? originalSource)
+        private static bool IsPreviewControlInteraction(object? originalSource)
         {
             var current = originalSource as DependencyObject;
             while (current != null)
             {
-                if (current is ButtonBase)
+                if (current is ButtonBase || current is RangeSlider)
                     return true;
                 current = VisualTreeHelper.GetParent(current);
             }

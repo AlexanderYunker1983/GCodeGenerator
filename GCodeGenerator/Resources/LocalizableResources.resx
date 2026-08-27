@@ -927,4 +927,22 @@
   <data name="CoordinateGridYZ" xml:space="preserve">
     <value>Show the YZ grid (X = 0)</value>
   </data>
+  <data name="PreviewPrimitiveRange" xml:space="preserve">
+    <value>Preview trajectory range</value>
+  </data>
+  <data name="PreviewPrimitiveRangeFormat" xml:space="preserve">
+    <value>Trajectory primitives: {0}–{1} of {2}</value>
+  </data>
+  <data name="PreviewPrimitiveRapid" xml:space="preserve">
+    <value>Rapid line</value>
+  </data>
+  <data name="PreviewPrimitiveLinear" xml:space="preserve">
+    <value>Cutting line</value>
+  </data>
+  <data name="PreviewPrimitiveArcClockwise" xml:space="preserve">
+    <value>Clockwise arc</value>
+  </data>
+  <data name="PreviewPrimitiveArcCounterClockwise" xml:space="preserve">
+    <value>Counter-clockwise arc</value>
+  </data>
 </root>

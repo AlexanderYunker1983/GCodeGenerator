@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:viewModels="clr-namespace:GCodeGenerator.ViewModels"
         xmlns:loc="clr-namespace:GCodeGenerator.Localization"
+        xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:PreviewViewModel}"
         Title="{Binding DisplayName}"
@@ -21,7 +22,14 @@
           MouseDown="Viewport_MouseDown"
           MouseMove="Viewport_MouseMove"
           MouseUp="Viewport_MouseUp">
-        <Viewport3D x:Name="Viewport" IsHitTestVisible="False">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Viewport3D x:Name="Viewport"
+                    Grid.Row="0"
+                    IsHitTestVisible="False">
             <Viewport3D.Camera>
                 <PerspectiveCamera x:Name="Camera" Position="50,50,50" LookDirection="-1,-1,-1" UpDirection="0,0,1" 
                                    FieldOfView="45"/>
@@ -52,6 +60,7 @@
 
         <Border HorizontalAlignment="Left"
                 VerticalAlignment="Top"
+                Grid.Row="0"
                 Margin="10"
                 Padding="8,6"
                 Panel.ZIndex="10"
@@ -89,10 +98,72 @@
         <!-- Пока сцена строится, окно уже открыто: без этой надписи оно
              выглядело бы пустым и неотзывчивым. -->
         <TextBlock Text="{loc:Loc BuildingPreview}"
+                   Grid.Row="0"
                    HorizontalAlignment="Center"
                    VerticalAlignment="Center"
                    FontSize="16"
                    Opacity="0.7"
                    Visibility="{Binding IsBuilding, Converter={StaticResource BoolToVis}}"/>
+
+        <!-- Диапазон относится только к примитивам 3D-предпросмотра и не
+             меняет сгенерированную программу или очередь операций проекта. -->
+        <Border x:Name="PrimitiveRangePanel"
+                Grid.Row="1"
+                Padding="14,8,14,10"
+                Background="{DynamicResource MahApps.Brushes.Control.Background}"
+                BorderBrush="{DynamicResource MahApps.Brushes.TextBox.Border}"
+                BorderThickness="0,1,0,0"
+                Visibility="{Binding HasPrimitives, Converter={StaticResource BoolToVis}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="{Binding PreviewPrimitiveRangeText}"
+                           HorizontalAlignment="Center"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,2"/>
+
+                <mah:RangeSlider x:Name="PrimitiveRangeSlider"
+                                 Grid.Row="1"
+                                 Height="30"
+                                 Margin="4,0"
+                                 Minimum="1"
+                                 Maximum="{Binding PrimitiveSliderMaximum}"
+                                 LowerValue="{Binding FirstPreviewPrimitive, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 UpperValue="{Binding LastPreviewPrimitive, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 MinRange="0"
+                                 Interval="1"
+                                 TickFrequency="1"
+                                 IsSnapToTickEnabled="True"
+                                 IsMoveToPointEnabled="True"
+                                 MoveWholeRange="False"
+                                 IsSelectionRangeEnabled="True"
+                                 AutoToolTipPlacement="TopLeft"
+                                 AutoToolTipPrecision="0"
+                                 IsEnabled="{Binding HasMultiplePrimitives}"
+                                 AutomationProperties.Name="{loc:Loc PreviewPrimitiveRange}"/>
+
+                <Grid Grid.Row="2" Margin="4,0,4,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="18"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding FirstPreviewPrimitiveText}"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding FirstPreviewPrimitiveText}"/>
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding LastPreviewPrimitiveText}"
+                               TextTrimming="CharacterEllipsis"
+                               TextAlignment="Right"
+                               ToolTip="{Binding LastPreviewPrimitiveText}"/>
+                </Grid>
+            </Grid>
+        </Border>
     </Grid>
 </Window>

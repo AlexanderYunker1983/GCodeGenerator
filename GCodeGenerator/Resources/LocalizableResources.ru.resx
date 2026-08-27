@@ -927,4 +927,22 @@
   <data name="CoordinateGridYZ" xml:space="preserve">
     <value>Показать сетку YZ (X = 0)</value>
   </data>
+  <data name="PreviewPrimitiveRange" xml:space="preserve">
+    <value>Диапазон траектории предпросмотра</value>
+  </data>
+  <data name="PreviewPrimitiveRangeFormat" xml:space="preserve">
+    <value>Примитивы траектории: {0}–{1} из {2}</value>
+  </data>
+  <data name="PreviewPrimitiveRapid" xml:space="preserve">
+    <value>Холостая прямая</value>
+  </data>
+  <data name="PreviewPrimitiveLinear" xml:space="preserve">
+    <value>Рабочая прямая</value>
+  </data>
+  <data name="PreviewPrimitiveArcClockwise" xml:space="preserve">
+    <value>Дуга по часовой стрелке</value>
+  </data>
+  <data name="PreviewPrimitiveArcCounterClockwise" xml:space="preserve">
+    <value>Дуга против часовой стрелки</value>
+  </data>
 </root>

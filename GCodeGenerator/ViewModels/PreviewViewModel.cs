@@ -1,4 +1,6 @@
 #nullable enable
+using System;
+using System.Globalization;
 using System.Threading.Tasks;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Trajectory;
@@ -17,10 +19,14 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager? _localizationManager;
         private Toolpath.ToolPath? _toolPath;
         private TrajectoryScene? _scene;
+        private TrajectoryScene _fullScene = TrajectoryScene.Empty;
         private bool _isBuilding;
         private bool _showXyGrid;
         private bool _showXzGrid;
         private bool _showYzGrid;
+        private int _firstPreviewPrimitive = 1;
+        private int _lastPreviewPrimitive = 1;
+        private int _sceneBuildRevision;
 
         public PreviewViewModel(ILocalizationManager localizationManager)
         {
@@ -47,9 +53,80 @@ namespace GCodeGenerator.ViewModels
                 if (ReferenceEquals(value, _toolPath)) return;
                 _toolPath = value;
                 OnPropertyChanged();
-                _ = RebuildSceneAsync(value);
+                _fullScene = TrajectoryScene.Empty;
+                ResetPrimitiveRange();
+                StartSceneRebuild();
             }
         }
+
+        /// <summary>Количество элементарных прямых и дуг в полной сцене.</summary>
+        public int PrimitiveCount => _fullScene.Segments.Count;
+
+        /// <summary>
+        /// Верхняя граница элемента управления. У скрытого пустого диапазона
+        /// она остаётся равной единице, чтобы Minimum не оказался больше Maximum.
+        /// </summary>
+        public int PrimitiveSliderMaximum => Math.Max(1, PrimitiveCount);
+
+        public bool HasPrimitives => PrimitiveCount > 0;
+
+        public bool HasMultiplePrimitives => PrimitiveCount > 1;
+
+        /// <summary>Первый показываемый примитив, нумерация для пользователя с единицы.</summary>
+        public int FirstPreviewPrimitive
+        {
+            get => _firstPreviewPrimitive;
+            set
+            {
+                var normalized = NormalizePrimitiveNumber(value);
+                normalized = Math.Min(normalized, _lastPreviewPrimitive);
+                if (normalized == _firstPreviewPrimitive) return;
+
+                _firstPreviewPrimitive = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(FirstPreviewPrimitiveText));
+                OnPropertyChanged(nameof(PreviewPrimitiveRangeText));
+                ApplyPrimitiveRange();
+            }
+        }
+
+        /// <summary>Последний показываемый примитив, включая эту границу.</summary>
+        public int LastPreviewPrimitive
+        {
+            get => _lastPreviewPrimitive;
+            set
+            {
+                var normalized = NormalizePrimitiveNumber(value);
+                normalized = Math.Max(normalized, _firstPreviewPrimitive);
+                if (normalized == _lastPreviewPrimitive) return;
+
+                _lastPreviewPrimitive = normalized;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(LastPreviewPrimitiveText));
+                OnPropertyChanged(nameof(PreviewPrimitiveRangeText));
+                ApplyPrimitiveRange();
+            }
+        }
+
+        /// <summary>Подпись выбранного диапазона над слайдером.</summary>
+        public string PreviewPrimitiveRangeText
+        {
+            get
+            {
+                var format = _localizationManager?.GetString("PreviewPrimitiveRangeFormat")
+                             ?? "Trajectory primitives: {0}–{1} of {2}";
+                return string.Format(
+                    CultureInfo.CurrentCulture,
+                    format,
+                    _firstPreviewPrimitive,
+                    _lastPreviewPrimitive,
+                    PrimitiveCount);
+            }
+        }
+
+        public string FirstPreviewPrimitiveText => PrimitiveText(_firstPreviewPrimitive);
+
+        public string LastPreviewPrimitiveText => PrimitiveText(_lastPreviewPrimitive);
 
         /// <summary>
         /// Идёт построение сцены. Окно показывает это ожиданием: на большой
@@ -112,32 +189,106 @@ namespace GCodeGenerator.ViewModels
         /// а построение предпросмотра для той же программы оставалось
         /// синхронным.
         /// </summary>
-        /// <param name="toolPath">Траектория, для которой строится сцена.</param>
-        private async Task RebuildSceneAsync(Toolpath.ToolPath? toolPath)
+        private void StartSceneRebuild()
         {
-            if (toolPath == null)
+            var toolPath = _toolPath;
+            var revision = ++_sceneBuildRevision;
+
+            if (toolPath == null || toolPath.Operations.Count == 0)
             {
+                _fullScene = TrajectoryScene.Empty;
+                ResetPrimitiveRange();
                 Scene = TrajectoryScene.Empty;
+                IsBuilding = false;
                 return;
             }
 
+            _ = RebuildSceneAsync(toolPath, revision);
+        }
+
+        private async Task RebuildSceneAsync(
+            Toolpath.ToolPath toolPath,
+            int revision)
+        {
             IsBuilding = true;
             try
             {
                 var scene = await Task.Run(() => ToolPathSceneBuilder.Build(toolPath));
 
-                // Пока строили, могли показать другую траекторию: её сцену
-                // затирать нельзя.
-                if (!ReferenceEquals(toolPath, _toolPath))
+                // Пока строили, могли показать другую траекторию: поздний
+                // результат затирать новую сцену не должен.
+                if (revision != _sceneBuildRevision || !ReferenceEquals(toolPath, _toolPath))
                     return;
 
-                Scene = scene;
+                _fullScene = scene;
+                ResetPrimitiveRange();
             }
             finally
             {
-                if (ReferenceEquals(toolPath, _toolPath))
+                if (revision == _sceneBuildRevision && ReferenceEquals(toolPath, _toolPath))
                     IsBuilding = false;
             }
+        }
+
+        private void ResetPrimitiveRange()
+        {
+            _firstPreviewPrimitive = 1;
+            _lastPreviewPrimitive = Math.Max(1, PrimitiveCount);
+
+            OnPropertyChanged(nameof(PrimitiveCount));
+            OnPropertyChanged(nameof(PrimitiveSliderMaximum));
+            OnPropertyChanged(nameof(HasPrimitives));
+            OnPropertyChanged(nameof(HasMultiplePrimitives));
+            OnPropertyChanged(nameof(FirstPreviewPrimitive));
+            OnPropertyChanged(nameof(LastPreviewPrimitive));
+            OnPropertyChanged(nameof(FirstPreviewPrimitiveText));
+            OnPropertyChanged(nameof(LastPreviewPrimitiveText));
+            OnPropertyChanged(nameof(PreviewPrimitiveRangeText));
+            Scene = PrimitiveCount > 0 ? _fullScene : TrajectoryScene.Empty;
+        }
+
+        private void ApplyPrimitiveRange()
+        {
+            if (PrimitiveCount == 0)
+            {
+                Scene = TrajectoryScene.Empty;
+                return;
+            }
+
+            if (_firstPreviewPrimitive == 1 && _lastPreviewPrimitive == PrimitiveCount)
+            {
+                Scene = _fullScene;
+                return;
+            }
+
+            var count = _lastPreviewPrimitive - _firstPreviewPrimitive + 1;
+            var selected = new TrajectorySegment[count];
+            for (var index = 0; index < count; index++)
+                selected[index] = _fullScene.Segments[_firstPreviewPrimitive - 1 + index];
+
+            Scene = new TrajectoryScene(selected);
+        }
+
+        private int NormalizePrimitiveNumber(int value)
+            => PrimitiveCount == 0 ? 1 : Math.Max(1, Math.Min(PrimitiveCount, value));
+
+        private string PrimitiveText(int primitiveNumber)
+        {
+            if (primitiveNumber < 1 || primitiveNumber > _fullScene.Segments.Count)
+                return string.Empty;
+
+            var key = _fullScene.Segments[primitiveNumber - 1].MoveType switch
+            {
+                MoveType.Rapid => "PreviewPrimitiveRapid",
+                MoveType.Linear => "PreviewPrimitiveLinear",
+                MoveType.ArcCW => "PreviewPrimitiveArcClockwise",
+                MoveType.ArcCCW => "PreviewPrimitiveArcCounterClockwise",
+                _ => "PreviewPrimitive"
+            };
+            var fallback = _fullScene.Segments[primitiveNumber - 1].MoveType.ToString();
+            var name = _localizationManager?.GetString(key) ?? fallback;
+
+            return string.Format(CultureInfo.CurrentCulture, "{0}. {1}", primitiveNumber, name);
         }
 
         /// <summary>The pure trajectory scene (Core types only).</summary>
