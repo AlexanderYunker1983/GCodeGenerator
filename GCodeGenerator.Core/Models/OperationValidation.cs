@@ -169,6 +169,8 @@ namespace GCodeGenerator.Models
 
             EnumValidation.AddIfUndefined(issues, nameof(operation.EntryMode), operation.EntryMode);
             EnumValidation.AddIfUndefined(issues, nameof(operation.PocketStrategy), operation.PocketStrategy);
+            EnumValidation.AddIfUndefined(
+                issues, nameof(operation.ProcessingDirection), operation.ProcessingDirection);
             EnumValidation.AddIfUndefined(issues, nameof(operation.FinishingMode), operation.FinishingMode);
 
             AddIfOutOfRange(issues, nameof(operation.StepPercentOfTool), operation.StepPercentOfTool, 1, 100);

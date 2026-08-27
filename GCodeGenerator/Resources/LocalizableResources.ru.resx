@@ -876,6 +876,15 @@
   <data name="PocketModeIsland" xml:space="preserve">
     <value>Остров (оставить область необработанной)</value>
   </data>
+  <data name="PocketProcessingDirectionHeader" xml:space="preserve">
+    <value>Направление обработки</value>
+  </data>
+  <data name="PocketProcessingDirectionCenterOutward" xml:space="preserve">
+    <value>Из центра к наружному контуру</value>
+  </data>
+  <data name="PocketProcessingDirectionOutsideIn" xml:space="preserve">
+    <value>С внешнего контура к центру</value>
+  </data>
   <data name="OuterBoundaryTypeLabel" xml:space="preserve">
     <value>Тип внешней границы:</value>
   </data>

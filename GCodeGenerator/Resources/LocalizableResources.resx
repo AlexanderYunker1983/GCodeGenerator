@@ -876,6 +876,15 @@
   <data name="PocketModeIsland" xml:space="preserve">
     <value>Island (keep this area unmachined)</value>
   </data>
+  <data name="PocketProcessingDirectionHeader" xml:space="preserve">
+    <value>Machining direction</value>
+  </data>
+  <data name="PocketProcessingDirectionCenterOutward" xml:space="preserve">
+    <value>From center outward</value>
+  </data>
+  <data name="PocketProcessingDirectionOutsideIn" xml:space="preserve">
+    <value>From outer contour to center</value>
+  </data>
   <data name="OuterBoundaryTypeLabel" xml:space="preserve">
     <value>Outer boundary type:</value>
   </data>

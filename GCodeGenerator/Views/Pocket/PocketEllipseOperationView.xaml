@@ -53,6 +53,7 @@
                     <common:MillingCuttingParametersBlock/>
                     <common:PocketToolEntryBlock/>
                     <common:PocketStrategyBlock/>
+                    <common:PocketProcessingDirectionBlock/>
                     <common:PocketFinishingBlock/>
                     <common:MillingPositioningBlock/>
                     <common:MillingFeedsBlock/>

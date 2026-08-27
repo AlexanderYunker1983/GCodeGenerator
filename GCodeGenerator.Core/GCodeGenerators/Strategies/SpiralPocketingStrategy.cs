@@ -32,13 +32,15 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             if (layer.ContourPoints == null || layer.ContourPoints.Count == 0)
                 return;
 
-            // В области с островами прямой обход одного контура недостаточен:
-            // спираль может несколько раз входить и выходить из запрещённых
-            // зон. Каждый её короткий сегмент обрезается всеми границами, а
-            // несвязные допустимые части соединяются через безопасную высоту.
-            if (layer.RequiresSafeTransitions)
+            // Обратная спираль и область с островами строятся общей
+            // сегментированной математикой: короткие отрезки обрезаются всеми
+            // границами, а несвязные части соединяются через SafeZ. Прежняя
+            // спираль остаётся для старого простого режима без островов, чтобы
+            // его G-code не изменился.
+            var outsideIn = op.ProcessingDirection == PocketProcessingDirection.OutsideIn;
+            if (outsideIn || layer.RequiresSafeTransitions)
             {
-                MillRegionWithObstacles(layer, builder);
+                MillSampledSpiral(layer, builder, outsideIn);
                 return;
             }
 
@@ -184,7 +186,10 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             }
         }
 
-        private static void MillRegionWithObstacles(PocketLayerContext layer, ToolPathBuilder builder)
+        private static void MillSampledSpiral(
+            PocketLayerContext layer,
+            ToolPathBuilder builder,
+            bool outsideIn)
         {
             var op = layer.Operation;
             var maxDistance = layer.MaxContourDistanceFromCenter();
@@ -193,21 +198,33 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
 
             var b = layer.Step / (2.0 * Math.PI);
             var direction = op.Direction == MillingDirection.Clockwise ? -1.0 : 1.0;
+            if (outsideIn)
+                direction = -direction;
             var stepAngle = 2.0 * Math.PI / 128.0;
             var thetaMax = maxDistance / b;
-            var previous = layer.Center;
-            var currentCutEnd = layer.Center;
-            var hasContinuousCut = layer.Geometry.IsPointInside(
-                previous.x, previous.y, layer.ContourOffset, layer.TaperOffset);
 
-            for (var theta = stepAngle; theta <= thetaMax + stepAngle / 2.0; theta += stepAngle)
+            // У области с островом первая граница — внешняя, остальные —
+            // внутренние. Точный проход по ним ставится на соответствующий
+            // конец спирали, чтобы фактический порядок был именно наружу →
+            // внутрь или внутрь → наружу, а не только менял начало спирали.
+            MillBoundaryContours(layer, builder, outerBoundary: outsideIn);
+
+            (double x, double y) PointAt(double theta)
             {
-                var boundedTheta = Math.Min(theta, thetaMax);
-                var radius = b * boundedTheta;
-                var angle = boundedTheta * direction;
-                var next = (
+                var radius = b * theta;
+                var angle = theta * direction;
+                return (
                     x: layer.Center.x + radius * Math.Cos(angle),
                     y: layer.Center.y + radius * Math.Sin(angle));
+            }
+
+            var previous = outsideIn ? PointAt(thetaMax) : layer.Center;
+            var currentCutEnd = previous;
+            var hasContinuousCut = !outsideIn && layer.Geometry.IsPointInside(
+                previous.x, previous.y, layer.ContourOffset, layer.TaperOffset);
+
+            void EmitTo((double x, double y) next)
+            {
 
                 var pieces = AllowedPieces(layer, previous, next);
                 foreach (var piece in pieces)
@@ -243,15 +260,47 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                 }
 
                 previous = next;
-                if (boundedTheta >= thetaMax)
-                    break;
             }
 
-            // Спираль выбирает площадь, а точный проход по каждой границе
-            // гарантирует обработку стенки кармана и подход к острову ровно
-            // до допустимого центра фрезы.
-            foreach (var boundary in layer.BoundaryContours)
+            if (outsideIn)
             {
+                for (var theta = thetaMax; theta > 0;)
+                {
+                    theta = Math.Max(0, theta - stepAngle);
+                    EmitTo(PointAt(theta));
+                }
+            }
+            else
+            {
+                for (var theta = stepAngle; theta <= thetaMax + stepAngle / 2.0; theta += stepAngle)
+                {
+                    var boundedTheta = Math.Min(theta, thetaMax);
+                    EmitTo(PointAt(boundedTheta));
+                    if (boundedTheta >= thetaMax)
+                        break;
+                }
+            }
+
+            MillBoundaryContours(layer, builder, outerBoundary: !outsideIn);
+        }
+
+        /// <summary>
+        /// Точный проход по внешней границе и островам. При обработке снаружи
+        /// внутрь выполняется до спирали; при обработке из центра — после неё.
+        /// </summary>
+        private static void MillBoundaryContours(
+            PocketLayerContext layer,
+            ToolPathBuilder builder,
+            bool outerBoundary)
+        {
+            var op = layer.Operation;
+            var first = outerBoundary ? 0 : 1;
+            var end = outerBoundary
+                ? Math.Min(1, layer.BoundaryContours.Count)
+                : layer.BoundaryContours.Count;
+            for (var index = first; index < end; index++)
+            {
+                var boundary = layer.BoundaryContours[index];
                 if (boundary == null || boundary.Count < 3)
                     continue;
 

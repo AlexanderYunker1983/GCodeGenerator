@@ -33,6 +33,14 @@ namespace GCodeGenerator.ViewModels.Pocket
             => Operation?.PocketStrategy == PocketStrategy.Lines
                || Operation?.PocketStrategy == PocketStrategy.ZigZag;
 
+        /// <summary>
+        /// Порядок «центр → край / край → центр» определён только у спирали
+        /// и последовательности концентрических контуров.
+        /// </summary>
+        public bool IsSpiralOrConcentricStrategy
+            => Operation?.PocketStrategy == PocketStrategy.Spiral
+               || Operation?.PocketStrategy == PocketStrategy.Concentric;
+
         protected override void OnOperationChanged(TOperation operation)
         {
             base.OnOperationChanged(operation);
@@ -57,6 +65,7 @@ namespace GCodeGenerator.ViewModels.Pocket
         {
             OnPropertyChanged(nameof(IsLinesStrategy));
             OnPropertyChanged(nameof(IsLinesOrZigZagStrategy));
+            OnPropertyChanged(nameof(IsSpiralOrConcentricStrategy));
             OnPropertyChanged(nameof(IsHelicalEntry));
             OnPropertyChanged(nameof(IsMachiningPocket));
         }

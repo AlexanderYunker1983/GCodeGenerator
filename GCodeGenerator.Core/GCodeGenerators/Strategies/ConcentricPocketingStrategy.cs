@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.GCodeGenerators.Geometry;
@@ -42,6 +43,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             bool clockwise = op.Direction == MillingDirection.Clockwise;
             const double tolerance = GeometryTolerances.Degenerate;
 
+            var contours = new List<PassContour>();
             // Смещение растёт на шаг, шаг положителен (проверен выше), а
             // предел конечен — значит проходов не больше, чем укладывается
             // шагов в расстояние от центра до стенки. Прежде здесь стоял
@@ -50,46 +52,117 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             // смещение перестало расти.
             for (double offset = 0.0; offset < maxDistance; offset += layer.Step)
             {
-                double effectiveToolRadius = layer.ContourOffset + offset;
-
-                // Контур прохода слишком маленький — прекращаем
-                if (layer.Geometry.IsContourTooSmall(effectiveToolRadius, layer.TaperOffset))
+                if (!TryBuildPass(layer, offset, clockwise, out var passContours))
                     break;
-
-                var contour = layer.Geometry.GetContour(effectiveToolRadius, layer.TaperOffset);
-                if (contour == null)
-                    break;
-
-                var contours = layer.RequiresSafeTransitions
-                    ? PocketGeometryContours.Get(layer.Geometry, effectiveToolRadius, layer.TaperOffset)
-                    : new[] { contour };
-                if (contours.Count == 0)
-                    break;
-
-                foreach (var passContour in contours)
-                {
-                    var points = passContour.GetPoints().ToList();
-                    if (points.Count < 3)
-                        continue;
-
-                    if (clockwise)
-                        points.Reverse();
-
-                    if (layer.RequiresSafeTransitions)
-                    {
-                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                        builder.RapidTo(x: points[0].x, y: points[0].y, feed: op.FeedXYRapid);
-                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
-                    }
-
-                    // Фрезеруем замкнутый контур (инструмент на рабочей Z)
-                    foreach (var point in points)
-                        builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
-
-                    // Замыкаем контур, если первая точка не совпадает с последней
-                    GCodeGenerationHelper.CloseContour(builder, points, op.FeedXYWork, tolerance);
-                }
+                contours.AddRange(passContours);
             }
+
+            // У острова эквидистанты растут навстречу друг другу: внешний
+            // контур сжимается, внутренний расширяется. Поэтому для хода
+            // снаружи внутрь сначала проходим внешнюю ветвь с ростом отступа,
+            // затем внутреннюю — с его уменьшением до итоговой детали.
+            // Обратное направление разворачивает обе части последовательности.
+            IEnumerable<PassContour> ordered;
+            if (op.ProcessingDirection == PocketProcessingDirection.CenterOutward)
+            {
+                ordered = contours.Where(contour => contour.IsHole)
+                    .OrderBy(contour => contour.Offset)
+                    .Concat(contours.Where(contour => !contour.IsHole)
+                        .OrderByDescending(contour => contour.Offset));
+            }
+            else
+            {
+                ordered = contours.Where(contour => !contour.IsHole)
+                    .OrderBy(contour => contour.Offset)
+                    .Concat(contours.Where(contour => contour.IsHole)
+                        .OrderByDescending(contour => contour.Offset));
+            }
+            foreach (var contour in ordered)
+                EmitContour(layer, contour.Points, builder, tolerance);
+        }
+
+        private static bool TryBuildPass(
+            PocketLayerContext layer,
+            double offset,
+            bool clockwise,
+            out List<PassContour> contours)
+        {
+            contours = new List<PassContour>();
+            double effectiveToolRadius = layer.ContourOffset + offset;
+
+            if (layer.Geometry.IsContourTooSmall(effectiveToolRadius, layer.TaperOffset))
+                return false;
+
+            var contour = layer.Geometry.GetContour(effectiveToolRadius, layer.TaperOffset);
+            if (contour == null)
+                return false;
+
+            var source = layer.RequiresSafeTransitions
+                ? PocketGeometryContours.Get(layer.Geometry, effectiveToolRadius, layer.TaperOffset)
+                : new[] { contour };
+            if (source.Count == 0)
+                return false;
+
+            foreach (var passContour in source)
+            {
+                var points = passContour.GetPoints().ToList();
+                if (points.Count < 3)
+                    continue;
+
+                var isHole = layer.RequiresSafeTransitions && SignedArea(points) < 0;
+                if (clockwise)
+                    points.Reverse();
+                contours.Add(new PassContour(points, offset, isHole));
+            }
+            return contours.Count > 0;
+        }
+
+        private static double SignedArea(IReadOnlyList<(double x, double y)> points)
+        {
+            double doubledArea = 0;
+            for (var index = 0; index < points.Count; index++)
+            {
+                var next = (index + 1) % points.Count;
+                doubledArea += points[index].x * points[next].y
+                               - points[next].x * points[index].y;
+            }
+            return doubledArea / 2.0;
+        }
+
+        private static void EmitContour(
+            PocketLayerContext layer,
+            List<(double x, double y)> points,
+            ToolPathBuilder builder,
+            double tolerance)
+        {
+            var op = layer.Operation;
+            if (layer.RequiresSafeTransitions)
+            {
+                builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
+                builder.RapidTo(x: points[0].x, y: points[0].y, feed: op.FeedXYRapid);
+                builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+            }
+
+            foreach (var point in points)
+                builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
+
+            GCodeGenerationHelper.CloseContour(builder, points, op.FeedXYWork, tolerance);
+        }
+
+        private sealed class PassContour
+        {
+            public PassContour(List<(double x, double y)> points, double offset, bool isHole)
+            {
+                Points = points;
+                Offset = offset;
+                IsHole = isHole;
+            }
+
+            public List<(double x, double y)> Points { get; }
+
+            public double Offset { get; }
+
+            public bool IsHole { get; }
         }
     }
 }

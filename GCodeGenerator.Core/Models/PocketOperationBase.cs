@@ -1,4 +1,5 @@
 #nullable enable
+using System.Text.Json.Serialization;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace GCodeGenerator.Models
@@ -57,6 +58,53 @@ namespace GCodeGenerator.Models
         /// <summary>Как инструмент обходит карман: по спирали или строками.</summary>
         [ObservableProperty]
         private PocketStrategy _pocketStrategy = PocketStrategy.Spiral;
+
+        // null означает историческое направление выбранной стратегии:
+        // спираль из центра наружу, концентрические проходы снаружи внутрь.
+        // Так старые проекты без нового поля сохраняют прежний G-code.
+        private PocketProcessingDirection? _processingDirectionSetting;
+
+        /// <summary>
+        /// Направление обработки для спиральной и концентрической стратегий.
+        /// Пока пользователь не сделал явный выбор, возвращается прежнее
+        /// направление конкретной стратегии.
+        /// </summary>
+        [JsonIgnore]
+        public PocketProcessingDirection ProcessingDirection
+        {
+            get => _processingDirectionSetting
+                   ?? (PocketStrategy == PocketStrategy.Concentric
+                       ? PocketProcessingDirection.OutsideIn
+                       : PocketProcessingDirection.CenterOutward);
+            set
+            {
+                if (SetProperty(ref _processingDirectionSetting, value, nameof(ProcessingDirectionSetting)))
+                    OnPropertyChanged(nameof(ProcessingDirection));
+            }
+        }
+
+        /// <summary>
+        /// Сохраняемое явное значение. null не записывается: отсутствие поля
+        /// в старом проекте и неизменённая новая операция эквивалентны.
+        /// </summary>
+        [JsonPropertyName("ProcessingDirection")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public PocketProcessingDirection? ProcessingDirectionSetting
+        {
+            get => _processingDirectionSetting;
+            set
+            {
+                if (SetProperty(ref _processingDirectionSetting, value))
+                    OnPropertyChanged(nameof(ProcessingDirection));
+            }
+        }
+
+        partial void OnPocketStrategyChanged(PocketStrategy value)
+        {
+            // У неявного значения направление зависит от стратегии.
+            if (!_processingDirectionSetting.HasValue)
+                OnPropertyChanged(nameof(ProcessingDirection));
+        }
 
         /// <summary>Шаг между проходами, % от диаметра инструмента.</summary>
         [ObservableProperty]
