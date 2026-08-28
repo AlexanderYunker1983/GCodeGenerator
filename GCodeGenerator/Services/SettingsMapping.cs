@@ -22,7 +22,6 @@ namespace GCodeGenerator.Services
             ("Format.LineNumberStart", "LineNumberStart"),
             ("Format.LineNumberStep", "LineNumberStep"),
             ("Format.UseComments", "UseComments"),
-            ("Format.AsciiOnlyComments", "AsciiOnlyComments"),
             ("Format.AllowArcs", "AllowArcs"),
             ("Format.UsePaddedGCodes", "UsePaddedGCodes"),
             ("Format.PostProcessorName", "PostProcessorName"),

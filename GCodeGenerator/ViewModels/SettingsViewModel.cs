@@ -106,9 +106,6 @@ namespace GCodeGenerator.ViewModels
         private bool _useComments;
 
         [ObservableProperty]
-        private bool _asciiOnlyComments;
-
-        [ObservableProperty]
         private bool _allowArcs;
 
         [ObservableProperty]

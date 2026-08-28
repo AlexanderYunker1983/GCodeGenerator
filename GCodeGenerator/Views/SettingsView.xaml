@@ -56,15 +56,6 @@
                                   Content="{loc:Loc GenerateComments}"
                                   IsChecked="{Binding UseComments}"/>
 
-                        <!-- Имя операции задаёт пользователь, и на многих стойках
-                             кириллица в кадре не проходит; флажок доступен только
-                             при включённых комментариях. -->
-                        <CheckBox Margin="16,8,0,0"
-                                  Content="{loc:Loc AsciiOnlyComments}"
-                                  ToolTip="{loc:Loc AsciiOnlyCommentsHint}"
-                                  IsEnabled="{Binding UseComments}"
-                                  IsChecked="{Binding AsciiOnlyComments}"/>
-
                         <CheckBox Margin="0,8,0,0"
                                   Content="{loc:Loc AllowArcs}"
                                   IsChecked="{Binding AllowArcs}"/>
