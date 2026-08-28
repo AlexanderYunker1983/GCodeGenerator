@@ -25,7 +25,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
             var op = layer.Operation;
-            // Стратегия работает на рабочей Z без отводов — workingZ не используется.
+            // Сплошная область проходится на рабочей Z без отводов; разорванная
+            // островом требует повторного входа в слой (PocketLayerEntry).
             if (layer.ContourPoints == null || layer.ContourPoints.Count == 0 || layer.Step <= 0)
                 return;
 
@@ -53,9 +54,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                             x: layer.Center.x + segment.to * Math.Cos(theta),
                             y: layer.Center.y + segment.to * Math.Sin(theta));
 
-                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                        builder.RapidTo(x: from.x, y: from.y, feed: op.FeedXYRapid);
-                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                        PocketLayerEntry.Enter(layer, builder, from.x, from.y);
                         builder.LinearTo(x: to.x, y: to.y, feed: op.FeedXYWork);
                         builder.LinearTo(x: from.x, y: from.y, feed: op.FeedXYWork);
                     }

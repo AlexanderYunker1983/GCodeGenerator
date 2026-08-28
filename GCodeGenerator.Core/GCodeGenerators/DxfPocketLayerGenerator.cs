@@ -100,7 +100,7 @@ namespace GCodeGenerator.GCodeGenerators
                     settings);
 
                 var layer = new PocketLayerContext(
-                    op, area, 0, 0, 0, step, nextZ, contourPoints, center, settings);
+                    op, area, 0, 0, 0, step, currentZ, nextZ, contourPoints, center, settings);
                 strategy.MillContour(layer, builder);
 
                 // При островах прямая связка к центру может пересечь

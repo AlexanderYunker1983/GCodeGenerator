@@ -29,6 +29,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             double allowance,
             double taperOffset,
             double step,
+            double layerTopZ,
             double workingZ,
             List<(double x, double y)> contourPoints,
             (double x, double y) center,
@@ -40,6 +41,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
             Allowance = allowance;
             TaperOffset = taperOffset;
             Step = step;
+            LayerTopZ = layerTopZ;
             WorkingZ = workingZ;
             ContourPoints = contourPoints;
             Center = center;
@@ -81,6 +83,14 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
 
         /// <summary>Шаг обработки: расстояние между соседними проходами.</summary>
         public double Step { get; }
+
+        /// <summary>
+        /// Верх слоя: высота, с которой начинается съём материала на этой
+        /// глубине. Нужна стратегиям с отводами — до неё инструмент
+        /// возвращается быстрым ходом, а дальше врезается рабочей подачей
+        /// (см. <see cref="PocketLayerEntry"/>).
+        /// </summary>
+        public double LayerTopZ { get; }
 
         /// <summary>
         /// Рабочая высота слоя. Нужна стратегиям с отводами: инструмент

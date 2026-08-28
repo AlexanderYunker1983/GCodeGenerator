@@ -301,29 +301,43 @@ namespace GCodeGenerator.Tests
             var lines = Run(op);
             var moves = GCodeLineParser.ParseMoves(lines);
 
-            // Каждый рез Lines — независимый сегмент: отвод на SafeZ (G0 Z SafeZ)
-            // → подход → опускание на рабочую Z (G0 Z workingZ) → рез G1 XY.
-            // Проверяем, что каждое опускание на рабочую Z предшествовал отвод на SafeZ.
-            int descents = 0, descentsAfterRetract = 0;
-            bool sawRetract = false;
+            // Каждый рез Lines — независимый вход в слой: отвод на SafeZ
+            // (G0 Z SafeZ) → подход в плоскости → быстрый ход до верха слоя
+            // (G0 Z ContourHeight) → врезание рабочей подачей (G1 Z рабочая)
+            // → рез G1 XY. Проверяем, что каждому врезанию предшествовал
+            // отвод на SafeZ, а сам спуск в материал — рабочий, а не быстрый:
+            // G0 на дно слоя означал бы удар торцом фрезы по материалу.
+            int entries = 0, entriesAfterRetract = 0;
+            bool sawRetract = false, sawLayerTop = false;
             foreach (var m in moves)
             {
                 if (m.IsRapid && m.Z.HasValue)
                 {
+                    Assert.IsTrue(m.Z.Value >= ContourHeight - 1e-6,
+                        $"Быстрый ход опускает инструмент на Z={m.Z.Value} — ниже верха слоя");
+
                     if (Math.Abs(m.Z.Value - SafeZ) < 1e-6)
-                        sawRetract = true;
-                    else if (Math.Abs(m.Z.Value - (-TotalDepth)) < 1e-6)
                     {
-                        descents++;
-                        if (sawRetract) descentsAfterRetract++;
-                        sawRetract = false;
+                        sawRetract = true;
+                        sawLayerTop = false;
                     }
+                    else if (Math.Abs(m.Z.Value - ContourHeight) < 1e-6)
+                    {
+                        sawLayerTop = true;
+                    }
+                }
+                else if (m.IsLinear && m.Z.HasValue && Math.Abs(m.Z.Value - (-TotalDepth)) < 1e-6)
+                {
+                    entries++;
+                    if (sawRetract && sawLayerTop) entriesAfterRetract++;
+                    sawRetract = false;
+                    sawLayerTop = false;
                 }
             }
 
-            Assert.IsTrue(descents > 0, "Ожидались опускания на рабочую Z (резы)");
-            Assert.AreEqual(descents, descentsAfterRetract,
-                "Каждое опускание на рабочую Z (рез) должно предшествовать отвод на SafeZ");
+            Assert.IsTrue(entries > 0, "Ожидались врезания в слой (резы)");
+            Assert.AreEqual(entries, entriesAfterRetract,
+                "Каждому врезанию должен предшествовать отвод на SafeZ и подход к верху слоя");
         }
 
         [TestMethod]

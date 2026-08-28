@@ -9,8 +9,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// Параллельные проходы под углом <c>op.LineAngleDeg</c>: скан-линии стоят
     /// в серединах равных полос высотой ≤ step (<see cref="PocketScanLines"/>),
     /// каждый сегмент сечения — независимый рез с отводами:
-    /// подъём на SafeZ → быстрый подход к началу сегмента → вход на рабочую Z
-    /// (<c>workingZ</c>) → рез G1 до конца сегмента.
+    /// подъём на SafeZ → быстрый подход к началу сегмента → врезание на рабочую Z
+    /// (<see cref="PocketLayerEntry"/>) → рез G1 до конца сегмента.
     ///
     /// Рез всегда слева направо в локальных координатах (без серпантина);
     /// острова и разрывы обрабатываются естественно — каждый сегмент
@@ -41,9 +41,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     var exit = PocketScanLines.ToWorld((seg.x2, line.Y), layer.Center, op.LineAngleDeg);
 
                     // Независимый рез: подъём → подход → вход в слой → рез
-                    builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                    builder.RapidTo(x: entry.x, y: entry.y, feed: op.FeedXYRapid);
-                    builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
+                    PocketLayerEntry.Enter(layer, builder, entry.x, entry.y);
                     builder.LinearTo(x: exit.x, y: exit.y, feed: op.FeedXYWork);
                 }
             }

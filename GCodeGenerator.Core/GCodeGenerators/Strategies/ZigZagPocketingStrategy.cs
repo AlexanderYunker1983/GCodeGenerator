@@ -12,7 +12,9 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
     /// нечётные — справа налево), связки между сегментами и линиями —
     /// прямые G1 на рабочей подаче (без отводов).
     ///
-    /// Стратегия работает на рабочей Z без отводов — <c>workingZ</c> не используется.
+    /// Сплошная область проходится на рабочей Z без отводов; там, где остров
+    /// разрывает скан-линию, каждый участок начинается повторным входом в слой
+    /// (<see cref="PocketLayerEntry"/>).
     ///
     /// Направление фрезерования (climb/conventional) для серпантинных
     /// проходов не определяется (аналогично <see cref="RadialPocketingStrategy"/>);
@@ -27,7 +29,8 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
         public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
         {
             var op = layer.Operation;
-            // Стратегия работает на рабочей Z без отводов — workingZ не используется.
+            // Сплошная область проходится на рабочей Z без отводов; разорванная
+            // островом требует повторного входа в слой (PocketLayerEntry).
             if (layer.ContourPoints == null || layer.ContourPoints.Count < 3 || layer.Step <= 0)
                 return;
 
@@ -55,11 +58,7 @@ namespace GCodeGenerator.GCodeGenerators.Strategies
                     var to = PocketScanLines.ToWorld((xTo, line.Y), layer.Center, op.LineAngleDeg);
 
                     if (layer.RequiresSafeTransitions)
-                    {
-                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                        builder.RapidTo(x: from.x, y: from.y, feed: op.FeedXYRapid);
-                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
-                    }
+                        PocketLayerEntry.Enter(layer, builder, from.x, from.y);
 
                     // Связка к ближнему концу сегмента (первый раз — из центра,
                     // дальше — от конца предыдущего реза: у соседних линий это

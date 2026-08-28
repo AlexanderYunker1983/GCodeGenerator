@@ -258,7 +258,8 @@ namespace GCodeGenerator.GCodeGenerators
             // Обработка слоя выбранным способом обхода.
             strategy.MillContour(
                 new PocketLayerContext(
-                    op, geometry, toolRadius, allowance, taperOffset, step, nextZ, contourPoints, center, settings),
+                    op, geometry, toolRadius, allowance, taperOffset, step,
+                    currentZ, nextZ, contourPoints, center, settings),
                 builder);
 
             // Возврат в центр и подъем
@@ -280,7 +281,9 @@ namespace GCodeGenerator.GCodeGenerators
 
             public void MillContour(PocketLayerContext layer, ToolPathBuilder builder)
             {
-                // Стратегия работает на рабочей Z без отводов — WorkingZ не используется.
+                // Сплошной контур проходится на рабочей Z без отводов; там, где
+                // остров разрывает обход, каждая граница начинается повторным
+                // входом в слой (PocketLayerEntry).
                 var op = layer.Operation;
                 if (layer.ContourPoints == null || layer.ContourPoints.Count < 3)
                     return;
@@ -295,14 +298,7 @@ namespace GCodeGenerator.GCodeGenerators
                         continue;
 
                     if (layer.RequiresSafeTransitions)
-                    {
-                        builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                        builder.RapidTo(
-                            x: contourPoints[0].x,
-                            y: contourPoints[0].y,
-                            feed: op.FeedXYRapid);
-                        builder.RapidTo(z: layer.WorkingZ, feed: op.FeedZRapid);
-                    }
+                        PocketLayerEntry.Enter(layer, builder, contourPoints[0].x, contourPoints[0].y);
 
                     // Фрезеруем замкнутый контур (инструмент на рабочей Z)
                     foreach (var point in contourPoints)
