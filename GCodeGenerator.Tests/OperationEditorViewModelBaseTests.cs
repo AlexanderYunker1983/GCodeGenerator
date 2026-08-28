@@ -112,8 +112,14 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(1, closeCount[0], "Cancel закрывает окно");
         }
 
+        /// <summary>
+        /// Закрытие окна не решает судьбу операции: не принимает параметры,
+        /// не удаляет её из списка и не закрывает окно повторно. Единственное,
+        /// что оно делает, — снимает подписку на операцию
+        /// (см. <c>EditorSubscriptionTests</c>).
+        /// </summary>
         [TestMethod]
-        public void OnClosed_DoesNothing()
+        public void OnClosed_LeavesTheOperationUntouched()
         {
             var (vm, _, ops, closeCount) = Create();
 

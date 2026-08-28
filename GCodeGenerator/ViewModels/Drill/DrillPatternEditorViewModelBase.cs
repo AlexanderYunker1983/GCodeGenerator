@@ -45,7 +45,6 @@ namespace GCodeGenerator.ViewModels.Drill
             // Диалог знает, какой шаблон он редактирует: операция, открытая
             // в нём, описывает именно этот шаблон.
             operation.DrillMode = Mode;
-            operation.PropertyChanged += OnOperationPropertyChanged;
             RebuildHoles();
         }
 
@@ -53,8 +52,14 @@ namespace GCodeGenerator.ViewModels.Drill
         /// Любое изменение параметра делает предпросмотр устаревшим, поэтому
         /// отверстия пересчитываются здесь, а не в каждом поле окна.
         /// Список отверстий на шаблон не влияет — он его результат.
+        ///
+        /// Пересчёт нужен только открытому окну: расстановка на тысячу
+        /// отверстий считается заново на каждый изменённый параметр, а
+        /// перенос правок в операцию присваивает все её свойства подряд.
+        /// Закрытое окно от операции отписано (см. основу редактора).
         /// </summary>
-        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        protected override void OnOperationPropertyChanged(
+            DrillPointsOperation operation, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(DrillPointsOperation.Holes))
                 return;

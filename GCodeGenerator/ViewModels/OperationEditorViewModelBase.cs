@@ -56,12 +56,20 @@ namespace GCodeGenerator.ViewModels
         where TOperation : OperationBase
     {
         private TOperation? _operation;
+        private bool _isListeningToOperation;
         private bool _hasValidationError;
         private string _validationSummary = string.Empty;
 
         /// <inheritdoc />
         void IOperationEditorViewModel.SetOperation(OperationBase operation)
-            => Operation = (TOperation)operation;
+        {
+            Operation = (TOperation)operation;
+
+            // Повторный показ того же диалога с той же операцией не проходит
+            // через сеттер (значение не изменилось), а слушать её после
+            // прошлого закрытия окно перестало.
+            StartListening();
+        }
 
         /// <inheritdoc />
         OperationBase? IOperationEditorViewModel.EditedOperation => Operation;
@@ -76,12 +84,16 @@ namespace GCodeGenerator.ViewModels
             set
             {
                 if (Equals(value, _operation)) return;
+                StopListening();
                 _operation = value;
                 IsAccepted = false;
                 HasValidationError = false;
                 OnPropertyChanged();
                 if (_operation != null)
+                {
+                    StartListening();
                     OnOperationChanged(_operation);
+                }
             }
         }
 
@@ -92,6 +104,64 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         protected virtual void OnOperationChanged(TOperation operation)
         {
+        }
+
+        /// <summary>
+        /// Вызывается при изменении параметра операции, пока окно открыто.
+        /// Здесь окно обновляет то, что зависит от параметров, но само
+        /// параметром не является: видимость полей для выбранного способа
+        /// врезания, предпросмотр расстановки отверстий.
+        ///
+        /// Наследники переопределяют этот метод, а не подписываются на
+        /// событие операции сами. Прежде подписывался каждый из них, а
+        /// отписаться не мог никто: у диалога не было места, где он узнаёт
+        /// о закрытии. Новая операция правится диалогом напрямую и после
+        /// подтверждения уходит в документ, унося с собой живую ссылку на
+        /// view-модель закрытого окна — и та продолжала работать на каждое
+        /// изменение операции, пересчитывая, например, всю расстановку
+        /// отверстий в невидимом окне.
+        /// </summary>
+        /// <param name="operation">Правимая операция.</param>
+        /// <param name="e">Что изменилось; пустое имя означает «всё сразу».</param>
+        protected virtual void OnOperationPropertyChanged(
+            TOperation operation, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+        }
+
+        /// <summary>
+        /// Диалог закрыт: окно перестаёт слушать операцию. Вызывается хостом
+        /// диалогов и при сбое внутри окна, поэтому подписка не переживает
+        /// закрытие ни при каком исходе.
+        /// </summary>
+        public override void OnClosed()
+        {
+            base.OnClosed();
+            StopListening();
+        }
+
+        private void StartListening()
+        {
+            if (_operation == null || _isListeningToOperation)
+                return;
+
+            _operation.PropertyChanged += OnOperationPropertyChangedCore;
+            _isListeningToOperation = true;
+        }
+
+        private void StopListening()
+        {
+            if (_operation == null || !_isListeningToOperation)
+                return;
+
+            _operation.PropertyChanged -= OnOperationPropertyChangedCore;
+            _isListeningToOperation = false;
+        }
+
+        private void OnOperationPropertyChangedCore(
+            object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_operation != null)
+                OnOperationPropertyChanged(_operation, e);
         }
 
         /// <summary>

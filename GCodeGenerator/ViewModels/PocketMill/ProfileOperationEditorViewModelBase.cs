@@ -25,11 +25,11 @@ namespace GCodeGenerator.ViewModels.PocketMill
         {
             base.OnOperationChanged(operation);
 
-            operation.PropertyChanged += OnOperationPropertyChanged;
             OnPropertyChanged(nameof(IsAngledEntry));
         }
 
-        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        protected override void OnOperationPropertyChanged(
+            TOperation operation, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ProfileOperationBase.EntryMode) || string.IsNullOrEmpty(e.PropertyName))
                 OnPropertyChanged(nameof(IsAngledEntry));

@@ -45,13 +45,13 @@ namespace GCodeGenerator.ViewModels.Pocket
         {
             base.OnOperationChanged(operation);
 
-            // Состав видимых полей зависит от выбранной стратегии, а её меняют
-            // прямо в операции — значит и следить надо за операцией.
-            operation.PropertyChanged += OnOperationPropertyChanged;
             RaiseStrategyDependentProperties();
         }
 
-        private void OnOperationPropertyChanged(object? sender, PropertyChangedEventArgs e)
+        // Состав видимых полей зависит от выбранной стратегии, а её меняют
+        // прямо в операции — значит и следить надо за операцией.
+        protected override void OnOperationPropertyChanged(
+            TOperation operation, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(PocketOperationBase.PocketStrategy) || string.IsNullOrEmpty(e.PropertyName))
                 RaiseStrategyDependentProperties();
