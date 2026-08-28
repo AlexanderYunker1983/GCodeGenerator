@@ -270,8 +270,10 @@ namespace GCodeGenerator.Models
 
                 OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].TotalDepth", hole.TotalDepth);
                 OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].StepDepth", hole.StepDepth);
-                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZWork", hole.FeedZWork);
-                OperationValidation.AddIfNotPositive(issues, $"Holes[{i}].FeedZRapid", hole.FeedZRapid);
+                OperationValidation.AddIfOutOfPositiveRange(issues, $"Holes[{i}].FeedZWork",
+                    hole.FeedZWork, OperationValidation.MaxWorkFeed);
+                OperationValidation.AddIfOutOfPositiveRange(issues, $"Holes[{i}].FeedZRapid",
+                    hole.FeedZRapid, OperationValidation.MaxRapidFeed);
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].X", hole.X);
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Y", hole.Y);
                 OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].Z", hole.Z);

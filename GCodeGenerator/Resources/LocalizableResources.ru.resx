@@ -238,7 +238,7 @@
     <value>OK</value>
   </data>
   <data name="OperationParametersInvalid" xml:space="preserve">
-    <value>Проверьте параметры: значения должны быть положительными, а операция — содержать геометрию</value>
+    <value>Проверьте параметры — проблемы перечислены ниже</value>
   </data>
   <data name="ShowToolPath" xml:space="preserve">
     <value>Траектория инструмента</value>

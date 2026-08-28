@@ -213,7 +213,8 @@ dotnet build GCodeGenerator.sln -c Release
   (`PocketLayerEntryTests`), безопасный пролог программы (`SafetyPreambleTests`),
   проверка высот (`SafeHeightValidationTests`).
 - **Проверка параметров** — все операции и настройки (`OperationValidationTests`,
-  `FullValidationTests`), привязка ошибок к полям (`FieldErrorTests`).
+  `FullValidationTests`), привязка ошибок к полям (`FieldErrorTests`), нижний и верхний
+  пределы подач и оборотов (`SettingsValidationTests`).
 - **Файл проекта** — запись и чтение всех поддерживаемых версий формата,
   отказ на повреждённых файлах (`ProjectFileServiceTests`).
 - **Разбор чертежей** — сущности, блоки, единицы, восстановление замкнутых

@@ -15,6 +15,11 @@ namespace GCodeGenerator.Models
     /// остаётся нетронутый материал), число знаков после запятой вне
     /// разумного предела, нечисловые координаты. Раньше проверялись только
     /// глубина, шаг и диаметр — остальное доходило до G-code как есть.
+    ///
+    /// У подач есть и верхний предел. Он поставлен не по паспорту станка —
+    /// его продукт не знает, — а по тому, чего не бывает: подача с лишним
+    /// разрядом. Такое значение стойка обычно урежет до своего максимума,
+    /// то есть выполнит не то, что записано в проекте, и молча.
     /// </summary>
     public static class OperationValidation
     {
@@ -27,6 +32,26 @@ namespace GCodeGenerator.Models
 
         /// <summary>Наибольшее осмысленное число знаков после запятой.</summary>
         public const int MaxDecimals = 6;
+
+        /// <summary>
+        /// Наибольшая рабочая подача, мм/мин.
+        ///
+        /// Предел ловит не станок, а лишний разряд: 3000 вместо 300 — самая
+        /// частая опечатка ввода, и она уходила в программу молча. Рабочая
+        /// подача выше двадцати метров в минуту не встречается даже на
+        /// высокоскоростной обработке, поэтому потолок никому не мешает,
+        /// а сдвиг разряда в трёхзначном значении отсекает.
+        /// </summary>
+        public const double MaxWorkFeed = 20000.0;
+
+        /// <summary>
+        /// Наибольшая подача быстрого хода, мм/мин.
+        ///
+        /// Втрое выше рабочей: холостые перемещения и правда идут в разы
+        /// быстрее, и шестьдесят метров в минуту — предел быстрого хода
+        /// самых быстрых станков, а не рабочий режим.
+        /// </summary>
+        public const double MaxRapidFeed = 60000.0;
 
         private static string Text(double value) => value.ToString(CultureInfo.InvariantCulture);
 
@@ -148,6 +173,33 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>
+        /// Значение должно быть больше нуля и не больше предела.
+        ///
+        /// Так задаются подачи, обороты и задержки — всё, что уходит на
+        /// станок числом и где лишний разряд опаснее самого значения.
+        /// Проверка одна на оба конца намеренно: неположительное значение
+        /// и значение выше предела — одна и та же ошибка ввода, и второе
+        /// сообщение о том же поле пользователю ничего не добавляет.
+        /// </summary>
+        /// <param name="issues">Список проблем, куда добавляются найденные.</param>
+        /// <param name="property">Имя параметра.</param>
+        /// <param name="value">Проверяемое значение.</param>
+        /// <param name="max">Наибольшее допустимое значение.</param>
+        public static void AddIfOutOfPositiveRange(
+            IList<ValidationIssue> issues, string property, double value, double max)
+        {
+            if (!double.IsFinite(value) || value <= 0)
+            {
+                AddIfNotPositive(issues, property, value);
+                return;
+            }
+
+            if (value > max)
+                issues.Add(new ValidationIssue(property, ValidationCode.AboveMaximum,
+                    $"must be at most {Text(max)}, but is {Text(value)}", max));
+        }
+
+        /// <summary>
         /// Adds issues for the common milling parameters: TotalDepth, StepDepth
         /// and ToolDiameter must all be greater than zero.
         /// </summary>
@@ -171,10 +223,10 @@ namespace GCodeGenerator.Models
         /// </summary>
         public static void AddCuttingIssues(IList<ValidationIssue> issues, CuttingOperationBase operation)
         {
-            AddIfNotPositive(issues, nameof(operation.FeedXYWork), operation.FeedXYWork);
-            AddIfNotPositive(issues, nameof(operation.FeedZWork), operation.FeedZWork);
-            AddIfNotPositive(issues, nameof(operation.FeedXYRapid), operation.FeedXYRapid);
-            AddIfNotPositive(issues, nameof(operation.FeedZRapid), operation.FeedZRapid);
+            AddIfOutOfPositiveRange(issues, nameof(operation.FeedXYWork), operation.FeedXYWork, MaxWorkFeed);
+            AddIfOutOfPositiveRange(issues, nameof(operation.FeedZWork), operation.FeedZWork, MaxWorkFeed);
+            AddIfOutOfPositiveRange(issues, nameof(operation.FeedXYRapid), operation.FeedXYRapid, MaxRapidFeed);
+            AddIfOutOfPositiveRange(issues, nameof(operation.FeedZRapid), operation.FeedZRapid, MaxRapidFeed);
 
             AddIfNegative(issues, nameof(operation.RetractHeight), operation.RetractHeight);
 

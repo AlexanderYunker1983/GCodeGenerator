@@ -368,6 +368,86 @@ namespace GCodeGenerator.Tests
             return operation;
         }
 
+        // ------------------------------------------------------------------
+        // Верхний предел подач
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Подача с лишним разрядом отклоняется. Прежде проверялось только
+        /// «больше нуля», поэтому 3000 вместо 300 уходило в программу молча:
+        /// стойка урезала бы такую подачу до своего максимума, то есть
+        /// выполнила бы не то, что записано в проекте.
+        /// </summary>
+        [TestMethod]
+        public void Feed_AboveItsLimit_Invalid()
+        {
+            AssertSingleIssue(WithFeed(op => op.FeedXYWork = OperationValidation.MaxWorkFeed + 1),
+                nameof(DrillPointsOperation.FeedXYWork));
+            AssertSingleIssue(WithFeed(op => op.FeedZWork = OperationValidation.MaxWorkFeed + 1),
+                nameof(DrillPointsOperation.FeedZWork));
+            AssertSingleIssue(WithFeed(op => op.FeedXYRapid = OperationValidation.MaxRapidFeed + 1),
+                nameof(DrillPointsOperation.FeedXYRapid));
+            AssertSingleIssue(WithFeed(op => op.FeedZRapid = OperationValidation.MaxRapidFeed + 1),
+                nameof(DrillPointsOperation.FeedZRapid));
+        }
+
+        /// <summary>
+        /// Ровно предел допустим: правило говорит «не больше», а не «меньше».
+        /// Иначе владелец самого быстрого станка не смог бы записать его
+        /// паспортное значение.
+        /// </summary>
+        [TestMethod]
+        public void Feed_AtItsLimit_IsValid()
+        {
+            AssertValid(WithFeed(op =>
+            {
+                op.FeedXYWork = OperationValidation.MaxWorkFeed;
+                op.FeedZWork = OperationValidation.MaxWorkFeed;
+                op.FeedXYRapid = OperationValidation.MaxRapidFeed;
+                op.FeedZRapid = OperationValidation.MaxRapidFeed;
+            }));
+        }
+
+        /// <summary>
+        /// Быстрому ходу дозволено больше рабочей подачи: холостое
+        /// перемещение и правда идёт в разы быстрее реза, и общий предел
+        /// на оба означал бы либо запрет паспортного быстрого хода, либо
+        /// пропуск лишнего разряда в рабочей подаче.
+        /// </summary>
+        [TestMethod]
+        public void RapidFeed_MayExceedTheWorkFeedLimit()
+        {
+            AssertValid(WithFeed(op => op.FeedXYRapid = OperationValidation.MaxWorkFeed + 1));
+            AssertSingleIssue(WithFeed(op => op.FeedXYWork = OperationValidation.MaxWorkFeed + 1),
+                nameof(DrillPointsOperation.FeedXYWork));
+        }
+
+        /// <summary>
+        /// Проблема несёт код и сам предел: окно называет его числом, а не
+        /// общей фразой «значение не годится».
+        /// </summary>
+        [TestMethod]
+        public void Feed_AboveItsLimit_CarriesTheLimit()
+        {
+            var issue = WithFeed(op => op.FeedXYWork = 300000).Validate().Single();
+
+            Assert.AreEqual(ValidationCode.AboveMaximum, issue.Code);
+            Assert.AreEqual(OperationValidation.MaxWorkFeed, issue.Limit);
+        }
+
+        /// <summary>
+        /// Подача отдельного отверстия живёт в самом отверстии и проверяется
+        /// тем же правилом: у сверления по точкам глубину и подачи задают
+        /// они, а не операция.
+        /// </summary>
+        [TestMethod]
+        public void HoleFeed_AboveItsLimit_Invalid()
+        {
+            var op = OperationFixtures.DrillPoints();
+            op.Holes[0].FeedZWork = OperationValidation.MaxWorkFeed + 1;
+            AssertSingleIssue(op, "Holes[0].FeedZWork");
+        }
+
         [TestMethod]
         public void DrillPattern_ZeroTotalDepth_Invalid()
         {

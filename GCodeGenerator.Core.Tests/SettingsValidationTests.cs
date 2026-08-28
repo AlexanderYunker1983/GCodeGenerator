@@ -190,6 +190,62 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Обороты с лишним разрядом отклоняются. Проверялось только
+        /// «не меньше одного», поэтому S200000 уходило в программу: таких
+        /// шпинделей не существует, а стойка урезала бы значение до своего
+        /// максимума и молча выполнила не то, что записано в проекте.
+        /// </summary>
+        [TestMethod]
+        public void SpindleSpeed_AboveItsLimit_IsRejected()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleSpeedEnabled = true;
+            settings.Spindle.SpindleSpeedRpm = GCodeSettingsValidation.MaxSpindleSpeedRpm + 1;
+
+            var error = Generate(settings);
+
+            var issue = error.SettingsIssues.Single(i => i.Property == "SpindleSpeedRpm");
+            Assert.AreEqual(ValidationCode.AboveMaximum, issue.Code);
+            Assert.AreEqual(GCodeSettingsValidation.MaxSpindleSpeedRpm, issue.Limit);
+        }
+
+        /// <summary>Паспортное значение самого быстрого шпинделя проходит.</summary>
+        [TestMethod]
+        public void SpindleSpeed_AtItsLimit_IsAccepted()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleSpeedEnabled = true;
+            settings.Spindle.SpindleSpeedRpm = GCodeSettingsValidation.MaxSpindleSpeedRpm;
+
+            var lines = new SimpleGCodeGenerator().Generate(OneDrill(), settings).Lines;
+
+            Assert.IsTrue(lines.Any(line => line.Contains("S" + GCodeSettingsValidation.MaxSpindleSpeedRpm)),
+                "Обороты выведены в программу");
+        }
+
+        /// <summary>
+        /// Задержка после пуска шпинделя ограничена сверху: она нужна на
+        /// разгон, это единицы секунд, а лишний разряд оставил бы станок
+        /// стоять у выданной ему паузы.
+        /// </summary>
+        [TestMethod]
+        public void SpindleDelay_AboveItsLimit_IsRejected()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleStartEnabled = true;
+            settings.Spindle.SpindleDelayEnabled = true;
+            settings.Spindle.SpindleDelaySeconds = GCodeSettingsValidation.MaxSpindleDelaySeconds + 1;
+
+            var error = Generate(settings);
+
+            Assert.IsTrue(error.SettingsIssues.Any(i => i.Property == "SpindleDelaySeconds"),
+                "Названа причина: задержка после пуска шпинделя");
+        }
+
+        /// <summary>
         /// Построитель программы тоже не угадывает направление вращения:
         /// контракт один и тот же на обоих уровнях.
         /// </summary>

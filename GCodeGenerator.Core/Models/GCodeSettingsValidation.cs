@@ -15,6 +15,25 @@ namespace GCodeGenerator.Models
     /// </summary>
     public static class GCodeSettingsValidation
     {
+        /// <summary>
+        /// Наибольшие обороты шпинделя, об/мин.
+        ///
+        /// Шестьдесят тысяч — предел высокочастотных шпинделей, каких на
+        /// фрезерном станке не бывает быстрее; у обычного фрезера потолок
+        /// втрое ниже. Как и у подач, предел ловит лишний разряд: S200000
+        /// проходило и уходило в программу.
+        /// </summary>
+        public const int MaxSpindleSpeedRpm = 60000;
+
+        /// <summary>
+        /// Наибольшая задержка после пуска шпинделя, с.
+        ///
+        /// Задержка нужна, чтобы шпиндель успел раскрутиться, — это единицы
+        /// секунд. Минута заведомо больше любого разгона, а всё, что дольше,
+        /// означает станок, стоящий у выданной ему паузы.
+        /// </summary>
+        public const double MaxSpindleDelaySeconds = 60.0;
+
         /// <summary>Системы координат, которые понимает вывод программы.</summary>
         private static readonly string[] WorkCoordinateSystems =
             { "G54", "G55", "G56", "G57", "G58", "G59" };
@@ -63,12 +82,12 @@ namespace GCodeGenerator.Models
             if (spindle != null && spindle.SpindleControlEnabled)
             {
                 if (spindle.SpindleSpeedEnabled)
-                    OperationValidation.AddIfBelow(issues, nameof(SpindleSettings.SpindleSpeedRpm),
-                        spindle.SpindleSpeedRpm, 1);
+                    OperationValidation.AddIfOutOfRange(issues, nameof(SpindleSettings.SpindleSpeedRpm),
+                        spindle.SpindleSpeedRpm, 1, MaxSpindleSpeedRpm);
 
                 if (spindle.SpindleDelayEnabled)
-                    OperationValidation.AddIfNotPositive(issues, nameof(SpindleSettings.SpindleDelaySeconds),
-                        spindle.SpindleDelaySeconds);
+                    OperationValidation.AddIfOutOfPositiveRange(issues, nameof(SpindleSettings.SpindleDelaySeconds),
+                        spindle.SpindleDelaySeconds, MaxSpindleDelaySeconds);
             }
 
             if (spindle != null && spindle.SpindleControlEnabled && spindle.SpindleStartEnabled)
