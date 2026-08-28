@@ -10,6 +10,25 @@ namespace GCodeGenerator.GCodeGenerators
 {
     public class DrillPointsOperationGenerator : IOperationGenerator
     {
+        /// <summary>
+        /// Насколько выше пройденной глубины обрывается быстрый ход при
+        /// возврате в отверстие, мм.
+        ///
+        /// Между проходами сверло выходит из отверстия — на высоту отвода,
+        /// а она задана абсолютной, то есть чаще всего над поверхностью:
+        /// проход выбрасывает стружку, и обратно сверло идёт по всей
+        /// пройденной глубине. Прежде этот возврат шёл быстрым ходом до
+        /// самого дна: оставшаяся в отверстии стружка встречала сверло на
+        /// полной скорости, а встречает она его всегда — за тем отвод
+        /// и делается.
+        ///
+        /// Полмиллиметра — зазор того же порядка, что и у постоянных циклов
+        /// стойки, где он задаётся отдельным словом: достаточно, чтобы
+        /// принять удар о стружку рабочей подачей, и слишком мало, чтобы
+        /// заметно удлинить обработку.
+        /// </summary>
+        public const double PeckReturnClearance = 0.5;
+
         public void Generate(
             OperationBase operation,
             ToolPathBuilder builder,
@@ -44,7 +63,13 @@ namespace GCodeGenerator.GCodeGenerators
                     if (nextZ < finalZ)
                         nextZ = finalZ;
 
-                    builder.RapidTo(z: currentZ, feed: hole.FeedZRapid);
+                    // Быстрый ход обрывается над пройденной глубиной, и
+                    // последний участок сверло проходит рабочей подачей.
+                    // Выше верха отверстия подниматься незачем: там материала
+                    // нет, а на первом проходе сверло и так подводится к нему.
+                    var entryZ = Math.Min(currentZ + PeckReturnClearance, hole.Z);
+
+                    builder.RapidTo(z: entryZ, feed: hole.FeedZRapid);
                     builder.LinearTo(z: nextZ, feed: hole.FeedZWork);
 
                     currentZ = nextZ;

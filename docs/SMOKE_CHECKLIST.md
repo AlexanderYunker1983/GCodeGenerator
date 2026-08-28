@@ -210,7 +210,8 @@ dotnet build GCodeGenerator.sln -c Release
   и настройки формата (`GoldenTests`), эталонный проект из 19 операций через
   полный путь «файл проекта → G-код» (`ReferenceProjectTests`).
 - **Безопасность траектории** — врезание только рабочей подачей
-  (`PocketLayerEntryTests`), безопасный пролог программы (`SafetyPreambleTests`),
+  (`PocketLayerEntryTests`), возврат сверла в отверстие с зазором
+  (`DrillPeckReturnTests`), безопасный пролог программы (`SafetyPreambleTests`),
   проверка высот (`SafeHeightValidationTests`).
 - **Проверка параметров** — все операции и настройки (`OperationValidationTests`,
   `FullValidationTests`), привязка ошибок к полям (`FieldErrorTests`), нижний и верхний
