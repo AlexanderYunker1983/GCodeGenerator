@@ -1,15 +1,15 @@
 # ---------------------------------------------------------------------------
-# Get-GitVersion.ps1 — product version from git tags (build-time helper).
+# Get-GitVersion.ps1 - product version from git tags (build-time helper).
 #
 # Prints ONE line: X.Y.Z or X.Y.Z-suffix (e.g. 1.2.3-rc5).
 #
 # Selection:
-#   1. Tag(s) on the current commit (git tag --points-at HEAD); if several —
+#   1. Tag(s) on the current commit (git tag --points-at HEAD); if several -
 #      the one with the highest precedence (SemVer):
 #      1.2.3 > 1.2.3-rc5 > 1.2.3-beta3 > 1.2.3-alpha2 > 1.2.3-alpha
-#      (within a class — by number: alpha2 > alpha, rc10 > rc5).
-#   2. Otherwise — the nearest tag in history (git describe --tags --abbrev=0).
-#   3. Otherwise (no tags / no git / not a repository) — 0.1.0-alpha.
+#      (within a class - by number: alpha2 > alpha, rc10 > rc5).
+#   2. Otherwise - the nearest tag in history (git describe --tags --abbrev=0).
+#   3. Otherwise (no tags / no git / not a repository) - 0.1.0-alpha.
 #
 # Tag format: ^\d+\.\d+\.\d+(-[A-Za-z][A-Za-z0-9]*)?$
 # (three-part version + optional suffix: -alpha, -alpha2, -beta, -beta3,
@@ -20,7 +20,7 @@
 # Compatible with Windows PowerShell 5.1 (no PS7 syntax).
 #
 # Usage: Get-GitVersion.ps1 [-OutFile <path>]
-#   -OutFile — additionally write the version to a file (used by MSBuild:
+#   -OutFile - additionally write the version to a file (used by MSBuild:
 #   the Exec task of this SDK cannot capture stdout into a property).
 # ---------------------------------------------------------------------------
 param([string]$OutFile)
@@ -36,7 +36,7 @@ function Invoke-Git {
         return @($out | Where-Object { $_ })
     }
     catch {
-        # git not installed / not a repository — empty result.
+        # git not installed / not a repository - empty result.
         return @()
     }
 }

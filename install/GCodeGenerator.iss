@@ -1,4 +1,4 @@
-; ---------------------------------------------------------------------------
+﻿; ---------------------------------------------------------------------------
 ; GCodeGenerator.iss - Inno Setup 6.x script for the GCodeGenerator app.
 ;
 ; The version is NOT hardcoded here - it is passed on the ISCC command line:
@@ -20,8 +20,14 @@
 ;     AppId would install alongside the old version instead of upgrading.
 ;   - The app is a SELF-CONTAINED win-x64 publish (build/Make-Installer.ps1
 ;     default): the installer ships the .NET 10 Desktop Runtime, so end users
-;     need nothing preinstalled. The installer also closes a running app
-;     instance (PrepareToInstall).
+;     need nothing preinstalled. A running instance is ASKED to close, not
+;     killed, so it can offer to save the open project (PrepareToInstall).
+;   - Code signing is optional and configured from outside: the ISCC command
+;     line carries /DSignToolName + /S<name>=<command> when a certificate is
+;     available. Without them the script compiles an unsigned installer, as
+;     it always did.
+;   - This file is UTF-8 WITH BOM: [CustomMessages] carries Russian text, and
+;     Inno Setup reads a BOM-less .iss as ANSI.
 ;   - Inno Setup 6.3+ (x64compatible values); Russian: official in 6.7+
 ;     (Languages\Russian.isl), unofficial in older 6.x (Languages\Unofficial).
 ; ---------------------------------------------------------------------------
@@ -67,6 +73,18 @@ VersionInfoVersion={#AppVersionNumeric}.0
 VersionInfoCompany=AlexanderYunker
 VersionInfoDescription=GCodeGenerator installer
 
+; Code signing. The signing command is NOT stored here: it is passed on the
+; ISCC command line by build/Make-Installer.ps1 when signing is configured
+;   /DSignToolName=<name>  /S<name>="<command with $f for the file>"
+; and omitted otherwise, so an unsigned build still compiles unchanged.
+; SignedUninstaller signs the uninstaller too - it is generated at install
+; time from a stub inside Setup, and an unsigned stub would leave one
+; unsigned executable on the user's machine.
+#ifdef SignToolName
+SignTool={#SignToolName}
+SignedUninstaller=yes
+#endif
+
 ; Russian: official in Inno Setup 6.7+, unofficial (Languages\Unofficial) in
 ; older 6.x - pick whichever exists.
 #if FileExists("compiler:Languages\Russian.isl")
@@ -78,6 +96,20 @@ VersionInfoDescription=GCodeGenerator installer
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "russian"; MessagesFile: "{#RussianIsl}"
+
+; Own messages of the [Code] section. The wizard itself picks its language by
+; system locale; these lines used to be English-only, so a Russian user met
+; the only questions the installer actually asks in a foreign language.
+; This file is UTF-8 with BOM - required by Inno Setup for non-ASCII text.
+[CustomMessages]
+english.AppRunningCloseQuestion=GCodeGenerator is running. Close it and continue the installation?
+russian.AppRunningCloseQuestion=Программа GCodeGenerator запущена. Закрыть её и продолжить установку?
+english.AppClosingStatus=Waiting for GCodeGenerator to close...
+russian.AppClosingStatus=Ожидание закрытия GCodeGenerator...
+english.AppStillRunningForceQuestion=GCodeGenerator has not closed. It may be asking whether to save the project - check its window and answer there.%n%nEnd the program anyway? Unsaved changes will be lost.
+russian.AppStillRunningForceQuestion=Программа GCodeGenerator не закрылась. Возможно, она спрашивает, сохранить ли проект, — проверьте её окно и ответьте там.%n%nЗавершить программу принудительно? Несохранённые изменения будут потеряны.
+english.AppStillRunningAbort=GCodeGenerator is still running. Close it and run the installer again.
+russian.AppStillRunningAbort=Программа GCodeGenerator всё ещё работает. Закройте её и запустите установку снова.
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -98,7 +130,19 @@ Filename: "{app}\GCodeGenerator.exe"; Description: "{cm:LaunchProgram,GCodeGener
 [Code]
 // NB: in [Code] ';' is a statement separator, NOT a comment (use //; the
 // ';' comment style only works in the directive sections above).
-//
+
+const
+  AppExeName = 'GCodeGenerator.exe';
+  // How long the app may take to close after being asked. It shows its own
+  // "save the project?" question first, and the person has to read and answer
+  // it - a couple of seconds would abort the wait while they are still typing
+  // a file name.
+  GracefulCloseTimeoutMs = 30000;
+  // After a forced kill nothing is being asked, so this only covers the
+  // moment it takes the process to disappear from the task list.
+  ForcedCloseTimeoutMs = 3000;
+  PollIntervalMs = 500;
+
 // --- Close a running app instance ------------------------------------------
 // Detection via tasklist (Inno Pascal has no Pointer type, so native struct
 // enumeration is out): the /FI filter is an exact image-name match, so the
@@ -112,34 +156,66 @@ var
 begin
   TempFile := ExpandConstant('{tmp}\gcodegen_tasklist.txt');
   Result := False;
-  if Exec('cmd.exe', '/c tasklist.exe /FI "IMAGENAME eq GCodeGenerator.exe" /NH > "' + TempFile + '"',
+  if Exec('cmd.exe', '/c tasklist.exe /FI "IMAGENAME eq ' + AppExeName + '" /NH > "' + TempFile + '"',
           '', SW_HIDE, ewWaitUntilTerminated, ResultCode)
   then
   begin
     if LoadStringFromFile(TempFile, Content) then
-      Result := Pos('GCodeGenerator.exe', Content) > 0;
+      Result := Pos(AppExeName, Content) > 0;
   end;
   DeleteFile(TempFile);
 end;
 
+// --- Waiting for the app to close -------------------------------------------
+// Polls until the process is gone or the timeout expires. Every check spawns
+// tasklist, so the state is read once per round rather than twice.
+function WaitForAppToClose(TimeoutMs: Integer): Boolean;
+var
+  Waited: Integer;
+begin
+  Waited := 0;
+  Result := not IsAppRunning;
+  while (not Result) and (Waited < TimeoutMs) do
+  begin
+    Sleep(PollIntervalMs);
+    Waited := Waited + PollIntervalMs;
+    Result := not IsAppRunning;
+  end;
+end;
+
 // PrepareToInstall: a non-empty return string stops Setup on the
 // "Preparing to Install" page and is shown as the error message.
+//
+// The running app is asked to close, NOT killed outright. Previously the
+// first step was taskkill /F, which terminates the process without letting
+// it run anything: the app never got to ask about the unsaved project, so
+// updating over open work destroyed it. taskkill WITHOUT /F posts a close
+// request to the app's window instead, and the app asks the user as it does
+// on any other close - including "Cancel", which legitimately keeps it
+// running. Only when that leads nowhere is a forced kill offered, and only
+// with the data loss spelled out.
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   ResultCode: Integer;
-  Answer: Integer;
 begin
   Result := '';
-  if IsAppRunning then
+  if not IsAppRunning then
+    Exit;
+
+  if MsgBox(ExpandConstant('{cm:AppRunningCloseQuestion}'), mbConfirmation, MB_YESNO) = IDYES then
   begin
-    Answer := MsgBox('GCodeGenerator is running. Close it and continue the installation?',
-                     mbConfirmation, MB_YESNO);
-    if Answer = IDYES then
+    WizardForm.StatusLabel.Caption := ExpandConstant('{cm:AppClosingStatus}');
+    Exec('taskkill.exe', '/IM ' + AppExeName, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+    if WaitForAppToClose(GracefulCloseTimeoutMs) then
+      Exit;
+
+    if MsgBox(ExpandConstant('{cm:AppStillRunningForceQuestion}'), mbConfirmation, MB_YESNO) = IDYES then
     begin
-      Exec('taskkill.exe', '/F /IM GCodeGenerator.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-      Sleep(500);
+      Exec('taskkill.exe', '/F /IM ' + AppExeName, '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+      WaitForAppToClose(ForcedCloseTimeoutMs);
     end;
-    if IsAppRunning then
-      Result := 'GCodeGenerator is running and could not be closed. Close it and run the installer again.';
   end;
+
+  if IsAppRunning then
+    Result := ExpandConstant('{cm:AppStillRunningAbort}');
 end;

@@ -8,8 +8,22 @@
 #   2. dotnet publish (SELF-CONTAINED win-x64 by default: the installer ships
 #      the .NET 10 Desktop Runtime, so end users need nothing preinstalled)
 #      into artifacts\publish\GCodeGenerator.
-#   3. Compile install\GCodeGenerator.iss with ISCC, passing the version via
+#   3. Sign the published executables, if signing is configured (see below).
+#   4. Compile install\GCodeGenerator.iss with ISCC, passing the version via
 #      /D defines; output into artifacts\installer.
+#
+# Signing is OPTIONAL and off by default: it needs a code-signing certificate,
+# which cannot live in the repository. Give -SignCommand (or set the
+# GCODEGEN_SIGN_COMMAND environment variable) to a command line that signs one
+# file, with $f standing for the file - the same placeholder Inno Setup uses,
+# so one setting covers both the app and the installer. Examples:
+#
+#   -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p SECRET $f'
+#   -SignCommand 'azuresigntool.exe sign -kvu ... -kvc ... -tr http://timestamp.digicert.com -td SHA256 $f'
+#
+# Without it the build produces an unsigned installer exactly as before, and
+# says so: Windows SmartScreen warns about unsigned installers, so a release
+# meant for other people should be signed.
 #
 # Requires: .NET 10 SDK, git, Inno Setup 6 (ISCC.exe) - or -IsccPath.
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
@@ -18,12 +32,14 @@
 # Usage:
 #   build\Make-Installer.ps1 [-Configuration Release] [-Runtime win-x64]
 #                            [-FrameworkDependent] [-IsccPath <path to ISCC.exe>]
+#                            [-SignCommand '<command with $f>']
 # ---------------------------------------------------------------------------
 param(
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
     [switch]$FrameworkDependent,
-    [string]$IsccPath = ''
+    [string]$IsccPath = '',
+    [string]$SignCommand = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -60,13 +76,12 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 $selfContainedArg = 'true'
 if ($FrameworkDependent) { $selfContainedArg = 'false' }
 Write-Host "Publishing ($Configuration, $Runtime, self-contained: $selfContainedArg)..."
-# RestoreLockedMode: состав пакетов берётся строго по packages.lock.json.
-# Это та же строгость, с какой пакеты восстанавливают рабочие процессы сборки,
-# и относится она к тому самому выводу, который уходит пользователям.
-# Ключа командной строки --locked-mode у publish нет - только свойство MSBuild.
-# Замки покрывают публикацию под win-x64, потому что среда объявлена
-# в csproj (RuntimeIdentifiers); без неё restore под RID отвергался бы
-# как расхождение с замком (NU1004).
+# RestoreLockedMode: the package set is taken strictly from packages.lock.json
+# - the same strictness the build workflows restore with, applied to the very
+# output that ships to users. publish has no --locked-mode command-line switch,
+# only the MSBuild property. The locks cover publishing under win-x64 because
+# the runtime is declared in the csproj files (RuntimeIdentifiers); without it
+# a RID restore would be rejected as a mismatch with the lock (NU1004).
 & dotnet publish (Join-Path $repoRoot 'GCodeGenerator\GCodeGenerator.csproj') `
     -c $Configuration -r $Runtime --self-contained $selfContainedArg `
     -p:RestoreLockedMode=true -o $publishDir
@@ -75,7 +90,44 @@ if (-not (Test-Path (Join-Path $publishDir 'GCodeGenerator.exe'))) {
     throw "Publish output is missing GCodeGenerator.exe: $publishDir"
 }
 
-# --- 3) Compile the installer ------------------------------------------------
+# --- 3) Sign the published executables ---------------------------------------
+# The parameter wins over the environment variable, so a workflow can export
+# the command once and a local build can still override it.
+if ($SignCommand -eq '') { $SignCommand = $env:GCODEGEN_SIGN_COMMAND }
+
+# Runs the signing command for one file: $f is replaced by its quoted path,
+# the same placeholder Inno Setup expands for its own SignTool.
+function Invoke-SignCommand([string]$Command, [string]$FilePath) {
+    $resolved = $Command.Replace('$f', '"' + $FilePath + '"')
+    Write-Host "  signing: $FilePath"
+    & cmd.exe /c $resolved
+    if ($LASTEXITCODE -ne 0) {
+        throw "Signing failed for '$FilePath' (exit code $LASTEXITCODE)"
+    }
+}
+
+if ($SignCommand -ne '') {
+    # Signed here: the app the user launches, not only the installer that
+    # delivers it. SmartScreen looks at both, and an unsigned app inside a
+    # signed installer warns on every start instead of once.
+    # Only the product's own binaries are signed - the .NET runtime files of a
+    # self-contained publish arrive already signed by Microsoft.
+    Write-Host 'Signing published binaries...'
+    $ownBinaries = @('GCodeGenerator.exe', 'GCodeGenerator.dll', 'GCodeGenerator.Core.dll')
+    foreach ($name in $ownBinaries) {
+        $path = Join-Path $publishDir $name
+        if (Test-Path $path) { Invoke-SignCommand $SignCommand $path }
+    }
+}
+else {
+    # Said out loud on purpose: an unsigned installer is met by a SmartScreen
+    # warning on every machine it reaches, and that is easy not to notice when
+    # the build succeeds either way.
+    Write-Host 'Signing is not configured: the installer will be UNSIGNED.' -ForegroundColor Yellow
+    Write-Host '  Pass -SignCommand or set GCODEGEN_SIGN_COMMAND to sign the release.'
+}
+
+# --- 4) Compile the installer ------------------------------------------------
 if ($IsccPath -eq '') {
     $cmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
     if ($cmd) {
@@ -99,10 +151,21 @@ Write-Host "Compiling installer with ISCC: $IsccPath"
 # CWD, not the .iss dir - so pass an absolute path, quoted when it has spaces).
 $outArg = "/O$installerDir"
 if ($installerDir -match ' ') { $outArg = '/O"' + $installerDir + '"' }
-& $IsccPath "/DAppVersionNumeric=$numeric" "/DAppVersionSuffix=$suffix" $outArg $iss
+$isccArgs = @("/DAppVersionNumeric=$numeric", "/DAppVersionSuffix=$suffix", $outArg, $iss)
+if ($SignCommand -ne '') {
+    # /S<name>=<command> defines the signing tool, /D<name> switches on the
+    # SignTool directives in the .iss (they are inside #ifdef, so an unsigned
+    # build compiles the same script unchanged). The name is arbitrary and
+    # only ties the two together.
+    $isccArgs = @('/DSignToolName=gcodegen', "/Sgcodegen=$SignCommand") + $isccArgs
+}
+& $IsccPath $isccArgs
 if ($LASTEXITCODE -ne 0) { throw 'ISCC failed' }
 
 $setup = Get-ChildItem -Path $installerDir -Filter 'GCodeGenerator-Setup-*.exe' | Select-Object -First 1
 if (-not $setup) { throw "Installer not found in $installerDir" }
 Write-Host ""
 Write-Host "Installer: $($setup.FullName) ($([math]::Round($setup.Length / 1MB, 1)) MB)"
+if ($SignCommand -eq '') {
+    Write-Host "The installer is UNSIGNED - Windows SmartScreen will warn about it." -ForegroundColor Yellow
+}
