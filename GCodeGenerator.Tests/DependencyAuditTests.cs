@@ -1,5 +1,8 @@
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Text.Json;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -223,8 +226,117 @@ namespace GCodeGenerator.Tests
         }
 
         // ------------------------------------------------------------------
+        // Закреплённые зависимости
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// ControlzEx держится не нами, и держащий назван по имени.
+        ///
+        /// Само по себе отставание от актуальной ветки не дефект — уязвимостей
+        /// в нём нет, за этим следит проверка выше. Дефектом стала бы запись
+        /// о причине, которой больше не существует: MahApps сменили, предел
+        /// исчез, а в правилах участия по-прежнему написано, что поднять
+        /// нельзя. Поэтому предел читается из замка пакетов, а не из памяти.
+        /// </summary>
+        [TestMethod]
+        public void PinnedDependency_IsHeldByMahApps()
+        {
+            var range = ControlzExRangeFromLock();
+
+            StringAssert.EndsWith(range, ")",
+                "MahApps больше не ограничивает ControlzEx сверху — записи о закреплении пора уйти");
+
+            var contributing = Read("CONTRIBUTING.md");
+            StringAssert.Contains(contributing, "ControlzEx",
+                "Правила участия не объясняют, почему пакет не поднимается");
+            StringAssert.Contains(contributing, range,
+                $"Правила участия называют не тот предел: в замке {range}");
+            StringAssert.Contains(contributing, "MahApps.Metro",
+                "Не назван тот, кто держит предел");
+        }
+
+        /// <summary>
+        /// Разрешённая версия попадает в объявленный предел. Иначе программа
+        /// собиралась бы с тем, что MahApps совместимым не считает.
+        /// </summary>
+        [TestMethod]
+        public void PinnedDependency_StaysInsideTheAllowedRange()
+        {
+            var range = ControlzExRangeFromLock();
+            var upper = Regex.Match(range, @",\s*(?<upper>[\d.]+)\)");
+
+            Assert.IsTrue(upper.Success, $"Предел «{range}» разобрать не удалось");
+
+            var allowed = Version.Parse(upper.Groups["upper"].Value);
+            var resolved = Version.Parse(ResolvedVersion("ControlzEx"));
+
+            Assert.IsTrue(resolved < allowed,
+                $"ControlzEx {resolved} не укладывается в объявленный MahApps предел {range}");
+        }
+
+        /// <summary>
+        /// Dependabot не предлагает того, что нельзя принять: запрос на
+        /// ControlzEx 7.x не собрался бы, а приходил бы каждую неделю.
+        /// Правило снимается вместе со сменой MahApps.
+        /// </summary>
+        [TestMethod]
+        public void Dependabot_SkipsWhatCannotBeAccepted()
+        {
+            var config = Read(".github", "dependabot.yml");
+
+            StringAssert.Contains(config, "ignore:");
+            StringAssert.Contains(config, "dependency-name: \"ControlzEx\"");
+            StringAssert.Contains(config, "version-update:semver-major");
+            StringAssert.Contains(config, "CONTRIBUTING.md",
+                "Не сказано, где искать причину пропуска");
+        }
+
+        // ------------------------------------------------------------------
         // Вспомогательное
         // ------------------------------------------------------------------
+
+        /// <summary>Предел, который MahApps объявляет для ControlzEx.</summary>
+        private static string ControlzExRangeFromLock()
+        {
+            foreach (var package in LockedPackages())
+            {
+                if (package.Value.TryGetProperty("dependencies", out var dependencies)
+                    && dependencies.TryGetProperty("ControlzEx", out var range))
+                {
+                    return range.GetString();
+                }
+            }
+
+            Assert.Fail("В замке пакетов никто не объявляет зависимости от ControlzEx");
+            return string.Empty;
+        }
+
+        /// <summary>Версия пакета, которую выбрал восстановитель.</summary>
+        /// <param name="name">Имя пакета.</param>
+        private static string ResolvedVersion(string name)
+        {
+            foreach (var package in LockedPackages())
+            {
+                if (package.Name == name && package.Value.TryGetProperty("resolved", out var resolved))
+                    return resolved.GetString();
+            }
+
+            Assert.Fail($"Пакета {name} нет в замке");
+            return string.Empty;
+        }
+
+        /// <summary>Пакеты из замка приложения, по всем средам выполнения.</summary>
+        private static IEnumerable<JsonProperty> LockedPackages()
+        {
+            using var document = JsonDocument.Parse(
+                Read("GCodeGenerator", "packages.lock.json"));
+
+            foreach (var framework in document.RootElement.GetProperty("dependencies").EnumerateObject())
+            {
+                foreach (var package in framework.Value.EnumerateObject())
+                    yield return package;
+            }
+        }
 
         /// <summary>Пишет заготовку ответа во временный файл.</summary>
         private static string Listing(string content)

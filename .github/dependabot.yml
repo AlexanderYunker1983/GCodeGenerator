@@ -25,6 +25,14 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    ignore:
+      # ControlzEx закреплён не нами: MahApps.Metro 2.4.11 объявляет
+      # [4.4.0, 6.0.0). Запрос на слияние с 7.x закрывать нечем — он не
+      # соберётся, — и приходил бы он каждую неделю. Правило снимается
+      # вместе со сменой MahApps; см. «Закреплённые зависимости»
+      # в CONTRIBUTING.md.
+      - dependency-name: "ControlzEx"
+        update-types: ["version-update:semver-major"]
     open-pull-requests-limit: 5
     commit-message:
       prefix: "nuget"

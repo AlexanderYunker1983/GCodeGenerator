@@ -76,8 +76,15 @@
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="9.3.2" />
-    <!-- Пункт 1.4: MahApps.Metro 2.x + ControlzEx 4.x + Behaviors 1.1.142.
-         MahApps 2.x нет в локальном зеркале — берётся с nuget.org (см. NuGet.config в корне). -->
+    <!-- Оформление окон: MahApps.Metro и ControlzEx, откуда взят ThemeManager.
+         Ссылка на ControlzEx прямая, потому что программа обращается к нему
+         сама (Services/WpfThemeService.cs), а не только через MahApps.
+
+         Версия ControlzEx не поднимается выше: MahApps.Metro 2.4.11 объявляет
+         [4.4.0, 6.0.0), тогда как актуальная ветка ControlzEx — 7.x. Выйти за
+         этот предел можно только сменой MahApps, а он поддерживает лишь
+         Windows и решается вместе с переходом к 2.x, где обещана
+         кроссплатформенность. Подробности — в CONTRIBUTING.md. -->
     <PackageReference Include="ControlzEx" Version="4.4.0" />
     <PackageReference Include="MahApps.Metro" Version="2.4.11" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />

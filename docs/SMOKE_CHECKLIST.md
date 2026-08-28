@@ -240,5 +240,6 @@ dotnet build GCodeGenerator.sln -c Release
 - **Сборка и выпуск** — замок пакетов и закреплённый режим публикации
   (`PackageLockTests`), правила установщика (`InstallerScriptTests`), свойства
   файла продукта (`ProductMetadataTests`), документы репозитория и описание
-  выпуска (`RepositoryDocsTests`), уязвимости в дереве пакетов
-  (`DependencyAuditTests` и шаг CI на каждом прогоне).
+  выпуска (`RepositoryDocsTests`), уязвимости в дереве пакетов и причина
+  закреплённой версии ControlzEx (`DependencyAuditTests` и шаг CI
+  на каждом прогоне).
