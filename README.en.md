@@ -71,6 +71,46 @@ GCodeGenerator is a Windows application for quickly creating G-code programs for
 - **Application log** — opening and saving projects, generating G-code, importing DXF and any failure are written to `%LOCALAPPDATA%\GCodeGenerator\logs\gcodegenerator.log` (at 1 MB the file is rolled over to `gcodegenerator.1.log`)
 - **Crash snapshot** — if the application is terminated by an unexpected error, the current project is saved to `%LOCALAPPDATA%\GCodeGenerator\crash\crash-YYYYMMDD-HHMMSS.ygc` — as a separate file, not over yours; the path is shown in the error message
 
+## Limits of the current version
+
+Everything below is a deliberate boundary of the first version, not an
+unfinished corner. Better to know about them in advance than to find out at
+the machine.
+
+- **Millimetres only.** The program preamble emits `G21`; the inch mode
+  (`G20`) is supported neither on input nor on output.
+- **Three linear axes and the XY plane.** `G17` is emitted; there is no
+  machining in other planes and no rotary axes.
+- **Two controllers.** Generic (Fanuc-compatible) and GRBL / LinuxCNC. They
+  differ in the unit of the delay after the spindle starts — `G4 P` in
+  milliseconds and in seconds — and in nothing else.
+- **No canned cycles.** Drilling is emitted as explicit `G0`/`G1` moves
+  rather than `G81`/`G83`: the program then runs the same way on controllers
+  that read the cycles differently, and it is visible in full in the preview.
+- **Cutter compensation is computed by the program, not by the controller.**
+  The contour is offset by the cutter radius while the toolpath is built, and
+  `G40` is emitted. `G41`/`G42` are never emitted, and the controller's tool
+  table has no effect.
+- **One tool per program.** There is no tool change (`T`/`M6`) and no
+  subprograms (`M98`/`M99`): a second tool means a second program.
+- **The spindle and the coolant are simple commands.** Speed, direction and
+  delay (`M3`/`M4`/`M5`, `S`, `G4`), coolant on and off (`M8`/`M9`). There is
+  no spindle orientation and no separate coolant control (`M7`).
+- **Input limits.** The working feed is capped at 20000 mm/min, the rapid at
+  60000 mm/min, the spindle at 60000 rpm, the delay at 60 s and the decimals
+  at 6. These are the bounds of sensible input, not the machine's data sheet:
+  the controller applies its own limit anyway.
+- **The peck return clearance is 0.5 mm** and is not configurable.
+- **The undo history holds 100 steps.**
+- **Foreign G-code is not opened.** The application writes its files but does
+  not read them: the preview shows the toolpath it built itself.
+- **DXF drawings are not read in full.** Lines, arcs, circles, ellipses,
+  polylines (3D ones and ones with arc segments included), splines
+  (approximated by a polyline) and block inserts are taken. Text, dimensions,
+  hatches and the rest do not count as contour geometry.
+- **Windows only.** The interface is written in WPF; cross-platform support is
+  promised for version 2.x.
+
 ## Requirements
 
 - **Operating system:**

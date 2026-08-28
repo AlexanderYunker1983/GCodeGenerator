@@ -1,8 +1,13 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using GCodeGenerator.GCodeGenerators;
+using GCodeGenerator.Models;
+using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -260,6 +265,98 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(contributing, "CHANGELOG.md");
             StringAssert.Contains(contributing, "GCG_WRITE_GOLDEN",
                 "Не сказано, как обновлять эталонные файлы");
+        }
+
+        // ------------------------------------------------------------------
+        // Ограничения текущей версии
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Раздел об ограничениях есть в обоих README.
+        ///
+        /// Прежде о границах продукта — миллиметры, две стойки, отсутствие
+        /// смены инструмента — узнавали опытным путём, то есть у станка.
+        /// </summary>
+        [TestMethod]
+        public void BothReadmes_ListTheLimitsOfThisVersion()
+        {
+            StringAssert.Contains(Read("README.md"), "## Ограничения текущей версии");
+            StringAssert.Contains(Read("README.en.md"), "## Limits of the current version");
+        }
+
+        /// <summary>
+        /// Названные в README пределы — те самые, которые проверяет программа.
+        ///
+        /// Число, переписанное в текст руками, устаревает первой же правкой
+        /// проверки: читатель увидит один предел, а получит другой, и узнает
+        /// об этом из отказа, которого по документации быть не должно.
+        /// </summary>
+        [TestMethod]
+        public void Readme_NamesTheLimitsTheCodeEnforces()
+        {
+            var limits = new[]
+            {
+                OperationValidation.MaxWorkFeed.ToString("0", CultureInfo.InvariantCulture),
+                OperationValidation.MaxRapidFeed.ToString("0", CultureInfo.InvariantCulture),
+                GCodeSettingsValidation.MaxSpindleSpeedRpm.ToString(CultureInfo.InvariantCulture),
+                GCodeSettingsValidation.MaxSpindleDelaySeconds.ToString("0", CultureInfo.InvariantCulture),
+                OperationValidation.MaxDecimals.ToString(CultureInfo.InvariantCulture),
+                OperationHistory.MaxSteps.ToString(CultureInfo.InvariantCulture)
+            };
+
+            foreach (var readme in new[] { "README.md", "README.en.md" })
+            {
+                // Пробелы внутри числа — разделители разрядов, они у языков
+                // разные и к самому пределу отношения не имеют.
+                var text = Read(readme).Replace(" ", string.Empty).Replace("\u00A0", string.Empty);
+
+                foreach (var limit in limits)
+                    StringAssert.Contains(text, limit, $"{readme} не называет предел {limit}");
+            }
+        }
+
+        /// <summary>
+        /// README называет ровно те стойки, которые программа умеет: список
+        /// в тексте и реестр, по которому выбирается постпроцессор, — про
+        /// одно и то же.
+        /// </summary>
+        [TestMethod]
+        public void Readme_NamesEveryController()
+        {
+            var keys = new PostProcessorRegistry().All.Select(post => post.Key).ToList();
+
+            Assert.AreEqual(2, keys.Count,
+                "Число стоек изменилось — раздел ограничений в обоих README пора обновить");
+
+            foreach (var readme in new[] { "README.md", "README.en.md" })
+            {
+                var text = Read(readme);
+                foreach (var key in keys)
+                    StringAssert.Contains(text, key, $"{readme} не называет стойку {key}");
+            }
+        }
+
+        /// <summary>
+        /// Обещание «только миллиметры» держится кодом: дюймового режима
+        /// в выводе нет ни при каких настройках.
+        /// </summary>
+        [TestMethod]
+        public void MillimetresOnly_IsTrueOfTheCode()
+        {
+            var core = Path.Combine(Root, "GCodeGenerator.Core");
+            var offenders = Directory
+                .EnumerateFiles(core, "*.cs", SearchOption.AllDirectories)
+                .Where(file => Regex.IsMatch(File.ReadAllText(file), @"\bG\(20\)|""G20"""))
+                .Select(file => Path.GetFileName(file))
+                .ToList();
+
+            Assert.AreEqual(0, offenders.Count,
+                "Дюймовый режим появился в выводе: " + string.Join(", ", offenders));
+
+            StringAssert.Contains(
+                File.ReadAllText(Path.Combine(core, "GCodeGenerators", "ProgramBuilder.cs")),
+                "GCodeWord.G(21)",
+                "Пролог перестал объявлять миллиметры");
         }
 
         // ------------------------------------------------------------------
