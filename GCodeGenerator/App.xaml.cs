@@ -112,10 +112,16 @@ namespace GCodeGenerator
             // «1.2.3-rc5»), проставляется при сборке (Directory.Build.targets +
             // build/Get-GitVersion.ps1). Числовая AssemblyVersion (1.2.3.0) для
             // заголовка не подходит — суффикс -alpha/-beta/-rc в ней теряется.
-            var versionString = Assembly.GetExecutingAssembly()
+            // Правообладатель берётся из свойств самой сборки — из того же
+            // места, что показывает проводник; окно «О программе» не должно
+            // хранить вторую копию, способную с ними разойтись.
+            var assembly = Assembly.GetExecutingAssembly();
+            var versionString = assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
                 ?? "0.1.0-alpha";
-            builder.RegisterInstance(new ProgramInfo(versionString)).As<IProgramInfo>().SingleInstance();
+            var copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright ?? string.Empty;
+            builder.RegisterInstance(new ProgramInfo(versionString, copyright, logger.FilePath))
+                .As<IProgramInfo>().SingleInstance();
 
             // Контейнер живёт столько же, сколько приложение, и освобождается
             // при выходе: прежде он оставался безымянной переменной, поэтому

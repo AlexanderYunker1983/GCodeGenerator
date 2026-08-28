@@ -948,4 +948,40 @@
   <data name="PreviewPrimitiveArcCounterClockwise" xml:space="preserve">
     <value>Counter-clockwise arc</value>
   </data>
+  <data name="Close" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="AboutToolTip" xml:space="preserve">
+    <value>About the program (F1)</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>G-code generator for CNC machines: drilling, profile milling and pocketing with 2D and 3D toolpath preview.</value>
+  </data>
+  <data name="AboutLicense" xml:space="preserve">
+    <value>Distributed under the MIT license.</value>
+  </data>
+  <data name="AboutLogFile" xml:space="preserve">
+    <value>Work log</value>
+  </data>
+  <data name="AboutShowLog" xml:space="preserve">
+    <value>Show log file</value>
+  </data>
+  <data name="NewProjectToolTip" xml:space="preserve">
+    <value>New project (Ctrl+N)</value>
+  </data>
+  <data name="OpenProjectToolTip" xml:space="preserve">
+    <value>Open project (Ctrl+O)</value>
+  </data>
+  <data name="SaveProjectToolTip" xml:space="preserve">
+    <value>Save project (Ctrl+S)</value>
+  </data>
+  <data name="SaveProjectAsToolTip" xml:space="preserve">
+    <value>Save project as (Ctrl+Shift+S)</value>
+  </data>
 </root>

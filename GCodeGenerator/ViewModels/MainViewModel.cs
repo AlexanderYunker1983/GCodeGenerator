@@ -28,6 +28,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ISettingsStore? _settingsStore;
         private readonly ILocalizationManager? _localizationManager;
         private readonly Func<SettingsViewModel> _createSettings;
+        private readonly Func<AboutViewModel>? _createAbout;
         private readonly IDialogHost _dialogHost;
         private readonly IProgramInfo _programInfo;
         private string _programTitle;
@@ -43,10 +44,12 @@ namespace GCodeGenerator.ViewModels
             IProjectWorkflowFactory projectWorkflowFactory,
             OperationsWorkspaceViewModel operationsWorkspace,
             IProgramInfo programInfo,
-            ISettingsStore? settingsStore)
+            ISettingsStore? settingsStore,
+            Func<AboutViewModel>? createAbout = null)
         {
             _localizationManager = localizationManager;
             _createSettings = createSettings ?? throw new ArgumentNullException(nameof(createSettings));
+            _createAbout = createAbout;
             _dialogHost = dialogHost ?? throw new ArgumentNullException(nameof(dialogHost));
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
@@ -68,6 +71,7 @@ namespace GCodeGenerator.ViewModels
             _operationsWorkspace.ContentChanged += OnOperationsWorkspaceContentChanged;
 
             OpenSettingsCommand = new RelayCommand(OpenSettings);
+            OpenAboutCommand = new RelayCommand(OpenAbout, () => _createAbout != null);
 
             _programTitle = BuildProgramTitle();
             UpdateDisplayName();
@@ -113,6 +117,9 @@ namespace GCodeGenerator.ViewModels
         public ProjectWorkflowViewModel ProjectWorkflow => _projectWorkflow;
 
         public ICommand OpenSettingsCommand { get; }
+
+        /// <summary>Окно «О программе»: версия, лицензия, журнал работы.</summary>
+        public ICommand OpenAboutCommand { get; }
 
         public void NotifyOperationsChanged()
         {
@@ -210,6 +217,12 @@ namespace GCodeGenerator.ViewModels
         private void OpenSettings()
         {
             _dialogHost.ShowDialog(_createSettings());
+        }
+
+        private void OpenAbout()
+        {
+            if (_createAbout != null)
+                _dialogHost.ShowDialog(_createAbout());
         }
     }
 }

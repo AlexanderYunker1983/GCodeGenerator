@@ -17,10 +17,17 @@
         MinHeight="600" MinWidth="1200"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True">
-    <!-- Пункт 25 плана: отмена и повтор изменений списка операций. -->
+    <!-- Клавиши работы с документом — те же, что в любой программе с файлами:
+         человек нажимает Ctrl+S не задумываясь. Прежде здесь были только
+         отмена и повтор, а сохранение и открытие требовали мыши. -->
     <Window.InputBindings>
+        <KeyBinding Modifiers="Control" Key="N" Command="{Binding ProjectWorkflow.NewProgramCommand}"/>
+        <KeyBinding Modifiers="Control" Key="O" Command="{Binding ProjectWorkflow.OpenProjectCommand}"/>
+        <KeyBinding Modifiers="Control" Key="S" Command="{Binding ProjectWorkflow.SaveProjectCommand}"/>
+        <KeyBinding Modifiers="Control+Shift" Key="S" Command="{Binding ProjectWorkflow.SaveProjectAsCommand}"/>
         <KeyBinding Modifiers="Control" Key="Z" Command="{Binding OperationsWorkspace.UndoCommand}"/>
         <KeyBinding Modifiers="Control" Key="Y" Command="{Binding OperationsWorkspace.RedoCommand}"/>
+        <KeyBinding Key="F1" Command="{Binding OpenAboutCommand}"/>
     </Window.InputBindings>
     <Grid Margin="8">
         <Grid.ColumnDefinitions>
@@ -49,8 +56,14 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
+            <!-- Подсказки называют и клавишу: иначе о ней узнают, только
+                 прочитав документацию, а кнопки создания и открытия до этого
+                 не подписывались вовсе. -->
             <Button Grid.Column="0" Padding="3" Margin="0,0,3,0"
                     Command="{Binding ProjectWorkflow.NewProgramCommand}"
+                    ToolTip="{loc:Loc NewProjectToolTip}"
+                    ToolTipService.BetweenShowDelay="0"
+                    ToolTipService.InitialShowDelay="0"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource NewFileImage}" Width="24" Height="24"/>
@@ -58,6 +71,9 @@
 
             <Button Grid.Column="1" Padding="3" Margin="0,0,3,0"
                     Command="{Binding ProjectWorkflow.OpenProjectCommand}"
+                    ToolTip="{loc:Loc OpenProjectToolTip}"
+                    ToolTipService.BetweenShowDelay="0"
+                    ToolTipService.InitialShowDelay="0"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource OpenFileImage}" Width="24" Height="24"/>
@@ -65,9 +81,10 @@
 
             <Button Grid.Column="2" Padding="3" Margin="0,0,3,0"
                     Command="{Binding ProjectWorkflow.SaveProjectCommand}"
-                    ToolTip="{loc:Loc SaveProjectTitle}"
+                    ToolTip="{loc:Loc SaveProjectToolTip}"
                     ToolTipService.BetweenShowDelay="0"
                     ToolTipService.InitialShowDelay="0"
+                    ToolTipService.ShowOnDisabled="True"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
                 <Image Source="{StaticResource SaveFileImage}" Width="24" Height="24"/>
@@ -78,22 +95,34 @@
             <Button Grid.Column="3" Padding="3" Margin="0,0,3,0"
                     Command="{Binding ProjectWorkflow.SaveProjectAsCommand}"
                     Content="{loc:Loc SaveProjectAs}"
-                    ToolTip="{loc:Loc SaveProjectAs}"
+                    ToolTip="{loc:Loc SaveProjectAsToolTip}"
                     ToolTipService.BetweenShowDelay="0"
                     ToolTipService.InitialShowDelay="0"
+                    ToolTipService.ShowOnDisabled="True"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center"/>
 
-            <Button Command="{Binding OpenSettingsCommand}"
-                    Grid.Column="5" Padding="3"
-                    VerticalAlignment="Center"
-                    HorizontalAlignment="Center"
-                    ToolTip="{loc:Loc Settings}"
-                    ToolTipService.BetweenShowDelay="0"
-                    ToolTipService.InitialShowDelay="0"
-                    ToolTipService.ShowOnDisabled="True">
-                <Image Source="{StaticResource SettingsImage}" Width="24" Height="24"/>
-            </Button>
+            <StackPanel Grid.Column="5" Orientation="Horizontal">
+                <Button Command="{Binding OpenAboutCommand}"
+                        Padding="3" Margin="0,0,3,0" MinWidth="30"
+                        Content="?" FontWeight="Bold"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        ToolTip="{loc:Loc AboutToolTip}"
+                        ToolTipService.BetweenShowDelay="0"
+                        ToolTipService.InitialShowDelay="0"/>
+
+                <Button Command="{Binding OpenSettingsCommand}"
+                        Padding="3"
+                        VerticalAlignment="Center"
+                        HorizontalAlignment="Center"
+                        ToolTip="{loc:Loc Settings}"
+                        ToolTipService.BetweenShowDelay="0"
+                        ToolTipService.InitialShowDelay="0"
+                        ToolTipService.ShowOnDisabled="True">
+                    <Image Source="{StaticResource SettingsImage}" Width="24" Height="24"/>
+                </Button>
+            </StackPanel>
         </Grid>
         
         <!-- Left side: operation type selector inside TabControl -->

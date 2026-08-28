@@ -24,6 +24,10 @@ namespace GCodeGenerator.Infrastructure
             // Пункт 7.5 плана: сервис темы через IoC (ранее статика ThemeHelper).
             builder.RegisterType<WpfThemeService>().As<IThemeService>().SingleInstance();
 
+            // Показ файла и открытие ссылки: окну «О программе» нужно
+            // и то и другое, а работать с оболочкой само оно не должно.
+            builder.RegisterType<ShellService>().As<IShellService>().SingleInstance();
+
             // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
             // «тип операции → VM диалога»; сверление — по режиму шаблона).
             builder.RegisterType<OperationEditorFactory>()

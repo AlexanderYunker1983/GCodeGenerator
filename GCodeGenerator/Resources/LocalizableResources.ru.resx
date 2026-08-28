@@ -948,4 +948,40 @@
   <data name="PreviewPrimitiveArcCounterClockwise" xml:space="preserve">
     <value>Дуга против часовой стрелки</value>
   </data>
+  <data name="Close" xml:space="preserve">
+    <value>Закрыть</value>
+  </data>
+  <data name="AboutTitle" xml:space="preserve">
+    <value>О программе</value>
+  </data>
+  <data name="AboutToolTip" xml:space="preserve">
+    <value>О программе (F1)</value>
+  </data>
+  <data name="AboutVersion" xml:space="preserve">
+    <value>Версия</value>
+  </data>
+  <data name="AboutDescription" xml:space="preserve">
+    <value>Генератор G-кода для станков с ЧПУ: сверление, профильное фрезерование и карманы с просмотром траектории в 2D и 3D.</value>
+  </data>
+  <data name="AboutLicense" xml:space="preserve">
+    <value>Распространяется по лицензии MIT.</value>
+  </data>
+  <data name="AboutLogFile" xml:space="preserve">
+    <value>Журнал работы</value>
+  </data>
+  <data name="AboutShowLog" xml:space="preserve">
+    <value>Показать файл журнала</value>
+  </data>
+  <data name="NewProjectToolTip" xml:space="preserve">
+    <value>Новый проект (Ctrl+N)</value>
+  </data>
+  <data name="OpenProjectToolTip" xml:space="preserve">
+    <value>Открыть проект (Ctrl+O)</value>
+  </data>
+  <data name="SaveProjectToolTip" xml:space="preserve">
+    <value>Сохранить проект (Ctrl+S)</value>
+  </data>
+  <data name="SaveProjectAsToolTip" xml:space="preserve">
+    <value>Сохранить проект как (Ctrl+Shift+S)</value>
+  </data>
 </root>
