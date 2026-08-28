@@ -59,10 +59,17 @@ namespace GCodeGenerator.Tests.Fixtures
             InfoMessageCount++;
         }
 
+        /// <summary>Сколько раз показывали сообщение об ошибке.</summary>
+        public int ErrorMessageCount { get; private set; }
+
+        /// <summary>Сколько раз спрашивали имя файла для открытия.</summary>
+        public int OpenDialogCount { get; private set; }
+
         public void ShowError(string message, string title = "")
         {
             LastErrorMessage = message;
             LastErrorTitle = title;
+            ErrorMessageCount++;
             OnError?.Invoke(message);
         }
 
@@ -73,7 +80,10 @@ namespace GCodeGenerator.Tests.Fixtures
         }
 
         public string ShowOpenDialog(string title, string filter, string defaultExtension = "")
-            => OpenDialogResult;
+        {
+            OpenDialogCount++;
+            return OpenDialogResult;
+        }
 
         public string ShowSaveDialog(string title, string filter, string defaultExtension = "", string fileName = "")
             => SaveDialogResult;

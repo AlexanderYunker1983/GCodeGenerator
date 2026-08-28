@@ -35,7 +35,30 @@ namespace GCodeGenerator
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            StartupCore();
+            StartupCore(ProjectFileFromCommandLine(e.Args));
+        }
+
+        /// <summary>
+        /// Путь к проекту из командной строки; <c>null</c>, если его там нет.
+        ///
+        /// Так приходит файл, по которому щёлкнули в проводнике: оболочка
+        /// запускает программу и передаёт путь единственным аргументом.
+        /// Прежде аргументы не читались вовсе, поэтому собственный формат
+        /// продукта открывался только изнутри программы.
+        ///
+        /// Проверяется только наличие файла: разбирать его и объяснять, что
+        /// с ним не так, умеет открытие проекта — оно же покажет сообщение.
+        /// </summary>
+        /// <param name="args">Аргументы командной строки.</param>
+        internal static string? ProjectFileFromCommandLine(string[] args)
+        {
+            foreach (var argument in args ?? Array.Empty<string>())
+            {
+                if (!string.IsNullOrWhiteSpace(argument) && System.IO.File.Exists(argument))
+                    return argument;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -54,7 +77,10 @@ namespace GCodeGenerator
         /// <c>BootstrapperEx</c>/<c>GCodeGeneratorMvvmApp</c> и <c>LocalizationModule</c>
         /// на прямой Autofac.
         /// </summary>
-        private void StartupCore()
+        /// <param name="projectFile">
+        /// Проект, который нужно открыть при запуске, или <c>null</c>.
+        /// </param>
+        private void StartupCore(string? projectFile = null)
         {
             // Журнал создаётся первым: он нужен обработчикам необработанных
             // исключений и менеджеру локализации.
@@ -127,6 +153,11 @@ namespace GCodeGenerator
             _container.Resolve<IThemeService>().ApplyTheme(uiSettings.UseDarkTheme);
 
             mainWindow.Show();
+
+            // Проект открывается после показа окна: чтение и разбор идут
+            // в фоне, а сообщение об ошибке требует окна-владельца.
+            if (projectFile != null)
+                _ = _mainViewModel.OpenProjectAsync(projectFile);
         }
 
         /// <summary>

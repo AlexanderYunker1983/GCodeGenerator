@@ -350,10 +350,45 @@ namespace GCodeGenerator.ViewModels
                 return;
 
             var filter = Localize("ProjectFileFilter");
-            var title = Localize("OpenProjectTitle");
-            var fileName = _fileDialogService.ShowOpenDialog(title, filter, "ygc");
+            var fileName = _fileDialogService.ShowOpenDialog(Localize("OpenProjectTitle"), filter, "ygc");
             if (fileName == null)
                 return;
+
+            await LoadProjectAsync(fileName);
+        }
+
+        /// <summary>
+        /// Открывает проект из указанного файла, спросив о несохранённых
+        /// изменениях.
+        ///
+        /// Файл приходит не только из окна выбора: программу запускают с ним
+        /// в командной строке — так открывается проект двойным щелчком в
+        /// проводнике, — и его же перетаскивают в окно. Прежде путь к проекту
+        /// умел приходить единственным способом, поэтому собственный формат
+        /// открывался только изнутри программы.
+        /// </summary>
+        /// <param name="fileName">Путь к файлу проекта.</param>
+        /// <returns><c>true</c>, если проект открыт.</returns>
+        public async Task<bool> OpenProjectAsync(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return false;
+
+            if (!await ConfirmDiscardChangesAsync())
+                return false;
+
+            return await LoadProjectAsync(fileName!);
+        }
+
+        /// <summary>
+        /// Читает файл и заменяет им документ. Вопрос о несохранённых
+        /// изменениях к этому моменту уже задан.
+        /// </summary>
+        /// <param name="fileName">Путь к файлу проекта.</param>
+        /// <returns><c>true</c>, если проект открыт.</returns>
+        private async Task<bool> LoadProjectAsync(string fileName)
+        {
+            var title = Localize("OpenProjectTitle");
 
             try
             {
@@ -365,7 +400,7 @@ namespace GCodeGenerator.ViewModels
                 {
                     _logger.Warning($"Project file has no operations section: {fileName}");
                     _messageService.ShowError(Localize("InvalidProjectFile"), title);
-                    return;
+                    return false;
                 }
 
                 ApplyDocument(() =>
@@ -378,12 +413,14 @@ namespace GCodeGenerator.ViewModels
                     _loadedFileVersion = data.Version;
                 });
                 _logger.Info($"Project opened: {fileName} ({data.Operations.Count} operation(s))");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.Error($"Opening project failed: {fileName}", ex);
                 var message = Localize("ErrorOpeningProject");
                 _messageService.ShowError($"{message}\n{CoreErrorMessages.Describe(ex, _localizationManager)}", title);
+                return false;
             }
         }
 

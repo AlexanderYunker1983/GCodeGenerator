@@ -4,6 +4,7 @@ using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using System;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace GCodeGenerator.ViewModels
@@ -123,6 +124,15 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         /// <returns><c>false</c> — закрывать нельзя, пользователь передумал.</returns>
         public bool ConfirmClose() => _projectWorkflow.ConfirmDiscardChanges();
+
+        /// <summary>
+        /// Открывает проект из файла: так приходит путь из командной строки
+        /// (двойной щелчок по <c>.ygc</c> в проводнике) и из файла,
+        /// перетащенного в окно.
+        /// </summary>
+        /// <param name="fileName">Путь к файлу проекта.</param>
+        public Task<bool> OpenProjectAsync(string? fileName)
+            => _projectWorkflow.OpenProjectAsync(fileName);
 
         /// <summary>
         /// Заголовок окна: имя файла проекта, звёздочка при несохранённых

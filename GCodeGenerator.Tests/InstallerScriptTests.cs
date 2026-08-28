@@ -142,6 +142,35 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Установщик связывает с программой файлы проектов — иначе двойной
+        /// щелчок по <c>.ygc</c> ничего не открывает, а формат этот собственный
+        /// и открыть его больше нечем.
+        ///
+        /// Связь — задача мастера, а не данность: расширение может быть уже
+        /// занято, и решать это пользователю. Путь к программе передаётся
+        /// в кавычках: проект в каталоге с пробелом иначе придёт двумя
+        /// аргументами и не откроется.
+        /// </summary>
+        [TestMethod]
+        public void Installer_AssociatesProjectFiles()
+        {
+            var script = InstallerScript;
+
+            StringAssert.Contains(script, @"Subkey: ""Software\Classes\.ygc""",
+                "install/GCodeGenerator.iss: расширение .ygc не связывается с программой");
+            // Кавычки в значении .iss удваиваются, поэтому в файле лежит
+            // «""{app}\...exe"" ""%1""» — на выходе это одна пара на каждую часть.
+            StringAssert.Contains(script, @"""""{app}\GCodeGenerator.exe"""" """"%1""""",
+                "Путь к открываемому файлу должен передаваться в кавычках");
+            StringAssert.Contains(script, "Tasks: associate",
+                "Связь с файлами должна быть задачей, от которой можно отказаться");
+            StringAssert.Contains(script, "ChangesAssociations=yes",
+                "Оболочку нужно уведомить, иначе иконка и пункт меню появятся не сразу");
+            StringAssert.Contains(script, "uninsdeletekey",
+                "Удаление программы должно убирать за собой описание типа файла");
+        }
+
+        /// <summary>
         /// Скрипты сборки — только ASCII: Windows PowerShell 5.1 читает
         /// .ps1 без BOM как ANSI, и не-ASCII текст в них искажается.
         /// Правило объявлено в шапке самого скрипта.

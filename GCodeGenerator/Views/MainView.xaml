@@ -15,7 +15,8 @@
         Title="{Binding DisplayName}"
         Height="600" Width="1200"
         MinHeight="600" MinWidth="1200"
-        WindowStartupLocation="CenterScreen">
+        WindowStartupLocation="CenterScreen"
+        AllowDrop="True">
     <!-- Пункт 25 плана: отмена и повтор изменений списка операций. -->
     <Window.InputBindings>
         <KeyBinding Modifiers="Control" Key="Z" Command="{Binding OperationsWorkspace.UndoCommand}"/>

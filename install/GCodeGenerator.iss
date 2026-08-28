@@ -74,6 +74,9 @@ ArchitecturesInstallIn64BitMode=x64compatible
 ; Minimum OS per README (Windows 10 22H2 / Windows 11).
 MinVersion=10.0.19045
 PrivilegesRequired=admin
+; Tells the shell that file associations changed, so the new icon and the
+; "open with" entry appear without a sign-out.
+ChangesAssociations=yes
 WizardStyle=modern
 Compression=lzma2/max
 SolidCompression=yes
@@ -128,9 +131,29 @@ english.AppStillRunningForceQuestion=GCodeGenerator has not closed. It may be as
 russian.AppStillRunningForceQuestion=Программа GCodeGenerator не закрылась. Возможно, она спрашивает, сохранить ли проект, — проверьте её окно и ответьте там.%n%nЗавершить программу принудительно? Несохранённые изменения будут потеряны.
 english.AppStillRunningAbort=GCodeGenerator is still running. Close it and run the installer again.
 russian.AppStillRunningAbort=Программа GCodeGenerator всё ещё работает. Закройте её и запустите установку снова.
+english.AssociationsGroup=File associations:
+russian.AssociationsGroup=Связь с файлами:
+english.AssociateProjectFiles=Open .ygc project files with GCodeGenerator
+russian.AssociateProjectFiles=Открывать файлы проектов .ygc в GCodeGenerator
+english.ProjectFileTypeName=GCodeGenerator project
+russian.ProjectFileTypeName=Проект GCodeGenerator
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
+; Association is a task, not a given: .ygc is this product's own format, but
+; the person installing it may already have the extension bound elsewhere.
+Name: "associate"; Description: "{cm:AssociateProjectFiles}"; GroupDescription: "{cm:AssociationsGroup}"
+
+[Registry]
+; File association for .ygc, written only when the task above is selected.
+; Root HKA follows the install mode: HKLM for an all-users install, HKCU for
+; a per-user one. The ProgId key is deleted on uninstall; the extension key
+; only loses its own value, so an association set by another program survives.
+Root: HKA; Subkey: "Software\Classes\.ygc"; ValueType: string; ValueName: ""; ValueData: "GCodeGenerator.Project"; Flags: uninsdeletevalue; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\GCodeGenerator.Project"; ValueType: string; ValueName: ""; ValueData: "{cm:ProjectFileTypeName}"; Flags: uninsdeletekey; Tasks: associate
+Root: HKA; Subkey: "Software\Classes\GCodeGenerator.Project\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\GCodeGenerator.exe,0"; Tasks: associate
+; %1 in quotes: a project path with spaces must arrive as one argument.
+Root: HKA; Subkey: "Software\Classes\GCodeGenerator.Project\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\GCodeGenerator.exe"" ""%1"""; Tasks: associate
 
 [Files]
 ; Publish output (build/Make-Installer.ps1: dotnet publish -o
