@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -168,6 +168,67 @@ namespace GCodeGenerator.Tests
                 "Оболочку нужно уведомить, иначе иконка и пункт меню появятся не сразу");
             StringAssert.Contains(script, "uninsdeletekey",
                 "Удаление программы должно убирать за собой описание типа файла");
+        }
+
+        /// <summary>
+        /// Программу можно поставить без прав администратора.
+        ///
+        /// Прежде мастер требовал их безусловно, и на рабочем компьютере
+        /// с ограниченной учётной записью установка была невозможна вовсе —
+        /// при том что программа никакой части системы не касается.
+        /// Ключами те же два режима доступны и тихой установке, которая
+        /// на вопрос мастера ответить не может.
+        /// </summary>
+        [TestMethod]
+        public void Installer_CanBeInstalledWithoutAdminRights()
+        {
+            var script = InstallerScript;
+
+            Assert.IsTrue(Regex.IsMatch(script, @"^PrivilegesRequired=lowest\s*$", RegexOptions.Multiline),
+                "install/GCodeGenerator.iss: установка по-прежнему требует прав администратора");
+
+            var allowed = Regex.Match(script, @"^PrivilegesRequiredOverridesAllowed=(?<modes>.+)$",
+                RegexOptions.Multiline);
+
+            Assert.IsTrue(allowed.Success, "Выбор режима установки не разрешён");
+            StringAssert.Contains(allowed.Groups["modes"].Value, "dialog",
+                "Мастер не спрашивает, для кого ставить");
+            StringAssert.Contains(allowed.Groups["modes"].Value, "commandline",
+                "Тихой установке нечем выбрать режим");
+        }
+
+        /// <summary>
+        /// Каталог, ярлыки и ветка реестра выбираются режимом установки сами.
+        ///
+        /// Это и делает выбор режима возможным: жёстко заданный
+        /// <c>{pf}</c> или <c>HKLM</c> потребовал бы прав администратора
+        /// в обход самой настройки — установка «только для себя» падала бы
+        /// на записи, а не отказывалась начинаться.
+        /// </summary>
+        [TestMethod]
+        public void Installer_PathsFollowTheInstallMode()
+        {
+            var script = InstallerScript;
+
+            foreach (var constant in new[] { "{autopf}", "{autodesktop}", "Root: HKA" })
+                StringAssert.Contains(script, constant, $"Не используется {constant}");
+
+            // Директивы и записи, а не комментарии: в них эти имена
+            // упоминаются как раз при объяснении, почему их здесь нет.
+            var directives = string.Join("\n", script
+                .Split('\n')
+                .Where(line => !line.TrimStart().StartsWith(";", StringComparison.Ordinal)));
+
+            foreach (var fixedPath in new[]
+                     {
+                         "{pf}", "{pf32}", "{pf64}", "{commonpf}", "{userpf}",
+                         "{commondesktop}", "{userdesktop}",
+                         "Root: HKLM", "Root: HKCU"
+                     })
+            {
+                Assert.IsFalse(directives.Contains(fixedPath, StringComparison.Ordinal),
+                    $"{fixedPath} задан жёстко и не следует режиму установки");
+            }
         }
 
         /// <summary>

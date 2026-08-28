@@ -84,6 +84,8 @@ GCodeGenerator is a Windows application for quickly creating G-code programs for
 ### Ready-made builds
 Download the latest installer from the [Releases](https://github.com/AlexanderYunker1983/GCodeGenerator/releases) page and run it.
 
+The wizard asks whether to install for all users or for the current user only. The first needs administrator rights, the second does not and puts the application into `%LOCALAPPDATA%\Programs` — on a work computer with a restricted account the application can still be installed. The install directory, the shortcuts and the file association all follow the chosen mode. A silent install picks the mode with `/ALLUSERS` or `/CURRENTUSER`. If the application is already installed, the question is not asked: an update keeps the mode of the installation.
+
 Releases are published automatically: pushing a version tag (`1.2.3` or `1.2.3-rc5`) starts the [Release](.github/workflows/release.yml) workflow — build, tests, installer (Inno Setup) and a GitHub Release with `GCodeGenerator-Setup-<version>.exe` and a portable build (zip). Both artifacts are self-contained (they include the .NET 10 Desktop Runtime). Tags with a suffix (`-alpha`/`-beta`/`-rc`) are marked as pre-releases.
 
 **The Windows warning on first run.** As long as the builds are not signed with a certificate, SmartScreen shows "Windows protected your PC" and hides the run button: that is how Windows greets any unsigned program, not a sign of infection. To continue, click "More info" → "Run anyway". To make sure the file is the right one, check its hash against the one given in the release description:

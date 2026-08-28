@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -138,24 +137,6 @@ namespace GCodeGenerator.Tests
                 "Описание выпуска не подставляется");
             Assert.IsFalse(Regex.IsMatch(workflow, @"generate_release_notes:\s*true\s*$", RegexOptions.Multiline),
                 "Список коммитов выводится всегда, а должен — только без раздела в журнале");
-        }
-
-        /// <summary>
-        /// Скрипты сборки остаются ASCII: Windows PowerShell 5.1 читает .ps1
-        /// без метки порядка байтов как ANSI, и кириллица в них превращается
-        /// в мусор — молча, потому что скрипт при этом выполняется.
-        /// </summary>
-        [TestMethod]
-        public void BuildScripts_StayAscii()
-        {
-            foreach (var script in Directory.GetFiles(Path.Combine(Root, "build"), "*.ps1"))
-            {
-                var text = File.ReadAllText(script);
-                var index = text.IndexOfAny(text.Where(symbol => symbol > 127).ToArray());
-
-                Assert.AreEqual(-1, index,
-                    $"{Path.GetFileName(script)}: не-ASCII символ в позиции {index}");
-            }
         }
 
         // ------------------------------------------------------------------

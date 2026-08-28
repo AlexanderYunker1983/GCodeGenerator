@@ -26,6 +26,9 @@
 ;     line carries /DSignToolName + /S<name>=<command> when a certificate is
 ;     available. Without them the script compiles an unsigned installer, as
 ;     it always did.
+;   - The install mode is chosen by the person installing: all users (needs
+;     elevation) or just me (does not). Every path and registry root follows
+;     that choice through the "auto" constants and HKA.
 ;   - This file is UTF-8 WITH BOM: [CustomMessages] carries Russian text, and
 ;     Inno Setup reads a BOM-less .iss as ANSI.
 ;   - Inno Setup 6.3+ (x64compatible values); Russian: official in 6.7+
@@ -73,7 +76,28 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Minimum OS per README (Windows 10 22H2 / Windows 11).
 MinVersion=10.0.19045
-PrivilegesRequired=admin
+; Установка возможна и без прав администратора.
+;
+; Прежде мастер требовал их безусловно, и на рабочем компьютере с
+; ограниченной учётной записью программу поставить было нельзя вовсе —
+; при том что она никакой части системы не касается: каталог, ярлыки и
+; связь с файлами у неё свои.
+;
+; lowest + dialog: мастер запускается без повышения прав и спрашивает,
+; ставить для всех пользователей или только для себя. Первое запрашивает
+; повышение, второе обходится без него и кладёт программу в
+; %LOCALAPPDATA%\Programs. Каталог, ярлыки, группа меню и ветка реестра
+; выбираются режимом установки сами ({autopf}, {autodesktop}, {group}, HKA),
+; поэтому ни одну из них не пришлось раздваивать.
+;
+; commandline — те же два режима ключами /ALLUSERS и /CURRENTUSER: тихая
+; установка не может отвечать на вопрос мастера.
+;
+; UsePreviousPrivileges (умолчание — да) избавляет от вопроса тех, у кого
+; программа уже стоит: обновление идёт в том же режиме, что и установка,
+; и второй копии рядом с первой не появляется.
+PrivilegesRequired=lowest
+PrivilegesRequiredOverridesAllowed=dialog commandline
 ; Tells the shell that file associations changed, so the new icon and the
 ; "open with" entry appear without a sign-out.
 ChangesAssociations=yes
