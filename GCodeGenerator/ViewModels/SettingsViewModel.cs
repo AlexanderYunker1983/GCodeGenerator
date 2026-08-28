@@ -117,6 +117,13 @@ namespace GCodeGenerator.ViewModels
         [ObservableProperty]
         private bool _useDarkTheme;
 
+        /// <summary>
+        /// Проверять обновления при запуске. Выключено по умолчанию: это
+        /// единственное обращение программы к сети, и включает его человек.
+        /// </summary>
+        [ObservableProperty]
+        private bool _checkForUpdates;
+
         [ObservableProperty]
         private bool _spindleControlEnabled;
 

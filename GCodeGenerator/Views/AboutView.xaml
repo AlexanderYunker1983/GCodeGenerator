@@ -58,6 +58,23 @@
             <Button Content="{loc:Loc AboutShowLog}"
                     Command="{Binding ShowLogCommand}"
                     HorizontalAlignment="Left" MinWidth="150" Margin="0,8,0,0"/>
+
+            <!-- Проверка обновлений по требованию. Нажатие — и есть согласие
+                 на обращение к сети, поэтому настройка здесь не спрашивается:
+                 она управляет только проверкой при запуске. -->
+            <TextBlock Text="{loc:Loc AboutUpdates}" Margin="0,16,0,0" FontWeight="SemiBold"/>
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="{loc:Loc CheckForUpdatesNow}"
+                        Command="{Binding CheckUpdatesCommand}"
+                        MinWidth="150"/>
+                <Button Content="{loc:Loc OpenReleasePage}"
+                        Command="{Binding OpenUpdatePageCommand}"
+                        Margin="8,0,0,0" MinWidth="150"
+                        Visibility="{Binding HasNewerVersion, Converter={StaticResource BoolToVis}}"/>
+            </StackPanel>
+            <TextBlock Text="{Binding UpdateStatus, Mode=OneWay}"
+                       TextWrapping="Wrap" Margin="0,8,0,0" Opacity="0.85"
+                       Visibility="{Binding HasUpdateStatus, Converter={StaticResource BoolToVis}}"/>
         </StackPanel>
     </DockPanel>
 </Window>

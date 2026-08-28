@@ -960,6 +960,33 @@
   <data name="Close" xml:space="preserve">
     <value>Close</value>
   </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Check for updates at startup</value>
+  </data>
+  <data name="CheckForUpdatesHint" xml:space="preserve">
+    <value>The only time the application goes online: it asks github.com for the latest release and nothing else. Off unless you turn it on.</value>
+  </data>
+  <data name="CheckForUpdatesNow" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="OpenReleasePage" xml:space="preserve">
+    <value>Open the release page</value>
+  </data>
+  <data name="AboutUpdates" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>Version {0} is available</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>The installed version is the latest one.</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Could not check for updates. The reason is in the application log.</value>
+  </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>About</value>
   </data>

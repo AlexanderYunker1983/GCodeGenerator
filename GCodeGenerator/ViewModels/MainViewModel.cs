@@ -4,6 +4,7 @@ using GCodeGenerator.Localization;
 using GCodeGenerator.Services;
 using System;
 using System.ComponentModel;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -31,7 +32,11 @@ namespace GCodeGenerator.ViewModels
         private readonly Func<AboutViewModel>? _createAbout;
         private readonly IDialogHost _dialogHost;
         private readonly IProgramInfo _programInfo;
+        private readonly IUpdateService? _updates;
+        private readonly IShellService? _shell;
         private string _programTitle;
+        private string _updateNotice = string.Empty;
+        private string _updatePageUrl = string.Empty;
         private IDisposable? _documentBatch;
         private IDisposable? _undoSuspension;
         private string _displayName = string.Empty;
@@ -45,7 +50,9 @@ namespace GCodeGenerator.ViewModels
             OperationsWorkspaceViewModel operationsWorkspace,
             IProgramInfo programInfo,
             ISettingsStore? settingsStore,
-            Func<AboutViewModel>? createAbout = null)
+            Func<AboutViewModel>? createAbout = null,
+            IUpdateService? updates = null,
+            IShellService? shell = null)
         {
             _localizationManager = localizationManager;
             _createSettings = createSettings ?? throw new ArgumentNullException(nameof(createSettings));
@@ -70,8 +77,14 @@ namespace GCodeGenerator.ViewModels
             _projectWorkflow.DocumentApplied += OnDocumentApplied;
             _operationsWorkspace.ContentChanged += OnOperationsWorkspaceContentChanged;
 
+            _updates = updates;
+            _shell = shell;
+
             OpenSettingsCommand = new RelayCommand(OpenSettings);
             OpenAboutCommand = new RelayCommand(OpenAbout, () => _createAbout != null);
+            OpenUpdatePageCommand = new RelayCommand(
+                () => _shell?.OpenUrl(_updatePageUrl),
+                () => _updatePageUrl.Length > 0);
 
             _programTitle = BuildProgramTitle();
             UpdateDisplayName();
@@ -86,6 +99,70 @@ namespace GCodeGenerator.ViewModels
                     _programTitle = BuildProgramTitle();
                     UpdateDisplayName();
                 };
+
+            StartUpdateCheck();
+        }
+
+        /// <summary>Сообщение о вышедшей версии; пусто — сообщать нечего.</summary>
+        public string UpdateNotice
+        {
+            get => _updateNotice;
+            private set
+            {
+                if (value == _updateNotice) return;
+                _updateNotice = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasUpdate));
+            }
+        }
+
+        /// <summary>Вышла версия новее установленной.</summary>
+        public bool HasUpdate => _updateNotice.Length > 0;
+
+        /// <summary>Открывает страницу вышедшего выпуска.</summary>
+        public ICommand OpenUpdatePageCommand { get; }
+
+        /// <summary>
+        /// Спрашивает у GitHub, не вышла ли новая версия — но только если
+        /// человек об этом просил.
+        ///
+        /// Настройка выключена по умолчанию: обращение к сети у программы,
+        /// работающей с файлами на своём же компьютере, единственное, и
+        /// делать его без спроса она не должна. Результат не прерывает
+        /// работу — он появляется строкой над списком операций, и её можно
+        /// не заметить; тому, кто хочет узнать сейчас, есть кнопка в окне
+        /// «О программе».
+        /// </summary>
+        private void StartUpdateCheck()
+        {
+            if (_updates == null || _settingsStore?.Current.Ui.CheckForUpdates != true)
+                return;
+
+            _ = CheckForUpdateAsync();
+        }
+
+        private async Task CheckForUpdateAsync()
+        {
+            try
+            {
+                var latest = await _updates!.GetLatestReleaseAsync(CancellationToken.None)
+                    .ConfigureAwait(true);
+                if (latest == null)
+                    return;
+
+                var installed = ProductVersion.Parse(_programInfo.Version);
+                if (!latest.Version.IsNewerThan(installed))
+                    return;
+
+                _updatePageUrl = latest.PageUrl;
+                ((IRelayCommand)OpenUpdatePageCommand).NotifyCanExecuteChanged();
+                UpdateNotice = UpdateNoticeText.For(_localizationManager, latest.Version.Text);
+            }
+            catch (OperationCanceledException)
+            {
+                // Проверка не уложилась в отведённое время. Молчание здесь —
+                // верный ответ: никто её не ждал.
+            }
         }
 
         /// <summary>Название и версия программы на действующем языке.</summary>

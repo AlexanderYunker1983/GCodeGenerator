@@ -239,6 +239,22 @@
                                   SelectedValue="{Binding Language}"
                                   Width="200"
                                   HorizontalAlignment="Left"/>
+
+                        <!-- Единственное обращение программы к сети, поэтому
+                             выключено по умолчанию, а рядом сказано, куда
+                             именно она обращается. -->
+                        <mah:ToggleSwitch
+                            Header="{loc:Loc CheckForUpdates}"
+                            OnContent="{loc:Loc ToggleOn}"
+                            OffContent="{loc:Loc ToggleOff}"
+                            Margin="0,16,0,0"
+                            IsOn="{Binding CheckForUpdates}"/>
+                        <TextBlock Text="{loc:Loc CheckForUpdatesHint}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.75"
+                                   MaxWidth="420"
+                                   HorizontalAlignment="Left"
+                                   Margin="0,4,0,0"/>
                     </StackPanel>
                 </ScrollViewer>
             </mah:MetroTabItem>

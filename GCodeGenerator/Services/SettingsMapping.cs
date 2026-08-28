@@ -27,6 +27,7 @@ namespace GCodeGenerator.Services
             ("Format.PostProcessorName", "PostProcessorName"),
             ("Ui.UseDarkTheme", "UseDarkTheme"),
             ("Ui.Language", "Language"),
+            ("Ui.CheckForUpdates", "CheckForUpdates"),
             ("Spindle.SpindleControlEnabled", "SpindleControlEnabled"),
             ("Spindle.SpindleSpeedEnabled", "SpindleSpeedEnabled"),
             ("Spindle.SpindleSpeedRpm", "SpindleSpeedRpm"),

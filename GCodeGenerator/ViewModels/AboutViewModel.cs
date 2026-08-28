@@ -1,4 +1,7 @@
 #nullable enable
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Localization;
@@ -21,6 +24,14 @@ namespace GCodeGenerator.ViewModels
         public const string RepositoryUrl = "https://github.com/AlexanderYunker1983/GCodeGenerator";
 
         private readonly IShellService? _shell;
+        private readonly ILocalizationManager? _localizationManager;
+        private readonly IUpdateService? _updates;
+
+        /// <summary>Куда ведёт найденный выпуск; пусто — идти некуда.</summary>
+        private string _updatePageUrl = string.Empty;
+
+        private string _updateStatus = string.Empty;
+        private bool _isCheckingUpdates;
 
         public AboutViewModel()
             : this(null, null, null)
@@ -31,8 +42,28 @@ namespace GCodeGenerator.ViewModels
             ILocalizationManager? localizationManager,
             IProgramInfo? programInfo,
             IShellService? shell)
+            : this(localizationManager, programInfo, shell, null)
+        {
+        }
+
+        /// <summary>Окно «О программе».</summary>
+        /// <param name="localizationManager">Словарь интерфейса.</param>
+        /// <param name="programInfo">Версия, правообладатель и путь к журналу.</param>
+        /// <param name="shell">Показ файла и открытие ссылки.</param>
+        /// <param name="updates">
+        /// Проверка обновлений по требованию. Нажатие кнопки — это и есть
+        /// согласие на обращение к сети, поэтому настройка здесь не спрашивается:
+        /// она управляет только проверкой при запуске, которой никто не просил.
+        /// </param>
+        public AboutViewModel(
+            ILocalizationManager? localizationManager,
+            IProgramInfo? programInfo,
+            IShellService? shell,
+            IUpdateService? updates)
         {
             _shell = shell;
+            _localizationManager = localizationManager;
+            _updates = updates;
 
             DisplayName = localizationManager?.GetString("AboutTitle") ?? "AboutTitle";
             Version = programInfo?.Version ?? string.Empty;
@@ -43,6 +74,12 @@ namespace GCodeGenerator.ViewModels
                 () => _shell?.ShowFile(LogFilePath),
                 () => !string.IsNullOrEmpty(LogFilePath));
             OpenRepositoryCommand = new RelayCommand(() => _shell?.OpenUrl(RepositoryUrl));
+            CheckUpdatesCommand = new AsyncRelayCommand(
+                CheckUpdatesAsync,
+                () => _updates != null && !IsCheckingUpdates);
+            OpenUpdatePageCommand = new RelayCommand(
+                () => _shell?.OpenUrl(_updatePageUrl),
+                () => _updatePageUrl.Length > 0);
             CloseCommand = new RelayCommand(RequestClose);
         }
 
@@ -66,6 +103,104 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Открывает страницу продукта в браузере.</summary>
         public ICommand OpenRepositoryCommand { get; }
 
+        /// <summary>
+        /// Спрашивает у GitHub, не вышла ли версия новее. Нажатие — согласие
+        /// на единственное обращение программы к сети.
+        /// </summary>
+        public ICommand CheckUpdatesCommand { get; }
+
+        /// <summary>Открывает страницу найденного выпуска.</summary>
+        public ICommand OpenUpdatePageCommand { get; }
+
+        /// <summary>Чем закончилась проверка; пусто — её ещё не было.</summary>
+        public string UpdateStatus
+        {
+            get => _updateStatus;
+            private set
+            {
+                if (value == _updateStatus) return;
+                _updateStatus = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasUpdateStatus));
+            }
+        }
+
+        /// <summary>Проверка что-то сообщила.</summary>
+        public bool HasUpdateStatus => _updateStatus.Length > 0;
+
+        /// <summary>Идёт проверка: кнопка на это время недоступна.</summary>
+        public bool IsCheckingUpdates
+        {
+            get => _isCheckingUpdates;
+            private set
+            {
+                if (value == _isCheckingUpdates) return;
+                _isCheckingUpdates = value;
+                OnPropertyChanged();
+                ((IRelayCommand)CheckUpdatesCommand).NotifyCanExecuteChanged();
+            }
+        }
+
+        /// <summary>Найден выпуск новее установленного.</summary>
+        public bool HasNewerVersion => _updatePageUrl.Length > 0;
+
         public ICommand CloseCommand { get; }
+
+        /// <summary>
+        /// Проверяет, не вышла ли новая версия, и говорит об этом словами.
+        ///
+        /// Отказ проверки — не сбой: сети может не быть, и показывать
+        /// исключение за то, что человек нажал «проверить», незачем.
+        /// Причина остаётся в журнале, в окне — «проверить не удалось».
+        /// </summary>
+        private async Task CheckUpdatesAsync()
+        {
+            if (_updates == null)
+                return;
+
+            IsCheckingUpdates = true;
+            SetUpdatePage(string.Empty);
+            UpdateStatus = Localize("UpdateChecking");
+            try
+            {
+                var latest = await _updates.GetLatestReleaseAsync(CancellationToken.None)
+                    .ConfigureAwait(true);
+                var installed = ProductVersion.Parse(Version);
+
+                if (latest == null)
+                {
+                    UpdateStatus = Localize("UpdateCheckFailed");
+                    return;
+                }
+
+                if (latest.Version.IsNewerThan(installed))
+                {
+                    SetUpdatePage(latest.PageUrl);
+                    UpdateStatus = UpdateNoticeText.For(_localizationManager, latest.Version.Text);
+                    return;
+                }
+
+                UpdateStatus = Localize("UpdateUpToDate");
+            }
+            catch (OperationCanceledException)
+            {
+                UpdateStatus = Localize("UpdateCheckFailed");
+            }
+            finally
+            {
+                IsCheckingUpdates = false;
+            }
+        }
+
+        /// <summary>Куда ведёт кнопка перехода к выпуску.</summary>
+        /// <param name="url">Страница выпуска или пустая строка.</param>
+        private void SetUpdatePage(string url)
+        {
+            _updatePageUrl = url;
+            OnPropertyChanged(nameof(HasNewerVersion));
+            ((IRelayCommand)OpenUpdatePageCommand).NotifyCanExecuteChanged();
+        }
+
+        private string Localize(string key) => _localizationManager?.GetString(key) ?? key;
     }
 }

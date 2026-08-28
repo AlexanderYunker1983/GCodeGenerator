@@ -36,7 +36,9 @@ namespace GCodeGenerator.Tests
             IGCodeFileService gCodeFileService = null,
             IProjectFileService projectFileService = null,
             FakeEditorIndex editors = null,
-            GCodeGenerator.Localization.ILocalizationManager localizationManager = null)
+            GCodeGenerator.Localization.ILocalizationManager localizationManager = null,
+            GCodeGenerator.Services.IUpdateService updates = null,
+            bool checkForUpdates = false)
         {
             var dialogs = new FakeDialogs();
             var factory = new OperationEditorFactory(editors ?? new FakeEditorIndex(), dialogs);
@@ -65,10 +67,15 @@ namespace GCodeGenerator.Tests
                 null,
                 factory,
                 new FakeThemeService());
+            // Проверка обновлений включается до создания окна: оно смотрит
+            // настройку в конструкторе, как и настоящее приложение — при запуске.
+            settingsStore.Current.Ui.CheckForUpdates = checkForUpdates;
+
             var main = new MainViewModel(localizationManager,
                 () => new SettingsViewModel(null, settingsStore, new FakeThemeService()),
                 dialogs, gCodeWorkflowFactory, projectWorkflowFactory,
-                operationsWorkspace, new ProgramInfo("1.0"), settingsStore);
+                operationsWorkspace, new ProgramInfo("1.0.0"), settingsStore,
+                createAbout: null, updates: updates);
             return (main, factory, dialogs, settingsStore);
         }
 

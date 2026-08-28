@@ -960,6 +960,33 @@
   <data name="Close" xml:space="preserve">
     <value>Закрыть</value>
   </data>
+  <data name="CheckForUpdates" xml:space="preserve">
+    <value>Проверять обновления при запуске</value>
+  </data>
+  <data name="CheckForUpdatesHint" xml:space="preserve">
+    <value>Единственный случай, когда программа обращается в сеть: она спрашивает у github.com последний выпуск и больше ничего. Выключено, пока вы не включите.</value>
+  </data>
+  <data name="CheckForUpdatesNow" xml:space="preserve">
+    <value>Проверить сейчас</value>
+  </data>
+  <data name="OpenReleasePage" xml:space="preserve">
+    <value>Открыть страницу выпуска</value>
+  </data>
+  <data name="AboutUpdates" xml:space="preserve">
+    <value>Обновления</value>
+  </data>
+  <data name="UpdateChecking" xml:space="preserve">
+    <value>Проверяем…</value>
+  </data>
+  <data name="UpdateAvailable" xml:space="preserve">
+    <value>Доступна версия {0}</value>
+  </data>
+  <data name="UpdateUpToDate" xml:space="preserve">
+    <value>Установлена последняя версия.</value>
+  </data>
+  <data name="UpdateCheckFailed" xml:space="preserve">
+    <value>Проверить обновления не удалось. Причина — в журнале работы.</value>
+  </data>
   <data name="AboutTitle" xml:space="preserve">
     <value>О программе</value>
   </data>

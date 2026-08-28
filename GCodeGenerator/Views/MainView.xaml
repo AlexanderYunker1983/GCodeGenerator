@@ -1,4 +1,4 @@
-<Window x:Class="GCodeGenerator.Views.MainView"
+﻿<Window x:Class="GCodeGenerator.Views.MainView"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:GCodeGenerator.Localization"
@@ -111,6 +111,22 @@
                     ToolTipService.ShowOnDisabled="True"
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center"/>
+
+            <!-- Вышла новая версия. Строка появляется только после проверки,
+                 которую человек включил сам, и работать не мешает: она стоит
+                 в свободной колонке панели и по нажатию открывает страницу
+                 выпуска. -->
+            <TextBlock Grid.Column="4"
+                       VerticalAlignment="Center"
+                       HorizontalAlignment="Right"
+                       Margin="8,0,8,0"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding UpdateNotice}"
+                       Visibility="{Binding HasUpdate, Converter={StaticResource BoolToVis}}">
+                <Hyperlink Command="{Binding OpenUpdatePageCommand}">
+                    <Run Text="{Binding UpdateNotice, Mode=OneWay}"/>
+                </Hyperlink>
+            </TextBlock>
 
             <StackPanel Grid.Column="5" Orientation="Horizontal">
                 <Button Command="{Binding OpenAboutCommand}"

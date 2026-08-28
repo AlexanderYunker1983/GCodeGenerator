@@ -28,6 +28,11 @@ namespace GCodeGenerator.Infrastructure
             // и то и другое, а работать с оболочкой само оно не должно.
             builder.RegisterType<ShellService>().As<IShellService>().SingleInstance();
 
+            // Проверка обновлений. Служба существует всегда, спрашивает —
+            // только когда её просят: настройка выключена по умолчанию,
+            // а кнопка в окне «О программе» — уже действие человека.
+            builder.RegisterType<GitHubUpdateService>().As<IUpdateService>().SingleInstance();
+
             // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
             // «тип операции → VM диалога»; сверление — по режиму шаблона).
             builder.RegisterType<OperationEditorFactory>()
