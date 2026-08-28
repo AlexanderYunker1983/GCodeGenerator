@@ -119,11 +119,12 @@ namespace GCodeGenerator.Tests
             using var service = Service(HttpStatusCode.OK,
                 @"{ ""tag_name"": ""1.2.3"", ""html_url"": ""https://github.com/x/y/releases/tag/1.2.3"" }");
 
-            var latest = await service.Service.GetLatestReleaseAsync();
+            var answer = await service.Service.GetLatestReleaseAsync();
 
-            Assert.IsNotNull(latest);
-            Assert.AreEqual("1.2.3", latest!.Version.Text);
-            Assert.AreEqual("https://github.com/x/y/releases/tag/1.2.3", latest.PageUrl);
+            Assert.IsNotNull(answer.Release);
+            Assert.AreEqual("1.2.3", answer.Release!.Version.Text);
+            Assert.AreEqual("https://github.com/x/y/releases/tag/1.2.3", answer.Release.PageUrl);
+            Assert.AreEqual(string.Empty, answer.Detail, "У успеха причины нет");
         }
 
         /// <summary>
@@ -156,18 +157,72 @@ namespace GCodeGenerator.Tests
         {
             using var service = Service(status, body);
 
-            Assert.IsNull(await service.Service.GetLatestReleaseAsync());
+            var answer = await service.Service.GetLatestReleaseAsync();
+
+            Assert.IsNull(answer.Release, "Выпуск не должен был найтись");
+            Assert.AreNotEqual(string.Empty, answer.Detail,
+                "Отказ без причины отправляет читать журнал");
         }
 
         /// <summary>Отказ сети не выходит наружу исключением.</summary>
         [TestMethod]
         public async Task Service_SurvivesNoNetwork()
         {
-            var handler = new FakeHandler(_ => throw new HttpRequestException("no network"));
+            var handler = new FakeHandler(_ => throw new HttpRequestException(
+                "запрос не удался", new System.Net.Sockets.SocketException(10013)));
             using var client = new HttpClient(handler);
             var service = new GitHubUpdateService(client);
 
-            Assert.IsNull(await service.GetLatestReleaseAsync());
+            var answer = await service.GetLatestReleaseAsync();
+
+            Assert.IsNull(answer.Release);
+
+            // В окно уходит причина самой глубокой обёртки: внешняя говорит
+            // лишь, что запрос не удался, а по делу отвечает сокет.
+            Assert.AreNotEqual("запрос не удался", answer.Detail,
+                "Показана обёртка вместо причины");
+            Assert.AreNotEqual(string.Empty, answer.Detail);
+        }
+
+        /// <summary>
+        /// Исчерпанный предел числа обращений назван отдельно: это не сбой,
+        /// он проходит сам через час, и совет при нём другой. Шестьдесят
+        /// обращений в час GitHub считает на адрес, а не на программу, —
+        /// исчерпать их может и не она.
+        /// </summary>
+        [TestMethod]
+        public async Task Service_TellsRateLimitingApartFromAFailure()
+        {
+            var handler = new FakeHandler(_ =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+                {
+                    Content = new StringContent("{}", Encoding.UTF8, "application/json")
+                };
+                response.Headers.Add("x-ratelimit-remaining", "0");
+                return response;
+            });
+            using var client = new HttpClient(handler);
+
+            var answer = await new GitHubUpdateService(client).GetLatestReleaseAsync();
+
+            Assert.IsTrue(answer.IsRateLimited, "Ограничение числа запросов не распознано");
+            Assert.IsNull(answer.Release);
+        }
+
+        /// <summary>
+        /// Тот же отказ без признака исчерпания — обычный сбой: 403 приходит
+        /// и по другим причинам, и объяснять его ожиданием часа неверно.
+        /// </summary>
+        [TestMethod]
+        public async Task Service_DoesNotCallEveryRefusalRateLimiting()
+        {
+            using var service = Service(HttpStatusCode.Forbidden, "{}");
+
+            var answer = await service.Service.GetLatestReleaseAsync();
+
+            Assert.IsFalse(answer.IsRateLimited);
+            StringAssert.Contains(answer.Detail, "403", "Код ответа не назван");
         }
 
         // ------------------------------------------------------------------
@@ -258,9 +313,14 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(about.OpenUpdatePageCommand.CanExecute(null));
         }
 
-        /// <summary>Проверка не удалась — окно говорит об этом и не молчит.</summary>
+        /// <summary>
+        /// Проверка не удалась — окно называет причину, а не отправляет
+        /// в журнал. Прежде оно писало «причина — в журнале работы», и ради
+        /// одной строки, которая у программы уже была, приходилось открывать
+        /// файл в недрах профиля.
+        /// </summary>
         [TestMethod]
-        public async Task About_ReportsAFailedCheck()
+        public async Task About_ReportsWhyTheCheckFailed()
         {
             var about = new AboutViewModelBuilder("1.0.0", new CountingUpdateService(null)).Build();
 
@@ -268,6 +328,31 @@ namespace GCodeGenerator.Tests
 
             Assert.IsTrue(about.HasUpdateStatus, "Молчание неотличимо от «всё в порядке»");
             Assert.IsFalse(about.HasNewerVersion);
+            StringAssert.Contains(about.UpdateStatus, "узнать не удалось",
+                "Причина отказа до окна не дошла");
+        }
+
+        /// <summary>
+        /// Исчерпанный предел обращений объясняется человеку, а не кодом
+        /// ответа: ждать час — это совет, «HTTP 403» — нет.
+        /// </summary>
+        [TestMethod]
+        public async Task About_ExplainsRateLimiting()
+        {
+            var about = new AboutViewModelBuilder("1.0.0", new RateLimitedUpdateService()).Build();
+
+            await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)about.CheckUpdatesCommand).ExecuteAsync(null);
+
+            StringAssert.Contains(about.UpdateStatus, "GitHub");
+            StringAssert.Contains(about.UpdateStatus, "час", "Не сказано, когда пробовать снова");
+            Assert.IsFalse(about.UpdateStatus.Contains("403"), "Код ответа человеку ничего не говорит");
+        }
+
+        /// <summary>Служба, всегда отвечающая исчерпанным пределом обращений.</summary>
+        private sealed class RateLimitedUpdateService : IUpdateService
+        {
+            public Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
+                => Task.FromResult(UpdateCheckResult.RateLimited());
         }
 
         // ------------------------------------------------------------------
@@ -317,15 +402,15 @@ namespace GCodeGenerator.Tests
 
             public int Calls { get; private set; }
 
-            public Task<UpdateInfo> GetLatestReleaseAsync(CancellationToken cancellation = default)
+            public Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
             {
                 Calls++;
                 _asked.TrySetResult();
 
                 var version = ProductVersion.Parse(_latest);
                 return Task.FromResult(version == null
-                    ? null
-                    : new UpdateInfo(version, "https://example.invalid/release"));
+                    ? UpdateCheckResult.Failed("узнать не удалось")
+                    : UpdateCheckResult.Found(new UpdateInfo(version, "https://example.invalid/release")));
             }
 
             /// <summary>

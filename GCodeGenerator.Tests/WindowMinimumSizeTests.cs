@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.Versioning;
 using System.Windows;
 using System.Windows.Controls;
@@ -120,6 +120,41 @@ namespace GCodeGenerator.Tests
                     Assert.IsTrue(column.ActualWidth >= column.MinWidth - 1,
                         $"Колонка сжалась до {column.ActualWidth:0} при наименьшей {column.MinWidth:0}");
                 }
+
+                window.Close();
+            });
+        }
+
+        /// <summary>
+        /// Кнопки «о программе» и «настройки» одного размера.
+        ///
+        /// Значок настроек — картинка 24×24, а знак вопроса сам по себе
+        /// занимает высоту строки текста, и кнопка выходила заметно ниже
+        /// соседней: две кнопки подряд в одной панели, разной высоты.
+        /// </summary>
+        [TestMethod]
+        public void ToolbarButtons_AreTheSameSize()
+        {
+            TestApplication.Run(() =>
+            {
+                var window = new MainView();
+                window.WindowStartupLocation = WindowStartupLocation.Manual;
+                window.Left = -10000;
+                window.Top = -10000;
+                window.Show();
+                window.UpdateLayout();
+
+                var about = (Button)window.FindName("AboutButton");
+                var settings = (Button)window.FindName("SettingsButton");
+
+                Assert.IsNotNull(about, "Кнопка «о программе» переименована");
+                Assert.IsNotNull(settings, "Кнопка настроек переименована");
+
+                Assert.AreEqual(settings.ActualWidth, about.ActualWidth, 0.5,
+                    $"Ширина: настройки {settings.ActualWidth:0.#}, о программе {about.ActualWidth:0.#}");
+                Assert.AreEqual(settings.ActualHeight, about.ActualHeight, 0.5,
+                    $"Высота: настройки {settings.ActualHeight:0.#}, о программе {about.ActualHeight:0.#}");
+                Assert.IsTrue(about.ActualHeight > 0, "Окно не разместилось — проверять нечего");
 
                 window.Close();
             });

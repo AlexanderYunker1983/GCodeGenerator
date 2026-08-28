@@ -984,6 +984,15 @@
   <data name="UpdateUpToDate" xml:space="preserve">
     <value>The installed version is the latest one.</value>
   </data>
+  <data name="UpdateCheckFailedBecause" xml:space="preserve">
+    <value>Could not check for updates: {0}</value>
+  </data>
+  <data name="UpdateRateLimited" xml:space="preserve">
+    <value>GitHub has temporarily limited the number of requests from this address. Try again in an hour, or open the releases page.</value>
+  </data>
+  <data name="UpdateCheckTimedOut" xml:space="preserve">
+    <value>GitHub did not answer in time.</value>
+  </data>
   <data name="UpdateCheckFailed" xml:space="preserve">
     <value>Could not check for updates. The reason is in the application log.</value>
   </data>

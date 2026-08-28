@@ -145,18 +145,22 @@ namespace GCodeGenerator.ViewModels
         {
             try
             {
-                var latest = await _updates!.GetLatestReleaseAsync(CancellationToken.None)
+                var answer = await _updates!.GetLatestReleaseAsync(CancellationToken.None)
                     .ConfigureAwait(true);
-                if (latest == null)
+
+                // Отказ при запуске остаётся в журнале и только там: проверку
+                // никто не ждал, и сообщать о её неудаче — значит мешать
+                // работе ради того, о чём не спрашивали.
+                if (answer.Release == null)
                     return;
 
                 var installed = ProductVersion.Parse(_programInfo.Version);
-                if (!latest.Version.IsNewerThan(installed))
+                if (!answer.Release.Version.IsNewerThan(installed))
                     return;
 
-                _updatePageUrl = latest.PageUrl;
+                _updatePageUrl = answer.Release.PageUrl;
                 ((IRelayCommand)OpenUpdatePageCommand).NotifyCanExecuteChanged();
-                UpdateNotice = UpdateNoticeText.For(_localizationManager, latest.Version.Text);
+                UpdateNotice = UpdateNoticeText.For(_localizationManager, answer.Release.Version.Text);
             }
             catch (OperationCanceledException)
             {

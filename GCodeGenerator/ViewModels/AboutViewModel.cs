@@ -163,20 +163,20 @@ namespace GCodeGenerator.ViewModels
             UpdateStatus = Localize("UpdateChecking");
             try
             {
-                var latest = await _updates.GetLatestReleaseAsync(CancellationToken.None)
+                var answer = await _updates.GetLatestReleaseAsync(CancellationToken.None)
                     .ConfigureAwait(true);
                 var installed = ProductVersion.Parse(Version);
 
-                if (latest == null)
+                if (answer.Release == null)
                 {
-                    UpdateStatus = Localize("UpdateCheckFailed");
+                    UpdateStatus = Describe(answer);
                     return;
                 }
 
-                if (latest.Version.IsNewerThan(installed))
+                if (answer.Release.Version.IsNewerThan(installed))
                 {
-                    SetUpdatePage(latest.PageUrl);
-                    UpdateStatus = UpdateNoticeText.For(_localizationManager, latest.Version.Text);
+                    SetUpdatePage(answer.Release.PageUrl);
+                    UpdateStatus = UpdateNoticeText.For(_localizationManager, answer.Release.Version.Text);
                     return;
                 }
 
@@ -184,12 +184,35 @@ namespace GCodeGenerator.ViewModels
             }
             catch (OperationCanceledException)
             {
-                UpdateStatus = Localize("UpdateCheckFailed");
+                UpdateStatus = Localize("UpdateCheckTimedOut");
             }
             finally
             {
                 IsCheckingUpdates = false;
             }
+        }
+
+        /// <summary>
+        /// Почему проверка не удалась — словами, а не отсылкой к журналу.
+        ///
+        /// Прежде окно говорило «причина — в журнале работы», и человеку,
+        /// нажавшему «проверить», приходилось открывать файл ради одной
+        /// строки, которая у программы уже была на руках. Исчерпанный предел
+        /// обращений назван отдельно: это не сбой, он проходит сам, и совет
+        /// при нём другой.
+        /// </summary>
+        /// <param name="answer">Чем закончился вопрос о последнем выпуске.</param>
+        private string Describe(UpdateCheckResult answer)
+        {
+            if (answer.IsRateLimited)
+                return Localize("UpdateRateLimited");
+
+            return answer.Detail.Length == 0
+                ? Localize("UpdateCheckFailed")
+                : string.Format(
+                    System.Globalization.CultureInfo.CurrentCulture,
+                    Localize("UpdateCheckFailedBecause"),
+                    answer.Detail);
         }
 
         /// <summary>Куда ведёт кнопка перехода к выпуску.</summary>

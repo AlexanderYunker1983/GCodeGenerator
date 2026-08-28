@@ -984,6 +984,15 @@
   <data name="UpdateUpToDate" xml:space="preserve">
     <value>Установлена последняя версия.</value>
   </data>
+  <data name="UpdateCheckFailedBecause" xml:space="preserve">
+    <value>Проверить обновления не удалось: {0}</value>
+  </data>
+  <data name="UpdateRateLimited" xml:space="preserve">
+    <value>GitHub временно ограничил число запросов с этого адреса. Попробуйте через час или откройте страницу выпусков.</value>
+  </data>
+  <data name="UpdateCheckTimedOut" xml:space="preserve">
+    <value>GitHub не ответил за отведённое время.</value>
+  </data>
   <data name="UpdateCheckFailed" xml:space="preserve">
     <value>Проверить обновления не удалось. Причина — в журнале работы.</value>
   </data>

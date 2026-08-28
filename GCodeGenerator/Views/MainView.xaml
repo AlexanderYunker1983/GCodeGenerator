@@ -129,16 +129,26 @@
             </TextBlock>
 
             <StackPanel Grid.Column="5" Orientation="Horizontal">
-                <Button Command="{Binding OpenAboutCommand}"
-                        Padding="3" Margin="0,0,3,0" MinWidth="30"
-                        Content="?" FontWeight="Bold"
+                <!-- Знак вопроса лежит в такой же клетке 24×24, как значки
+                     остальных кнопок панели: сам по себе он занимает высоту
+                     строки текста, и кнопка выходила ниже соседней. -->
+                <Button x:Name="AboutButton"
+                        Command="{Binding OpenAboutCommand}"
+                        Padding="3" Margin="0,0,3,0"
                         VerticalAlignment="Center"
                         HorizontalAlignment="Center"
                         ToolTip="{loc:Loc AboutToolTip}"
                         ToolTipService.BetweenShowDelay="0"
-                        ToolTipService.InitialShowDelay="0"/>
+                        ToolTipService.InitialShowDelay="0">
+                    <Grid Width="24" Height="24">
+                        <TextBlock Text="?" FontWeight="Bold" FontSize="16"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                    </Grid>
+                </Button>
 
-                <Button Command="{Binding OpenSettingsCommand}"
+                <Button x:Name="SettingsButton"
+                        Command="{Binding OpenSettingsCommand}"
                         Padding="3"
                         VerticalAlignment="Center"
                         HorizontalAlignment="Center"

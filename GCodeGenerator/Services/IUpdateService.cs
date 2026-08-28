@@ -1,5 +1,7 @@
 #nullable enable
 using System;
+using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -15,6 +17,35 @@ namespace GCodeGenerator.Services
     public sealed record UpdateInfo(ProductVersion Version, string PageUrl);
 
     /// <summary>
+    /// Чем закончился вопрос о последнем выпуске.
+    ///
+    /// Отказ несёт причину, а не одну свою пустоту: «не удалось, смотрите
+    /// в журнале» отправляет человека искать файл ради одной строки, которая
+    /// и так уже написана. Причина приходит текстом от того, кто отказал, —
+    /// системой или самим GitHub.
+    /// </summary>
+    /// <param name="Release">Найденный выпуск или <c>null</c>.</param>
+    /// <param name="Detail">Причина отказа; пусто — отказа не было.</param>
+    /// <param name="IsRateLimited">
+    /// GitHub ограничил число запросов. Единственная причина, названная
+    /// отдельно: она проходит сама и объясняется человеку иначе, чем сбой.
+    /// </param>
+    public sealed record UpdateCheckResult(UpdateInfo? Release, string Detail, bool IsRateLimited)
+    {
+        /// <summary>Выпуск найден.</summary>
+        public static UpdateCheckResult Found(UpdateInfo release)
+            => new UpdateCheckResult(release, string.Empty, false);
+
+        /// <summary>Узнать не удалось; причина — текстом.</summary>
+        public static UpdateCheckResult Failed(string detail)
+            => new UpdateCheckResult(null, detail, false);
+
+        /// <summary>GitHub ограничил число запросов.</summary>
+        public static UpdateCheckResult RateLimited()
+            => new UpdateCheckResult(null, string.Empty, true);
+    }
+
+    /// <summary>
     /// Узнаёт последний выпущенный вариант продукта.
     ///
     /// Обращение к сети — единственное в программе, и происходит оно только
@@ -25,14 +56,15 @@ namespace GCodeGenerator.Services
     public interface IUpdateService
     {
         /// <summary>
-        /// Последний выпуск или <c>null</c>, если узнать его не удалось.
+        /// Последний выпуск либо причина, по которой узнать его не удалось.
         ///
         /// Отказ — не событие: сети может не быть, GitHub может ответить
         /// отказом, ответ может оказаться не тем. Проверка обновлений — не то,
-        /// ради чего стоит показывать пользователю исключение.
+        /// ради чего стоит показывать пользователю исключение, но и молчать
+        /// о причине незачем: она у отказавшего есть.
         /// </summary>
         /// <param name="cancellation">Отмена ожидания.</param>
-        Task<UpdateInfo?> GetLatestReleaseAsync(CancellationToken cancellation = default);
+        Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default);
     }
 
     /// <summary>
@@ -95,7 +127,7 @@ namespace GCodeGenerator.Services
         }
 
         /// <inheritdoc />
-        public async Task<UpdateInfo?> GetLatestReleaseAsync(CancellationToken cancellation = default)
+        public async Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
         {
             try
             {
@@ -105,8 +137,16 @@ namespace GCodeGenerator.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.Warning($"Update check: GitHub answered {(int)response.StatusCode}");
-                    return null;
+                    var status = (int)response.StatusCode;
+                    _logger.Warning($"Update check: GitHub answered {status}");
+
+                    // Обращений без учётной записи GitHub разрешает шестьдесят
+                    // в час на адрес, а исчерпать их может и не эта программа:
+                    // счёт общий на всех, кто выходит через тот же адрес.
+                    // Это не сбой и проходит само, поэтому названо отдельно.
+                    return IsRateLimited(response)
+                        ? UpdateCheckResult.RateLimited()
+                        : UpdateCheckResult.Failed($"HTTP {status}");
                 }
 
                 using var stream = await response.Content.ReadAsStreamAsync(cancellation).ConfigureAwait(false);
@@ -123,16 +163,48 @@ namespace GCodeGenerator.Services
             catch (Exception failure)
             {
                 _logger.Warning($"Update check failed: {failure.Message}");
-                return null;
+
+                // Текст исключения говорит по делу — «узел не найден»,
+                // «доступ к сокету запрещён», — и говорит на языке системы.
+                // Он и уходит в окно: гадать о причине не приходится ни
+                // пользователю, ни тому, кто разбирает его сообщение.
+                return UpdateCheckResult.Failed(Innermost(failure).Message);
             }
         }
 
-        /// <summary>Версия и страница выпуска из ответа; null — ответ не тот.</summary>
+        /// <summary>Ответ означает исчерпанный предел числа обращений.</summary>
+        /// <param name="response">Ответ GitHub.</param>
+        private static bool IsRateLimited(HttpResponseMessage response)
+        {
+            if (response.StatusCode != HttpStatusCode.Forbidden
+                && response.StatusCode != HttpStatusCode.TooManyRequests)
+            {
+                return false;
+            }
+
+            return response.Headers.TryGetValues("x-ratelimit-remaining", out var remaining)
+                && remaining.FirstOrDefault() == "0";
+        }
+
+        /// <summary>
+        /// Самое внутреннее исключение: обёртка сообщает лишь, что запрос
+        /// не удался, а причину называет то, что лежит под ней.
+        /// </summary>
+        /// <param name="failure">Пойманное исключение.</param>
+        private static Exception Innermost(Exception failure)
+        {
+            var current = failure;
+            while (current.InnerException != null)
+                current = current.InnerException;
+            return current;
+        }
+
+        /// <summary>Версия и страница выпуска из ответа либо причина отказа.</summary>
         /// <param name="release">Корень ответа GitHub.</param>
-        private UpdateInfo? Read(JsonElement release)
+        private UpdateCheckResult Read(JsonElement release)
         {
             if (release.ValueKind != JsonValueKind.Object)
-                return null;
+                return UpdateCheckResult.Failed(release.ValueKind.ToString());
 
             var tag = Text(release, "tag_name");
             var version = ProductVersion.Parse(tag);
@@ -141,13 +213,13 @@ namespace GCodeGenerator.Services
                 // Тег вне формата продукта: сравнивать его не с чем, и
                 // предлагать обновление на неизвестное — хуже молчания.
                 _logger.Warning($"Update check: tag '{tag}' is not a product version");
-                return null;
+                return UpdateCheckResult.Failed($"tag_name: {tag}");
             }
 
             var page = Text(release, "html_url");
-            return new UpdateInfo(
+            return UpdateCheckResult.Found(new UpdateInfo(
                 version,
-                string.IsNullOrWhiteSpace(page) ? AboutViewModelReleasesUrl : page!);
+                string.IsNullOrWhiteSpace(page) ? AboutViewModelReleasesUrl : page!));
         }
 
         /// <summary>Страница выпусков — запасной адрес, если ответ его не назвал.</summary>
