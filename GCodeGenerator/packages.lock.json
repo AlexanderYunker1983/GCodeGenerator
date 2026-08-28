@@ -16,11 +16,11 @@
       },
       "ControlzEx": {
         "type": "Direct",
-        "requested": "[4.4.0, )",
-        "resolved": "4.4.0",
-        "contentHash": "pZ5z4hYWwE4R13UMCVs6vII//nL7hz+Nwn4oJlnsZJRGqJNy6Z9KnJiTZfly6lKFu0pMc1aWBZpx+VqFTQKP1Q==",
+        "requested": "[7.0.4, )",
+        "resolved": "7.0.4",
+        "contentHash": "IDSQItUCLC8hhI6VXaAHA8WWKmlRBYC/f+fG2YKGUyIMYi477Enr6IROc48MikyONDrbjr4MtWT5Zhk+N+1dEg==",
         "dependencies": {
-          "Microsoft.Xaml.Behaviors.Wpf": "1.1.19"
+          "Microsoft.Xaml.Behaviors.Wpf": "1.1.135"
         }
       },
       "MahApps.Metro": {
