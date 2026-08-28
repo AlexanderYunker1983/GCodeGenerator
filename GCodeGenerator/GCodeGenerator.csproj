@@ -38,6 +38,9 @@
     <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
     <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
     <ApplicationIcon>cnc_machine.ico</ApplicationIcon>
+    <!-- Манифест: поддерживаемые версии Windows и осведомлённость о масштабе
+         экрана. Без него система считает программу написанной до Vista. -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
     <!-- Классическая раскладка bin\Release (без подпапки TFM): CI и документация
          ссылаются на bin\Release\GCodeGenerator.exe -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>

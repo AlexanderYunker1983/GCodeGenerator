@@ -14,7 +14,7 @@
         d:DataContext="{d:DesignInstance viewModels:MainViewModel}"
         Title="{Binding DisplayName}"
         Height="600" Width="1200"
-        MinHeight="600" MinWidth="1200"
+        MinHeight="560" MinWidth="900"
         WindowStartupLocation="CenterScreen"
         AllowDrop="True">
     <!-- Клавиши работы с документом — те же, что в любой программе с файлами:
@@ -30,13 +30,23 @@
         <KeyBinding Key="F1" Command="{Binding OpenAboutCommand}"/>
     </Window.InputBindings>
     <Grid Margin="8">
+        <!--
+            Все три колонки пропорциональные, с собственным наименьшим
+            размером. Прежде средняя и правая имели постоянную ширину, и при
+            сжатии окна ужималась одна левая: до нуля, потому что забирала
+            остаток. Поэтому окно и не разрешало себя уменьшить — наименьшая
+            ширина 1200 не помещалась на экране 1920×1080 при масштабе 175 %,
+            где рабочая область всего 1097 единиц.
+
+            Доли подобраны так, чтобы при обычной ширине колонки сохранили
+            привычные размеры (примерно 436, 349 и 392 при 1200). Наименьшие
+            размеры — по содержимому: две плитки в выборе операций, три кнопки
+            над списком, обе кнопки G-кода.
+        -->
         <Grid.ColumnDefinitions>
-            <!-- Left: operation type selector takes all free width -->
-            <ColumnDefinition Width="*" />
-            <!-- Middle: operations list has fixed comfortable width -->
-            <ColumnDefinition Width="350" />
-            <!-- Right: G-code preview starts at 400px and is resizable via splitter -->
-            <ColumnDefinition Width="400" />
+            <ColumnDefinition Width="*" MinWidth="260" />
+            <ColumnDefinition Width="0.8*" MinWidth="264" />
+            <ColumnDefinition Width="0.9*" MinWidth="316" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
