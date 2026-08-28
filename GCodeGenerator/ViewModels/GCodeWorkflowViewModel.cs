@@ -41,6 +41,10 @@ namespace GCodeGenerator.ViewModels
         private long _documentRevision;
         private IReadOnlyList<string>? _programLines;
         private bool _isGenerating;
+
+        /// <summary>Построение прервал пользователь, а не правка документа.</summary>
+        private bool _cancelledByUser;
+
         private int _progressPercent;
 
         internal GCodeWorkflowViewModel(
@@ -69,6 +73,7 @@ namespace GCodeGenerator.ViewModels
             _logger = logger ?? NullAppLogger.Instance;
 
             GenerateGCodeCommand = new AsyncRelayCommand(GenerateGCodeAsync, () => _operations.Count > 0);
+            CancelGenerationCommand = new RelayCommand(CancelGeneration, () => IsGenerating);
             SaveGCodeCommand = new RelayCommand(SaveGCode, () => ProgramLines is { Count: > 0 });
             PreviewGCodeCommand = new RelayCommand(PreviewGCode, () => ProgramLines is { Count: > 0 });
         }
@@ -111,6 +116,8 @@ namespace GCodeGenerator.ViewModels
                 if (value == _isGenerating) return;
                 _isGenerating = value;
                 OnPropertyChanged();
+                // Отменять можно ровно то, что сейчас строится.
+                ((IRelayCommand)CancelGenerationCommand).NotifyCanExecuteChanged();
             }
         }
 
@@ -142,9 +149,33 @@ namespace GCodeGenerator.ViewModels
 
         public ICommand GenerateGCodeCommand { get; }
 
+        /// <summary>
+        /// Прерывает построение программы.
+        ///
+        /// Отмена работала и прежде, но включалась только правкой документа:
+        /// на большом проекте с мелким шагом выборки оставалось ждать, даже
+        /// если стало ясно, что параметры заданы не те. Токен доходит до
+        /// каждого слоя и отверстия, поэтому остановка занимает доли секунды.
+        /// </summary>
+        public ICommand CancelGenerationCommand { get; }
+
         public ICommand SaveGCodeCommand { get; }
 
         public ICommand PreviewGCodeCommand { get; }
+
+        /// <summary>
+        /// Останавливает построение по требованию пользователя. Отличается от
+        /// отмены по правке документа только записью в журнале: там результат
+        /// стал не нужен сам собой, здесь от него отказались.
+        /// </summary>
+        private void CancelGeneration()
+        {
+            if (!IsGenerating)
+                return;
+
+            _cancelledByUser = true;
+            _generationCancellation?.Cancel();
+        }
 
         public void InvalidateGeneratedProgram()
         {
@@ -162,6 +193,7 @@ namespace GCodeGenerator.ViewModels
 
             IsGenerating = true;
             ProgressPercent = 0;
+            _cancelledByUser = false;
             GeneratedToolPath = null;
             ProgramLines = null;
             var generationRevision = Volatile.Read(ref _documentRevision);
@@ -219,10 +251,12 @@ namespace GCodeGenerator.ViewModels
             }
             catch (OperationCanceledException)
             {
-                // Документ изменился, пока строилась программа: это не сбой,
-                // а отказ от заведомо ненужного результата.
+                // Не сбой: либо документ изменился и результат стал заведомо
+                // ненужным, либо от него отказался сам пользователь.
                 ProgressPercent = 0;
-                _logger.Info("G-code generation cancelled: operations changed while generating");
+                _logger.Info(_cancelledByUser
+                    ? "G-code generation cancelled by the user"
+                    : "G-code generation cancelled: operations changed while generating");
             }
             catch (Exception ex)
             {

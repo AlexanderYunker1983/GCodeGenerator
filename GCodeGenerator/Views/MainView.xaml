@@ -190,11 +190,26 @@
             </Grid.ColumnDefinitions>
             <Button Grid.Column="0" Content="{loc:Loc GenerateGCode}" VerticalAlignment="Center"
                     Command="{Binding GCodeWorkflow.GenerateGCodeCommand}" Width="160"/>
-            <!-- Пункт 8.4 плана: прогресс генерации G-кода (видна только во время генерации) -->
-            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100"
-                         Value="{Binding GCodeWorkflow.ProgressPercent, Mode=OneWay}"
-                         Height="16" Margin="8,0" VerticalAlignment="Center"
-                         Visibility="{Binding GCodeWorkflow.IsGenerating, Converter={StaticResource BoolToVis}}"/>
+            <!-- Ход генерации и её остановка: видны только пока программа
+                 строится. Кнопка узкая и скрыта в остальное время, поэтому
+                 места у полосы хода не отнимает. -->
+            <Grid Grid.Column="1" Margin="8,0"
+                  Visibility="{Binding GCodeWorkflow.IsGenerating, Converter={StaticResource BoolToVis}}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <ProgressBar Grid.Column="0" Minimum="0" Maximum="100"
+                             Value="{Binding GCodeWorkflow.ProgressPercent, Mode=OneWay}"
+                             Height="16" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Margin="6,0,0,0" Padding="6,1" MinWidth="28"
+                        Content="✕"
+                        Command="{Binding GCodeWorkflow.CancelGenerationCommand}"
+                        ToolTip="{loc:Loc CancelGeneration}"
+                        ToolTipService.BetweenShowDelay="0"
+                        ToolTipService.InitialShowDelay="0"
+                        VerticalAlignment="Center"/>
+            </Grid>
             <Button Grid.Column="2" Content="{loc:Loc SaveGCode}" VerticalAlignment="Center"
                     Command="{Binding GCodeWorkflow.SaveGCodeCommand}"  Width="140"/>
 

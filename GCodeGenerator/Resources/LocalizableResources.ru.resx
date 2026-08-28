@@ -984,4 +984,7 @@
   <data name="SaveProjectAsToolTip" xml:space="preserve">
     <value>Сохранить проект как (Ctrl+Shift+S)</value>
   </data>
+  <data name="CancelGeneration" xml:space="preserve">
+    <value>Прервать генерацию</value>
+  </data>
 </root>
