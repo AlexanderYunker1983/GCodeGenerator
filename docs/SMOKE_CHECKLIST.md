@@ -227,4 +227,6 @@ dotnet build GCodeGenerator.sln -c Release
   не удалось (`ScenePreviewAsyncTests`).
 - **Сборка и выпуск** — замок пакетов и закреплённый режим публикации
   (`PackageLockTests`), правила установщика (`InstallerScriptTests`), свойства
-  файла продукта (`ProductMetadataTests`).
+  файла продукта (`ProductMetadataTests`), документы репозитория и описание
+  выпуска (`RepositoryDocsTests`), уязвимости в дереве пакетов
+  (`DependencyAuditTests` и шаг CI на каждом прогоне).

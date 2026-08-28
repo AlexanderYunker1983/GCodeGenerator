@@ -1,0 +1,46 @@
+# Обновления зависимостей приходят сами.
+#
+# Проверка уязвимостей в CI (build/Test-VulnerablePackages.ps1) говорит, что
+# уязвимый пакет уже в дереве, — то есть тогда, когда чинить его нужно срочно.
+# Dependabot работает с другого конца: приносит обновления заранее, пока они
+# ничего не ломают, и тем самым уменьшает число таких срочных случаев.
+#
+# Пакеты закреплены файлами packages.lock.json; Dependabot обновляет их
+# вместе с .csproj, поэтому восстановление в закреплённом режиме продолжает
+# проходить.
+version: 2
+updates:
+  # Пакеты NuGet. Каталог «/» покрывает всё решение: Dependabot находит
+  # проекты сам.
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Обновлений у четырёх зависимостей немного, но большие версии приходят
+    # с несовместимостями и разбираются поодиночке, а мелкие — пачкой:
+    # десяток отдельных запросов на слияние читать никто не станет.
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "nuget"
+
+  # Действия рабочих процессов. Их версии закрепить нечем, кроме этого файла:
+  # ссылка вида actions/checkout@v4 указывает на подвижную метку, и то, что
+  # выполняется в сборке, меняется без единой правки в репозитории.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "actions"
