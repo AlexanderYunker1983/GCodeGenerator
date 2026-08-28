@@ -267,6 +267,9 @@
   <data name="Validation.NotAllowed" xml:space="preserve">
     <value>The value is not allowed</value>
   </data>
+  <data name="Validation.NotAbove" xml:space="preserve">
+    <value>The height must be above {0}: the tool travels over the workpiece at this level</value>
+  </data>
   <data name="Validation.Inconsistent" xml:space="preserve">
     <value>The value does not match the other parameters</value>
   </data>

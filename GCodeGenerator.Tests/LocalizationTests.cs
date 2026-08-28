@@ -112,5 +112,34 @@ namespace GCodeGenerator.Tests
                 }
             }
         }
+
+        /// <summary>
+        /// У каждого кода проверки параметров есть перевод.
+        ///
+        /// Код объявляется в ядре, а текст к нему живёт в словаре приложения
+        /// под ключом «Validation.&lt;код&gt;»; связывает их App при запуске.
+        /// Новый код без перевода не ломает ни сборку, ни прогон: диалог
+        /// молча показал бы английский текст для журнала, а найти это можно
+        /// было бы только глазами в работающей программе.
+        /// </summary>
+        [TestMethod]
+        public void EveryValidationCode_HasTranslatedMessage()
+        {
+            foreach (var culture in new[] { "ru", "en" })
+            {
+                var manager = CreateManager();
+                manager.ChangeCulture(new CultureInfo(culture));
+
+                foreach (Models.ValidationCode code in Enum.GetValues(typeof(Models.ValidationCode)))
+                {
+                    var key = "Validation." + code;
+                    var text = manager.GetString(key);
+
+                    Assert.IsFalse(string.IsNullOrWhiteSpace(text), key);
+                    Assert.IsFalse(text.StartsWith("?", StringComparison.Ordinal),
+                        $"{culture}: нет перевода для кода проверки {key}");
+                }
+            }
+        }
     }
 }

@@ -280,8 +280,45 @@ namespace GCodeGenerator.Models
                 // это была единственная используемая им величина без проверки.
                 // Отрицательное значение легально: отвод задан абсолютной
                 // высотой, и для поверхности ниже нуля он тоже ниже нуля.
-                OperationValidation.AddIfNotFinite(issues, $"Holes[{i}].RetractHeight", hole.RetractHeight);
+                // Ниже верха самого отверстия он быть не может: раз высота
+                // абсолютная, такое значение означало бы, что после прохода
+                // сверло уходит быстрым ходом не вверх, а глубже пройденного —
+                // в нетронутый материал. Равенство допустимо: сверло выходит
+                // ровно к поверхности, а это и есть полный отвод.
+                OperationValidation.AddIfBelow(
+                    issues, $"Holes[{i}].RetractHeight", hole.RetractHeight, hole.Z);
             }
+
+            AddSafeZBetweenHolesIssues(issues, holes);
+        }
+
+        /// <summary>
+        /// Высота переходов между отверстиями обязана быть выше их верха.
+        ///
+        /// Между отверстиями инструмент идёт в плоскости на быстрой подаче,
+        /// и высота этого перехода — единственное, что отделяет его от
+        /// заготовки. Прежде от неё требовалось только быть числом, поэтому
+        /// значение по умолчанию при сверлении в приподнятой поверхности
+        /// (высота отверстий положительна) уводило переход внутрь материала.
+        /// Отверстия могут лежать на разной высоте, поэтому предел — самое
+        /// высокое из них.
+        /// </summary>
+        /// <param name="issues">Список проблем, куда добавляются найденные.</param>
+        /// <param name="holes">Расстановка, которая будет просверлена.</param>
+        private void AddSafeZBetweenHolesIssues(List<ValidationIssue> issues, IReadOnlyList<DrillHole> holes)
+        {
+            var highest = double.NegativeInfinity;
+            foreach (var hole in holes)
+            {
+                if (hole != null && double.IsFinite(hole.Z) && hole.Z > highest)
+                    highest = hole.Z;
+            }
+
+            if (double.IsNegativeInfinity(highest))
+                return;
+
+            OperationValidation.AddIfNotAbove(
+                issues, nameof(SafeZBetweenHoles), SafeZBetweenHoles, highest);
         }
 
         /// <summary>

@@ -72,6 +72,53 @@ namespace GCodeGenerator.Models
                     $"must be at least {min}, but is {value}", min));
         }
 
+        /// <summary>Вещественное значение не может быть ниже предела.</summary>
+        public static void AddIfBelow(IList<ValidationIssue> issues, string property, double value, double min)
+        {
+            if (!double.IsFinite(value))
+            {
+                AddIfNotFinite(issues, property, value);
+                return;
+            }
+
+            // Предел сам может быть невозможным числом: о нём сообщит
+            // собственная проверка, и второе сообщение о том же — лишнее.
+            if (!double.IsFinite(min))
+                return;
+
+            if (value < min)
+                issues.Add(new ValidationIssue(property, ValidationCode.BelowMinimum,
+                    $"must be at least {Text(min)}, but is {Text(value)}", min));
+        }
+
+        /// <summary>
+        /// Значение должно быть строго выше предела: так проверяются высоты,
+        /// на которых инструмент проходит над заготовкой.
+        ///
+        /// Равенство здесь — не «впритык допустимо», а перемещение вплотную
+        /// к материалу: на быстрой подаче фреза пройдёт по самой поверхности,
+        /// а любая неровность заготовки или биение станут ударом.
+        /// </summary>
+        /// <param name="issues">Список проблем, куда добавляются найденные.</param>
+        /// <param name="property">Имя параметра.</param>
+        /// <param name="value">Проверяемая высота.</param>
+        /// <param name="limit">Уровень, выше которого она обязана быть.</param>
+        public static void AddIfNotAbove(IList<ValidationIssue> issues, string property, double value, double limit)
+        {
+            if (!double.IsFinite(value))
+            {
+                AddIfNotFinite(issues, property, value);
+                return;
+            }
+
+            if (!double.IsFinite(limit))
+                return;
+
+            if (value <= limit)
+                issues.Add(new ValidationIssue(property, ValidationCode.NotAbove,
+                    $"must be above {Text(limit)}, but is {Text(value)}", limit));
+        }
+
         /// <summary>Целое значение должно попадать в диапазон.</summary>
         public static void AddIfOutOfRange(IList<ValidationIssue> issues, string property, int value, int min, int max)
         {
@@ -147,6 +194,16 @@ namespace GCodeGenerator.Models
 
             AddIfNotFinite(issues, nameof(operation.ContourHeight), operation.ContourHeight);
             AddIfNotFinite(issues, nameof(operation.SafeZHeight), operation.SafeZHeight);
+
+            // Безопасная высота — та, на которой инструмент переносится над
+            // заготовкой между контурами, слоями и областями. Прежде от неё
+            // требовалось только быть числом, поэтому её можно было задать
+            // ниже верха заготовки — например, оставить значение по умолчанию
+            // при обработке выступа, где высота контура положительна. Тогда
+            // каждый холостой переход шёл сквозь материал на быстрой подаче,
+            // и ни программа, ни предпросмотр об этом не сообщали.
+            AddIfNotAbove(
+                issues, nameof(operation.SafeZHeight), operation.SafeZHeight, operation.ContourHeight);
         }
 
         /// <summary>

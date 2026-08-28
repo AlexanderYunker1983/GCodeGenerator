@@ -73,6 +73,33 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Взаимозависимые высоты: ошибка появляется у той, которую нужно
+        /// поднять, и снимается правкой любой из двух.
+        ///
+        /// Безопасная высота проверяется относительно высоты контура, поэтому
+        /// недопустимой её делает правка соседнего поля — того, у которого
+        /// ошибки нет. Окно обязано показать её у безопасной высоты: поднимать
+        /// нужно именно её, опускать заготовку пользователь не собирался.
+        /// </summary>
+        [TestMethod]
+        public void SafeHeightError_FollowsTheContourHeight()
+        {
+            var operation = new PocketCircleOperation { Radius = 10 };
+            Assert.IsFalse(operation.HasErrors, "Умолчания ошибок не дают");
+
+            operation.ContourHeight = 4.0;
+
+            Assert.AreEqual(1, ErrorsOf(operation, nameof(operation.SafeZHeight)).Count,
+                "Поднятая заготовка делает безопасную высоту недопустимой");
+            Assert.AreEqual(0, ErrorsOf(operation, nameof(operation.ContourHeight)).Count,
+                "Само поле высоты контура заполнено верно");
+
+            operation.SafeZHeight = 5.0;
+
+            Assert.IsFalse(operation.HasErrors, "Поднятая безопасная высота снимает ошибку");
+        }
+
+        /// <summary>
         /// Ошибка отверстия относится к колонке таблицы: имя параметра
         /// не должно тащить за собой индекс строки.
         /// </summary>
