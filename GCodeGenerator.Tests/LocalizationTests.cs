@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Operations;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -140,6 +144,70 @@ namespace GCodeGenerator.Tests
                         $"{culture}: нет перевода для кода проверки {key}");
                 }
             }
+        }
+
+        // ------------------------------------------------------------------
+        // Полнота перевода
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Наборы строк совпадают ключ в ключ.
+        ///
+        /// Строка, добавленная в один файл и забытая в другом, ничего не
+        /// ломает: русский сателлит молча отдаёт английскую строку из
+        /// нейтрального набора, а забытая в нейтральном — показывается как
+        /// «?ключ?». И то и другое видно только тому, кто откроет это окно
+        /// на этом языке, а окна отказов открывают реже всего.
+        /// </summary>
+        [TestMethod]
+        public void BothLanguages_HaveTheSameKeys()
+        {
+            var english = Keys(string.Empty);
+            var russian = Keys(".ru");
+
+            Assert.AreEqual(string.Empty, string.Join(", ", english.Except(russian).OrderBy(key => key)),
+                "Нет перевода на русский");
+            Assert.AreEqual(string.Empty, string.Join(", ", russian.Except(english).OrderBy(key => key)),
+                "Нет английской строки");
+        }
+
+        /// <summary>
+        /// Ни одна строка не пуста: пустое значение словарь возвращает так же,
+        /// как отсутствующий ключ, — то есть заменяет строкой из нейтрального
+        /// набора или «?ключом?».
+        /// </summary>
+        [TestMethod]
+        public void NoTranslation_IsEmpty()
+        {
+            foreach (var culture in new[] { string.Empty, ".ru" })
+            {
+                foreach (Match entry in Entries(culture))
+                {
+                    Assert.IsFalse(string.IsNullOrWhiteSpace(entry.Groups["text"].Value),
+                        $"Пустая строка {entry.Groups["key"].Value} в наборе «{culture}»");
+                }
+            }
+        }
+
+        /// <summary>Ключи набора строк.</summary>
+        /// <param name="culture">Суффикс файла: пусто — английский, «.ru» — русский.</param>
+        private static HashSet<string> Keys(string culture)
+            => new HashSet<string>(Entries(culture).Select(entry => entry.Groups["key"].Value));
+
+        /// <summary>
+        /// Записи набора строк — прямо из файла: собранный сателлит показал бы
+        /// вместо пропуска английскую строку, и пропуск остался бы незаметен.
+        /// </summary>
+        /// <param name="culture">Суффикс файла: пусто — английский, «.ru» — русский.</param>
+        private static MatchCollection Entries(string culture)
+        {
+            var text = File.ReadAllText(Path.Combine(
+                RepositoryRootLocator.Find(), "GCodeGenerator", "Resources",
+                $"LocalizableResources{culture}.resx"));
+
+            return Regex.Matches(
+                text,
+                @"<data name=""(?<key>[^""]+)""[^>]*>\s*<value>(?<text>[^<]*)</value>");
         }
     }
 }

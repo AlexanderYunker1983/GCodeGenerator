@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Versioning;
 using Autofac;
 using GCodeGenerator.Diagnostics;
@@ -86,6 +87,46 @@ namespace GCodeGenerator.Tests
             {
                 Assert.IsNotNull(container.Resolve<Func<SettingsViewModel>>()());
                 Assert.IsNotNull(container.Resolve<Func<PreviewViewModel>>()());
+            }
+        }
+
+        /// <summary>
+        /// Журнал доходит до окна предпросмотра.
+        ///
+        /// Проверяется поле, а не поведение: сбой построения сцены изнутри
+        /// собранного контейнером окна не вызвать. Проверять при этом есть
+        /// что — журнал объявлен необязательным, как и у прочих служб, и
+        /// забытая регистрация не сломала бы ни сборку, ни разрешение:
+        /// окно просто молчало бы о сбоях, как молчало до сих пор.
+        /// </summary>
+        [TestMethod]
+        public void Container_GivesThePreviewItsLogger()
+        {
+            var builder = new ContainerBuilder();
+            var logger = new NamedLogger();
+            builder.RegisterInstance(logger).As<IAppLogger>();
+            builder.RegisterInstance(new LocalizationManager()).As<ILocalizationManager>();
+            builder.RegisterInstance(new ProgramInfo("1.0")).As<IProgramInfo>();
+            builder.RegisterModule<CoreServicesModule>();
+            builder.RegisterModule<PresentationModule>();
+
+            using (var container = builder.Build())
+            {
+                var preview = container.Resolve<Func<PreviewViewModel>>()();
+
+                var field = typeof(PreviewViewModel).GetField(
+                    "_logger", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert.IsNotNull(field, "Поле журнала переименовано — проверку нужно обновить");
+                Assert.AreSame(logger, field.GetValue(preview),
+                    "Окно получило журнал приложения, а не пустышку");
+            }
+        }
+
+        /// <summary>Журнал, отличимый от пустышки по типу.</summary>
+        private sealed class NamedLogger : IAppLogger
+        {
+            public void Log(LogLevel level, string message, Exception exception = null)
+            {
             }
         }
 

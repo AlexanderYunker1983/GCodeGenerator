@@ -2,7 +2,9 @@
 using System;
 using System.Globalization;
 using System.Threading.Tasks;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Services;
 using GCodeGenerator.Trajectory;
 
 namespace GCodeGenerator.ViewModels
@@ -17,10 +19,12 @@ namespace GCodeGenerator.ViewModels
     public class PreviewViewModel : CloseableViewModel, IHasDisplayName
     {
         private readonly ILocalizationManager? _localizationManager;
+        private readonly IAppLogger _logger;
         private Toolpath.ToolPath? _toolPath;
         private TrajectoryScene? _scene;
         private TrajectoryScene _fullScene = TrajectoryScene.Empty;
         private bool _isBuilding;
+        private string _sceneError = string.Empty;
         private bool _showXyGrid;
         private bool _showXzGrid;
         private bool _showYzGrid;
@@ -28,9 +32,16 @@ namespace GCodeGenerator.ViewModels
         private int _lastPreviewPrimitive = 1;
         private int _sceneBuildRevision;
 
-        public PreviewViewModel(ILocalizationManager localizationManager)
+        /// <summary>Окно предпросмотра.</summary>
+        /// <param name="localizationManager">Словарь интерфейса.</param>
+        /// <param name="logger">
+        /// Журнал: сбой построения сцены попадает в него целиком, со стеком.
+        /// Пользователю в окне остаётся причина, а не пустота.
+        /// </param>
+        public PreviewViewModel(ILocalizationManager localizationManager, IAppLogger? logger = null)
         {
             _localizationManager = localizationManager;
+            _logger = logger ?? NullAppLogger.Instance;
             // Пункт 8.3: без захардкоженного фолбэка — отсутствующий ключ
             // вернёт «?Key?» (лог — в LocalizationManager).
             DisplayName = _localizationManager?.GetString("PreviewGCode") ?? "PreviewGCode";
@@ -167,6 +178,29 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        /// <summary>
+        /// Почему сцена не построена; пусто — сбоя не было.
+        ///
+        /// Сбой построения не отменяет программу: она уже собрана,
+        /// показывается текстом и сохраняется в файл. Поэтому окно не
+        /// закрывается и не показывает модального сообщения — вместо сцены
+        /// в нём стоит причина.
+        /// </summary>
+        public string SceneError
+        {
+            get => _sceneError;
+            private set
+            {
+                if (value == _sceneError) return;
+                _sceneError = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasSceneError));
+            }
+        }
+
+        /// <summary>Сцену построить не удалось.</summary>
+        public bool HasSceneError => _sceneError.Length > 0;
+
         /// <summary>Показывать координатную сетку в плоскости YZ (X = 0).</summary>
         public bool ShowYzGrid
         {
@@ -194,6 +228,8 @@ namespace GCodeGenerator.ViewModels
             var toolPath = _toolPath;
             var revision = ++_sceneBuildRevision;
 
+            SceneError = string.Empty;
+
             if (toolPath == null || toolPath.Operations.Count == 0)
             {
                 _fullScene = TrajectoryScene.Empty;
@@ -203,6 +239,9 @@ namespace GCodeGenerator.ViewModels
                 return;
             }
 
+            // Задача запускается без ожидания намеренно: присваивание
+            // траектории синхронно, а окно должно открыться сразу. Сбой при
+            // этом не теряется — его ловит сама задача.
             _ = RebuildSceneAsync(toolPath, revision);
         }
 
@@ -213,7 +252,7 @@ namespace GCodeGenerator.ViewModels
             IsBuilding = true;
             try
             {
-                var scene = await Task.Run(() => ToolPathSceneBuilder.Build(toolPath));
+                var scene = await Task.Run(() => BuildScene(toolPath));
 
                 // Пока строили, могли показать другую траекторию: поздний
                 // результат затирать новую сцену не должен.
@@ -223,12 +262,44 @@ namespace GCodeGenerator.ViewModels
                 _fullScene = scene;
                 ResetPrimitiveRange();
             }
+            catch (Exception ex)
+            {
+                // Сбой построения уходил в UnobservedTaskException — то есть
+                // никуда: окно оставалось пустым, журнал молчал, и объяснить
+                // происходящее было нечем. Программа при этом построена и
+                // сохраняется: не показывается только её трёхмерный вид.
+                _logger.Error("Building the 3D preview scene failed", ex);
+
+                if (revision != _sceneBuildRevision || !ReferenceEquals(toolPath, _toolPath))
+                    return;
+
+                _fullScene = TrajectoryScene.Empty;
+                ResetPrimitiveRange();
+                SceneError = Localize("PreviewSceneFailed")
+                    + Environment.NewLine
+                    + CoreErrorMessages.Describe(ex, _localizationManager);
+            }
             finally
             {
                 if (revision == _sceneBuildRevision && ReferenceEquals(toolPath, _toolPath))
                     IsBuilding = false;
             }
         }
+
+        /// <summary>
+        /// Строит сцену по траектории.
+        ///
+        /// Отдельный виртуальный метод — точка подмены для проверок: сбой
+        /// построения не воспроизвести никакой траекторией, потому что на
+        /// любую построитель отвечает сценой, а пустую операцию траектория
+        /// в себя не принимает.
+        /// </summary>
+        /// <param name="toolPath">Траектория, которую нужно показать.</param>
+        protected virtual TrajectoryScene BuildScene(Toolpath.ToolPath toolPath)
+            => ToolPathSceneBuilder.Build(toolPath);
+
+        /// <summary>Строка словаря; без словаря — сам ключ, как и всюду в окнах.</summary>
+        private string Localize(string key) => _localizationManager?.GetString(key) ?? key;
 
         private void ResetPrimitiveRange()
         {

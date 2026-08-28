@@ -921,6 +921,9 @@
   <data name="SystemLanguage" xml:space="preserve">
     <value>Same as system</value>
   </data>
+  <data name="PreviewSceneFailed" xml:space="preserve">
+    <value>The 3D preview could not be built. The program itself is ready: it can be viewed as text and saved.</value>
+  </data>
   <data name="BuildingPreview" xml:space="preserve">
     <value>Building preview…</value>
   </data>

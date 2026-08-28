@@ -1,4 +1,8 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Toolpath;
 using GCodeGenerator.Trajectory;
 using GCodeGenerator.ViewModels;
@@ -99,6 +103,74 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(0, viewModel.Scene.Segments.Count, "Пустая траектория — пустая сцена");
         }
 
+        // ------------------------------------------------------------------
+        // Сбой построения
+        // ------------------------------------------------------------------
+
+        /// <summary>Журнал, запоминающий записи.</summary>
+        private sealed class RecordingLogger : IAppLogger
+        {
+            public List<(LogLevel Level, string Message, Exception Exception)> Records { get; }
+                = new List<(LogLevel, string, Exception)>();
+
+            public void Log(LogLevel level, string message, Exception exception = null)
+                => Records.Add((level, message, exception));
+        }
+
+        /// <summary>Окно, у которого построение сцены отказывает.</summary>
+        private sealed class FailingPreviewViewModel : PreviewViewModel
+        {
+            public FailingPreviewViewModel(IAppLogger logger)
+                : base(null, logger)
+            {
+            }
+
+            protected override TrajectoryScene BuildScene(ToolPath toolPath)
+                => throw new InvalidOperationException("scene failure");
+        }
+
+        /// <summary>
+        /// Сбой построения не теряется. Прежде задача запускалась без
+        /// наблюдения за результатом: исключение уходило в
+        /// UnobservedTaskException, журнал молчал, а пользователь видел
+        /// пустое окно без объяснения.
+        /// </summary>
+        [TestMethod]
+        public async Task SceneBuildFailure_IsLoggedAndShown()
+        {
+            var logger = new RecordingLogger();
+            var viewModel = new FailingPreviewViewModel(logger);
+
+            viewModel.ToolPath = PathWithMoves(10);
+            await WaitUntilIdle(viewModel);
+
+            Assert.IsTrue(viewModel.HasSceneError, "Окно знает о сбое");
+            StringAssert.Contains(viewModel.SceneError, "scene failure", "Причина названа");
+            Assert.IsFalse(viewModel.IsBuilding, "Признак работы снят");
+            Assert.AreEqual(0, viewModel.Scene.Segments.Count, "Показывать нечего");
+
+            var record = logger.Records.Single(r => r.Level == LogLevel.Error);
+            Assert.IsNotNull(record.Exception, "Исключение ушло в журнал целиком");
+        }
+
+        /// <summary>
+        /// Следующая траектория снимает сообщение о сбое: иначе оно осталось
+        /// бы висеть поверх успешно построенной сцены.
+        /// </summary>
+        [TestMethod]
+        public async Task NewToolPath_ClearsThePreviousFailure()
+        {
+            var viewModel = new FailingPreviewViewModel(new RecordingLogger());
+            viewModel.ToolPath = PathWithMoves(10);
+            await WaitUntilIdle(viewModel);
+            Assert.IsTrue(viewModel.HasSceneError);
+
+            viewModel.ToolPath = null;
+
+            Assert.IsFalse(viewModel.HasSceneError, "Сообщение снято");
+            Assert.AreEqual(string.Empty, viewModel.SceneError);
+        }
+
         /// <summary>Ждёт окончания построения; тест не должен зависнуть насовсем.</summary>
         private static async Task WaitUntilBuilt(PreviewViewModel viewModel)
         {
@@ -110,6 +182,22 @@ namespace GCodeGenerator.Tests
             }
 
             Assert.Fail("Сцена так и не построена");
+        }
+
+        /// <summary>
+        /// Ждёт, пока построение закончится любым исходом: у отказавшего
+        /// построения сцена так и остаётся пустой, и ждать её бессмысленно.
+        /// </summary>
+        private static async Task WaitUntilIdle(PreviewViewModel viewModel)
+        {
+            for (var attempt = 0; attempt < 200; attempt++)
+            {
+                if (!viewModel.IsBuilding)
+                    return;
+                await Task.Delay(10);
+            }
+
+            Assert.Fail("Построение так и не закончилось");
         }
     }
 }

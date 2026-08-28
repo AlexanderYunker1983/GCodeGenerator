@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -920,6 +920,9 @@
   </data>
   <data name="SystemLanguage" xml:space="preserve">
     <value>Как в системе</value>
+  </data>
+  <data name="PreviewSceneFailed" xml:space="preserve">
+    <value>Не удалось построить трёхмерный предпросмотр. Сама программа готова: её можно посмотреть текстом и сохранить.</value>
   </data>
   <data name="BuildingPreview" xml:space="preserve">
     <value>Построение предпросмотра…</value>
