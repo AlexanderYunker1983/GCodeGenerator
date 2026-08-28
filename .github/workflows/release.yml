@@ -25,7 +25,7 @@ jobs:
       TAG_NAME: ${{ github.ref_name }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # Полная история: версионирование из git-тегов (см. build/Get-GitVersion.ps1).
           fetch-depth: 0
@@ -48,7 +48,7 @@ jobs:
 
       - name: Setup .NET 10
         if: steps.tag.outputs.skip == 'false'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v6
         with:
           # Версия пакета разработки берётся из global.json: раннер собирает
           # тем же набором инструментов, что и разработчик.
@@ -130,7 +130,7 @@ jobs:
 
       - name: Create GitHub Release
         if: steps.tag.outputs.skip == 'false'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: ${{ github.ref_name }}
           files: |
