@@ -40,6 +40,14 @@
     <Deterministic>true</Deterministic>
     <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>
     <GenerateSupportedOSPlatformAttribute>false</GenerateSupportedOSPlatformAttribute>
+    <!-- Ядро публикуется в составе приложения, поэтому среда выполнения
+         объявляется и здесь: восстановление под win-x64 идёт по всему дереву
+         ссылок, и замок ядра обязан покрывать тот же набор сред, что и замок
+         приложения. Множественное число намеренно — набор сред для
+         восстановления пакетов, а не привязка сборки к одной из них: ядро
+         остаётся кроссплатформенным (TFM net10.0, см. выше).
+         Подробнее — GCodeGenerator.csproj, RuntimeIdentifiers. -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
   <ItemGroup>
     <!-- Разбор чертежа состоит из шагов, каждый из которых проверяется

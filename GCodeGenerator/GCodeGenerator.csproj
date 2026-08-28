@@ -36,6 +36,17 @@
     <!-- Классическая раскладка bin\Release (без подпапки TFM): CI и документация
          ссылаются на bin\Release\GCodeGenerator.exe -->
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <!-- Среда выполнения, под которую продукт публикуется (инсталлятор и
+         портативный архив — self-contained win-x64). Здесь она объявлена
+         во множественном числе: RuntimeIdentifiers задаёт набор сред для
+         восстановления пакетов, не превращая обычную сборку в привязанную
+         к одной из них. Иначе замок пакетов не покрывал бы ту сборку,
+         которая уходит пользователям: восстановление под win-x64 добавляет
+         в дерево зависимостей свой раздел, а замок, записанный без него,
+         отвергал такое восстановление (NU1004) — публикация шла в обход
+         закреплённого состава пакетов и молча переписывала замок.
+         См. Directory.Build.props (RestorePackagesWithLockFile). -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">

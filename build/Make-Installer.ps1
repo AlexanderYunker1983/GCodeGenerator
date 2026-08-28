@@ -60,8 +60,16 @@ if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
 $selfContainedArg = 'true'
 if ($FrameworkDependent) { $selfContainedArg = 'false' }
 Write-Host "Publishing ($Configuration, $Runtime, self-contained: $selfContainedArg)..."
+# RestoreLockedMode: состав пакетов берётся строго по packages.lock.json.
+# Это та же строгость, с какой пакеты восстанавливают рабочие процессы сборки,
+# и относится она к тому самому выводу, который уходит пользователям.
+# Ключа командной строки --locked-mode у publish нет - только свойство MSBuild.
+# Замки покрывают публикацию под win-x64, потому что среда объявлена
+# в csproj (RuntimeIdentifiers); без неё restore под RID отвергался бы
+# как расхождение с замком (NU1004).
 & dotnet publish (Join-Path $repoRoot 'GCodeGenerator\GCodeGenerator.csproj') `
-    -c $Configuration -r $Runtime --self-contained $selfContainedArg -o $publishDir
+    -c $Configuration -r $Runtime --self-contained $selfContainedArg `
+    -p:RestoreLockedMode=true -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
 if (-not (Test-Path (Join-Path $publishDir 'GCodeGenerator.exe'))) {
     throw "Publish output is missing GCodeGenerator.exe: $publishDir"
