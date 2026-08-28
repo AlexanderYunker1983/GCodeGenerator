@@ -1,5 +1,7 @@
+using System.Globalization;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -49,6 +51,32 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(string.Empty, main.GCodeWorkflow.GCodePreview, "Программа не построена");
             Assert.IsFalse(string.IsNullOrEmpty(dialogService.LastErrorMessage), "Причина показана");
+        }
+
+        /// <summary>
+        /// Причина отказа показывается на языке интерфейса. Исключение
+        /// проверки строит свой перечень по-английски — он нужен журналу, —
+        /// а окну перечень собирается заново, теми же словами, что и в
+        /// диалогах операций.
+        /// </summary>
+        [TestMethod]
+        public async Task ValidationFailure_ReasonIsShownInTheInterfaceLanguage()
+        {
+            var localization = new LocalizationManager();
+            localization.AddAssembly("GCodeGenerator");
+            localization.ChangeCulture(new CultureInfo("ru"));
+            var (main, _, dialogService, _) = MainViewModelOperationEditTests.CreateMain(
+                localizationManager: localization);
+            main.OperationsWorkspace.AllOperations.Add(
+                new ProfileCircleOperation { Name = "Контур", Radius = 0 });
+
+            await ((IAsyncRelayCommand)main.GCodeWorkflow.GenerateGCodeCommand).ExecuteAsync(null);
+
+            var message = dialogService.LastErrorMessage;
+            StringAssert.Contains(message, "Операция №1 «Контур»:", "Операция названа по-русски");
+            StringAssert.Contains(message, "Radius: Значение должно быть больше нуля",
+                "Причина переведена, параметр назван");
+            Assert.IsFalse(message.Contains("must be"), "Английского текста исключения в окне нет");
         }
     }
 }

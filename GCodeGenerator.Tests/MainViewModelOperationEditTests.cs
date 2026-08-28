@@ -43,17 +43,20 @@ namespace GCodeGenerator.Tests
             // Пункт 7.5 плана: версия/настройки/тема — через IoC (в тесте — фиксы).
             // Пункт 7.6 плана: IProjectFileService — в тесте реальный класс (без состояния).
             var settingsStore = new FakeSettingsStore();
+            // Словарь интерфейса доходит и до рабочих процессов, как в контейнере:
+            // без него отказы показывались бы по-английски даже в тесте,
+            // который явно попросил русский.
             var gCodeWorkflowFactory = new GCodeWorkflowFactory(
                 generator ?? new SimpleGCodeGenerator(),
                 new PostProcessorRegistry(),
-                null,
+                localizationManager,
                 dialogs,
                 dialogs,
                 () => new PreviewViewModel(null),
                 dialogs,
                 gCodeFileService ?? new GCodeFileService());
             var projectWorkflowFactory = new ProjectWorkflowFactory(
-                null,
+                localizationManager,
                 dialogs,
                 dialogs,
                 settingsStore,

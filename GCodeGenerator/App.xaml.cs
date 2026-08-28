@@ -96,7 +96,7 @@ namespace GCodeGenerator
 
             // Домен знает, что именно не так с параметром, но не знает языка
             // окна: перевод подставляется здесь, один раз на запуск.
-            Models.ValidationMessages.Formatter = issue => DescribeValidationIssue(localizationManager, issue);
+            Models.ValidationMessages.Formatter = issue => Services.CoreErrorMessages.Describe(issue, localizationManager);
 
             // Autofac: регистрации разнесены по модулям — службы отдельно,
             // интерфейс отдельно; здесь остаётся только то, что существует
@@ -164,25 +164,6 @@ namespace GCodeGenerator
             // в фоне, а сообщение об ошибке требует окна-владельца.
             if (projectFile != null)
                 _ = _mainViewModel.OpenProjectAsync(projectFile);
-        }
-
-        /// <summary>
-        /// Текст проблемы параметра на языке пользователя: ключ выбирается
-        /// кодом проблемы, предел подставляется в сообщение.
-        /// </summary>
-        private static string DescribeValidationIssue(
-            Localization.ILocalizationManager localization, Models.ValidationIssue issue)
-        {
-            if (issue == null)
-                return string.Empty;
-
-            var key = $"Validation.{issue.Code}";
-            var text = localization?.GetString(key, issue.LimitText);
-            // Отсутствующий ключ менеджер возвращает как «?key?» — тогда
-            // остаётся английский текст, он понятнее.
-            return string.IsNullOrEmpty(text) || text.StartsWith("?", StringComparison.Ordinal)
-                ? issue.Message
-                : text;
         }
 
         /// <summary>

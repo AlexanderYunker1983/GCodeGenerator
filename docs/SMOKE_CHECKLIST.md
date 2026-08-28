@@ -219,7 +219,8 @@ dotnet build GCodeGenerator.sln -c Release
 - **Разбор чертежей** — сущности, блоки, единицы, восстановление замкнутых
   контуров (`Dxf*Tests`).
 - **Локализация** — совпадение наборов ключей и наличие перевода для каждого
-  кода проверки (`LocalizationTests`).
+  кода проверки (`LocalizationTests`), причина отказа генерации на языке
+  интерфейса (`CoreErrorMessagesTests`).
 - **Сборка и выпуск** — замок пакетов и закреплённый режим публикации
   (`PackageLockTests`), правила установщика (`InstallerScriptTests`), свойства
   файла продукта (`ProductMetadataTests`).

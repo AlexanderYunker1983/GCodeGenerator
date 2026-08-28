@@ -270,6 +270,12 @@
   <data name="Validation.NotAbove" xml:space="preserve">
     <value>Высота должна быть выше {0}: на ней инструмент проходит над заготовкой</value>
   </data>
+  <data name="GenerationValidationSettings" xml:space="preserve">
+    <value>Настройки генерации:</value>
+  </data>
+  <data name="GenerationValidationOperation" xml:space="preserve">
+    <value>Операция №{0} «{1}»:</value>
+  </data>
   <data name="Validation.Inconsistent" xml:space="preserve">
     <value>Значение не согласуется с остальными параметрами</value>
   </data>
