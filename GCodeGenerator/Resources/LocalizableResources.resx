@@ -303,6 +303,12 @@
   <data name="GenerateComments" xml:space="preserve">
     <value>Generate comments</value>
   </data>
+  <data name="AsciiOnlyComments" xml:space="preserve">
+    <value>Latin letters only in comments</value>
+  </data>
+  <data name="AsciiOnlyCommentsHint" xml:space="preserve">
+    <value>Operation names are written into the program as comments. Many controllers accept ASCII only and either reject such a block or show it garbled. Turn this off for a controller that reads UTF-8 text.</value>
+  </data>
   <data name="AllowArcs" xml:space="preserve">
     <value>Allow arcs (G2/G3)</value>
   </data>

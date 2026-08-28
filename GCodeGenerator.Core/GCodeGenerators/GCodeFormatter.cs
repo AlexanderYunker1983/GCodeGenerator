@@ -57,7 +57,7 @@ namespace GCodeGenerator.GCodeGenerators
         private static string RenderBlock(GCodeBlock block, GCodeFormatSettings format)
         {
             if (block.Words.Count == 0)
-                return $"({SanitizeComment(block.Comment)})";
+                return $"({SanitizeComment(block.Comment, format)})";
 
             var sb = new StringBuilder();
             foreach (var word in block.Words)
@@ -70,7 +70,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Inline comments are not produced by the generators today;
             // the support is kept for future phases.
             if (block.Comment != null)
-                sb.Append(' ').Append('(').Append(SanitizeComment(block.Comment)).Append(')');
+                sb.Append(' ').Append('(').Append(SanitizeComment(block.Comment, format)).Append(')');
             return sb.ToString();
         }
 
@@ -78,13 +78,23 @@ namespace GCodeGenerator.GCodeGenerators
         /// Keeps arbitrary user text inside one parenthesized G-code comment.
         /// Newlines/control characters could otherwise create executable lines,
         /// while parentheses could close the comment early.
+        ///
+        /// Здесь же текст при необходимости переводится в латиницу: имя
+        /// операции задаёт пользователь, и на многих стойках кириллица в кадре
+        /// либо отвергается, либо превращается в мусор
+        /// (<see cref="CommentTransliteration"/>).
         /// </summary>
-        private static string SanitizeComment(string? comment)
+        /// <param name="comment">Текст комментария.</param>
+        /// <param name="format">Настройки вывода — из них берётся требование латиницы.</param>
+        private static string SanitizeComment(string? comment, GCodeFormatSettings format)
         {
             if (string.IsNullOrEmpty(comment))
                 return string.Empty;
 
-            var sanitized = new StringBuilder(comment.Length);
+            if (format.AsciiOnlyComments)
+                comment = CommentTransliteration.ToAscii(comment);
+
+            var sanitized = new StringBuilder(comment!.Length);
             foreach (char character in comment)
             {
                 if (character == '(')

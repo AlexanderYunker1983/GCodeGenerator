@@ -175,6 +175,43 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(PocketMode.Machining, oldPocket.PocketMode);
         }
 
+        /// <summary>
+        /// Требование латиницы в комментариях включено и для файлов, записанных
+        /// до его появления: поля они не содержат, и значение остаётся тем, что
+        /// объявлено в настройках. Иначе старый проект, открытый новой сборкой,
+        /// молча продолжил бы отправлять кириллицу на стойку — а именно от
+        /// этого настройка и защищает.
+        /// </summary>
+        [TestMethod]
+        public void OldFile_WithoutAsciiComments_DefaultsToRequiringThem()
+        {
+            var withoutField = "{\"version\":4,\"operations\":[],\"format\":{" +
+                "\"UseLineNumbers\":true,\"UseComments\":true,\"AllowArcs\":true}}";
+
+            var format = Service.Deserialize(withoutField).Format;
+
+            Assert.IsNotNull(format);
+            Assert.IsTrue(format!.AsciiOnlyComments,
+                "Файл без этого поля читается с требованием латиницы");
+        }
+
+        /// <summary>
+        /// Явно выключенное требование переживает сохранение и чтение: стойки,
+        /// понимающие UTF-8, настраиваются один раз.
+        /// </summary>
+        [TestMethod]
+        public void DisabledAsciiComments_SurviveRoundTrip()
+        {
+            var settings = new GCodeSettings();
+            settings.Format.AsciiOnlyComments = false;
+
+            var loaded = Service.Deserialize(
+                Service.Serialize(Array.Empty<OperationBase>(), settings)).Format;
+
+            Assert.IsNotNull(loaded);
+            Assert.IsFalse(loaded!.AsciiOnlyComments);
+        }
+
         // ------------------------------------------------------------------
         // Текущий формат v4
         // ------------------------------------------------------------------

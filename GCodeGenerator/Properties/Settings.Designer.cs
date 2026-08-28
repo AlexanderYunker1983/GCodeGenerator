@@ -120,6 +120,21 @@ namespace GCodeGenerator.Properties
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool AsciiOnlyComments
+        {
+            get
+            {
+                return ((bool)(this["AsciiOnlyComments"]));
+            }
+            set
+            {
+                this["AsciiOnlyComments"] = value;
+            }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool AllowArcs
         {
             get

@@ -303,6 +303,12 @@
   <data name="GenerateComments" xml:space="preserve">
     <value>Генерировать комментарии</value>
   </data>
+  <data name="AsciiOnlyComments" xml:space="preserve">
+    <value>Только латиница в комментариях</value>
+  </data>
+  <data name="AsciiOnlyCommentsHint" xml:space="preserve">
+    <value>Имена операций попадают в программу комментариями. Многие стойки принимают только латиницу и либо отказываются выполнять такой кадр, либо показывают вместо него мусор. Выключите, если ваша стойка читает текст в кодировке UTF-8.</value>
+  </data>
   <data name="AllowArcs" xml:space="preserve">
     <value>Разрешить дуги (G2/G3)</value>
   </data>

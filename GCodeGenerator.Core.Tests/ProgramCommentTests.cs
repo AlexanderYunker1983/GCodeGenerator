@@ -72,23 +72,52 @@ namespace GCodeGenerator.Tests
 
         /// <summary>
         /// Имя операции пользователь задаёт сам и может написать его
-        /// по-русски: тогда кириллица попадёт в комментарий программы.
-        /// Это его выбор и его ответственность — продукт имя не искажает,
-        /// но и не добавляет кириллицу от себя.
+        /// по-русски. Прежде оно уходило в программу как есть: считалось, что
+        /// это его выбор и его ответственность. Выбор, однако, делался вслепую
+        /// — узнать, что стойка не принимает кириллицу, можно было только
+        /// у станка, и ни окно, ни документация об этом не предупреждали.
+        ///
+        /// Теперь по умолчанию имя переводится в латиницу: смысл сохраняется,
+        /// а кадр остаётся тем, что стойка заведомо прочитает.
         /// </summary>
         [TestMethod]
-        public void UserOperationName_IsWrittenAsGiven()
+        public void UserOperationName_IsTransliteratedByDefault()
         {
-            var operation = OperationFixtures.DrillPoints();
-            operation.Name = "Сверление платы";
+            var program = ProgramWithName("Сверление платы", new GCodeFormatSettings());
 
-            var program = OperationToolPath.Program(
-                new DrillPointsOperationGenerator(),
-                operation,
-                new GCodeSettings { Format = new GCodeFormatSettings { UseComments = true } });
+            Assert.IsTrue(program.Lines.Any(line => line.Contains("Sverlenie platy")),
+                "Имя операции переводится в латиницу");
+            Assert.IsFalse(program.Lines.Any(line => line.Any(symbol => symbol > 127)),
+                "В программе не осталось символов вне ASCII");
+        }
+
+        /// <summary>
+        /// Прежнее поведение никуда не делось — оно стало выбором: стойки,
+        /// читающие UTF-8, получают имя ровно таким, каким его написали.
+        /// </summary>
+        [TestMethod]
+        public void UserOperationName_IsWrittenAsGiven_WhenAsciiIsNotRequired()
+        {
+            var program = ProgramWithName(
+                "Сверление платы", new GCodeFormatSettings { AsciiOnlyComments = false });
 
             Assert.IsTrue(program.Lines.Any(line => line.Contains("Сверление платы")),
-                "Имя операции попадает в программу как есть");
+                "Без требования латиницы имя попадает в программу как есть");
+        }
+
+        /// <summary>Программа одной операции с заданным именем.</summary>
+        /// <param name="name">Имя операции.</param>
+        /// <param name="format">Настройки вывода.</param>
+        private static GCodeProgram ProgramWithName(string name, GCodeFormatSettings format)
+        {
+            var operation = OperationFixtures.DrillPoints();
+            operation.Name = name;
+            format.UseComments = true;
+
+            return OperationToolPath.Program(
+                new DrillPointsOperationGenerator(),
+                operation,
+                new GCodeSettings { Format = format });
         }
 
         private static void AssertAscii(string text)
