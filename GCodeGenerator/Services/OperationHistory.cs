@@ -28,8 +28,32 @@ namespace GCodeGenerator.Services
     /// </summary>
     public sealed class OperationHistory
     {
+        /// <summary>
+        /// Сколько шагов правки хранится.
+        ///
+        /// Предел нужен из-за размера шага, а не их числа: состояние операции
+        /// хранится сериализованным, и у операции с контуром из чертежа это
+        /// сотни килобайт. Без предела за долгий сеанс история занимала бы
+        /// больше самого документа, причём молча.
+        ///
+        /// Сто шагов — заведомо больше, чем человек отменяет подряд, и при
+        /// самых тяжёлых операциях это десятки мегабайт, а не сотни.
+        /// </summary>
+        public const int MaxSteps = 100;
+
         private readonly ObservableCollection<OperationBase> _operations;
-        private readonly Stack<IUndoStep> _undo = new Stack<IUndoStep>();
+
+        /// <summary>
+        /// Отменяемые шаги, от самого раннего к последнему. Список с двумя
+        /// концами, а не стек: при переполнении отбрасывается самый ранний
+        /// шаг, а до дна стека не дотянуться.
+        /// </summary>
+        private readonly LinkedList<IUndoStep> _undo = new LinkedList<IUndoStep>();
+
+        /// <summary>
+        /// Отменённые шаги. Предел им не нужен: сюда попадает только то, что
+        /// вынуто из отменяемых, а новая правка очищает их совсем.
+        /// </summary>
         private readonly Stack<IUndoStep> _redo = new Stack<IUndoStep>();
 
         /// <summary>Идёт выполнение шага: его мутации новых шагов не пишут.</summary>
@@ -51,12 +75,16 @@ namespace GCodeGenerator.Services
 
         public bool CanRedo => _redo.Count > 0;
 
+        /// <summary>Сколько шагов сейчас можно отменить.</summary>
+        public int UndoCount => _undo.Count;
+
         public void Undo()
         {
             if (_undo.Count == 0)
                 return;
 
-            var step = _undo.Pop();
+            var step = _undo.Last!.Value;
+            _undo.RemoveLast();
             Restore(() => step.Undo(_operations));
             _redo.Push(step);
             StateChanged?.Invoke(this, EventArgs.Empty);
@@ -69,7 +97,7 @@ namespace GCodeGenerator.Services
 
             var step = _redo.Pop();
             Restore(() => step.Redo(_operations));
-            _undo.Push(step);
+            _undo.AddLast(step);
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
 
@@ -107,7 +135,14 @@ namespace GCodeGenerator.Services
 
         private void Record(IUndoStep step)
         {
-            _undo.Push(step);
+            _undo.AddLast(step);
+
+            // Переполнение стоит самого раннего шага: до него всё равно
+            // не дошли бы, а держать его — значит хранить слепок операции,
+            // которого никто уже не увидит.
+            while (_undo.Count > MaxSteps)
+                _undo.RemoveFirst();
+
             // Новая правка делает «повторить» бессмысленным: повторялась бы
             // ветка истории, которой больше нет.
             _redo.Clear();

@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
+using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -180,6 +181,78 @@ namespace GCodeGenerator.Tests
 
             Assert.IsFalse(workspace.UndoCommand.CanExecute(null), "История прежнего документа очищена");
             Assert.IsFalse(workspace.RedoCommand.CanExecute(null));
+        }
+
+        // ------------------------------------------------------------------
+        // Предел глубины
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// История не растёт без предела. Шаг хранит состояние операции
+        /// сериализованным, и у операции с контуром из чертежа это сотни
+        /// килобайт: за долгий сеанс история заняла бы больше самого
+        /// документа, причём молча.
+        /// </summary>
+        [TestMethod]
+        public void History_StopsGrowingAtItsLimit()
+        {
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
+            var workspace = main.OperationsWorkspace;
+
+            for (var step = 0; step < OperationHistory.MaxSteps + 25; step++)
+                workspace.AllOperations.Add(Drill(step));
+
+            Assert.AreEqual(OperationHistory.MaxSteps, workspace.History.UndoCount,
+                "Глубина истории ограничена");
+        }
+
+        /// <summary>
+        /// Отбрасывается самый ранний шаг, а не последний: отменять начинают
+        /// с того, что сделали только что.
+        /// </summary>
+        [TestMethod]
+        public void History_ForgetsTheOldestStepFirst()
+        {
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
+            var workspace = main.OperationsWorkspace;
+
+            for (var step = 0; step < OperationHistory.MaxSteps + 3; step++)
+                workspace.AllOperations.Add(Drill(step));
+
+            // Отменяем всё, что помнит история: уходят последние добавления,
+            // а первые три операции остаются — их шаги забыты.
+            for (var step = 0; step < OperationHistory.MaxSteps; step++)
+                workspace.UndoCommand.Execute(null);
+
+            Assert.IsFalse(workspace.UndoCommand.CanExecute(null), "История исчерпана");
+            Assert.AreEqual(3, workspace.AllOperations.Count,
+                "Операции, чьи шаги забыты, остаются в документе");
+            CollectionAssert.AreEqual(
+                new[] { "Drill 0", "Drill 1", "Drill 2" },
+                workspace.AllOperations.Select(operation => operation.Name).ToArray(),
+                "Забыты именно самые ранние шаги");
+        }
+
+        /// <summary>
+        /// Повтор после отмен возвращает шаги на место и не выходит за предел.
+        /// </summary>
+        [TestMethod]
+        public void History_StaysWithinItsLimit_AfterUndoAndRedo()
+        {
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
+            var workspace = main.OperationsWorkspace;
+
+            for (var step = 0; step < OperationHistory.MaxSteps; step++)
+                workspace.AllOperations.Add(Drill(step));
+
+            for (var step = 0; step < 10; step++)
+                workspace.UndoCommand.Execute(null);
+            for (var step = 0; step < 10; step++)
+                workspace.RedoCommand.Execute(null);
+
+            Assert.AreEqual(OperationHistory.MaxSteps, workspace.History.UndoCount);
+            Assert.AreEqual(OperationHistory.MaxSteps, workspace.AllOperations.Count,
+                "Повтор вернул все операции");
         }
     }
 }
