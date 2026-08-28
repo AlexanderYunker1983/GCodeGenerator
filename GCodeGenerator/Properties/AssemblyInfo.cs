@@ -1,18 +1,17 @@
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Resources;
 using System.Runtime.InteropServices;
 using System.Windows;
 
-// General Information about an assembly is controlled through the following
-// set of attributes. Change these attribute values to modify the information
-// associated with an assembly.
-// AssemblyTitle/AssemblyCompany/AssemblyProduct/AssemblyConfiguration генерирует
-// SDK (из AssemblyName/Configuration) — дублировать их здесь нельзя (CS0579).
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyCopyright("Copyright ©  2025")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+// Свойства файла — издатель, продукт, описание, правообладатель — заданы
+// в Directory.Build.props, и атрибуты из них генерирует SDK; дублировать их
+// здесь нельзя (CS0579). Прежде описание и правообладатель объявлялись тут
+// пустой строкой и годом, разошедшимся с лицензией, а издателя не задавал
+// никто — в свойствах файла на его месте оказывалось имя сборки.
+//
+// Пустые AssemblyTrademark и AssemblyCulture удалены вместе с ними: первый
+// ничего не утверждал, второй объявлял сборку нейтральной по культуре, что
+// SDK делает и без него.
 
 // Setting ComVisible to false makes the types in this assembly not visible
 // to COM components.  If you need to access a type in this assembly from

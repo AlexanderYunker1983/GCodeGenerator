@@ -23,6 +23,11 @@
     <UseWPF>true</UseWPF>
     <RootNamespace>GCodeGenerator</RootNamespace>
     <AssemblyName>GCodeGenerator</AssemblyName>
+    <!-- Заголовок попадает в свойства файла на место описания и в диспетчер
+         задач; без него там стояло имя сборки. Издатель, продукт и
+         правообладатель — общие для решения (Directory.Build.props). -->
+    <AssemblyTitle>G-code generator for CNC machines</AssemblyTitle>
+    <Description>Desktop application that builds G-code programs for CNC machines: drilling, profile milling and pocketing, with 2D and 3D toolpath preview.</Description>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
     <!-- GenerateTargetPlatformAttribute/GenerateSupportedOSPlatformAttribute=false:

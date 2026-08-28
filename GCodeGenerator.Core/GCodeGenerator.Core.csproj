@@ -36,6 +36,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <RootNamespace>GCodeGenerator.Core</RootNamespace>
     <AssemblyName>GCodeGenerator.Core</AssemblyName>
+    <AssemblyTitle>GCodeGenerator core</AssemblyTitle>
+    <Description>Domain core of GCodeGenerator: operations, toolpath building, G-code post-processing, DXF import and the project file format. No user interface.</Description>
     <LangVersion>latest</LangVersion>
     <Deterministic>true</Deterministic>
     <GenerateTargetPlatformAttribute>false</GenerateTargetPlatformAttribute>

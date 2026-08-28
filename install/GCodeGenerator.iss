@@ -32,6 +32,21 @@
 ;     (Languages\Russian.isl), unofficial in older 6.x (Languages\Unofficial).
 ; ---------------------------------------------------------------------------
 
+; Publisher, product name and copyright come from Directory.Build.props via
+; build/Make-Installer.ps1 - the same values the assemblies carry in their file
+; properties. Keeping a second copy here is how they drifted apart before: the
+; publisher was spelled without a space and the copyright year disagreed with
+; the license. The fallbacks below only apply to a bare ISCC run without /D.
+#ifndef AppPublisher
+  #define AppPublisher "Alexander Yunker"
+#endif
+#ifndef AppProductName
+  #define AppProductName "GCodeGenerator"
+#endif
+#ifndef AppCopyright
+  #define AppCopyright "Copyright (c) 2021-2026 Alexander Yunker"
+#endif
+
 #ifndef AppVersionNumeric
   #define AppVersionNumeric "0.0.1"
 #endif
@@ -42,8 +57,9 @@
 [Setup]
 ; AppId - fixed GUID for upgrades (see header note).
 AppId={{BC1D74F7-289B-4721-951C-1B4885EA215E}
-AppName=GCodeGenerator
-AppPublisher=AlexanderYunker
+AppName={#AppProductName}
+AppPublisher={#AppPublisher}
+AppCopyright={#AppCopyright}
 ; AppVersion = the full git tag (e.g. 0.0.1-rc5): displayed in the wizard
 ; and written to the uninstall registry (DisplayVersion, a string).
 ; Inno Setup 6 has no separate suffix directive - the full tag is the display
@@ -70,8 +86,10 @@ OutputBaseFilename=GCodeGenerator-Setup-{#AppVersionNumeric}{#AppVersionSuffix}
 ; in the PE version resource; the full tag is visible in the wizard and the
 ; app's own version string).
 VersionInfoVersion={#AppVersionNumeric}.0
-VersionInfoCompany=AlexanderYunker
-VersionInfoDescription=GCodeGenerator installer
+VersionInfoCompany={#AppPublisher}
+VersionInfoCopyright={#AppCopyright}
+VersionInfoProductName={#AppProductName}
+VersionInfoDescription={#AppProductName} installer
 
 ; Code signing. The signing command is NOT stored here: it is passed on the
 ; ISCC command line by build/Make-Installer.ps1 when signing is configured

@@ -69,6 +69,24 @@ $dash = $version.IndexOf('-')
 if ($dash -ge 0) { $suffix = $version.Substring($dash) }
 Write-Host "Version: $version (numeric: $numeric, suffix: '$suffix')"
 
+# --- 1a) Product metadata from Directory.Build.props -------------------------
+# Publisher, product and copyright live in one place for the whole solution:
+# the assemblies get them from these properties, and so does the installer.
+# Keeping a second copy in the .iss was how they drifted apart before.
+$propsPath = Join-Path $repoRoot 'Directory.Build.props'
+[xml]$props = Get-Content $propsPath
+function Get-BuildProperty([string]$Name) {
+    $node = $props.SelectSingleNode("/Project/PropertyGroup/$Name")
+    if (-not $node -or -not $node.InnerText.Trim()) {
+        throw "Directory.Build.props has no <$Name> - the installer takes product metadata from there."
+    }
+    return $node.InnerText.Trim()
+}
+$publisher = Get-BuildProperty 'Company'
+$productName = Get-BuildProperty 'Product'
+$copyright = Get-BuildProperty 'Copyright'
+Write-Host "Publisher: $publisher; product: $productName"
+
 # --- 2) Publish --------------------------------------------------------------
 $publishDir = Join-Path $repoRoot 'artifacts\publish\GCodeGenerator'
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
@@ -151,7 +169,14 @@ Write-Host "Compiling installer with ISCC: $IsccPath"
 # CWD, not the .iss dir - so pass an absolute path, quoted when it has spaces).
 $outArg = "/O$installerDir"
 if ($installerDir -match ' ') { $outArg = '/O"' + $installerDir + '"' }
-$isccArgs = @("/DAppVersionNumeric=$numeric", "/DAppVersionSuffix=$suffix", $outArg, $iss)
+$isccArgs = @(
+    "/DAppVersionNumeric=$numeric",
+    "/DAppVersionSuffix=$suffix",
+    "/DAppPublisher=$publisher",
+    "/DAppProductName=$productName",
+    "/DAppCopyright=$copyright",
+    $outArg,
+    $iss)
 if ($SignCommand -ne '') {
     # /S<name>=<command> defines the signing tool, /D<name> switches on the
     # SignTool directives in the .iss (they are inside #ifdef, so an unsigned
