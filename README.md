@@ -1,5 +1,7 @@
 # GCodeGenerator
 
+**Русский** | [English](README.en.md)
+
 Простой генератор G-кода для станков с ЧПУ с графическим интерфейсом и 3D-визуализацией траекторий.
 
 Готовые сборки — в разделе [Releases](https://github.com/AlexanderYunker1983/GCodeGenerator/releases); установленная версия видна в заголовке окна программы. Дальше в планах — переход к версии 2.x: кроссплатформенность и более интерактивная работа с 2D и 3D.
@@ -230,7 +232,11 @@ GCodeGenerator/
 ├── build/                   # Скрипты сборки (версионирование из git-тегов, инсталлятор)
 ├── install/                 # Инсталлятор (Inno Setup)
 ├── docs/                    # Документация (smoke-чек-лист)
+├── .github/                 # Рабочие процессы, формы issue и pull request
 ├── GCodeGenerator.sln       # Решение Visual Studio
+├── CHANGELOG.md             # Журнал изменений (описание выпуска берётся отсюда)
+├── CONTRIBUTING.md          # Как собрать, проверить и предложить изменение
+├── SECURITY.md              # Как сообщить об уязвимости
 └── LICENSE                  # Лицензия MIT
 ```
 
@@ -255,16 +261,13 @@ Copyright (c) 2021-2026 Alexander Yunker
 
 ## Вклад в проект
 
-Вклад в проект приветствуется! Пожалуйста:
-
-1. Создайте форк проекта
-2. Создайте ветку для новой функции (`git checkout -b feature/AmazingFeature`)
-3. Зафиксируйте изменения (`git commit -m 'Add some AmazingFeature'`)
-4. Отправьте в ветку (`git push origin feature/AmazingFeature`)
-5. Откройте Pull Request
+Вклад приветствуется. Чем собирать, какие правила ломают сборку и как
+предлагать изменение — в [CONTRIBUTING.md](CONTRIBUTING.md). Что менялось
+от выпуска к выпуску — в [CHANGELOG.md](CHANGELOG.md).
 
 ## Поддержка
 
-Если у вас возникли вопросы или проблемы, пожалуйста, создайте [Issue](https://github.com/AlexanderYunker1983/GCodeGenerator/issues) в репозитории.
+Если у вас возникли вопросы или проблемы, заведите [issue](https://github.com/AlexanderYunker1983/GCodeGenerator/issues/new/choose) — форма подскажет, что именно нужно для разбора.
 К сообщению о сбое приложите журнал работы — `%LOCALAPPDATA%\GCodeGenerator\logs\gcodegenerator.log`: в нём остаётся текст исключения, который иначе теряется вместе с закрытым окном сообщения.
 
+Об уязвимости сообщайте не через issue, а [приватным сообщением](https://github.com/AlexanderYunker1983/GCodeGenerator/security/advisories/new) — см. [SECURITY.md](SECURITY.md).

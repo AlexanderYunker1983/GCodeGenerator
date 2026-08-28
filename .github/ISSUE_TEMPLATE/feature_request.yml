@@ -1,0 +1,46 @@
+name: Предложение / Feature request
+description: Чего программе не хватает / Something the app should do
+title: "[Предложение] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Расскажите не только о том, что добавить, но и о том, ради чего:
+        задача важнее решения — у неё может найтись способ проще.
+
+        *Tell us the task, not only the solution. Issues in English are welcome.*
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Какую задачу это решает / What problem it solves
+      description: Что вы делаете сейчас и почему это неудобно.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Что предлагаете / What you propose
+      description: Как это должно выглядеть и работать.
+    validations:
+      required: true
+
+  - type: input
+    id: machine
+    attributes:
+      label: Станок и стойка / Machine and controller
+      description: |
+        Если предложение о выводе G-кода — назовите стойку: у каждой свой
+        диалект, и «правильно» у них разное.
+      placeholder: "GRBL 1.1 / Fanuc 0i / LinuxCNC"
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Чем обходитесь сейчас / How you work around it
+    validations:
+      required: false

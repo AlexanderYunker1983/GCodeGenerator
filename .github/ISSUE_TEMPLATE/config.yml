@@ -1,0 +1,10 @@
+# Пустых issue не заводят: обе формы спрашивают то, без чего разбор
+# всё равно начнётся с уточняющих вопросов.
+blank_issues_enabled: false
+contact_links:
+  - name: Уязвимость / Security vulnerability
+    url: https://github.com/AlexanderYunker1983/GCodeGenerator/security/advisories/new
+    about: Приватное сообщение владельцу репозитория — не публичный issue.
+  - name: Вопрос по работе с программой / Question
+    url: https://github.com/AlexanderYunker1983/GCodeGenerator/blob/master/README.md
+    about: Возможности, установка, версионирование и сборка описаны в README.

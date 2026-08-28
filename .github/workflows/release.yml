@@ -106,6 +106,28 @@ jobs:
           Compress-Archive -Path 'artifacts/publish/GCodeGenerator/*' -DestinationPath $zip
           Write-Host "Portable: $zip"
 
+      # Описание выпуска берётся из CHANGELOG: раздел с номером версии написан
+      # для пользователя, а generate_release_notes выдаёт список коммитов,
+      # написанный для разработчика. Раздела для тега нет — скрипт молчит,
+      # и остаётся прежнее поведение: собранный и проверенный релиз не должен
+      # срываться из-за незаполненного журнала изменений.
+      - name: Release notes from CHANGELOG
+        if: steps.tag.outputs.skip == 'false'
+        id: notes
+        shell: pwsh
+        run: |
+          $file = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          build/Get-ReleaseNotes.ps1 -Tag $env:TAG_NAME -OutFile $file | Out-Null
+          if (Test-Path $file) {
+            Write-Host "Release notes: $file"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=true'
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$file"
+          }
+          else {
+            Write-Host "CHANGELOG has no section for $env:TAG_NAME - falling back to generated notes."
+            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=false'
+          }
+
       - name: Create GitHub Release
         if: steps.tag.outputs.skip == 'false'
         uses: softprops/action-gh-release@v2
@@ -116,7 +138,9 @@ jobs:
             artifacts/installer/GCodeGenerator-*-portable.zip
           # Тег с суффиксом (-alpha/-beta/-rc) — pre-release.
           prerelease: ${{ steps.tag.outputs.prerelease == 'true' }}
-          generate_release_notes: true
+          # Раздел CHANGELOG, если он есть; иначе — список коммитов, как раньше.
+          body_path: ${{ steps.notes.outputs.path }}
+          generate_release_notes: ${{ steps.notes.outputs.found != 'true' }}
           fail_on_unmatched_files: true
           # Повторный push того же тега заменяет релиз, а не падает.
           overwrite: true

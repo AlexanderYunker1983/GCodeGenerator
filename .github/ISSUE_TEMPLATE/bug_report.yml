@@ -1,0 +1,89 @@
+name: Ошибка / Bug report
+description: Программа ведёт себя не так, как должна / Something works incorrectly
+title: "[Ошибка] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Заполните то, что знаете. Пустые поля — это уточняющие вопросы,
+        с которых иначе начнётся разбор.
+
+        Об уязвимости сообщайте не здесь, а через
+        [приватное сообщение](https://github.com/AlexanderYunker1983/GCodeGenerator/security/advisories/new)
+        — см. [SECURITY.md](https://github.com/AlexanderYunker1983/GCodeGenerator/blob/master/SECURITY.md).
+
+        *Fill in what you know. Issues in English are welcome.*
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: Что произошло / What happened
+      description: Что вы увидели и чего ожидали вместо этого.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как повторить / Steps to reproduce
+      description: По шагам, от запуска программы.
+      placeholder: |
+        1. Открыть проект …
+        2. Добавить операцию …
+        3. Нажать «Сгенерировать G-код»
+        4. …
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия программы / App version
+      description: Видна в заголовке окна и в окне «О программе» (F1).
+      placeholder: "0.4.0"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: Как установлена / How it was installed
+      options:
+        - Установщик (GCodeGenerator-Setup-*.exe)
+        - Портативная версия (zip)
+        - Сборка из исходников
+    validations:
+      required: true
+
+  - type: input
+    id: windows
+    attributes:
+      label: Версия Windows / Windows version
+      description: "«Параметры» → «Система» → «О системе», строка «Версия»."
+      placeholder: "Windows 11 24H2 (26100)"
+    validations:
+      required: false
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Журнал работы / Application log
+      description: |
+        Приложите `%LOCALAPPDATA%\GCodeGenerator\logs\gcodegenerator.log`
+        или вставьте сюда его последние строки. Путь и кнопка «показать файл»
+        есть в окне «О программе» (F1). В журнале остаётся текст исключения,
+        который иначе теряется вместе с закрытым окном сообщения.
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Файлы / Files
+      description: |
+        Проект `.ygc` или чертёж `.dxf`, на котором это воспроизводится.
+        Перетащите файл сюда — GitHub примет его в архиве `.zip`.
+    validations:
+      required: false
