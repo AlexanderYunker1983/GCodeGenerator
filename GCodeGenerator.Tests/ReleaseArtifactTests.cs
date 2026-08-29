@@ -198,6 +198,30 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ReleaseWorkflow_PublishesACompleteImmutableDraftWithoutOverwritingAssets()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+            var createDraft = workflow.IndexOf("- name: Create complete draft release", StringComparison.Ordinal);
+            var publishDraft = workflow.IndexOf("gh release edit $env:GITHUB_REF_NAME", StringComparison.Ordinal);
+            var verifyRelease = workflow.IndexOf("gh release verify $env:GITHUB_REF_NAME", StringComparison.Ordinal);
+
+            StringAssert.Contains(workflow, "draft: true",
+                "Assets загружаются прямо в публичный release, где immutability уже запрещает дополнения");
+            StringAssert.Contains(workflow, "overwrite_files: false",
+                "Повторный workflow может заменить ранее загруженный asset");
+            Assert.IsFalse(workflow.Contains("overwrite: true", StringComparison.Ordinal),
+                "Оставлен неподдерживаемый и небезопасный флаг перезаписи release");
+            Assert.IsTrue(createDraft >= 0 && createDraft < publishDraft && publishDraft < verifyRelease,
+                "Нарушен порядок draft -> publish -> immutable verification");
+            StringAssert.Contains(workflow,
+                "gh release verify-asset $env:GITHUB_REF_NAME $asset.FullName",
+                "После публикации не проверяются attestation всех локальных assets");
+            StringAssert.Contains(workflow,
+                "gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft",
+                "Mutable-выпуск не возвращается в draft при неудачной проверке");
+        }
+
+        [TestMethod]
         public void ReleaseWorkflow_ExercisesInstallerUpgradePortableAndUninstall()
         {
             var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));

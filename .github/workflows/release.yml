@@ -403,7 +403,11 @@ jobs:
           name: release-bundle
           path: release-assets
 
-      - name: Create GitHub Release
+      # Immutable releases защищают tag и assets только после публикации,
+      # поэтому сначала создаётся полностью заполненный draft. Перезапись уже
+      # загруженных файлов запрещена: повторный запуск не может тихо подменить
+      # артефакт с тем же именем.
+      - name: Create complete draft release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           name: ${{ github.ref_name }}
@@ -417,5 +421,51 @@ jobs:
           body_path: release-assets/release-notes.md
           generate_release_notes: false
           fail_on_unmatched_files: true
-          # Повторный push того же тега заменяет релиз, а не падает.
-          overwrite: true
+          draft: true
+          overwrite_files: false
+
+      - name: Publish completed draft
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit $env:GITHUB_REF_NAME `
+            --repo $env:GITHUB_REPOSITORY `
+            --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Publishing the completed draft release failed.' }
+
+      # Repository Settings > Releases > Immutable releases must be enabled.
+      # GitHub creates the signed release attestation asynchronously, поэтому
+      # проверка имеет короткую верхнюю границу ожидания. Без attestation выпуск
+      # не считается успешным и, если GitHub позволяет, возвращается в draft.
+      - name: Verify immutable release and every uploaded asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releaseVerified = $false
+          for ($attempt = 1; $attempt -le 12; $attempt++) {
+            gh release verify $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -eq 0) {
+              $releaseVerified = $true
+              break
+            }
+            if ($attempt -lt 12) { Start-Sleep -Seconds 5 }
+          }
+          if (-not $releaseVerified) {
+            gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft
+            throw 'Published release has no valid immutable release attestation. Enable immutable releases and retry with a new tag.'
+          }
+
+          $uploadedAssets = @(
+            Get-ChildItem 'release-assets/GCodeGenerator-Setup-*.exe' -File -ErrorAction Stop
+            Get-ChildItem 'release-assets/GCodeGenerator-*-portable.zip' -File -ErrorAction Stop
+            Get-ChildItem 'release-assets/GCodeGenerator-*-sbom.cdx.json' -File -ErrorAction Stop
+            Get-Item 'release-assets/SHA256SUMS.txt' -ErrorAction Stop
+          )
+          foreach ($asset in $uploadedAssets) {
+            gh release verify-asset $env:GITHUB_REF_NAME $asset.FullName --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -ne 0) {
+              throw "Immutable release asset verification failed: $($asset.Name)"
+            }
+          }
