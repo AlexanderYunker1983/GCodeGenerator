@@ -59,11 +59,20 @@ namespace GCodeGenerator.Models
         /// <summary>Тип операции из файла не поддерживается этой сборкой.</summary>
         public const string ProjectFileUnknownOperationType = "ProjectFileUnknownOperationType";
 
+        /// <summary>Файл проекта превышает безопасный предел размера.</summary>
+        public const string ProjectFileTooLarge = "ProjectFileTooLarge";
+
+        /// <summary>Проект содержит больше операций, чем можно безопасно обработать.</summary>
+        public const string ProjectFileTooComplex = "ProjectFileTooComplex";
+
         /// <summary>Файл не является чертежом DXF.</summary>
         public const string DxfNotADrawing = "DxfNotADrawing";
 
         /// <summary>В чертеже не заданы линейные единицы.</summary>
         public const string DxfUnitsNotSpecified = "DxfUnitsNotSpecified";
+
+        /// <summary>Файл DXF превышает безопасный предел размера.</summary>
+        public const string DxfFileTooLarge = "DxfFileTooLarge";
 
         /// <summary>Чертёж слишком сложен для поиска замкнутых контуров.</summary>
         public const string DxfTooComplex = "DxfTooComplex";

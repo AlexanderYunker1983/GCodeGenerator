@@ -165,7 +165,15 @@ namespace GCodeGenerator.Persistence
                     "the operations section is not an array");
             }
 
-            var result = new List<OperationBase>();
+            if (operationsElement.GetArrayLength() > GenerationLimits.MaxOperations)
+            {
+                throw new CoreException(
+                    CoreErrorCodes.ProjectFileTooComplex,
+                    "The project contains more than the supported maximum of {0} operations.",
+                    GenerationLimits.MaxOperations);
+            }
+
+            var result = new List<OperationBase>(operationsElement.GetArrayLength());
             int operationIndex = 0;
             foreach (var entry in operationsElement.EnumerateArray())
             {

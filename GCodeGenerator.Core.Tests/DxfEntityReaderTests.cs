@@ -8,6 +8,9 @@ using netDxf.Blocks;
 using netDxf.Entities;
 using netDxf.Header;
 using netDxf.Units;
+using CoreErrorCodes = GCodeGenerator.Models.CoreErrorCodes;
+using CoreException = GCodeGenerator.Models.CoreException;
+using GenerationLimits = GCodeGenerator.Models.GenerationLimits;
 
 namespace GCodeGenerator.Tests
 {
@@ -234,6 +237,30 @@ namespace GCodeGenerator.Tests
 
             Assert.Throws<netDxf.IO.DxfVersionNotSupportedException>(
                 () => DxfImportServiceProbe.ReadProfile(_path));
+        }
+
+        [TestMethod]
+        public void OversizedFile_IsRejectedBeforeNetDxfParsesIt()
+        {
+            using (var stream = new FileStream(_path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                stream.SetLength(GenerationLimits.MaxDxfFileBytes + 1);
+
+            var failure = Assert.Throws<CoreException>(() => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(CoreErrorCodes.DxfFileTooLarge, failure.Code);
+        }
+
+        [TestMethod]
+        public void TessellatedGeometry_StopsAtTheAggregatePointBudget()
+        {
+            var document = NewDocument();
+            for (var index = 0; index < 50; index++)
+                document.Entities.Add(new Circle(new Vector2(index * 3.0e9, 0), 1.0e9));
+            document.Save(_path);
+
+            var failure = Assert.Throws<CoreException>(() => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(CoreErrorCodes.DxfTooComplex, failure.Code);
         }
 
         /// <summary>Текстовые и размерные сущности контуром не являются.</summary>

@@ -55,6 +55,7 @@ namespace GCodeGenerator.Persistence
                 throw new ArgumentException("The project file path is not set.", nameof(filePath));
             if (json == null)
                 throw new ArgumentNullException(nameof(json));
+            EnsureSupportedSize(Encoding.UTF8.GetByteCount(json) + 3L); // UTF-8 BOM
 
             // JSON уже построен целиком; пишем временный файл в том же
             // каталоге и атомарно заменяем назначение. Предыдущая успешная
@@ -94,8 +95,29 @@ namespace GCodeGenerator.Persistence
         /// </summary>
         public ProjectFileData Load(string filePath)
         {
-            var json = File.ReadAllText(filePath, Encoding.UTF8);
+            using var stream = new FileStream(
+                filePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read);
+            EnsureSupportedSize(stream.Length);
+            using var reader = new StreamReader(
+                stream,
+                Encoding.UTF8,
+                detectEncodingFromByteOrderMarks: true);
+            var json = reader.ReadToEnd();
             return Deserialize(json);
+        }
+
+        private static void EnsureSupportedSize(long byteCount)
+        {
+            if (byteCount <= GenerationLimits.MaxProjectFileBytes)
+                return;
+
+            throw new CoreException(
+                CoreErrorCodes.ProjectFileTooLarge,
+                "The project file exceeds the safe size limit of {0} MB.",
+                GenerationLimits.MaxProjectFileBytes / (1024 * 1024));
         }
     }
 }

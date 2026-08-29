@@ -1,10 +1,12 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
+using GCodeGenerator.Persistence;
 using GCodeGenerator.Tests.Fixtures;
 using GCodeGenerator.Toolpath;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -95,6 +97,37 @@ namespace GCodeGenerator.Tests
                 new SimpleGCodeGenerator().BuildToolPath(operations, new GCodeSettings()));
 
             Assert.AreEqual("Operations", error.SettingsIssues.Single().Property);
+        }
+
+        [TestMethod]
+        public void OversizedProjectFile_IsRejectedBeforeReadingItsContents()
+        {
+            var path = Path.Combine(Path.GetTempPath(), "gcodegen-large-" + Guid.NewGuid().ToString("N") + ".ygc");
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                    stream.SetLength(GenerationLimits.MaxProjectFileBytes + 1);
+
+                var failure = Assert.Throws<CoreException>(() => new ProjectFileService().Load(path));
+
+                Assert.AreEqual(CoreErrorCodes.ProjectFileTooLarge, failure.Code);
+            }
+            finally
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+        }
+
+        [TestMethod]
+        public void ProjectReader_RejectsOperationCountBeforeReadingEntries()
+        {
+            var entries = string.Join(",", Enumerable.Repeat("null", GenerationLimits.MaxOperations + 1));
+            var json = "{\"version\":4,\"operations\":[" + entries + "]}";
+
+            var failure = Assert.Throws<CoreException>(() => new ProjectFileService().Deserialize(json));
+
+            Assert.AreEqual(CoreErrorCodes.ProjectFileTooComplex, failure.Code);
         }
 
         [TestMethod]

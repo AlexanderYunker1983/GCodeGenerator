@@ -67,7 +67,16 @@ namespace GCodeGenerator.Import
         internal static List<Polyline2D> Read(string path, CancellationToken cancellation = default)
         {
             cancellation.ThrowIfCancellationRequested();
-            var document = DxfDocument.Load(path);
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (stream.Length > GenerationLimits.MaxDxfFileBytes)
+            {
+                throw new CoreException(
+                    CoreErrorCodes.DxfFileTooLarge,
+                    "The DXF file exceeds the safe size limit of {0} MB.",
+                    GenerationLimits.MaxDxfFileBytes / (1024 * 1024));
+            }
+
+            var document = DxfDocument.Load(stream);
             cancellation.ThrowIfCancellationRequested();
             if (document == null)
                 throw new CoreException(CoreErrorCodes.DxfNotADrawing,
@@ -76,10 +85,11 @@ namespace GCodeGenerator.Import
             double scale = GetMillimeterScale(document.DrawingVariables.InsUnits);
 
             var result = new List<Polyline2D>();
+            var budget = new ImportBudget();
             foreach (var entity in document.Entities.All)
             {
                 cancellation.ThrowIfCancellationRequested();
-                AppendEntity(entity, scale, result, cancellation);
+                AppendEntity(entity, scale, result, budget, 0, cancellation);
             }
 
             return result;
@@ -110,14 +120,20 @@ namespace GCodeGenerator.Import
             return scale;
         }
 
-        private static void AppendEntity(EntityObject entity, double scale, List<Polyline2D> result,
+        private static void AppendEntity(
+            EntityObject entity,
+            double scale,
+            List<Polyline2D> result,
+            ImportBudget budget,
+            int insertDepth,
             CancellationToken cancellation)
         {
             cancellation.ThrowIfCancellationRequested();
+            budget.ObserveEntity(insertDepth);
             switch (entity)
             {
                 case Line line:
-                    Add(result, new[]
+                    Add(result, budget, new[]
                     {
                         Point(line.StartPoint.X, line.StartPoint.Y, scale),
                         Point(line.EndPoint.X, line.EndPoint.Y, scale)
@@ -125,27 +141,27 @@ namespace GCodeGenerator.Import
                     break;
 
                 case Circle circle:
-                    Add(result, ApproximateCircle(circle, scale));
+                    Add(result, budget, ApproximateCircle(circle, scale));
                     break;
 
                 case Arc arc:
-                    Add(result, ApproximateArc(arc, scale));
+                    Add(result, budget, ApproximateArc(arc, scale));
                     break;
 
                 case Ellipse ellipse:
-                    Add(result, ApproximateEllipse(ellipse, scale));
+                    Add(result, budget, ApproximateEllipse(ellipse, scale));
                     break;
 
                 case DrawingPolyline polyline2D:
-                    Add(result, ReadPolyline(polyline2D, scale));
+                    Add(result, budget, ReadPolyline(polyline2D, scale, budget.RemainingPoints));
                     break;
 
                 case Polyline3D polyline3D:
-                    Add(result, ReadPolyline3D(polyline3D, scale));
+                    Add(result, budget, ReadPolyline3D(polyline3D, scale, budget.RemainingPoints));
                     break;
 
                 case Spline spline:
-                    Add(result, ApproximateSpline(spline, scale));
+                    Add(result, budget, ApproximateSpline(spline, scale));
                     break;
 
                 case Insert insert:
@@ -153,7 +169,7 @@ namespace GCodeGenerator.Import
                     foreach (var exploded in insert.Explode())
                     {
                         cancellation.ThrowIfCancellationRequested();
-                        AppendEntity(exploded, scale, result, cancellation);
+                        AppendEntity(exploded, scale, result, budget, insertDepth + 1, cancellation);
                     }
                     break;
 
@@ -163,12 +179,16 @@ namespace GCodeGenerator.Import
             }
         }
 
-        private static void Add(List<Polyline2D> result, IReadOnlyList<Point2D>? points)
+        private static void Add(
+            List<Polyline2D> result,
+            ImportBudget budget,
+            IReadOnlyList<Point2D>? points)
         {
             // null — сущность выродилась (нулевой радиус, слишком мало
             // вершин) и контура не даёт.
             if (points == null || points.Count < 2)
                 return;
+            budget.AddContour(points.Count);
             result.Add(new Polyline2D { Points = new List<Point2D>(points) });
         }
 
@@ -283,7 +303,10 @@ namespace GCodeGenerator.Import
         /// с повторением первой вершины в конце, как её и ожидает сборка
         /// контуров.
         /// </summary>
-        private static List<Point2D>? ReadPolyline(DrawingPolyline polyline, double scale)
+        private static List<Point2D>? ReadPolyline(
+            DrawingPolyline polyline,
+            double scale,
+            int maximumPoints)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;
@@ -319,7 +342,11 @@ namespace GCodeGenerator.Import
                     : 0;
 
                 for (int i = startIndex; i < segmentPoints.Count; i++)
+                {
+                    if (points.Count >= maximumPoints)
+                        throw TooComplex();
                     points.Add(segmentPoints[i]);
+                }
             }
 
             return points;
@@ -374,10 +401,16 @@ namespace GCodeGenerator.Import
             return points;
         }
 
-        private static List<Point2D>? ReadPolyline3D(Polyline3D polyline, double scale)
+        private static List<Point2D>? ReadPolyline3D(
+            Polyline3D polyline,
+            double scale,
+            int maximumPoints)
         {
             if (polyline.Vertexes.Count < 2)
                 return null;
+            var requiredPoints = polyline.Vertexes.Count + (polyline.IsClosed ? 1 : 0);
+            if (requiredPoints > maximumPoints)
+                throw TooComplex();
 
             var points = new List<Point2D>(polyline.Vertexes.Count + 1);
             foreach (var vertex in polyline.Vertexes)
@@ -387,6 +420,40 @@ namespace GCodeGenerator.Import
                 points.Add(Point(polyline.Vertexes[0].X, polyline.Vertexes[0].Y, scale));
 
             return points;
+        }
+
+        private static CoreException TooComplex()
+            => new CoreException(
+                CoreErrorCodes.DxfTooComplex,
+                "The DXF drawing exceeds the safe entity, nesting, contour or point limits.");
+
+        private sealed class ImportBudget
+        {
+            private int _entities;
+            private int _contours;
+            private int _points;
+
+            internal int RemainingPoints => GenerationLimits.MaxImportedPointsPerOperation - _points;
+
+            internal void ObserveEntity(int insertDepth)
+            {
+                _entities++;
+                if (_entities > GenerationLimits.MaxImportedEntities
+                    || insertDepth > GenerationLimits.MaxDxfInsertDepth)
+                    throw TooComplex();
+            }
+
+            internal void AddContour(int pointCount)
+            {
+                _contours++;
+                if (_contours > GenerationLimits.MaxImportedContoursPerOperation)
+                    throw TooComplex();
+                if (pointCount > RemainingPoints)
+                    throw TooComplex();
+                _points += pointCount;
+                if (_points > GenerationLimits.MaxImportedPointsPerOperation)
+                    throw TooComplex();
+            }
         }
     }
 }

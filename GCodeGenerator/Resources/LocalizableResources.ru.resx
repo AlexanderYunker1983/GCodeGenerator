@@ -435,14 +435,23 @@
   <data name="CoreError_ProjectFileUnknownOperationType" xml:space="preserve">
     <value>Тип операции «{0}» (позиция {1}) не поддерживается этой сборкой.</value>
   </data>
+  <data name="CoreError_ProjectFileTooLarge" xml:space="preserve">
+    <value>Файл проекта превышает безопасный предел {0} МБ. Разделите задание на несколько проектов.</value>
+  </data>
+  <data name="CoreError_ProjectFileTooComplex" xml:space="preserve">
+    <value>Проект содержит больше допустимых {0} операций. Разделите задание на несколько проектов.</value>
+  </data>
   <data name="CoreError_DxfNotADrawing" xml:space="preserve">
     <value>Файл не является чертежом DXF: {0}.</value>
   </data>
   <data name="CoreError_DxfUnitsNotSpecified" xml:space="preserve">
     <value>В чертеже DXF не заданы линейные единицы. Укажите INSUNITS в исходном чертеже (например, миллиметры) и повторите импорт.</value>
   </data>
+  <data name="CoreError_DxfFileTooLarge" xml:space="preserve">
+    <value>Файл DXF превышает безопасный предел {0} МБ. Упростите или разделите чертёж перед импортом.</value>
+  </data>
   <data name="CoreError_DxfTooComplex" xml:space="preserve">
-    <value>Чертёж слишком сложен для поиска замкнутых контуров: превышен предел перебора. Уменьшите число пересекающихся линий или замкните контур полилинией.</value>
+    <value>Чертёж DXF слишком сложен для безопасного импорта. Уменьшите число сущностей и точек, упростите вложенность блоков или разделите чертёж.</value>
   </data>
   <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
     <value>Инструмент не помещается внутри эллипса: эквидистанта с таким смещением пуста. Уменьшите диаметр инструмента или увеличьте эллипс.</value>

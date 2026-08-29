@@ -102,11 +102,13 @@ the machine.
   60000 mm/min, the spindle at 60000 rpm, the delay at 60 s and the decimals
   at 6. These are the bounds of sensible input, not the machine's data sheet:
   the controller applies its own limit anyway.
-- **A single job has size limits.** Up to 1000 operations, 10000 holes in one
-  operation, 10000 contours and 200000 imported DXF points in one operation,
-  and 250000 items in the resulting toolpath. These bounds protect the
+- **A single job has size limits.** `.ygc` and DXF files may be at most 64 MB;
+  the bound is checked before a file is read into memory. A project may have
+  up to 1000 operations; an operation up to 10000 holes; a DXF import up to
+  200000 entities, 64 nested block levels, 10000 contours and 200000 points;
+  and the resulting toolpath up to 250000 items. These bounds protect the
   application's memory and responsiveness; a larger job must be split into
-  several projects.
+  several projects or drawings.
 - **The peck return clearance is 0.5 mm** and is not configurable.
 - **The undo history holds 100 steps.**
 - **Project backup.** When an existing `.ygc` is overwritten, its previous version is atomically kept next to it with a `.bak` suffix; rename the copy back to `.ygc` to recover it.

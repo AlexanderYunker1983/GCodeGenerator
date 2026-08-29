@@ -8,8 +8,12 @@ namespace GCodeGenerator.Models
     /// </summary>
     public static class GenerationLimits
     {
+        public const long MaxProjectFileBytes = 64L * 1024 * 1024;
+        public const long MaxDxfFileBytes = 64L * 1024 * 1024;
         public const int MaxOperations = 1000;
         public const int MaxHolesPerOperation = 10000;
+        public const int MaxImportedEntities = 200000;
+        public const int MaxDxfInsertDepth = 64;
         public const int MaxImportedContoursPerOperation = 10000;
         public const int MaxImportedPointsPerOperation = 200000;
         public const int MaxToolPathItems = 250000;
