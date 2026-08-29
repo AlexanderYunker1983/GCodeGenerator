@@ -351,6 +351,30 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(readme, "in English");
         }
 
+        [TestMethod]
+        public void UnsignedReleasePolicy_IsExplicitConsistentAndVerifiable()
+        {
+            var russian = Read("README.md");
+            var english = Read("README.en.md");
+
+            foreach (var readme in new[] { russian, english })
+            {
+                StringAssert.Contains(readme, "SHA256SUMS.txt");
+                StringAssert.Contains(readme, "gh release verify $version");
+                StringAssert.Contains(readme, "gh release verify-asset $version");
+                StringAssert.Contains(readme, "-SigningMode Unsigned");
+                StringAssert.Contains(readme, "-SigningMode Required");
+            }
+
+            Assert.IsFalse(russian.Contains("стабильный выпуск требует", StringComparison.Ordinal),
+                "README всё ещё обещает обязательную подпись активного стабильного выпуска");
+            Assert.IsFalse(english.Contains("a stable release requires", StringComparison.Ordinal),
+                "English README still claims that the active stable release must be signed");
+            StringAssert.Contains(Read("CONTRIBUTING.md"), "Immutable releases");
+            StringAssert.Contains(Read("SECURITY.md"), "gh release verify");
+            StringAssert.Contains(Read(Path.Combine("docs", "SMOKE_CHECKLIST.md")), "Get-AuthenticodeSignature");
+        }
+
         /// <summary>
         /// Правила участия ведут к порядку сообщения об уязвимости и к журналу
         /// изменений: это две вещи, о которых участник узнаёт слишком поздно.

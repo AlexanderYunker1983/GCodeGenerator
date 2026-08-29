@@ -139,15 +139,32 @@ Download the latest installer from the [Releases](https://github.com/AlexanderYu
 
 The wizard asks whether to install for all users or for the current user only. The first needs administrator rights, the second does not and puts the application into `%LOCALAPPDATA%\Programs` — on a work computer with a restricted account the application can still be installed. The install directory, the shortcuts and the file association all follow the chosen mode. A silent install picks the mode with `/ALLUSERS` or `/CURRENTUSER`. If the application is already installed, the question is not asked: an update keeps the mode of the installation.
 
-Releases are published automatically: pushing a version tag (`1.2.3` or `1.2.3-rc5`) starts the [Release](.github/workflows/release.yml) workflow — build, tests, installer (Inno Setup) and a GitHub Release with `GCodeGenerator-Setup-<version>.exe` and a portable build (zip). Both artifacts are self-contained (they include the .NET 10 Desktop Runtime). Tags with a suffix (`-alpha`/`-beta`/`-rc`) are marked as pre-releases.
+Releases are published automatically: pushing a version tag (`1.2.3` or `1.2.3-rc5`) starts the [Release](.github/workflows/release.yml) workflow — build, tests, installer (Inno Setup) and a GitHub Release with `GCodeGenerator-Setup-<version>.exe` and a portable build (zip). Both artifacts are self-contained (they include the .NET 10 Desktop Runtime). Tags with a suffix (`-alpha`/`-beta`/`-rc`) are marked as pre-releases. An official release is published only after its draft is complete and then becomes immutable: its tag and assets cannot be replaced.
 
-**The Windows warning on first run.** As long as the builds are not signed with a certificate, SmartScreen shows "Windows protected your PC" and hides the run button: that is how Windows greets any unsigned program, not a sign of infection. To continue, click "More info" → "Run anyway". To make sure the file is the right one, check its hash against the one given in the release description:
+**The Windows warning on first run.** Official builds do not yet carry an Authenticode signature and therefore show an unknown publisher. Depending on file reputation and the computer's policy, SmartScreen or Smart App Control may display a warning or block the file completely. A missing signature proves neither infection nor safety. Download the application only from this repository's Releases page and do not disable system protection. If Windows policy offers “More info” → “Run anyway”, decide whether to proceed only after verifying the file.
+
+`SHA256SUMS.txt` is published next to the artifacts. This command checks that the local installer matches its entry:
 
 ```powershell
-Get-FileHash .\GCodeGenerator-Setup-<version>.exe
+$version = '<version>'
+$file = "GCodeGenerator-Setup-$version.exe"
+$line = @(Get-Content .\SHA256SUMS.txt | Where-Object {
+    $_ -match ('  ' + [regex]::Escape($file) + '$')
+})
+if ($line.Count -ne 1) { throw "There is not exactly one checksum for $file" }
+$expected = ($line[0] -split '\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash -LiteralPath ".\$file" -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -cne $expected) { throw "SHA-256 mismatch: $actual" }
 ```
 
-For a signed build there is no SmartScreen window, and the publisher is visible in the file properties, on the "Digital Signatures" tab.
+To verify cryptographically that the release is immutable and that the local file is one of its assets, install the [GitHub CLI](https://cli.github.com/) and run:
+
+```powershell
+gh release verify $version --repo AlexanderYunker1983/GCodeGenerator
+gh release verify-asset $version ".\$file" --repo AlexanderYunker1983/GCodeGenerator
+```
+
+A future signed build will identify the expected publisher on the “Digital Signatures” tab. A valid signature reduces uncertainty about origin, but by itself guarantees neither the absence of warnings nor the safety of the application.
 
 ### Updating over a running application
 
@@ -163,19 +180,25 @@ build\Make-Installer.ps1
 
 The script takes the version from an exact git tag or from `build/NEXT_VERSION` for a development build (the same mechanism as the assembly version), runs `dotnet publish` (self-contained, win-x64 — the runtime goes into the installer) and compiles `install\GCodeGenerator.iss` (ISCC). The result is `artifacts\installer\GCodeGenerator-Setup-<version>.exe`.
 
-Parameters: `-FrameworkDependent` (publish without the runtime — a smaller installer, but the user needs the .NET 10 Desktop Runtime), `-IsccPath <path to ISCC.exe>`, `-Configuration`, `-Runtime`, `-SignCommand`.
+Parameters: `-FrameworkDependent` (publish without the runtime — a smaller installer, but the user needs the .NET 10 Desktop Runtime), `-IsccPath <path to ISCC.exe>`, `-Configuration`, `-Runtime`, `-SigningMode`, `-SignCommand`, `-ExpectedSignerThumbprint`.
 
 #### Code signing
 
-Signing is off by default: it needs a certificate, and there is no place for one in the repository. When you have a certificate, give the command that signs a single file — `$f` in it is replaced with the path to that file (the same placeholder Inno Setup uses, so one setting covers both the application and the installer):
+There is no certificate for the current release, so the official policy is explicit: `-SigningMode Unsigned`. This mode rejects signing parameters and environment variables, preventing a stale secret from changing an artifact accidentally.
 
 ```powershell
-build\Make-Installer.ps1 -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p PASSWORD $f'
+build\Make-Installer.ps1 -SigningMode Unsigned
 ```
 
-Instead of the parameter the command can be put into the `GCODEGEN_SIGN_COMMAND` environment variable, and the expected certificate's SHA-1 thumbprint into `GCODEGEN_EXPECTED_SIGNER_THUMBPRINT` (or pass `-ExpectedSignerThumbprint`). `GCodeGenerator.exe` and both product assemblies in the publish directory are signed, then the installer and the uninstaller (`SignedUninstaller`); Authenticode trust, the certificate and the timestamp are verified after every signing stage. The .NET runtime files need no attention — they are already signed by Microsoft. Without this setting the script builds an unsigned installer and warns about it; a stable release requires both the command and the pinned thumbprint.
+Once a publicly trusted certificate is available, use the fail-closed `Required` mode. It requires both a command that signs one file, with `$f` replaced by its path, and the expected certificate's SHA-1 thumbprint:
 
-In the release workflow the command comes from the `SIGN_COMMAND` repository secret and the expected thumbprint from `SIGNER_THUMBPRINT`. Modern OV and EV certificates live on a hardware token or in a cloud key store, so automated signing is usually performed by the provider's service (Azure Trusted Signing, DigiCert KeyLocker, SSL.com eSigner) — its command is what goes into the secret. For a certificate in a file, add a step before the build that writes the `.pfx` from a secret into a temporary file.
+```powershell
+build\Make-Installer.ps1 -SigningMode Required `
+  -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p PASSWORD $f' `
+  -ExpectedSignerThumbprint '<SHA-1 thumbprint>'
+```
+
+The values may instead be put in `GCODEGEN_SIGN_COMMAND` and `GCODEGEN_EXPECTED_SIGNER_THUMBPRINT`; they are read only in `Required` mode. `GCodeGenerator.exe` and both product assemblies in the publish directory are signed, followed by the installer and uninstaller (`SignedUninstaller`); Authenticode trust, the exact expected certificate and a timestamp are verified after every stage. The .NET runtime files are already signed by Microsoft. The active release workflow intentionally receives no signing secrets; connecting a hardware token or cloud key store and switching to `Required` remains a separate task for when a certificate exists.
 
 ### Building from source
 

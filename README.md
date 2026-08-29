@@ -140,15 +140,32 @@ GCodeGenerator — это приложение для Windows, которое п
 
 Мастер спрашивает, ставить программу для всех пользователей или только для себя. Первое требует прав администратора, второе обходится без них и кладёт программу в `%LOCALAPPDATA%\Programs` — на рабочем компьютере с ограниченной учётной записью программу поставить можно. Каталог, ярлыки и связь с файлами следуют выбранному режиму. Тихой установке режим задаётся ключом `/ALLUSERS` или `/CURRENTUSER`. Если программа уже установлена, вопрос не задаётся: обновление идёт в том же режиме, что и установка.
 
-Релиз публикуется автоматически: push тега версии (например, `1.2.3` или `1.2.3-rc5`) запускает workflow [Release](.github/workflows/release.yml) — сборка, тесты, инсталлятор (Inno Setup) и GitHub Release с установщиком `GCodeGenerator-Setup-<версия>.exe` и портативной версией (zip). Оба артефакта self-contained (включают .NET 10 Desktop Runtime). Теги с суффиксом (`-alpha`/`-beta`/`-rc`) помечаются как pre-release.
+Релиз публикуется автоматически: push тега версии (например, `1.2.3` или `1.2.3-rc5`) запускает workflow [Release](.github/workflows/release.yml) — сборка, тесты, инсталлятор (Inno Setup) и GitHub Release с установщиком `GCodeGenerator-Setup-<версия>.exe` и портативной версией (zip). Оба артефакта self-contained (включают .NET 10 Desktop Runtime). Теги с суффиксом (`-alpha`/`-beta`/`-rc`) помечаются как pre-release. Официальный выпуск публикуется только после заполнения draft и становится immutable: связанные tag и assets после этого нельзя заменить.
 
-**Предупреждение Windows при запуске.** Пока сборки не подписаны сертификатом, SmartScreen показывает «Система Windows защитила ваш компьютер» и прячет кнопку запуска: так Windows встречает любую программу без подписи, а не признак заражения. Чтобы продолжить, нажмите «Подробнее» → «Выполнить в любом случае». Убедиться, что файл тот самый, можно по хеш-сумме — сверьте её с той, что указана в описании релиза:
+**Предупреждение Windows при запуске.** Официальные сборки пока не имеют Authenticode-подписи и показывают «Неизвестный издатель». В зависимости от репутации файла и политики компьютера SmartScreen или Smart App Control могут показать предупреждение либо полностью заблокировать запуск. Само отсутствие подписи не доказывает ни заражение, ни безопасность файла. Скачивайте программу только из Releases этого репозитория; не отключайте системную защиту. Если политика Windows предлагает «Подробнее» → «Выполнить в любом случае», решение о запуске принимайте только после проверки файла.
+
+Рядом с артефактами опубликован `SHA256SUMS.txt`. Следующая команда проверяет, что локальный установщик совпадает с записью в нём:
 
 ```powershell
-Get-FileHash .\GCodeGenerator-Setup-<версия>.exe
+$version = '<версия>'
+$file = "GCodeGenerator-Setup-$version.exe"
+$line = @(Get-Content .\SHA256SUMS.txt | Where-Object {
+    $_ -match ('  ' + [regex]::Escape($file) + '$')
+})
+if ($line.Count -ne 1) { throw "Нет единственной checksum для $file" }
+$expected = ($line[0] -split '\s+')[0].ToLowerInvariant()
+$actual = (Get-FileHash -LiteralPath ".\$file" -Algorithm SHA256).Hash.ToLowerInvariant()
+if ($actual -cne $expected) { throw "SHA-256 не совпадает: $actual" }
 ```
 
-Если сборка подписана, окна SmartScreen нет, а издателя видно в свойствах файла на вкладке «Цифровые подписи».
+Для криптографической проверки того, что выпуск immutable, а локальный файл — именно его asset, установите [GitHub CLI](https://cli.github.com/) и выполните:
+
+```powershell
+gh release verify $version --repo AlexanderYunker1983/GCodeGenerator
+gh release verify-asset $version ".\$file" --repo AlexanderYunker1983/GCodeGenerator
+```
+
+В будущем подписанную сборку можно будет отличить по ожидаемому издателю на вкладке «Цифровые подписи». Даже корректная подпись снижает неопределённость происхождения, но сама по себе не гарантирует отсутствие предупреждения или безопасность программы.
 
 ### Обновление поверх работающей программы
 
@@ -164,19 +181,25 @@ build\Make-Installer.ps1
 
 Скрипт берёт версию из точного git-тега либо `build/NEXT_VERSION` для промежуточной сборки (тот же механизм, что и версия сборки), выполняет `dotnet publish` (self-contained, win-x64 — рантайм входит в инсталлятор) и компилирует `install\GCodeGenerator.iss` (ISCC). Результат: `artifacts\installer\GCodeGenerator-Setup-<версия>.exe`.
 
-Параметры: `-FrameworkDependent` (publish без рантайма — инсталлятор меньше, но пользователю нужен .NET 10 Desktop Runtime), `-IsccPath <путь к ISCC.exe>`, `-Configuration`, `-Runtime`, `-SignCommand`.
+Параметры: `-FrameworkDependent` (publish без рантайма — инсталлятор меньше, но пользователю нужен .NET 10 Desktop Runtime), `-IsccPath <путь к ISCC.exe>`, `-Configuration`, `-Runtime`, `-SigningMode`, `-SignCommand`, `-ExpectedSignerThumbprint`.
 
 #### Подпись кода
 
-Подпись выключена по умолчанию: она требует сертификата, которому в репозитории места нет. Когда сертификат есть, задайте команду подписи одного файла — `$f` в ней заменяется путём к файлу (тот же placeholder, что у Inno Setup, поэтому одна настройка покрывает и программу, и инсталлятор):
+Для текущего выпуска сертификата нет, поэтому официальная политика задана явно: `-SigningMode Unsigned`. Этот режим отклоняет параметры и переменные подписи, чтобы забытый секрет не изменил свойства артефакта случайно.
 
 ```powershell
-build\Make-Installer.ps1 -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p ПАРОЛЬ $f'
+build\Make-Installer.ps1 -SigningMode Unsigned
 ```
 
-Вместо параметра команду можно положить в переменную окружения `GCODEGEN_SIGN_COMMAND`, а SHA-1 thumbprint ожидаемого сертификата — в `GCODEGEN_EXPECTED_SIGNER_THUMBPRINT` (или передать `-ExpectedSignerThumbprint`). Подписываются `GCodeGenerator.exe` и обе сборки продукта в publish-каталоге, затем сам установщик и деинсталлятор (`SignedUninstaller`); после каждой подписи проверяются доверие Authenticode, сертификат и метка времени. Файлы .NET-рантайма трогать не нужно — они уже подписаны Microsoft. Без настройки скрипт собирает неподписанный установщик и предупреждает об этом; стабильный выпуск требует и команду, и закреплённый thumbprint.
+Когда появится публично доверенный сертификат, используется fail-closed режим `Required`. Он требует и команду подписи одного файла, где `$f` заменяется путём к файлу, и SHA-1 thumbprint ожидаемого сертификата:
 
-В релизном workflow команда берётся из секрета репозитория `SIGN_COMMAND`, а ожидаемый thumbprint — из `SIGNER_THUMBPRINT`. Современные сертификаты OV и EV хранятся на аппаратном носителе или в облачном хранилище ключей, поэтому автоматическая подпись обычно выполняется службой поставщика (Azure Trusted Signing, DigiCert KeyLocker, SSL.com eSigner) — в секрет попадает её команда. Для сертификата в файле добавьте перед шагом сборки шаг, который пишет `.pfx` из секрета во временный файл.
+```powershell
+build\Make-Installer.ps1 -SigningMode Required `
+  -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p ПАРОЛЬ $f' `
+  -ExpectedSignerThumbprint '<SHA-1 thumbprint>'
+```
+
+Вместо параметров данные можно положить в `GCODEGEN_SIGN_COMMAND` и `GCODEGEN_EXPECTED_SIGNER_THUMBPRINT`; они читаются только в `Required`. Подписываются `GCodeGenerator.exe` и обе сборки продукта в publish-каталоге, затем установщик и деинсталлятор (`SignedUninstaller`); после каждого этапа проверяются доверие Authenticode, именно ожидаемый сертификат и метка времени. Файлы .NET-рантайма уже подписаны Microsoft. Активный release workflow намеренно не получает signing-секреты; подключение аппаратного токена или облачного key store и переключение на `Required` остаются отдельной задачей после появления сертификата.
 
 ### Сборка из исходников
 
