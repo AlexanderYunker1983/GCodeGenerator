@@ -57,8 +57,10 @@ namespace GCodeGenerator.Persistence
                 throw new ArgumentNullException(nameof(json));
 
             // JSON уже построен целиком; пишем временный файл в том же
-            // каталоге и атомарно заменяем назначение. Ошибка записи не
-            // должна оставлять существующий .ygc частично обрезанным.
+            // каталоге и атомарно заменяем назначение. Предыдущая успешная
+            // версия остаётся рядом как .bak: атомарность защищает от
+            // оборванной записи, резервная копия — от ошибочного сохранения
+            // корректного, но нежелательного состояния.
             var destinationPath = Path.GetFullPath(filePath);
             // Каталога нет только у корня файловой системы — файлом проекта
             // такой путь быть не может.
@@ -67,12 +69,13 @@ namespace GCodeGenerator.Persistence
             var temporaryPath = Path.Combine(
                 directory,
                 $".{Path.GetFileName(destinationPath)}.{Guid.NewGuid():N}.tmp");
+            var backupPath = destinationPath + ".bak";
 
             try
             {
                 File.WriteAllText(temporaryPath, json, new UTF8Encoding(true));
                 if (File.Exists(destinationPath))
-                    File.Replace(temporaryPath, destinationPath, null);
+                    File.Replace(temporaryPath, destinationPath, backupPath);
                 else
                     File.Move(temporaryPath, destinationPath);
             }

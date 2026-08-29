@@ -338,10 +338,12 @@ namespace GCodeGenerator.Tests
                 Service.Save(path, new List<OperationBase> { OperationFixtures.ProfileCircle() }, null);
 
                 Assert.IsTrue(File.ReadAllText(path).Contains("\"type\":\"ProfileCircle\""));
-                CollectionAssert.AreEqual(
-                    new[] { "project.ygc" },
+                CollectionAssert.AreEquivalent(
+                    new[] { "project.ygc", "project.ygc.bak" },
                     Directory.GetFiles(directory).Select(Path.GetFileName).ToArray(),
-                    "Временный файл не должен оставаться после успешной замены");
+                    "После замены остаются только проект и его резервная копия, без временного файла");
+                Assert.AreEqual("old content", File.ReadAllText(path + ".bak"),
+                    "Резервная копия хранит состояние до последнего сохранения");
             }
             finally
             {

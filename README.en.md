@@ -107,6 +107,7 @@ the machine.
   several projects.
 - **The peck return clearance is 0.5 mm** and is not configurable.
 - **The undo history holds 100 steps.**
+- **Project backup.** When an existing `.ygc` is overwritten, its previous version is atomically kept next to it with a `.bak` suffix; rename the copy back to `.ygc` to recover it.
 - **Foreign G-code is not opened.** The application writes its files but does
   not read them: the preview shows the toolpath it built itself.
 - **DXF drawings are not read in full.** Lines, arcs, circles, ellipses,
