@@ -270,6 +270,9 @@
   <data name="Validation.NotAbove" xml:space="preserve">
     <value>The height must be above {0}: the tool travels over the workpiece at this level</value>
   </data>
+  <data name="Validation.ToolDoesNotFit" xml:space="preserve">
+    <value>The tool does not fit inside the contour</value>
+  </data>
   <data name="GenerationValidationSettings" xml:space="preserve">
     <value>Generation settings:</value>
   </data>

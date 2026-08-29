@@ -91,6 +91,86 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Внутренний профиль невозможен, если центр фрезы уже не может
+        /// описать невырожденный контур. Проверяются все аналитические фигуры:
+        /// у многоугольника предел задаёт вписанная, а не описанная окружность.
+        /// </summary>
+        [TestMethod]
+        public void ProfileInside_ToolAtOrAboveAvailableSpan_IsRejectedForEveryShape()
+        {
+            var operations = new ProfileOperationBase[]
+            {
+                new ProfileCircleOperation { Radius = 3, ToolDiameter = 6 },
+                new ProfileRectangleOperation { Width = 8, Height = 4, ToolDiameter = 4 },
+                new ProfileRoundedRectangleOperation { Width = 8, Height = 4, ToolDiameter = 5 },
+                new ProfileEllipseOperation { RadiusX = 8, RadiusY = 2, ToolDiameter = 4 },
+                new ProfilePolygonOperation
+                {
+                    Radius = 4,
+                    NumberOfSides = 3,
+                    ToolDiameter = 4.1,
+                },
+            };
+
+            foreach (var operation in operations)
+            {
+                operation.ToolPathMode = ToolPathMode.Inside;
+                var issue = ((IValidatable)operation).Validate().SingleOrDefault(
+                    candidate => candidate.Property == nameof(operation.ToolDiameter));
+
+                Assert.IsNotNull(issue, operation.GetType().Name);
+                Assert.AreEqual(ValidationCode.ToolDoesNotFit, issue.Code, operation.GetType().Name);
+            }
+        }
+
+        /// <summary>
+        /// Тот же диаметр допустим по линии и снаружи: ограничение относится
+        /// именно к внутренней эквидистанте и не должно запрещать остальные
+        /// два режима обработки.
+        /// </summary>
+        [TestMethod]
+        public void ProfileOutsideAndOnLine_DoNotApplyInsideToolFitLimit()
+        {
+            foreach (var mode in new[] { ToolPathMode.OnLine, ToolPathMode.Outside })
+            {
+                var operation = new ProfileCircleOperation
+                {
+                    Radius = 2,
+                    ToolDiameter = 20,
+                    ToolPathMode = mode,
+                };
+
+                AssertValid(operation);
+            }
+        }
+
+        /// <summary>
+        /// Clipper возвращает пустую эквидистанту, когда фреза шире
+        /// замкнутого DXF-контура. Раньше генератор подставлял вместо неё
+        /// координату (0, 0) и начинал рез не по чертежу.
+        /// </summary>
+        [TestMethod]
+        public void ProfileDxf_InsideToolThatCollapsesClosedContour_IsRejectedBeforeGeneration()
+        {
+            var operation = OperationFixtures.ProfileDxf();
+            operation.ToolPathMode = ToolPathMode.Inside;
+            operation.ToolDiameter = 6;
+            operation.Polylines = new List<Polyline2D>
+            {
+                Poly((20, 20), (24, 20), (24, 24), (20, 24), (20, 20)),
+            };
+
+            var issue = operation.Validate().Single(candidate =>
+                candidate.Property == nameof(operation.ToolDiameter));
+            Assert.AreEqual(ValidationCode.ToolDoesNotFit, issue.Code);
+
+            var failure = Assert.Throws<GCodeGenerationValidationException>(() =>
+                new SimpleGCodeGenerator().Generate(
+                    new List<OperationBase> { operation }, SettingsFixtures.Default()));
+            Assert.AreEqual(nameof(operation.ToolDiameter), failure.Failures.Single().Issues.Single().Property);
+        }
+
+        /// <summary>
         /// Замкнутый контур, замкнутый с точностью до допустимого отклонения
         /// (5e-4 &lt; 1e-3 — допуск импортера DXF), не помечается как открытый.
         /// </summary>

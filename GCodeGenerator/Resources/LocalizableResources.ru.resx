@@ -270,6 +270,9 @@
   <data name="Validation.NotAbove" xml:space="preserve">
     <value>Высота должна быть выше {0}: на ней инструмент проходит над заготовкой</value>
   </data>
+  <data name="Validation.ToolDoesNotFit" xml:space="preserve">
+    <value>Инструмент не помещается внутри контура</value>
+  </data>
   <data name="GenerationValidationSettings" xml:space="preserve">
     <value>Настройки генерации:</value>
   </data>

@@ -42,6 +42,9 @@ namespace GCodeGenerator.Models
         /// </summary>
         NotAbove,
 
+        /// <summary>Инструмент не помещается внутри выбранного контура.</summary>
+        ToolDoesNotFit,
+
         /// <summary>Прочая несогласованность параметров.</summary>
         Inconsistent
     }

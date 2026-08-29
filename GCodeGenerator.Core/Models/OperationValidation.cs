@@ -449,6 +449,107 @@ namespace GCodeGenerator.Models
             // рампа не опускается, при прямом — это уже вертикальный вход.
             if (operation.EntryMode == EntryMode.Angled)
                 AddIfOutOfRange(issues, nameof(operation.EntryAngle), operation.EntryAngle, 0.1, 89.9);
+
+            AddInsideProfileToolFitIssue(issues, operation);
+        }
+
+        /// <summary>
+        /// Внутренняя эквидистанта существует только пока радиус фрезы
+        /// меньше доступного поперечного размера фигуры. При равенстве
+        /// траектория вырождается в точку, при превышении аналитические
+        /// фигуры зеркально выворачиваются, а смещение DXF исчезает совсем.
+        /// Ни один из этих результатов не является пригодным G-code.
+        /// </summary>
+        private static void AddInsideProfileToolFitIssue(
+            IList<ValidationIssue> issues,
+            ProfileOperationBase operation)
+        {
+            if (operation.ToolPathMode != ToolPathMode.Inside
+                || !double.IsFinite(operation.ToolDiameter)
+                || operation.ToolDiameter <= 0)
+            {
+                return;
+            }
+
+            double? availableDiameter = operation switch
+            {
+                ProfileCircleOperation circle when double.IsFinite(circle.Radius) && circle.Radius > 0
+                    => 2.0 * circle.Radius,
+                ProfileRectangleOperation rectangle
+                    when double.IsFinite(rectangle.Width) && rectangle.Width > 0
+                        && double.IsFinite(rectangle.Height) && rectangle.Height > 0
+                    => Math.Min(rectangle.Width, rectangle.Height),
+                ProfileRoundedRectangleOperation rounded
+                    when double.IsFinite(rounded.Width) && rounded.Width > 0
+                        && double.IsFinite(rounded.Height) && rounded.Height > 0
+                    => Math.Min(rounded.Width, rounded.Height),
+                ProfileEllipseOperation ellipse
+                    when double.IsFinite(ellipse.RadiusX) && ellipse.RadiusX > 0
+                        && double.IsFinite(ellipse.RadiusY) && ellipse.RadiusY > 0
+                    => 2.0 * Math.Min(ellipse.RadiusX, ellipse.RadiusY),
+                ProfilePolygonOperation polygon
+                    when double.IsFinite(polygon.Radius) && polygon.Radius > 0
+                        && polygon.NumberOfSides >= 3
+                    => 2.0 * polygon.Radius * Math.Cos(Math.PI / polygon.NumberOfSides),
+                _ => null,
+            };
+
+            bool doesNotFit = availableDiameter.HasValue
+                && operation.ToolDiameter >= availableDiameter.Value - GeometryTolerances.Degenerate;
+
+            if (!doesNotFit && operation is ProfileDxfOperation dxf)
+                doesNotFit = HasCollapsedClosedDxfContour(dxf.Polylines, operation.ToolDiameter / 2.0);
+
+            if (doesNotFit && !HasIssue(issues, nameof(operation.ToolDiameter)))
+            {
+                var detail = availableDiameter.HasValue
+                    ? $"; available inside diameter is {Text(availableDiameter.Value)}"
+                    : string.Empty;
+                issues.Add(new ValidationIssue(
+                    nameof(operation.ToolDiameter),
+                    ValidationCode.ToolDoesNotFit,
+                    $"tool diameter {Text(operation.ToolDiameter)} does not fit inside the contour{detail}"));
+            }
+        }
+
+        /// <summary>
+        /// Проверяет замкнутые DXF-полилинии тем же построителем
+        /// эквидистанты, который использует генератор. Открытая линия не
+        /// ограничивает диаметр: для неё режим Inside означает выбор одной
+        /// из сторон линии, а не размещение инструмента внутри области.
+        /// </summary>
+        private static bool HasCollapsedClosedDxfContour(
+            IReadOnlyList<Polyline2D> polylines,
+            double toolRadius)
+        {
+            if (polylines == null)
+                return false;
+
+            foreach (var polyline in polylines)
+            {
+                if (polyline == null)
+                    continue;
+
+                var points = polyline.Points;
+                if (points == null || points.Count < 4 || !IsContourClosed(polyline))
+                    continue;
+
+                if (points.Any(point => point == null
+                    || !double.IsFinite(point.X)
+                    || !double.IsFinite(point.Y)))
+                {
+                    continue;
+                }
+
+                var offset = ContourOffset.Offset(points, -toolRadius);
+                if (offset.Count == 0
+                    || offset.All(part => Geometry2D.Area(part) <= GeometryTolerances.Degenerate))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
