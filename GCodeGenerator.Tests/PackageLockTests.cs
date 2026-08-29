@@ -43,6 +43,27 @@ namespace GCodeGenerator.Tests
 
         private static string Root => RepositoryRootLocator.Find();
 
+        /// <summary>
+        /// Замок пакетов воспроизводим только вместе с тем SDK, чей NuGet
+        /// построил граф зависимостей. Минимальная версия с разрешённым
+        /// roll-forward выглядит закреплённой, но на новом runner молча
+        /// выбирает другой набор инструментов.
+        /// </summary>
+        [TestMethod]
+        public void GlobalJson_PinsTheExactStableSdk()
+        {
+            using var document = JsonDocument.Parse(
+                File.ReadAllText(Path.Combine(Root, "global.json")));
+            var sdk = document.RootElement.GetProperty("sdk");
+
+            Assert.AreEqual("10.0.302", sdk.GetProperty("version").GetString(),
+                "Версия SDK — часть воспроизводимой сборки");
+            Assert.AreEqual("disable", sdk.GetProperty("rollForward").GetString(),
+                "SDK не должен молча переходить на другой patch или feature band");
+            Assert.IsFalse(sdk.GetProperty("allowPrerelease").GetBoolean(),
+                "Публичный релиз не собирается предварительной версией SDK");
+        }
+
         [TestMethod]
         public void PublishedProjects_DeclareThePublishRuntime()
         {

@@ -202,11 +202,12 @@ The values may instead be put in `GCODEGEN_SIGN_COMMAND` and `GCODEGEN_EXPECTED_
 
 ### Building from source
 
-Requirements: the **.NET 10 SDK** — the exact version is pinned in `global.json`
-(10.0.302 or newer of the same band). The package set is fixed by
-`packages.lock.json`; to restore exactly by the lock, add `--locked-mode` to
-the restore, as the build workflows do. After changing a package version in a
-`.csproj`, the lock is updated by restoring with `--force-evaluate`.
+Requirements: the **.NET 10 SDK 10.0.302** — the exact version is pinned in
+`global.json` without rolling forward to a newer patch or feature band. The
+package set is fixed by `packages.lock.json`; to restore exactly by the lock,
+add `--locked-mode` to the restore, as the build workflows do. After changing
+a package version in a `.csproj`, the lock is updated by restoring with
+`--force-evaluate`.
 
 The lock covers publishing as well: the application and the core declare their
 runtime (`RuntimeIdentifiers` = `win-x64`), so their locks have a section both
