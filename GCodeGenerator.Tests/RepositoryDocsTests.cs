@@ -495,6 +495,48 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Первая страница проекта перечисляет все девять режимов сверления
+        /// и все клавиши главного окна. Именно здесь пользователь решает,
+        /// умеет ли приложение выполнить его задачу, поэтому пропуск режима
+        /// равносилен отсутствующей функции.
+        /// </summary>
+        [TestMethod]
+        public void Readmes_NameEveryDrillingModeAndMainWindowShortcut()
+        {
+            Assert.AreEqual(9, Enum.GetValues<DrillMode>().Length,
+                "Число режимов сверления изменилось — перечень README нужно пересмотреть");
+
+            var russian = Read("README.md");
+            var english = Read("README.en.md");
+
+            foreach (var name in new[]
+            {
+                "Сверление по точкам", "Сверление по линии", "Сверление по массиву",
+                "Сверление по прямоугольнику", "Сверление по кругу", "Сверление по дуге",
+                "Сверление по многоугольнику", "Сверление по эллипсу", "Сверление по пакету"
+            })
+                StringAssert.Contains(russian, name, $"README.md не называет режим «{name}»");
+
+            foreach (var name in new[]
+            {
+                "Drilling at points", "Drilling along a line", "Drilling in an array",
+                "Drilling along a rectangle", "Drilling along a circle", "Drilling along an arc",
+                "Drilling along a polygon", "Drilling along an ellipse", "Drilling from a package"
+            })
+                StringAssert.Contains(english, name, $"README.en.md не называет режим «{name}»");
+
+            foreach (var shortcut in new[]
+            {
+                "Ctrl+N", "Ctrl+O", "Ctrl+S", "Ctrl+Shift+S",
+                "Ctrl+Z", "Ctrl+Y", "Ctrl+G", "Delete", "F1"
+            })
+            {
+                StringAssert.Contains(russian, shortcut, $"README.md не называет {shortcut}");
+                StringAssert.Contains(english, shortcut, $"README.en.md не называет {shortcut}");
+            }
+        }
+
+        /// <summary>
         /// Обещание «только миллиметры» держится кодом: дюймового режима
         /// в выводе нет ни при каких настройках.
         /// </summary>

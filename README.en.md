@@ -18,6 +18,8 @@ GCodeGenerator is a Windows application for quickly creating G-code programs for
 - **Drilling in an array** — a grid of holes
 - **Drilling along a rectangle** — holes around the perimeter of a rectangle
 - **Drilling along a circle** — holes around a circle
+- **Drilling along an arc** — holes along a specified part of a circle
+- **Drilling along a polygon** — holes along the sides of a regular polygon
 - **Drilling along an ellipse** — holes around an ellipse, rotation supported
 - **Drilling from a package** — predefined hole patterns
 
@@ -66,7 +68,7 @@ GCodeGenerator is a Windows application for quickly creating G-code programs for
 - **Interface language** — Russian and English; chosen in the settings and applied at once, without a restart. The system language is used by default, and English when there is no translation for it. Failures speak the interface language too: the reason a program was not built is listed one problem per line — the number and name of the operation, the name of the parameter and what is wrong with it, in the same words the operation dialogs use. The English text of the failure stays in the application log
 - **Operation management** — adding, removing and reordering operations; undo and redo of both those changes and parameter edits (Ctrl+Z / Ctrl+Y), one history step per dialog. The history keeps the last 100 steps: every step holds the whole state of an operation, and for a contour imported from a drawing that is hundreds of kilobytes
 - **Cancelling generation** — a stop button appears next to the progress bar: on a large project with a fine stepover there is no need to wait for the build to finish once it is clear the parameters are wrong. Stopping takes a fraction of a second — it reaches every layer and every hole
-- **Document shortcuts** — Ctrl+N (new project), Ctrl+O (open), Ctrl+S (save), Ctrl+Shift+S (save as), F1 (about). The shortcut is named in the tooltip of every toolbar button
+- **Keyboard shortcuts** — Ctrl+N (new project), Ctrl+O (open), Ctrl+S (save), Ctrl+Shift+S (save as), Ctrl+Z / Ctrl+Y (undo / redo), Ctrl+G (generate G-code), F1 (about). Delete removes the selected operation only while focus is in the operations list
 - **Update check** — optional and off by default. This is the only time the application goes online: it asks github.com for the latest release and nothing else — the request needs no keys and no credentials. Turn it on in the settings and a "Version X is available" line appears at startup, opening the release page. The "Check now" button in the About window works regardless of the setting: pressing it is the consent. A failed check interrupts nothing and names itself: the window says what got in the way — the network, GitHub’s answer, or the request limit it applies, which lifts on its own
 - **About window** — version, copyright holder, licence, product page and the path to the application log with a "show file" button: the log is what a bug report is asked for, and it should not have to be hunted for inside the profile
 - **Application log** — opening and saving projects, generating G-code, importing DXF and any failure are written to `%LOCALAPPDATA%\GCodeGenerator\logs\gcodegenerator.log` (at 1 MB the file is rolled over to `gcodegenerator.1.log`)
@@ -117,20 +119,24 @@ the machine.
 - **DXF drawings are not read in full.** Lines, arcs, circles, ellipses,
   polylines (3D ones and ones with arc segments included), splines
   (approximated by a polyline) and block inserts are taken. Text, dimensions,
-  hatches and the rest do not count as contour geometry.
+  hatches and the rest do not count as contour geometry. The drawing must be
+  DXF 2000 or newer and declare its drawing units. ARC and ELLIPSE are supported
+  only in the XY plane with a +Z normal; project other curves or convert them
+  to polylines in the CAD application first.
 - **Windows only.** The interface is written in WPF; cross-platform support is
   promised for version 2.x.
 
 ## Requirements
 
 - **Operating system: Windows 11 24H2 (build 26100) or newer.** Windows 10
-  reached end of support and is absent from the
-  [operating systems supported by .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md),
-  so the application is not supported there; the installer enforces the same
-  minimum build 26100.
-- **Display:** the window takes at least 900×560 layout units — that is 1600×1000 pixels at 175 % scaling, or 900×560 at 100 %. On 1920×1080 the application works at any scaling up to 175 %.
+  consumer editions have reached end of support; the
+  [operating systems supported by .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md)
+  retain only specific Enterprise, IoT and LTSC editions. Those editions are
+  outside the product's supported configuration; the installer enforces the
+  same minimum build 26100.
+- **Display:** the window takes at least 900×560 layout units — approximately 1575×980 physical pixels at 175 % scaling, or 900×560 at 100 %. On 1920×1080 the application works at any scaling up to 175 %.
 - The **.NET 10 Desktop Runtime** is **not required** to run the application: the installer and the portable build are self-contained (the runtime is included) — the application runs on a clean Windows.
-- To build from source: the **.NET 10 SDK** (10.0.x) — Visual Studio 2026 or the command line.
+- To build from source: the **.NET 10 SDK 10.0.302** — the exact version from `global.json`, Visual Studio 2026 or the command line.
 
 ## Installation
 
