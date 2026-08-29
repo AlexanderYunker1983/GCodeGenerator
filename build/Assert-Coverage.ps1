@@ -22,14 +22,40 @@ $ErrorActionPreference = 'Stop'
 $reports = @(
     Get-ChildItem -LiteralPath $ResultsDirectory -Filter '*.cobertura.xml' -File -Recurse
 )
-if ($reports.Count -ne 1) {
-    throw "Expected exactly one Cobertura report in '$ResultsDirectory', found $($reports.Count)."
+if ($reports.Count -eq 0) {
+    throw "Expected a Cobertura report in '$ResultsDirectory', found none."
 }
 
-[xml]$coverage = Get-Content -LiteralPath $reports[0].FullName
+$reportsByHash = @{}
+foreach ($report in $reports) {
+    $sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $stream = $null
+    try {
+        $stream = [System.IO.File]::OpenRead($report.FullName)
+        $hash = [System.BitConverter]::ToString($sha256.ComputeHash($stream)).Replace('-', '')
+    }
+    finally {
+        if ($null -ne $stream) {
+            $stream.Dispose()
+        }
+        $sha256.Dispose()
+    }
+    if (-not $reportsByHash.ContainsKey($hash)) {
+        $reportsByHash[$hash] = $report
+    }
+}
+
+$uniqueReports = @($reportsByHash.Values)
+if ($uniqueReports.Count -ne 1) {
+    $reportList = ($reports.FullName | Sort-Object) -join "'; '"
+    throw "Expected exactly one distinct Cobertura report in '$ResultsDirectory', found $($uniqueReports.Count): '$reportList'."
+}
+
+$reportPath = $uniqueReports[0].FullName
+[xml]$coverage = Get-Content -LiteralPath $reportPath
 $packages = @($coverage.coverage.packages.package | Where-Object name -EQ $Assembly)
 if ($packages.Count -ne 1) {
-    throw "Expected exactly one '$Assembly' package in '$($reports[0].FullName)', found $($packages.Count)."
+    throw "Expected exactly one '$Assembly' package in '$reportPath', found $($packages.Count)."
 }
 
 $culture = [System.Globalization.CultureInfo]::InvariantCulture

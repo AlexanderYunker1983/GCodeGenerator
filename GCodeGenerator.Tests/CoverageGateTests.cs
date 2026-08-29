@@ -59,6 +59,38 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Gate_AcceptsIdenticalCollectorCopiesButRejectsDifferentReports()
+        {
+            var identical = WriteReport("identical-copies", 0.80, 0.65);
+            var nestedDirectory = Path.Combine(identical, "In", "test-host");
+            Directory.CreateDirectory(nestedDirectory);
+            File.Copy(
+                Path.Combine(identical, "coverage.cobertura.xml"),
+                Path.Combine(nestedDirectory, "coverage.cobertura.xml"));
+
+            var different = WriteReport("different-reports", 0.80, 0.65);
+            var secondDirectory = Path.Combine(different, "In", "test-host");
+            Directory.CreateDirectory(secondDirectory);
+            File.WriteAllText(
+                Path.Combine(secondDirectory, "coverage.cobertura.xml"),
+                "<coverage><packages><package name=\"GCodeGenerator\" line-rate=\"0.90\" branch-rate=\"0.75\" /></packages></coverage>");
+
+            try
+            {
+                Assert.AreEqual(0, RunGate(identical).ExitCode);
+
+                var result = RunGate(different);
+                Assert.AreNotEqual(0, result.ExitCode);
+                StringAssert.Contains(result.Output, "exactly one distinct Cobertura report");
+            }
+            finally
+            {
+                Directory.Delete(identical, true);
+                Directory.Delete(different, true);
+            }
+        }
+
+        [TestMethod]
         public void Ci_CollectsCoberturaAndEnforcesBothProductAssemblies()
         {
             var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "ci.yml"));
