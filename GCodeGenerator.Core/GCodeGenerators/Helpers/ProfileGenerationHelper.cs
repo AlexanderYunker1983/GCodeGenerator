@@ -256,9 +256,9 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
         /// Отводит инструмент от материала и возвращает его к началу контура
         /// на глубину <paramref name="z"/>.
         ///
-        /// Высота отвода — безопасное расстояние между проходами над текущей
-        /// глубиной. Пока параметр не задан (ноль в старых проектах),
-        /// используется безопасная высота, как было до его появления.
+        /// Горизонтальный быстрый ход всегда выполняется не ниже безопасной
+        /// высоты над заготовкой. Расстояние между проходами может поднять
+        /// отвод ещё выше, но не может опустить его внутрь материала.
         /// </summary>
         private static void ReturnToStart(
             ProfileOperationBase op,
@@ -267,9 +267,7 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             ToolPathBuilder builder,
             int decimals)
         {
-            var retractZ = op.SafeDistanceBetweenPasses > 0
-                ? z + op.SafeDistanceBetweenPasses
-                : op.SafeZHeight;
+            var retractZ = Math.Max(op.SafeZHeight, z + op.SafeDistanceBetweenPasses);
 
             builder.RapidTo(z: retractZ, feed: op.FeedZRapid);
             builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid);

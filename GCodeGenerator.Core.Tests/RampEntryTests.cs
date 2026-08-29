@@ -53,14 +53,22 @@ namespace GCodeGenerator.Tests
                 .ToList();
 
         [TestMethod]
-        public void ReturnToStart_RetractsBySafeDistanceAboveMaterial()
+        public void ReturnToStart_RapidMoveStaysAboveStock()
         {
             var lines = Generate(Circle(entryAngle: 3, safeDistance: 0.8));
 
-            // Слой заканчивается на Z-1; отвод перед рабочим проходом — на
-            // 0,8 мм выше него, а не на безопасной высоте 1 мм над заготовкой.
-            Assert.IsTrue(RapidZ(lines).Any(z => Math.Abs(z - (-0.2)) < 1e-9),
-                "Отвод на 0,8 мм над только что пройденной глубиной");
+            var horizontalRapids = lines
+                .Select((line, index) => (line, index))
+                .Where(item => item.line.StartsWith("G0 X", StringComparison.Ordinal))
+                .ToList();
+
+            Assert.IsTrue(horizontalRapids.Count > 1, "В программе есть возвраты между проходами");
+            foreach (var rapid in horizontalRapids)
+            {
+                var previousZ = RapidZ(new[] { lines[rapid.index - 1] }).Single();
+                Assert.IsTrue(previousZ >= 1.0 - 1e-9,
+                    $"Перед {rapid.line} высота {previousZ} ниже безопасной высоты над заготовкой");
+            }
         }
 
         [TestMethod]
@@ -84,10 +92,19 @@ namespace GCodeGenerator.Tests
         {
             var lines = Generate(Circle(entryAngle: 1, safeDistance: 0.8));
 
-            // Каждый виток заканчивается отводом на 0,8 мм над своей глубиной.
-            var retracts = RapidZ(lines).Count(z => Math.Abs(z - 0.45) < 1e-9 || Math.Abs(z - (-0.2)) < 1e-9);
+            // Каждый виток заканчивается отводом над верхом заготовки.
+            var retracts = RapidZ(lines).Count(z => Math.Abs(z - 1.0) < 1e-9);
             Assert.IsTrue(retracts >= 2,
                 $"Ожидалось не менее двух отводов между витками, найдено {retracts}");
+        }
+
+        [TestMethod]
+        public void LargeSafeDistance_CanRaiseClearanceAboveSafeHeight()
+        {
+            var lines = Generate(Circle(entryAngle: 3, safeDistance: 5));
+
+            Assert.IsTrue(RapidZ(lines).Any(z => Math.Abs(z - 4.0) < 1e-9),
+                "Явно больший зазор между проходами сохраняет своё назначение");
         }
 
         [TestMethod]
