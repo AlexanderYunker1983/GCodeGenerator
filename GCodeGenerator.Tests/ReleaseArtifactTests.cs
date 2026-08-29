@@ -245,11 +245,19 @@ namespace GCodeGenerator.Tests
             var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
             var script = File.ReadAllText(Path.Combine(Root, "build", "Test-PackagedArtifacts.ps1"));
 
-            Assert.AreEqual(3,
-                System.Text.RegularExpressions.Regex.Matches(
-                    workflow,
-                    @"(?m)^    timeout-minutes: \d+$").Count,
-                "Каждый release job должен иметь верхнюю границу времени");
+            const string timeoutPattern = @"(?m)^    timeout-minutes: \d+\r?$";
+            var lfWorkflow = workflow.Replace("\r\n", "\n", StringComparison.Ordinal);
+            var crlfWorkflow = lfWorkflow.Replace("\n", "\r\n", StringComparison.Ordinal);
+            foreach (var (lineEndings, text) in new[]
+                     {
+                         ("LF", lfWorkflow),
+                         ("CRLF", crlfWorkflow)
+                     })
+            {
+                Assert.AreEqual(3,
+                    System.Text.RegularExpressions.Regex.Matches(text, timeoutPattern).Count,
+                    $"Каждый release job должен иметь верхнюю границу времени ({lineEndings})");
+            }
             StringAssert.Contains(script, "[int]$ProcessTimeoutSeconds = 300");
             StringAssert.Contains(script, "$process.WaitForExit($processTimeoutMilliseconds)",
                 "Установщик или деинсталлятор может зависнуть навсегда");
