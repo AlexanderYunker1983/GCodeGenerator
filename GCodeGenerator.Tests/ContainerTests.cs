@@ -27,7 +27,7 @@ namespace GCodeGenerator.Tests
     [SupportedOSPlatform("windows")]
     public class ContainerTests
     {
-        private static IContainer BuildContainer()
+        internal static IContainer BuildContainer()
         {
             var builder = new ContainerBuilder();
             builder.RegisterInstance(NullAppLogger.Instance).As<IAppLogger>();
