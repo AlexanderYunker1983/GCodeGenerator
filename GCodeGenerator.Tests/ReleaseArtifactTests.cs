@@ -348,6 +348,20 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void InnoSetupBootstrap_WaitsForGuiInstallerWithTimeout()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+
+            Assert.IsFalse(workflow.Contains("& $installer /VERYSILENT", StringComparison.Ordinal),
+                "Голый вызов GUI-exe не ждёт завершения в Windows PowerShell 5.1");
+            StringAssert.Contains(workflow, "Start-Process -FilePath $installer");
+            StringAssert.Contains(workflow, "$installProcess.WaitForExit(300000)",
+                "Установка Inno Setup может продолжить workflow раньше времени или зависнуть навсегда");
+            StringAssert.Contains(workflow, "$installProcess.ExitCode");
+            StringAssert.Contains(workflow, "$installProcess.Dispose()");
+        }
+
+        [TestMethod]
         public void ReleaseWorkflow_AndPackagedProcesses_HaveExplicitTimeouts()
         {
             var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));

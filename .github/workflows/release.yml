@@ -196,8 +196,24 @@ jobs:
           gh release verify-asset is-7_1_0 $installer --repo jrsoftware/issrc
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup GitHub release attestation is invalid.' }
 
-          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS
-          if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed with exit code $LASTEXITCODE" }
+          $installProcess = Start-Process -FilePath $installer `
+            -ArgumentList @('/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/ALLUSERS') `
+            -WindowStyle Hidden `
+            -PassThru
+          try {
+            if (-not $installProcess.WaitForExit(300000)) {
+              throw 'Inno Setup installation timed out after 300 seconds.'
+            }
+            if ($installProcess.ExitCode -ne 0) {
+              throw "Inno Setup installation failed with exit code $($installProcess.ExitCode)"
+            }
+          }
+          finally {
+            if (-not $installProcess.HasExited) {
+              Stop-Process -Id $installProcess.Id -Force -ErrorAction SilentlyContinue
+            }
+            $installProcess.Dispose()
+          }
           $iscc = 'C:\Program Files\Inno Setup 7\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "Inno Setup installation failed: $iscc not found" }
           Write-Host "ISCC ready: $iscc"
