@@ -5,6 +5,7 @@
 // разметки. Директива стоит пофайлово, как в ядре.
 #nullable enable
 using System;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -31,11 +32,32 @@ namespace GCodeGenerator
         private IContainer? _container;
         private CrashHandler? _crashHandler;
         private MainViewModel? _mainViewModel;
+        private SingleInstanceCoordinator? _singleInstance;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-            StartupCore(ProjectFileFromCommandLine(e.Args));
+            var projectFile = ProjectFileFromCommandLine(e.Args);
+            var logger = new FileAppLogger();
+            _logger = logger;
+            _singleInstance = SingleInstanceCoordinator.CreateDefault(HandleForwardedRequest, logger);
+            if (!_singleInstance.TryAcquire())
+            {
+                var forwarded = _singleInstance.TryForward(projectFile, TimeSpan.FromSeconds(10));
+                if (!forwarded)
+                {
+                    MessageBox.Show(
+                        "GCodeGenerator is already running, but the request could not be delivered.",
+                        "GCodeGenerator",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+                Shutdown(forwarded ? 0 : 2);
+                return;
+            }
+
+            StartupCore(projectFile, logger);
+            _singleInstance.StartListening();
         }
 
         /// <summary>
@@ -55,7 +77,7 @@ namespace GCodeGenerator
             foreach (var argument in args ?? Array.Empty<string>())
             {
                 if (!string.IsNullOrWhiteSpace(argument) && System.IO.File.Exists(argument))
-                    return argument;
+                    return Path.GetFullPath(argument);
             }
 
             return null;
@@ -67,6 +89,8 @@ namespace GCodeGenerator
         /// </summary>
         protected override void OnExit(ExitEventArgs e)
         {
+            _singleInstance?.Dispose();
+            _singleInstance = null;
             _container?.Dispose();
             _container = null;
             base.OnExit(e);
@@ -80,12 +104,11 @@ namespace GCodeGenerator
         /// <param name="projectFile">
         /// Проект, который нужно открыть при запуске, или <c>null</c>.
         /// </param>
-        private void StartupCore(string? projectFile = null)
+        /// <param name="logger">Журнал, созданный до межпроцессной проверки.</param>
+        private void StartupCore(string? projectFile, FileAppLogger logger)
         {
             // Журнал создаётся первым: он нужен обработчикам необработанных
             // исключений и менеджеру локализации.
-            var logger = new FileAppLogger();
-            _logger = logger;
             HookUnhandledExceptionHandlers();
 
             // Локализация (ранее — LocalizationModule.Load).
@@ -170,6 +193,32 @@ namespace GCodeGenerator
             // Проект открывается после показа окна: чтение и разбор идут
             // в фоне, а сообщение об ошибке требует окна-владельца.
             _ = OpenStartupDocumentAsync(projectFile);
+        }
+
+        private void HandleForwardedRequest(string? projectFile)
+        {
+            Dispatcher.BeginInvoke(new Action(() => _ = OpenForwardedRequestAsync(projectFile)));
+        }
+
+        private async Task OpenForwardedRequestAsync(string? projectFile)
+        {
+            try
+            {
+                if (MainWindow != null)
+                {
+                    if (MainWindow.WindowState == WindowState.Minimized)
+                        MainWindow.WindowState = WindowState.Normal;
+                    MainWindow.Show();
+                    MainWindow.Activate();
+                }
+
+                if (projectFile != null && _mainViewModel != null)
+                    await _mainViewModel.OpenProjectAsync(projectFile);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Не удалось обработать запрос другого экземпляра приложения", ex);
+            }
         }
 
         private async Task OpenStartupDocumentAsync(string? projectFile)
