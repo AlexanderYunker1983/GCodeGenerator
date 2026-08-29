@@ -18,10 +18,17 @@ namespace GCodeGenerator.Toolpath
     public sealed class ToolPathBuilder
     {
         private readonly ToolPathOperation _operation;
+        private readonly ToolPathBudget _budget;
 
         public ToolPathBuilder(ToolPathOperation operation)
+            : this(operation, new ToolPathBudget())
+        {
+        }
+
+        internal ToolPathBuilder(ToolPathOperation operation, ToolPathBudget budget)
         {
             _operation = operation ?? throw new ArgumentNullException(nameof(operation));
+            _budget = budget ?? throw new ArgumentNullException(nameof(budget));
         }
 
         /// <summary>Траектория, которую наполняет построитель.</summary>
@@ -30,6 +37,7 @@ namespace GCodeGenerator.Toolpath
         /// <summary>Пояснение к следующему участку траектории.</summary>
         public void Comment(string text)
         {
+            _budget.Consume();
             _operation.Add(new ToolPathNote(text));
         }
 
@@ -58,6 +66,7 @@ namespace GCodeGenerator.Toolpath
         /// </summary>
         public void ArcCW(double x, double y, double i, double j, double feed, double? z = null)
         {
+            _budget.Consume();
             _operation.Add(new ArcMove(clockwise: true, x, y, i, j, feed, z));
         }
 
@@ -67,13 +76,35 @@ namespace GCodeGenerator.Toolpath
         /// </summary>
         public void ArcCCW(double x, double y, double i, double j, double feed, double? z = null)
         {
+            _budget.Consume();
             _operation.Add(new ArcMove(clockwise: false, x, y, i, j, feed, z));
         }
 
         private void Add(
             ToolMoveKind kind, double? x, double? y, double? z, double? i, double? j, double? feed)
         {
+            _budget.Consume();
             _operation.Add(new ToolMove(kind, x, y, z, i, j, feed));
+        }
+    }
+
+    /// <summary>Общий счётчик размера траектории всех операций проекта.</summary>
+    internal sealed class ToolPathBudget
+    {
+        private int _items;
+
+        public void Consume()
+        {
+            if (++_items > Models.GenerationLimits.MaxToolPathItems)
+                throw new ToolPathLimitExceededException();
+        }
+    }
+
+    internal sealed class ToolPathLimitExceededException : InvalidOperationException
+    {
+        public ToolPathLimitExceededException()
+            : base($"Tool path exceeds {Models.GenerationLimits.MaxToolPathItems} items.")
+        {
         }
     }
 }

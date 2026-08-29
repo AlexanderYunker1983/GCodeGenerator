@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Threading;
 
 namespace GCodeGenerator.Models
 {
@@ -26,16 +27,26 @@ namespace GCodeGenerator.Models
         /// <summary>Отверстия шаблона по параметрам операции.</summary>
         /// <param name="operation">Операция сверления.</param>
         public IReadOnlyList<DrillHole> Holes(DrillPointsOperation operation)
+            => Holes(operation, CancellationToken.None);
+
+        /// <summary>Отверстия шаблона с отменой длительного построения.</summary>
+        public IReadOnlyList<DrillHole> Holes(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             if (operation == null)
                 throw new ArgumentNullException(nameof(operation));
 
-            return Build(operation);
+            cancellation.ThrowIfCancellationRequested();
+            return Build(operation, cancellation);
         }
 
         /// <summary>Расстановка отверстий: формулы конкретного шаблона.</summary>
         /// <param name="operation">Операция сверления.</param>
-        protected abstract List<DrillHole> Build(DrillPointsOperation operation);
+        /// <param name="cancellation">Отмена фонового построения.</param>
+        protected abstract List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation);
 
         /// <summary>
         /// Проблемы параметров шаблона. Пороги объявляются рядом с формулами
@@ -50,6 +61,24 @@ namespace GCodeGenerator.Models
         public virtual void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
         {
         }
+
+        protected static void AddHoleCountIssue(
+            IList<ValidationIssue> issues,
+            string property,
+            long count)
+        {
+            if (count <= GenerationLimits.MaxHolesPerOperation)
+                return;
+
+            issues.Add(new ValidationIssue(
+                property,
+                ValidationCode.AboveMaximum,
+                $"pattern must produce at most {GenerationLimits.MaxHolesPerOperation} holes, but produces {count}",
+                GenerationLimits.MaxHolesPerOperation));
+        }
+
+        protected static bool HoleCountIsSafe(long count)
+            => count >= 0 && count <= GenerationLimits.MaxHolesPerOperation;
 
         /// <summary>
         /// Отверстие шаблона: координаты плюс общие параметры глубины и подач,
@@ -82,8 +111,18 @@ namespace GCodeGenerator.Models
     {
         public override DrillMode Mode => DrillMode.Points;
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
-            => new List<DrillHole>(operation.Holes);
+        public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
+            => AddHoleCountIssue(issues, nameof(operation.Holes), operation.Holes.Count);
+
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
+        {
+            if (!HoleCountIsSafe(operation.Holes.Count))
+                return new List<DrillHole>();
+            cancellation.ThrowIfCancellationRequested();
+            return new List<DrillHole>(operation.Holes);
+        }
     }
 
     /// <summary>Отверстия по прямой линии под заданным углом.</summary>
@@ -94,13 +133,17 @@ namespace GCodeGenerator.Models
         public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
         {
             OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 1);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount), operation.HoleCount);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
-            if (operation.HoleCount <= 0 || operation.Distance == 0)
+            if (operation.HoleCount <= 0 || operation.Distance == 0
+                || !HoleCountIsSafe(operation.HoleCount))
                 return holes;
 
             var angleRad = operation.AngleDeg * Math.PI / 180.0;
@@ -108,7 +151,10 @@ namespace GCodeGenerator.Models
             var dy = operation.Distance * Math.Sin(angleRad);
 
             for (int i = 0; i < operation.HoleCount; i++)
+            {
+                cancellation.ThrowIfCancellationRequested();
                 holes.Add(Hole(operation, operation.StartX + dx * i, operation.StartY + dy * i, operation.StartZ));
+            }
 
             return holes;
         }
@@ -125,12 +171,18 @@ namespace GCodeGenerator.Models
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
             OperationValidation.AddIfBelow(issues, nameof(operation.RowCount), operation.RowCount, 1);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.RowPitch), operation.RowPitch);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount),
+                (long)operation.HoleCount * operation.RowCount);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount <= 0 || operation.Distance == 0 || operation.RowCount <= 0)
+                return holes;
+            if (!HoleCountIsSafe((long)operation.HoleCount * operation.RowCount))
                 return holes;
 
             var angleRad = operation.AngleDeg * Math.PI / 180.0;
@@ -143,8 +195,10 @@ namespace GCodeGenerator.Models
 
             for (int row = 0; row < operation.RowCount; row++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 for (int col = 0; col < operation.HoleCount; col++)
                 {
+                    cancellation.ThrowIfCancellationRequested();
                     holes.Add(Hole(
                         operation,
                         operation.StartX + dx * col + px * row,
@@ -171,12 +225,18 @@ namespace GCodeGenerator.Models
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Distance), operation.Distance);
             OperationValidation.AddIfBelow(issues, nameof(operation.RowCount), operation.RowCount, 2);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.RowPitch), operation.RowPitch);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount),
+                2L * operation.HoleCount + 2L * operation.RowCount - 4L);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
             if (operation.HoleCount <= 1 || operation.Distance == 0 || operation.RowCount <= 1)
+                return holes;
+            if (!HoleCountIsSafe(2L * operation.HoleCount + 2L * operation.RowCount - 4L))
                 return holes;
 
             var angleRad = operation.AngleDeg * Math.PI / 180.0;
@@ -188,8 +248,10 @@ namespace GCodeGenerator.Models
 
             for (int row = 0; row < operation.RowCount; row++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 for (int col = 0; col < operation.HoleCount; col++)
                 {
+                    cancellation.ThrowIfCancellationRequested();
                     // Только периметр: внутренние узлы сетки пропускаются.
                     var isBorderRow = row == 0 || row == operation.RowCount - 1;
                     var isBorderCol = col == 0 || col == operation.HoleCount - 1;
@@ -218,13 +280,17 @@ namespace GCodeGenerator.Models
             // Отверстия «по окружности» начинаются с двух: одно отверстие —
             // это точка, а не окружность, и формула его не расставляет.
             OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 2);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount), operation.HoleCount);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
-            if (operation.HoleCount < 2 || operation.Radius == 0)
+            if (operation.HoleCount < 2 || operation.Radius == 0
+                || !HoleCountIsSafe(operation.HoleCount))
                 return holes;
 
             var startRad = operation.StartAngleDeg * Math.PI / 180.0;
@@ -232,6 +298,7 @@ namespace GCodeGenerator.Models
 
             for (int i = 0; i < operation.HoleCount; i++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var angle = startRad + stepRad * i;
                 holes.Add(Hole(
                     operation,
@@ -261,13 +328,19 @@ namespace GCodeGenerator.Models
         public override void AddIssues(IList<ValidationIssue> issues, DrillPointsOperation operation)
         {
             OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 1);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount), operation.HoleCount);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
-            if (operation.HoleCount < 1 || operation.Radius == 0)
+            if (operation.HoleCount < 1 || operation.Radius == 0
+                || !HoleCountIsSafe(operation.HoleCount)
+                || !double.IsFinite(operation.StartAngleDeg)
+                || !double.IsFinite(operation.EndAngleDeg))
                 return holes;
 
             var startRad = operation.StartAngleDeg * Math.PI / 180.0;
@@ -275,9 +348,9 @@ namespace GCodeGenerator.Models
 
             // Раскрыв дуги приводится к диапазону [0, 2π]: дуга может проходить
             // через ноль градусов.
-            var arcSpan = endRad - startRad;
-            while (arcSpan < 0) arcSpan += 2 * Math.PI;
-            while (arcSpan > 2 * Math.PI) arcSpan -= 2 * Math.PI;
+            var arcSpan = (endRad - startRad) % (2 * Math.PI);
+            if (arcSpan < 0)
+                arcSpan += 2 * Math.PI;
 
             // Нулевой раскрыв трактуется как полная окружность.
             if (arcSpan < FullCircleSpanRadians)
@@ -287,6 +360,7 @@ namespace GCodeGenerator.Models
 
             for (int i = 0; i < operation.HoleCount; i++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var angle = startRad + stepRad * i;
                 holes.Add(Hole(
                     operation,
@@ -309,12 +383,18 @@ namespace GCodeGenerator.Models
             OperationValidation.AddIfNotPositive(issues, nameof(operation.Radius), operation.Radius);
             OperationValidation.AddIfBelow(issues, nameof(operation.NumberOfSides), operation.NumberOfSides, 3);
             OperationValidation.AddIfBelow(issues, nameof(operation.HolesPerSide), operation.HolesPerSide, 1);
+            AddHoleCountIssue(issues, nameof(operation.HolesPerSide),
+                (long)operation.NumberOfSides * operation.HolesPerSide);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
             if (operation.NumberOfSides < 3 || operation.Radius == 0 || operation.HolesPerSide < 1)
+                return holes;
+            if (!HoleCountIsSafe((long)operation.NumberOfSides * operation.HolesPerSide))
                 return holes;
 
             var rotationRad = operation.RotationAngle * Math.PI / 180.0;
@@ -323,6 +403,7 @@ namespace GCodeGenerator.Models
             var vertices = new List<(double x, double y)>(operation.NumberOfSides);
             for (int i = 0; i < operation.NumberOfSides; i++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var angle = i * angleStep + rotationRad;
                 vertices.Add((
                     operation.CenterX + operation.Radius * Math.Cos(angle),
@@ -331,6 +412,7 @@ namespace GCodeGenerator.Models
 
             for (int side = 0; side < operation.NumberOfSides; side++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var startVertex = vertices[side];
                 var endVertex = vertices[(side + 1) % operation.NumberOfSides];
 
@@ -345,6 +427,7 @@ namespace GCodeGenerator.Models
 
                 for (int holeIndex = 0; holeIndex < operation.HolesPerSide; holeIndex++)
                 {
+                    cancellation.ThrowIfCancellationRequested();
                     holes.Add(Hole(
                         operation,
                         startVertex.x + stepX * holeIndex,
@@ -367,14 +450,18 @@ namespace GCodeGenerator.Models
             // Как и у окружности: эллипс из одного отверстия — точка,
             // формула такую расстановку не строит.
             OperationValidation.AddIfBelow(issues, nameof(operation.HoleCount), operation.HoleCount, 2);
+            AddHoleCountIssue(issues, nameof(operation.HoleCount), operation.HoleCount);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.RadiusX), operation.RadiusX);
             OperationValidation.AddIfNotPositive(issues, nameof(operation.RadiusY), operation.RadiusY);
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
-            if (operation.HoleCount < 2 || operation.RadiusX == 0 || operation.RadiusY == 0)
+            if (operation.HoleCount < 2 || operation.RadiusX == 0 || operation.RadiusY == 0
+                || !HoleCountIsSafe(operation.HoleCount))
                 return holes;
 
             var startRad = operation.StartAngleDeg * Math.PI / 180.0;
@@ -385,6 +472,7 @@ namespace GCodeGenerator.Models
 
             for (int i = 0; i < operation.HoleCount; i++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var angle = startRad + stepRad * i;
                 var xEllipse = operation.RadiusX * Math.Cos(angle);
                 var yEllipse = operation.RadiusY * Math.Sin(angle);
@@ -419,7 +507,9 @@ namespace GCodeGenerator.Models
             }
         }
 
-        protected override List<DrillHole> Build(DrillPointsOperation operation)
+        protected override List<DrillHole> Build(
+            DrillPointsOperation operation,
+            CancellationToken cancellation)
         {
             var holes = new List<DrillHole>();
             var package = PackageCatalog.FindOrDefault(operation.PackageName);
@@ -435,6 +525,7 @@ namespace GCodeGenerator.Models
 
             void AddPin(double localX, double localY)
             {
+                cancellation.ThrowIfCancellationRequested();
                 holes.Add(Hole(
                     operation,
                     operation.CenterX + localX * cos - localY * sin,

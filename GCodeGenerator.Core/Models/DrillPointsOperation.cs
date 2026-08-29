@@ -122,6 +122,12 @@ namespace GCodeGenerator.Models
                 ? pattern.Holes(this)
                 : Array.Empty<DrillHole>();
 
+        /// <summary>Расстановка с поддержкой отмены для фоновой генерации.</summary>
+        public IReadOnlyList<DrillHole> GetHolesToDrill(System.Threading.CancellationToken cancellation)
+            => DrillPatterns.TryFor(DrillMode, out var pattern)
+                ? pattern.Holes(this, cancellation)
+                : Array.Empty<DrillHole>();
+
         /// <summary>
         /// Safe Z height for moves between holes.
         /// </summary>

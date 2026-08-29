@@ -301,7 +301,12 @@ namespace GCodeGenerator.Tests
                 GCodeSettingsValidation.MaxSpindleSpeedRpm.ToString(CultureInfo.InvariantCulture),
                 GCodeSettingsValidation.MaxSpindleDelaySeconds.ToString("0", CultureInfo.InvariantCulture),
                 OperationValidation.MaxDecimals.ToString(CultureInfo.InvariantCulture),
-                OperationHistory.MaxSteps.ToString(CultureInfo.InvariantCulture)
+                OperationHistory.MaxSteps.ToString(CultureInfo.InvariantCulture),
+                GenerationLimits.MaxOperations.ToString(CultureInfo.InvariantCulture),
+                GenerationLimits.MaxHolesPerOperation.ToString(CultureInfo.InvariantCulture),
+                GenerationLimits.MaxImportedContoursPerOperation.ToString(CultureInfo.InvariantCulture),
+                GenerationLimits.MaxImportedPointsPerOperation.ToString(CultureInfo.InvariantCulture),
+                GenerationLimits.MaxToolPathItems.ToString(CultureInfo.InvariantCulture)
             };
 
             foreach (var readme in new[] { "README.md", "README.en.md" })

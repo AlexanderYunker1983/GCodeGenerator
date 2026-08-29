@@ -46,18 +46,23 @@ namespace GCodeGenerator.Models
             }
             else
             {
-                OperationValidation.AddPolylinePointIssues(issues, nameof(ClosedContours), ClosedContours);
-                for (int i = 0; i < ClosedContours.Count; i++)
+                var inspectPoints = OperationValidation.AddPolylineComplexityIssues(
+                    issues, nameof(ClosedContours), ClosedContours);
+                if (inspectPoints)
                 {
-                    var contour = ClosedContours[i];
-                    var points = contour?.Points;
-                    if (points == null || points.Count < 3)
+                    OperationValidation.AddPolylinePointIssues(issues, nameof(ClosedContours), ClosedContours);
+                    for (int i = 0; i < ClosedContours.Count; i++)
                     {
-                        issues.Add(new ValidationIssue($"ClosedContours[{i}].Points", "a closed contour needs at least 3 points"));
-                        continue;
+                        var contour = ClosedContours[i];
+                        var points = contour?.Points;
+                        if (points == null || points.Count < 3)
+                        {
+                            issues.Add(new ValidationIssue($"ClosedContours[{i}].Points", "a closed contour needs at least 3 points"));
+                            continue;
+                        }
+                        if (contour != null && !OperationValidation.IsContourClosed(contour))
+                            issues.Add(new ValidationIssue($"ClosedContours[{i}]", "contour is not closed (first and last points differ)"));
                     }
-                    if (contour != null && !OperationValidation.IsContourClosed(contour))
-                        issues.Add(new ValidationIssue($"ClosedContours[{i}]", "contour is not closed (first and last points differ)"));
                 }
             }
 

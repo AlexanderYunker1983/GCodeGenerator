@@ -1,6 +1,7 @@
 #nullable enable
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
+using System.Threading;
 
 namespace GCodeGenerator.GCodeGenerators
 {
@@ -36,6 +37,10 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         /// <param name="toolPath">Траектория инструмента.</param>
         /// <param name="settings">Настройки генерации.</param>
-        GCodeProgram Build(ToolPath toolPath, GCodeSettings settings);
+        /// <param name="cancellation">Отмена построения и форматирования программы.</param>
+        GCodeProgram Build(
+            ToolPath toolPath,
+            GCodeSettings settings,
+            CancellationToken cancellation = default);
     }
 }

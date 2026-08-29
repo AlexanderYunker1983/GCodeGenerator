@@ -151,8 +151,12 @@ namespace GCodeGenerator.Tests
 
             public string Name => "Counting";
 
-            public GCodeProgram Build(ToolPath toolPath, GCodeSettings settings)
+            public GCodeProgram Build(
+                ToolPath toolPath,
+                GCodeSettings settings,
+                System.Threading.CancellationToken cancellation = default)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var program = new GCodeProgram();
                 program.Lines.Add($"moves={toolPath.Moves().Count()}");
                 return program;

@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Threading;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
 
@@ -27,7 +28,10 @@ namespace GCodeGenerator.GCodeGenerators
         public virtual string Name => "Generic (Fanuc-compatible)";
 
         /// <inheritdoc />
-        public GCodeProgram Build(ToolPath toolPath, GCodeSettings settings)
+        public GCodeProgram Build(
+            ToolPath toolPath,
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
             if (toolPath == null)
                 throw new ArgumentNullException(nameof(toolPath));
@@ -37,11 +41,13 @@ namespace GCodeGenerator.GCodeGenerators
             var program = new GCodeProgram();
             var builder = new ProgramBuilder(program);
 
+            cancellation.ThrowIfCancellationRequested();
             WriteHeader(builder, settings);
-            WriteOperations(builder, toolPath);
+            WriteOperations(builder, toolPath, cancellation);
+            cancellation.ThrowIfCancellationRequested();
             WriteFooter(builder, toolPath, settings);
 
-            GCodeFormatter.Format(program, settings);
+            GCodeFormatter.Format(program, settings, cancellation);
             return program;
         }
 
@@ -96,14 +102,19 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>Траектория операций: комментарий с именем и сами перемещения.</summary>
-        private static void WriteOperations(ProgramBuilder builder, ToolPath toolPath)
+        private static void WriteOperations(
+            ProgramBuilder builder,
+            ToolPath toolPath,
+            CancellationToken cancellation)
         {
             foreach (var operation in toolPath.Operations)
             {
+                cancellation.ThrowIfCancellationRequested();
                 builder.Comment(ProgramComments.Operation(operation.Name, operation.Description));
 
                 foreach (var item in operation.Items)
                 {
+                    cancellation.ThrowIfCancellationRequested();
                     switch (item)
                     {
                         case ToolPathNote note:

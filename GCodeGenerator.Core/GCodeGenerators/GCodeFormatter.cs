@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
+using System.Threading;
 using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
@@ -21,8 +22,12 @@ namespace GCodeGenerator.GCodeGenerators
         /// <see cref="GCodeProgram.Lines"/> and assigns line numbers to the
         /// rendered blocks.
         /// </summary>
-        public static List<string> Format(GCodeProgram program, GCodeSettings settings)
+        public static List<string> Format(
+            GCodeProgram program,
+            GCodeSettings settings,
+            CancellationToken cancellation = default)
         {
+            cancellation.ThrowIfCancellationRequested();
             // Пункт 8.1 плана: форматирование читает только группу Format.
             var format = settings.Format;
             var lines = new List<string>(program.Blocks.Count);
@@ -30,6 +35,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             foreach (var block in program.Blocks)
             {
+                cancellation.ThrowIfCancellationRequested();
                 // Legacy behavior: with comments disabled, comment lines are
                 // not emitted at all and do not consume a line number.
                 if (block.Words.Count == 0 && !format.UseComments)

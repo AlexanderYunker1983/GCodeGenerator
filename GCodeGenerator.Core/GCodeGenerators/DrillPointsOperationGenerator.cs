@@ -39,7 +39,7 @@ namespace GCodeGenerator.GCodeGenerators
                 return;
 
             int holeIndex = 0;
-            foreach (var hole in drill.HolesToDrill)
+            foreach (var hole in drill.GetHolesToDrill(cancellation))
             {
                 // Отверстие — единица работы: между отверстиями операцию
                 // можно отменить, не дожидаясь конца шаблона.

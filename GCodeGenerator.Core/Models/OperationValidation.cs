@@ -114,6 +114,36 @@ namespace GCodeGenerator.Models
         }
 
         /// <summary>Проверяет конечность каждой точки импортированной ломаной.</summary>
+        public static bool AddPolylineComplexityIssues(
+            IList<ValidationIssue> issues,
+            string collectionProperty,
+            IReadOnlyList<Polyline2D> polylines)
+        {
+            if (polylines.Count > GenerationLimits.MaxImportedContoursPerOperation)
+            {
+                issues.Add(new ValidationIssue(
+                    collectionProperty,
+                    ValidationCode.AboveMaximum,
+                    $"must contain at most {GenerationLimits.MaxImportedContoursPerOperation} contours, but contains {polylines.Count}",
+                    GenerationLimits.MaxImportedContoursPerOperation));
+                return false;
+            }
+
+            long pointCount = 0;
+            foreach (var polyline in polylines)
+                pointCount += polyline?.Points?.Count ?? 0;
+
+            if (pointCount <= GenerationLimits.MaxImportedPointsPerOperation)
+                return true;
+
+            issues.Add(new ValidationIssue(
+                collectionProperty,
+                ValidationCode.AboveMaximum,
+                $"must contain at most {GenerationLimits.MaxImportedPointsPerOperation} points, but contains {pointCount}",
+                GenerationLimits.MaxImportedPointsPerOperation));
+            return false;
+        }
+
         public static void AddPolylinePointIssues(
             IList<ValidationIssue> issues,
             string collectionProperty,

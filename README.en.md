@@ -100,6 +100,11 @@ the machine.
   60000 mm/min, the spindle at 60000 rpm, the delay at 60 s and the decimals
   at 6. These are the bounds of sensible input, not the machine's data sheet:
   the controller applies its own limit anyway.
+- **A single job has size limits.** Up to 1000 operations, 10000 holes in one
+  operation, 10000 contours and 200000 imported DXF points in one operation,
+  and 250000 items in the resulting toolpath. These bounds protect the
+  application's memory and responsiveness; a larger job must be split into
+  several projects.
 - **The peck return clearance is 0.5 mm** and is not configurable.
 - **The undo history holds 100 steps.**
 - **Foreign G-code is not opened.** The application writes its files but does

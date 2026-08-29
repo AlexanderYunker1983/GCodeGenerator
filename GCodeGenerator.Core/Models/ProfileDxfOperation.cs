@@ -46,12 +46,17 @@ namespace GCodeGenerator.Models
             }
             else
             {
-                OperationValidation.AddPolylinePointIssues(issues, nameof(Polylines), Polylines);
-                for (int i = 0; i < Polylines.Count; i++)
+                var inspectPoints = OperationValidation.AddPolylineComplexityIssues(
+                    issues, nameof(Polylines), Polylines);
+                if (inspectPoints)
                 {
-                    var points = Polylines[i]?.Points;
-                    if (points == null || points.Count < 2)
-                        issues.Add(new ValidationIssue($"Polylines[{i}].Points", "a polyline needs at least 2 points"));
+                    OperationValidation.AddPolylinePointIssues(issues, nameof(Polylines), Polylines);
+                    for (int i = 0; i < Polylines.Count; i++)
+                    {
+                        var points = Polylines[i]?.Points;
+                        if (points == null || points.Count < 2)
+                            issues.Add(new ValidationIssue($"Polylines[{i}].Points", "a polyline needs at least 2 points"));
+                    }
                 }
             }
 
@@ -59,4 +64,3 @@ namespace GCodeGenerator.Models
         }
     }
 }
-

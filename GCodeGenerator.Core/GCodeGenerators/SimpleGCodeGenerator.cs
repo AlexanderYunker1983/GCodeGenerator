@@ -62,7 +62,8 @@ namespace GCodeGenerator.GCodeGenerators
             // Проверка настроек внутри BuildToolPath уже отказала бы на
             // неизвестном ключе, поэтому здесь выбор всегда удаётся.
             var toolPath = BuildToolPath(operations, settings, progress, cancellation);
-            return _postProcessors.For(settings.Format?.PostProcessorName).Build(toolPath, settings);
+            cancellation.ThrowIfCancellationRequested();
+            return _postProcessors.For(settings.Format?.PostProcessorName).Build(toolPath, settings, cancellation);
         }
 
         /// <inheritdoc />
@@ -80,10 +81,11 @@ namespace GCodeGenerator.GCodeGenerators
             // Все проверки выполняются до построения траектории: при любой
             // ошибке вызывающая сторона не получит частичный, внешне
             // корректный результат.
-            var resolvedGenerators = ValidateAndResolveGenerators(operations, settings);
+            var resolvedGenerators = ValidateAndResolveGenerators(operations, settings, cancellation);
             var generationContext = OperationGenerationContext.FromOperations(operations);
 
             var toolPath = new ToolPath();
+            var budget = new ToolPathBudget();
 
             // Пункт 8.4 плана: прогресс по операциям (0–100) — для async-генерации в UI.
             var total = operations.Count;
@@ -114,16 +116,37 @@ namespace GCodeGenerator.GCodeGenerators
                     operation.Name, operation.GetDescription(), OperationDecimals(operation), operation);
                 toolPath.AddOperation(pathOperation);
 
-                var operationBuilder = new ToolPathBuilder(pathOperation);
-                if (resolvedGenerators[index] is IContextualOperationGenerator contextual)
+                var operationBuilder = new ToolPathBuilder(pathOperation, budget);
+                try
                 {
-                    contextual.Generate(
-                        operation, operationBuilder, settings, generationContext, cancellation);
+                    if (resolvedGenerators[index] is IContextualOperationGenerator contextual)
+                    {
+                        contextual.Generate(
+                            operation, operationBuilder, settings, generationContext, cancellation);
+                    }
+                    else
+                    {
+                        resolvedGenerators[index].Generate(
+                            operation, operationBuilder, settings, cancellation);
+                    }
                 }
-                else
+                catch (ToolPathLimitExceededException)
                 {
-                    resolvedGenerators[index].Generate(
-                        operation, operationBuilder, settings, cancellation);
+                    throw new GCodeGenerationValidationException(new[]
+                    {
+                        new OperationValidationFailure(
+                            index,
+                            operation.Name,
+                            operation.GetType().Name,
+                            new[]
+                            {
+                                new ValidationIssue(
+                                    "ToolPath",
+                                    ValidationCode.AboveMaximum,
+                                    $"must contain at most {GenerationLimits.MaxToolPathItems} items",
+                                    GenerationLimits.MaxToolPathItems)
+                            })
+                    });
                 }
 
                 if (total > 0)
@@ -150,14 +173,29 @@ namespace GCodeGenerator.GCodeGenerators
             }
         }
 
-        private IOperationGenerator[] ValidateAndResolveGenerators(IReadOnlyList<OperationBase?> operations, GCodeSettings settings)
+        private IOperationGenerator[] ValidateAndResolveGenerators(
+            IReadOnlyList<OperationBase?> operations,
+            GCodeSettings settings,
+            CancellationToken cancellation)
         {
             var failures = new List<OperationValidationFailure>();
-            var generators = new IOperationGenerator[operations.Count];
 
             // Настройки проверяются вместе с операциями, чтобы пользователь
             // увидел все причины отказа сразу.
+            cancellation.ThrowIfCancellationRequested();
             var settingsIssues = new List<ValidationIssue>(GCodeSettingsValidation.Validate(settings));
+
+            if (operations.Count > GenerationLimits.MaxOperations)
+            {
+                settingsIssues.Add(new ValidationIssue(
+                    "Operations",
+                    ValidationCode.AboveMaximum,
+                    $"project must contain at most {GenerationLimits.MaxOperations} operations, but contains {operations.Count}",
+                    GenerationLimits.MaxOperations));
+                throw new GCodeGenerationValidationException(failures, settingsIssues);
+            }
+
+            var generators = new IOperationGenerator[operations.Count];
 
             // Ключ постпроцессора проверяется здесь, а не в общей проверке
             // настроек: список допустимых стоек знает реестр, а слой моделей
@@ -174,6 +212,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             for (int index = 0; index < operations.Count; index++)
             {
+                cancellation.ThrowIfCancellationRequested();
                 var operation = operations[index];
                 if (operation == null)
                 {
