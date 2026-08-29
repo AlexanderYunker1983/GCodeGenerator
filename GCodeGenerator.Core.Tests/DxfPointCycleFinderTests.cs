@@ -90,6 +90,31 @@ namespace GCodeGenerator.Tests
                 () => new DxfPointCycleFinder(0.001).FindContours(GridSegments(7), canceled.Token));
         }
 
+        /// <summary>
+        /// Замкнутый контур из более чем 100 отдельных LINE раньше молча
+        /// исчезал: DFS обрывался по MaxCycleLength до возврата в начало.
+        /// Длинный неветвящийся контур должен импортироваться целиком.
+        /// </summary>
+        [TestMethod]
+        public void FindContours_LongSimplePolygon_IsNotSilentlyDropped()
+        {
+            const int vertexCount = 256;
+            var segments = new List<Polyline2D>();
+            for (int i = 0; i < vertexCount; i++)
+            {
+                var a = 2.0 * Math.PI * i / vertexCount;
+                var b = 2.0 * Math.PI * (i + 1) / vertexCount;
+                segments.Add(Segment(
+                    (10 * Math.Cos(a), 10 * Math.Sin(a)),
+                    (10 * Math.Cos(b), 10 * Math.Sin(b))));
+            }
+
+            var contours = new DxfPointCycleFinder(0.001).FindContours(segments);
+
+            Assert.AreEqual(1, contours.Count);
+            Assert.AreEqual(vertexCount + 1, contours[0].Points.Count);
+        }
+
         /// <summary>Решётка (n+1)×(n+1) узлов из единичных отрезков.</summary>
         private static List<Polyline2D> GridSegments(int n)
         {

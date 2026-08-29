@@ -14,8 +14,10 @@ namespace GCodeGenerator.Import
     /// </summary>
     internal sealed class DxfPointCycleFinder
     {
-        // Bounds DFS depth for malformed or highly connected graphs.
-        private const int MaxCycleLength = 100;
+        // Ветвящийся граф по-прежнему разбирается DFS. Ограничение защищает
+        // стек процесса, но его достижение является явной ошибкой сложности,
+        // а не причиной молча отбросить длинный контур.
+        private const int MaxBranchedPathLength = 4096;
 
         // Предохранитель от комбинаторного взрыва. Поиск перебирает простые
         // пути, и решётка пересекающихся линий — штриховка, сетка — даёт их
@@ -99,8 +101,28 @@ namespace GCodeGenerator.Import
             var foundCycles = new HashSet<string>();
             var steps = 0;
 
-            // Пробуем начать поиск с каждой точки в графе
-            foreach (var startPoint in graph.Keys)
+            // Обычный CAD-контур — связная компонента, где у каждой вершины
+            // ровно два соседа. Такой контур читается линейно и итеративно:
+            // длина не ограничена произвольными 100 вершинами, рекурсивный
+            // стек не растёт, а один и тот же цикл не обходится от каждой
+            // вершины в обоих направлениях.
+            var branchedPoints = new HashSet<Point2D>();
+            foreach (var component in FindConnectedComponents(graph, cancellation))
+            {
+                if (component.All(point => graph[point].Count == 2))
+                {
+                    AddCycleIfNew(TraceSimpleCycle(component[0], graph, cancellation),
+                        cycles, foundCycles);
+                }
+                else
+                {
+                    foreach (var point in component)
+                        branchedPoints.Add(point);
+                }
+            }
+
+            // В компонентах с развилками нужен полный перебор циклов.
+            foreach (var startPoint in branchedPoints)
             {
                 if (graph[startPoint] == null || graph[startPoint].Count < 2)
                     continue; // Пропускаем точки с менее чем 2 соседями (не могут быть частью цикла)
@@ -109,8 +131,10 @@ namespace GCodeGenerator.Import
                 foreach (var firstNeighbor in graph[startPoint])
                 {
                     var path = new List<Point2D> { startPoint };
+                    var maxLength = Math.Min(branchedPoints.Count + 1, MaxBranchedPathLength);
                     FindCyclesFromPoint(startPoint, firstNeighbor, graph, path, cycles, foundCycles,
-                        MaxCycleLength, ref steps, cancellation);
+                        maxLength, branchedPoints.Count + 1 > MaxBranchedPathLength,
+                        ref steps, cancellation);
                 }
             }
 
@@ -120,7 +144,7 @@ namespace GCodeGenerator.Import
         private void FindCyclesFromPoint(Point2D startPoint, Point2D currentPoint,
             Dictionary<Point2D, List<Point2D>> graph, List<Point2D> path,
             List<List<Point2D>> cycles, HashSet<string> foundCycles, int maxLength,
-            ref int steps, CancellationToken cancellation)
+            bool pathLengthWasLimited, ref int steps, CancellationToken cancellation)
         {
             cancellation.ThrowIfCancellationRequested();
 
@@ -136,7 +160,16 @@ namespace GCodeGenerator.Import
 
             // Ограничиваем длину пути
             if (path.Count >= maxLength)
+            {
+                if (pathLengthWasLimited)
+                {
+                    throw new CoreException(CoreErrorCodes.DxfTooComplex,
+                        "The drawing is too complex for closed-contour search: the path length limit was exceeded. "
+                        + "Reduce the number of intersecting lines or close the contour with a polyline.");
+                }
+
                 return;
+            }
 
             // Если мы вернулись в начальную точку и прошли минимум 3 точки - это цикл
             if (path.Count > 0 && PointsMatch(currentPoint, startPoint) && path.Count >= 3)
@@ -184,13 +217,70 @@ namespace GCodeGenerator.Import
                         if (!alreadyVisited)
                         {
                             FindCyclesFromPoint(startPoint, neighbor, graph, path, cycles, foundCycles,
-                                maxLength, ref steps, cancellation);
+                                maxLength, pathLengthWasLimited, ref steps, cancellation);
                         }
                     }
                 }
             }
 
             path.RemoveAt(path.Count - 1);
+        }
+
+        private static List<List<Point2D>> FindConnectedComponents(
+            Dictionary<Point2D, List<Point2D>> graph, CancellationToken cancellation)
+        {
+            var components = new List<List<Point2D>>();
+            var remaining = new HashSet<Point2D>(graph.Keys);
+
+            while (remaining.Count > 0)
+            {
+                cancellation.ThrowIfCancellationRequested();
+                var start = remaining.First();
+                var component = new List<Point2D>();
+                var pending = new Stack<Point2D>();
+                pending.Push(start);
+                remaining.Remove(start);
+
+                while (pending.Count > 0)
+                {
+                    cancellation.ThrowIfCancellationRequested();
+                    var point = pending.Pop();
+                    component.Add(point);
+                    foreach (var neighbor in graph[point])
+                    {
+                        if (remaining.Remove(neighbor))
+                            pending.Push(neighbor);
+                    }
+                }
+
+                components.Add(component);
+            }
+
+            return components;
+        }
+
+        private static List<Point2D> TraceSimpleCycle(
+            Point2D start, Dictionary<Point2D, List<Point2D>> graph,
+            CancellationToken cancellation)
+        {
+            var cycle = new List<Point2D>();
+            Point2D? previous = null;
+            var current = start;
+
+            do
+            {
+                cancellation.ThrowIfCancellationRequested();
+                cycle.Add(current);
+                var neighbors = graph[current];
+                var next = previous == null || !ReferenceEquals(neighbors[0], previous)
+                    ? neighbors[0]
+                    : neighbors[1];
+                previous = current;
+                current = next;
+            }
+            while (!ReferenceEquals(current, start));
+
+            return cycle;
         }
 
         private static void AddCycleIfNew(
