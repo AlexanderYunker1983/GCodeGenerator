@@ -332,7 +332,11 @@ namespace GCodeGenerator.Tests
         {
             var readme = Read("README.md");
 
-            foreach (var target in new[] { "README.en.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md" })
+            foreach (var target in new[]
+            {
+                "README.en.md", "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md",
+                "THIRD-PARTY-NOTICES.md"
+            })
                 StringAssert.Contains(readme, target, $"README не ссылается на {target}");
         }
 
@@ -366,9 +370,37 @@ namespace GCodeGenerator.Tests
             var readme = Read("README.en.md");
 
             StringAssert.Contains(readme, "(README.md)", "Нет ссылки на русскую версию");
-            foreach (var target in new[] { "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md" })
+            foreach (var target in new[]
+            {
+                "CONTRIBUTING.md", "SECURITY.md", "CHANGELOG.md", "THIRD-PARTY-NOTICES.md"
+            })
                 StringAssert.Contains(readme, target, $"README.en.md не ссылается на {target}");
             StringAssert.Contains(readme, "in English");
+        }
+
+        /// <summary>
+        /// Внешние CAD-файлы распространяются в исходном дереве под своей
+        /// лицензией, но не входят в приложение. Notice обязан называть
+        /// каждый такой файл и не создавать впечатление, что GPLv2-данные
+        /// попали в installer или portable.
+        /// </summary>
+        [TestMethod]
+        public void ThirdPartyNotice_AccountsForEveryExternalCadFixture()
+        {
+            var notice = Read("THIRD-PARTY-NOTICES.md");
+            var fixtureDirectory = Path.Combine(
+                Root, "GCodeGenerator.Core.Tests", "Fixtures", "CadDxf");
+            var fixtures = Directory.EnumerateFiles(fixtureDirectory, "*.dxf")
+                .Select(Path.GetFileName)
+                .ToList();
+
+            Assert.IsTrue(fixtures.Count > 0, "Каталог внешних CAD-фикстур пуст");
+            foreach (var fixture in fixtures)
+                StringAssert.Contains(notice, fixture!, $"Notice не называет {fixture}");
+
+            StringAssert.Contains(notice, "GNU GPL v2");
+            StringAssert.Contains(notice, "not included");
+            StringAssert.Contains(notice, "installer or portable archive");
         }
 
         [TestMethod]

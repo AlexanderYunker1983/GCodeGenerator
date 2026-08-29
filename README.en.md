@@ -337,7 +337,12 @@ GCodeGenerator/
 ├── build/                   # Build scripts (tags/NEXT_VERSION, installer)
 ├── install/                 # Installer (Inno Setup)
 ├── docs/                    # Documentation (the smoke checklist)
+├── .github/                 # Workflows, issue forms and pull request template
 ├── GCodeGenerator.sln       # Visual Studio solution
+├── CHANGELOG.md             # Release notes are taken from here
+├── CONTRIBUTING.md          # How to build, verify and propose a change
+├── SECURITY.md              # How to report a vulnerability
+├── THIRD-PARTY-NOTICES.md   # Licences of dependencies and test data
 └── LICENSE                  # MIT licence
 ```
 
@@ -354,7 +359,11 @@ GCodeGenerator/
 
 ## Licence
 
-This project is distributed under the MIT licence. See the [LICENSE](LICENSE) file for details.
+GCodeGenerator code is distributed under the MIT licence — see [LICENSE](LICENSE).
+Third-party libraries and test data retain their own licences, copyright and
+conditions; they are listed in [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+In particular, three GPLv2 LibreCAD DXF fixtures are used only by tests and are
+not included in the installer or portable archive.
 
 ## Author
 

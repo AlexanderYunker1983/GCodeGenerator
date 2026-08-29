@@ -65,3 +65,21 @@ Its complete `LICENSE.txt` and `ThirdPartyNotices.txt` are copied from the
 exact SDK/runtime used for publication into the `licenses` directory. The
 complete CommunityToolkit notices shipped in its NuGet package are copied
 there as well.
+
+## Test-only LibreCAD DXF fixtures
+
+The repository also contains these external test-data files:
+
+- `GCodeGenerator.Core.Tests/Fixtures/CadDxf/librecad-square.dxf`
+- `GCodeGenerator.Core.Tests/Fixtures/CadDxf/librecad-block4-lwpolyline.dxf`
+- `GCodeGenerator.Core.Tests/Fixtures/CadDxf/librecad-v32-lwpolyline.dxf`
+
+They come from the official LibreCAD repository at commit
+`a05b4261f61d61e23d8c27c8d869ede756c2ac2b`, under GNU GPL v2. Their exact
+source paths and normalized SHA-256 checksums are recorded in
+`GCodeGenerator.Core.Tests/Fixtures/CadDxf/README.md` and can be compared with
+<https://github.com/LibreCAD/LibreCAD/tree/a05b4261f61d61e23d8c27c8d869ede756c2ac2b>.
+
+These fixtures are copied only to the core test output. They are not included
+in the GCodeGenerator installer or portable archive and are not runtime
+dependencies of the application.
