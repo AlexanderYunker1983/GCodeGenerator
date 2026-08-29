@@ -1,6 +1,7 @@
 ﻿#nullable enable
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -80,14 +81,14 @@ namespace GCodeGenerator.ViewModels.PocketMill
             }
         }
 
-        private async Task ImportDxfFileAsync()
+        private async Task ImportDxfFileAsync(CancellationToken cancellation)
         {
             // Импорт правит открытую в окне операцию: без неё импортировать
             // некуда, и команда до этого места не доходит.
             if (Operation == null)
                 return;
 
-            var import = await _importFlow.ImportProfileAsync();
+            var import = await _importFlow.ImportProfileAsync(cancellation);
             if (import == null)
                 return;
 

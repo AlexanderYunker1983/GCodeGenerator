@@ -44,12 +44,13 @@ namespace GCodeGenerator.Services
         /// Импорт геометрии профильной обработки; null — пользователь отменил
         /// выбор, чертёж пуст или чтение не удалось (пользователь уже уведомлён).
         /// </summary>
-        public Task<(string FileName, List<Polyline2D> Polylines)?> ImportProfileAsync()
+        public Task<(string FileName, List<Polyline2D> Polylines)?> ImportProfileAsync(
+            CancellationToken cancellation = default)
             => ImportAsync(
-                (path, _) => _dxfImportService.ReadProfilePolylines(path),
+                (path, token) => _dxfImportService.ReadProfilePolylines(path, token),
                 "DxfImportNoLines",
                 "no profile geometry",
-                CancellationToken.None);
+                cancellation);
 
         /// <summary>
         /// Импорт замкнутых контуров кармана; null — как у

@@ -12,13 +12,12 @@ namespace GCodeGenerator.Import
     public interface IDxfImportService
     {
         /// <summary>Читает геометрию профильной обработки.</summary>
-        List<Polyline2D> ReadProfilePolylines(string path);
+        List<Polyline2D> ReadProfilePolylines(string path, CancellationToken cancellation = default);
 
         /// <summary>
         /// Читает и восстанавливает замкнутые контуры кармана. Восстановление
         /// перебирает циклы графа пересечений и на сложном чертеже занимает
-        /// время, поэтому принимает отмену — в отличие от простого чтения
-        /// профильной геометрии.
+        /// время, поэтому принимает отмену.
         /// </summary>
         List<Polyline2D> ReadPocketClosedContours(string path, CancellationToken cancellation = default);
     }

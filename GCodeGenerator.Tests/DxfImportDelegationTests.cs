@@ -18,6 +18,7 @@ namespace GCodeGenerator.Tests
         {
             public string ProfilePath { get; private set; }
             public string PocketPath { get; private set; }
+            public CancellationToken ProfileCancellation { get; private set; }
             public List<Polyline2D> ProfileResult { get; } = new List<Polyline2D>
             {
                 new Polyline2D
@@ -42,9 +43,10 @@ namespace GCodeGenerator.Tests
                 }
             };
 
-            public List<Polyline2D> ReadProfilePolylines(string path)
+            public List<Polyline2D> ReadProfilePolylines(string path, CancellationToken cancellation = default)
             {
                 ProfilePath = path;
+                ProfileCancellation = cancellation;
                 return ProfileResult;
             }
 
@@ -66,6 +68,8 @@ namespace GCodeGenerator.Tests
             await ((IAsyncRelayCommand)vm.ImportDxfCommand).ExecuteAsync(null);
 
             Assert.AreEqual(path, importer.ProfilePath);
+            Assert.IsTrue(importer.ProfileCancellation.CanBeCanceled,
+                "AsyncRelayCommand должен передавать отменяемый токен до импортёра профиля");
             Assert.AreSame(importer.ProfileResult, vm.Operation.Polylines);
             Assert.AreEqual(path, vm.Operation.DxfFilePath);
         }

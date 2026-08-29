@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 using netDxf;
@@ -61,10 +62,13 @@ namespace GCodeGenerator.Import
         /// по единицам чертежа.
         /// </summary>
         /// <param name="path">Путь к DXF-файлу.</param>
+        /// <param name="cancellation">Отмена разбора и перечисления сущностей.</param>
         /// <exception cref="InvalidDataException">Файл не является DXF-документом.</exception>
-        internal static List<Polyline2D> Read(string path)
+        internal static List<Polyline2D> Read(string path, CancellationToken cancellation = default)
         {
+            cancellation.ThrowIfCancellationRequested();
             var document = DxfDocument.Load(path);
+            cancellation.ThrowIfCancellationRequested();
             if (document == null)
                 throw new CoreException(CoreErrorCodes.DxfNotADrawing,
                     "The file is not a DXF drawing: {0}.", path);
@@ -73,7 +77,10 @@ namespace GCodeGenerator.Import
 
             var result = new List<Polyline2D>();
             foreach (var entity in document.Entities.All)
-                AppendEntity(entity, scale, result);
+            {
+                cancellation.ThrowIfCancellationRequested();
+                AppendEntity(entity, scale, result, cancellation);
+            }
 
             return result;
         }
@@ -103,8 +110,10 @@ namespace GCodeGenerator.Import
             return scale;
         }
 
-        private static void AppendEntity(EntityObject entity, double scale, List<Polyline2D> result)
+        private static void AppendEntity(EntityObject entity, double scale, List<Polyline2D> result,
+            CancellationToken cancellation)
         {
+            cancellation.ThrowIfCancellationRequested();
             switch (entity)
             {
                 case Line line:
@@ -142,7 +151,10 @@ namespace GCodeGenerator.Import
                 case Insert insert:
                     // Вставка блока: раскрываем в сущности с координатами модели.
                     foreach (var exploded in insert.Explode())
-                        AppendEntity(exploded, scale, result);
+                    {
+                        cancellation.ThrowIfCancellationRequested();
+                        AppendEntity(exploded, scale, result, cancellation);
+                    }
                     break;
 
                 default:

@@ -163,11 +163,11 @@ namespace GCodeGenerator.Tests
 
             public ManualResetEventSlim Release { get; } = new ManualResetEventSlim(false);
 
-            public List<Polyline2D> ReadProfilePolylines(string path)
+            public List<Polyline2D> ReadProfilePolylines(string path, CancellationToken cancellation = default)
             {
                 Started.Set();
-                Release.Wait(TimeSpan.FromSeconds(5));
-                return _inner.ReadProfilePolylines(path);
+                Release.Wait(TimeSpan.FromSeconds(5), cancellation);
+                return _inner.ReadProfilePolylines(path, cancellation);
             }
 
             public List<Polyline2D> ReadPocketClosedContours(string path, CancellationToken cancellation = default)
@@ -185,6 +185,7 @@ namespace GCodeGenerator.Tests
         private static void WriteBigDxf(string path, int lineCount)
         {
             var document = new DxfDocument(DxfVersion.AutoCad2000);
+            document.DrawingVariables.InsUnits = netDxf.Units.DrawingUnits.Millimeters;
             for (var i = 0; i < lineCount; i++)
             {
                 document.Entities.Add(new netDxf.Entities.Line(
