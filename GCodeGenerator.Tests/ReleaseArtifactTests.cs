@@ -147,5 +147,21 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(sbom >= 0 && sbom < checksums, "SBOM должен существовать до вычисления SHA-256");
             StringAssert.Contains(workflow, "release-assets/GCodeGenerator-*-sbom.cdx.json");
         }
+
+        [TestMethod]
+        public void ReleaseWorkflow_AttestsChecksummedFilesBeforePublishing()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+            var attest = System.Text.RegularExpressions.Regex.Match(
+                workflow,
+                @"(?ms)^  attest:\s(?<body>.*?)(?=^  publish:)");
+
+            Assert.IsTrue(attest.Success, "Нет отдельного job аттестации");
+            StringAssert.Contains(attest.Groups["body"].Value, "id-token: write");
+            StringAssert.Contains(attest.Groups["body"].Value, "attestations: write");
+            StringAssert.Contains(attest.Groups["body"].Value, "subject-checksums: release-assets/SHA256SUMS.txt");
+            StringAssert.Contains(workflow, "needs: [build, attest]",
+                "Публикация не ждёт успешной аттестации");
+        }
     }
 }

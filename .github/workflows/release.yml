@@ -164,9 +164,32 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  attest:
+    name: Attest Release Provenance
+    needs: build
+    if: needs.build.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-bundle
+          path: release-assets
+
+      # Подписанная Sigstore/SLSA provenance связывает точные хеши из файла
+      # с этим workflow, commit и репозиторием. Сборочный job OIDC не получает.
+      - name: Attest release files
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-checksums: release-assets/SHA256SUMS.txt
+
   publish:
     name: Publish Release
-    needs: build
+    needs: [build, attest]
     if: needs.build.outputs.skip == 'false'
     runs-on: ubuntu-latest
     permissions:
