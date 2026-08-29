@@ -116,6 +116,16 @@ jobs:
           Compress-Archive -Path 'artifacts/publish/GCodeGenerator/*' -DestinationPath $zip
           Write-Host "Portable: $zip"
 
+      - name: Create CycloneDX SBOM
+        if: steps.tag.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          $sbom = "artifacts/installer/GCodeGenerator-$env:TAG_NAME-sbom.cdx.json"
+          build/New-ReleaseSbom.ps1 `
+            -Project GCodeGenerator/GCodeGenerator.csproj `
+            -Version $env:TAG_NAME `
+            -OutputPath $sbom
+
       - name: Create SHA-256 checksums
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
@@ -175,6 +185,7 @@ jobs:
           files: |
             release-assets/GCodeGenerator-Setup-*.exe
             release-assets/GCodeGenerator-*-portable.zip
+            release-assets/GCodeGenerator-*-sbom.cdx.json
             release-assets/SHA256SUMS.txt
           # Тег с суффиксом (-alpha/-beta/-rc) — pre-release.
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
