@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.IO;
+using System.IO.Pipes;
 using System.Threading.Tasks;
 using GCodeGenerator.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -70,6 +71,49 @@ namespace GCodeGenerator.Tests
 
                 using var replacement = new SingleInstanceCoordinator(lockPath, pipeName, _ => { });
                 Assert.IsTrue(replacement.TryAcquire(), "Завершившийся процесс удерживает lock");
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, true);
+            }
+        }
+
+        [TestMethod]
+        public async Task SilentConnectedClient_TimesOutAndDoesNotBlockNextRequest()
+        {
+            var directory = TemporaryDirectory();
+            var lockPath = Path.Combine(directory, "instance.lock");
+            var pipeName = "GCodeGenerator.Tests." + Guid.NewGuid().ToString("N");
+            var received = new TaskCompletionSource<string?>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+
+            try
+            {
+                using var primary = new SingleInstanceCoordinator(
+                    lockPath,
+                    pipeName,
+                    request => received.TrySetResult(request),
+                    requestReadTimeout: TimeSpan.FromMilliseconds(100));
+                using var secondary = new SingleInstanceCoordinator(lockPath, pipeName, _ => { });
+                Assert.IsTrue(primary.TryAcquire());
+                primary.StartListening();
+
+                using (var silent = new NamedPipeClientStream(
+                           ".",
+                           pipeName,
+                           PipeDirection.Out,
+                           PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly))
+                {
+                    silent.Connect(5000);
+                    await Task.Delay(250);
+                }
+
+                Assert.IsTrue(secondary.TryForward("next-project.ygc", TimeSpan.FromSeconds(5)),
+                    "После таймаута молчащего клиента слушатель должен принять следующий запрос");
+                var completed = await Task.WhenAny(received.Task, Task.Delay(TimeSpan.FromSeconds(5)));
+                Assert.AreSame(received.Task, completed, "Следующий запрос не дошёл до основного процесса");
+                Assert.AreEqual("next-project.ygc", await received.Task);
             }
             finally
             {

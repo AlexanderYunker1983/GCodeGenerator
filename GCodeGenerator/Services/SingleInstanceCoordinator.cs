@@ -1,5 +1,6 @@
 #nullable enable
 using System;
+using System.Buffers.Binary;
 using System.IO;
 using System.IO.Pipes;
 using System.Security.Cryptography;
@@ -17,11 +18,13 @@ namespace GCodeGenerator.Services
     internal sealed class SingleInstanceCoordinator : IDisposable
     {
         private const int MaximumRequestBytes = 256 * 1024;
+        internal static readonly TimeSpan DefaultRequestReadTimeout = TimeSpan.FromSeconds(2);
 
         private readonly string _lockPath;
         private readonly string _pipeName;
         private readonly Action<string?> _requestHandler;
         private readonly IAppLogger _logger;
+        private readonly TimeSpan _requestReadTimeout;
         private readonly CancellationTokenSource _shutdown = new CancellationTokenSource();
         private readonly object _sync = new object();
         private FileStream? _instanceLock;
@@ -33,7 +36,8 @@ namespace GCodeGenerator.Services
             string lockPath,
             string pipeName,
             Action<string?> requestHandler,
-            IAppLogger? logger = null)
+            IAppLogger? logger = null,
+            TimeSpan? requestReadTimeout = null)
         {
             if (string.IsNullOrWhiteSpace(lockPath))
                 throw new ArgumentException("Instance lock path is not specified.", nameof(lockPath));
@@ -44,6 +48,12 @@ namespace GCodeGenerator.Services
             _pipeName = pipeName;
             _requestHandler = requestHandler ?? throw new ArgumentNullException(nameof(requestHandler));
             _logger = logger ?? NullAppLogger.Instance;
+            _requestReadTimeout = requestReadTimeout ?? DefaultRequestReadTimeout;
+            if (_requestReadTimeout <= TimeSpan.Zero
+                || _requestReadTimeout.TotalMilliseconds > int.MaxValue)
+            {
+                throw new ArgumentOutOfRangeException(nameof(requestReadTimeout));
+            }
         }
 
         internal static SingleInstanceCoordinator CreateDefault(
@@ -191,13 +201,19 @@ namespace GCodeGenerator.Services
                         _activeServer = server;
 
                     await server.WaitForConnectionAsync(cancellationToken).ConfigureAwait(false);
-                    using var reader = new BinaryReader(server, Encoding.UTF8, leaveOpen: true);
-                    var length = reader.ReadInt32();
+                    using var requestCancellation =
+                        CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                    requestCancellation.CancelAfter(_requestReadTimeout);
+
+                    var lengthBytes = new byte[sizeof(int)];
+                    await server.ReadExactlyAsync(lengthBytes, requestCancellation.Token)
+                        .ConfigureAwait(false);
+                    var length = BinaryPrimitives.ReadInt32LittleEndian(lengthBytes);
                     if (length < 0 || length > MaximumRequestBytes)
                         throw new InvalidDataException("Forwarded request has an invalid length.");
-                    var payload = reader.ReadBytes(length);
-                    if (payload.Length != length)
-                        throw new EndOfStreamException("Forwarded request ended unexpectedly.");
+                    var payload = new byte[length];
+                    await server.ReadExactlyAsync(payload, requestCancellation.Token)
+                        .ConfigureAwait(false);
 
                     var projectFile = Encoding.UTF8.GetString(payload);
                     _requestHandler(projectFile.Length == 0 ? null : projectFile);
@@ -209,6 +225,10 @@ namespace GCodeGenerator.Services
                 catch (ObjectDisposedException) when (cancellationToken.IsCancellationRequested)
                 {
                     return;
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.Warning("Receiving a request from another application instance timed out.");
                 }
                 catch (Exception ex)
                 {
