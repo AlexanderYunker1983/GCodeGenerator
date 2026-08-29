@@ -120,6 +120,25 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(ColorOf(light.Rapid), ColorOf(dark.Rapid));
         }
 
+        [TestMethod]
+        public void CompletedSceneResources_AreFrozen()
+        {
+            var scene = Scene(
+                Segment(MoveType.Rapid, 0, 0, 5, 10, 0, 5),
+                Segment(MoveType.Linear, 10, 0, 5, 10, 0, -1));
+            var meshes = TrajectoryMeshBuilder.Build(scene);
+            var materials = SceneMaterials.ForBackground(Colors.White);
+            var model = GCodeGenerator.Views.SceneRenderer.Render(scene, materials);
+
+            Assert.IsTrue(meshes.Rapid.IsFrozen);
+            Assert.IsTrue(meshes.Linear.IsFrozen);
+            Assert.IsTrue(materials.BackgroundBrush.IsFrozen);
+            Assert.IsTrue(materials.Rapid.IsFrozen);
+            Assert.IsTrue(materials.Linear.IsFrozen);
+            Assert.IsTrue(model.IsFrozen,
+                "Группа рекурсивно фиксирует оси, маркеры и их геометрию");
+        }
+
         private static Color ColorOf(System.Windows.Media.Media3D.Material material)
         {
             var diffuse = material as System.Windows.Media.Media3D.DiffuseMaterial;

@@ -38,6 +38,7 @@ namespace GCodeGenerator.Views
             }
 
             modelGroup.Children.Add(new AmbientLight(materials.Ambient));
+            modelGroup.Freeze();
             return modelGroup;
         }
 

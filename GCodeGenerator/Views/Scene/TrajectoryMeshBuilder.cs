@@ -63,6 +63,15 @@ namespace GCodeGenerator.Views.Scene
 
         /// <summary>Радиус наконечника оси.</summary>
         public double ArrowRadius { get; set; }
+
+        /// <summary>Фиксирует готовые меши для дешёвой передачи в WPF-рендер.</summary>
+        public void Freeze()
+        {
+            Rapid.Freeze();
+            Linear.Freeze();
+            ArcCW.Freeze();
+            ArcCCW.Freeze();
+        }
     }
 
     /// <summary>
@@ -101,7 +110,10 @@ namespace GCodeGenerator.Views.Scene
             meshes.ArrowRadius = meshes.LineThickness * 2;
 
             if (segments.Count == 0)
+            {
+                meshes.Freeze();
                 return meshes;
+            }
 
             var dashLength = Math.Max(extent * 0.03, MinimumDashLength);
             var gapLength = Math.Max(extent * 0.02, MinimumGapLength);
@@ -138,6 +150,7 @@ namespace GCodeGenerator.Views.Scene
             }
 
             meshes.Markers = BuildMarkers(segments, meshes.LineThickness * 2);
+            meshes.Freeze();
             return meshes;
         }
 

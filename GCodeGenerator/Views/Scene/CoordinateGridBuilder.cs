@@ -272,6 +272,7 @@ namespace GCodeGenerator.Views.Scene
             var model = new Model3DGroup();
             AddModel(model, lines, materials.GridLines);
             AddModel(model, labels, materials.GridLabels);
+            model.Freeze();
             return new CoordinateGridPlaneModel(lines, labels, model);
         }
 

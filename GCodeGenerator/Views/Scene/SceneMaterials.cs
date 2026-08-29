@@ -26,6 +26,7 @@ namespace GCodeGenerator.Views.Scene
         {
             Background = background;
             BackgroundBrush = new SolidColorBrush(background);
+            BackgroundBrush.Freeze();
             IsDarkBackground = Brightness(background) < 0.5;
 
             Rapid = Diffuse(Color.FromArgb(180, 100, 100, 255));
@@ -119,7 +120,12 @@ namespace GCodeGenerator.Views.Scene
         /// <summary>Рассеянный свет сцены.</summary>
         public Color Ambient { get; } = Color.FromRgb(80, 80, 80);
 
-        private static Material Diffuse(Color color) => new DiffuseMaterial(new SolidColorBrush(color));
+        private static Material Diffuse(Color color)
+        {
+            var material = new DiffuseMaterial(new SolidColorBrush(color));
+            material.Freeze();
+            return material;
+        }
 
         /// <summary>Матовый цвет с подсветкой — так линия видна и в тени.</summary>
         private static Material Glowing(Color color, Color glow)
@@ -127,6 +133,7 @@ namespace GCodeGenerator.Views.Scene
             var material = new MaterialGroup();
             material.Children.Add(new DiffuseMaterial(new SolidColorBrush(color)));
             material.Children.Add(new EmissiveMaterial(new SolidColorBrush(glow)));
+            material.Freeze();
             return material;
         }
 

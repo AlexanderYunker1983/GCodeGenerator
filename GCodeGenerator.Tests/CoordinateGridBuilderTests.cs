@@ -54,6 +54,9 @@ namespace GCodeGenerator.Tests
                 Assert.IsTrue(plane.Lines.Positions.Count > 0, "линии сетки");
                 Assert.IsTrue(plane.Labels.Positions.Count > 0, "числовые отметки");
                 Assert.AreEqual(2, plane.Model.Children.Count, "линии и отметки — отдельные меши");
+                Assert.IsTrue(plane.Lines.IsFrozen);
+                Assert.IsTrue(plane.Labels.IsFrozen);
+                Assert.IsTrue(plane.Model.IsFrozen);
             }
 
             Assert.IsTrue(grids.Xy.Lines.Bounds.SizeZ < grids.Layout.LineThickness * 2,
