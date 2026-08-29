@@ -75,8 +75,9 @@ DisableProgramGroupPage=yes
 ; 64-bit app (win-x64 publish): install on x64 only, into 64-bit Program Files.
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-; Minimum OS per README (Windows 10 22H2 / Windows 11).
-MinVersion=10.0.19045
+; Minimum supported OS per README: Windows 11 24H2.
+; Windows 10 is outside both its own lifecycle and the .NET 10 support list.
+MinVersion=10.0.26100
 ; Установка возможна и без прав администратора.
 ;
 ; Прежде мастер требовал их безусловно, и на рабочем компьютере с

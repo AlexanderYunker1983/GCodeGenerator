@@ -236,6 +236,25 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Документация и установщик не должны обещать Windows 10, которую
+        /// уже не поддерживает ни сама ОС, ни поставляемый .NET 10 runtime.
+        /// Portable остаётся технически запускаемым файлом, но граница
+        /// официальной поддержки должна быть одна и недвусмысленная.
+        /// </summary>
+        [TestMethod]
+        public void Installer_AndReadmesRequireWindows11Build26100()
+        {
+            var russian = File.ReadAllText(Path.Combine(Root, "README.md"));
+            var english = File.ReadAllText(Path.Combine(Root, "README.en.md"));
+
+            StringAssert.Contains(InstallerScript, "MinVersion=10.0.26100");
+            StringAssert.Contains(russian, "Windows 11 24H2 (build 26100)");
+            StringAssert.Contains(english, "Windows 11 24H2 (build 26100)");
+            Assert.IsFalse(russian.Contains("минимальная поддерживаемая Windows 10"));
+            Assert.IsFalse(english.Contains("minimum supported Windows 10"));
+        }
+
+        /// <summary>
         /// Каталог, ярлыки и ветка реестра выбираются режимом установки сами.
         ///
         /// Это и делает выбор режима возможным: жёстко заданный

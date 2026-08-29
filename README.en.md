@@ -119,9 +119,11 @@ the machine.
 
 ## Requirements
 
-- **Operating system:**
-  - **Windows 11 24H2 (build 26100) or newer** — the recommended platform and the minimum supported Windows 11 (23H2 is supported in the Enterprise edition only, until 10 November 2026);
-  - **Windows 10 22H2 (build 19045) or newer** — the minimum supported Windows 10. Note: Windows 10 reached end of support on 14 October 2025 and is not in the [list of operating systems supported by .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md) (officially supported Windows 10: 21H2 Enterprise LTSC (build 19044) and newer).
+- **Operating system: Windows 11 24H2 (build 26100) or newer.** Windows 10
+  reached end of support and is absent from the
+  [operating systems supported by .NET 10](https://github.com/dotnet/core/blob/main/release-notes/10.0/supported-os.md),
+  so the application is not supported there; the installer enforces the same
+  minimum build 26100.
 - **Display:** the window takes at least 900×560 layout units — that is 1600×1000 pixels at 175 % scaling, or 900×560 at 100 %. On 1920×1080 the application works at any scaling up to 175 %.
 - The **.NET 10 Desktop Runtime** is **not required** to run the application: the installer and the portable build are self-contained (the runtime is included) — the application runs on a clean Windows.
 - To build from source: the **.NET 10 SDK** (10.0.x) — Visual Studio 2026 or the command line.
