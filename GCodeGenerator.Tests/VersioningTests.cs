@@ -98,9 +98,12 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void NoTags_DefaultVersion()
+        public void NoTags_DevelopmentVersionCarriesCommitIdentity()
         {
-            CheckSelection("notags", Array.Empty<string>(), "0.1.0-alpha");
+            var dir = NewRepo("notags");
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual($"0.1.0-alphadev1g{sha}", RunVersionScript(dir));
         }
 
         [TestMethod]
@@ -148,7 +151,12 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void InvalidTags_Ignored()
         {
-            CheckSelection("invalid-only", new[] { "v1.2.3", "1.2", "foo" }, "0.1.0-alpha");
+            var dir = NewRepo("invalid-only");
+            foreach (var tag in new[] { "v1.2.3", "1.2", "foo" })
+                RunGit(dir, $"tag {tag}");
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual($"0.1.0-alphadev1g{sha}", RunVersionScript(dir));
         }
 
         [TestMethod]
@@ -163,7 +171,42 @@ namespace GCodeGenerator.Tests
             var dir = NewRepo("old-tag");
             RunGit(dir, "tag 0.5.0");
             Commit(dir, "b.txt", "b"); // HEAD без тега
-            Assert.AreEqual("0.5.0", RunVersionScript(dir));
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual($"0.5.0-dev1g{sha}", RunVersionScript(dir));
+        }
+
+        [TestMethod]
+        public void InvalidNearestTag_DoesNotHideAValidOlderTag()
+        {
+            var dir = NewRepo("invalid-nearest");
+            RunGit(dir, "tag 0.5.0");
+            Commit(dir, "b.txt", "b");
+            RunGit(dir, "tag invalid-nearest");
+            Commit(dir, "c.txt", "c");
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual($"0.5.0-dev2g{sha}", RunVersionScript(dir));
+        }
+
+        [TestMethod]
+        public void DirtyTaggedCommit_IsNotReportedAsTheRelease()
+        {
+            var dir = NewRepo("dirty-tag");
+            RunGit(dir, "tag 1.2.3");
+            File.WriteAllText(Path.Combine(dir, "a.txt"), "changed but not committed");
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual($"1.2.3-dev0g{sha}dirty", RunVersionScript(dir));
+        }
+
+        [TestMethod]
+        public void OutsideGit_DefaultVersionIsStableFallback()
+        {
+            var dir = Path.Combine(_root, "outside-git");
+            Directory.CreateDirectory(dir);
+
+            Assert.AreEqual("0.1.0-alpha", RunVersionScript(dir));
         }
 
         [TestMethod]

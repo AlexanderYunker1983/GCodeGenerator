@@ -220,8 +220,13 @@ The product version is set at build time **from git tags** (`build/Get-GitVersio
 
 - Tag format: `X.Y.Z` or `X.Y.Z-suffix` (for example `1.2.3`, `1.2.3-alpha`, `1.2.3-rc5`).
 - If the current commit carries several tags, the one with the highest precedence wins (SemVer): `1.2.3` > `1.2.3-rc5` > `1.2.3-beta3` > `1.2.3-alpha2` > `1.2.3-alpha` (within a class, by number: `rc10` > `rc5`).
-- If the current commit has no tag, the nearest tag in history is used.
-- If there are no tags at all, the version is `0.1.0-alpha`. Tags outside the format (`v1.2.3`, for example) are ignored with a warning.
+- If the current commit has no tag, its distance and short SHA are appended to
+  the nearest valid tag, for example `1.2.3-dev4g12ab34cd`; a build with
+  uncommitted changes also ends in `dirty`. Two different development builds
+  therefore cannot present themselves as the same release.
+- If there are no valid tags, a git build uses
+  `0.1.0-alphadev<commit-count>g<SHA>`; only a build outside git remains
+  `0.1.0-alpha`. Tags outside the format (`v1.2.3`, for example) are ignored with a warning.
 
 The version goes into the assembly properties (`Version`/`AssemblyVersion`/`FileVersion`/`InformationalVersion`) and into the window title. To override: `dotnet build /p:Version=1.2.3-rc5` (an explicit version) or `/p:SkipGitVersion=true` (skip git).
 
