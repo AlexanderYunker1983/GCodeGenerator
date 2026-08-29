@@ -117,14 +117,33 @@ namespace GCodeGenerator.Tests
         public async Task Service_ReadsTheTagAndThePage()
         {
             using var service = Service(HttpStatusCode.OK,
-                @"{ ""tag_name"": ""1.2.3"", ""html_url"": ""https://github.com/x/y/releases/tag/1.2.3"" }");
+                @"{ ""tag_name"": ""1.2.3"", ""html_url"": ""https://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/1.2.3"" }");
 
             var answer = await service.Service.GetLatestReleaseAsync();
 
             Assert.IsNotNull(answer.Release);
             Assert.AreEqual("1.2.3", answer.Release!.Version.Text);
-            Assert.AreEqual("https://github.com/x/y/releases/tag/1.2.3", answer.Release.PageUrl);
+            Assert.AreEqual(
+                "https://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/1.2.3",
+                answer.Release.PageUrl);
             Assert.AreEqual(string.Empty, answer.Detail, "У успеха причины нет");
+        }
+
+        [TestMethod]
+        [DataRow("file:///C:/Windows/System32/calc.exe")]
+        [DataRow("https://github.com.evil.example/AlexanderYunker1983/GCodeGenerator/releases/tag/9.9.9")]
+        [DataRow("http://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/9.9.9")]
+        [DataRow("https://github.com/AlexanderYunker1983/GCodeGenerator/issues/1")]
+        public async Task Service_DoesNotExposeUntrustedReleaseLinks(string page)
+        {
+            using var service = Service(HttpStatusCode.OK,
+                $@"{{ ""tag_name"": ""9.9.9"", ""html_url"": ""{page}"" }}");
+
+            var answer = await service.Service.GetLatestReleaseAsync();
+
+            Assert.AreEqual(
+                "https://github.com/AlexanderYunker1983/GCodeGenerator/releases",
+                answer.Release!.PageUrl);
         }
 
         /// <summary>

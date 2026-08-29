@@ -11,10 +11,47 @@ using GCodeGenerator.Diagnostics;
 
 namespace GCodeGenerator.Services
 {
-    /// <summary>Найденный выпуск: его версия и страница, откуда его берут.</summary>
-    /// <param name="Version">Версия выпуска.</param>
-    /// <param name="PageUrl">Страница выпуска на GitHub.</param>
-    public sealed record UpdateInfo(ProductVersion Version, string PageUrl);
+    /// <summary>Найденный выпуск: его версия и проверенная страница на GitHub.</summary>
+    public sealed record UpdateInfo
+    {
+        public UpdateInfo(ProductVersion version, string? pageUrl)
+        {
+            Version = version ?? throw new ArgumentNullException(nameof(version));
+            PageUrl = ReleasePageAddress.Normalize(pageUrl);
+        }
+
+        public ProductVersion Version { get; }
+
+        public string PageUrl { get; }
+    }
+
+    /// <summary>Единственная область ссылок, которую можно открыть из сетевого ответа.</summary>
+    internal static class ReleasePageAddress
+    {
+        public const string Fallback =
+            "https://github.com/AlexanderYunker1983/GCodeGenerator/releases";
+
+        private const string ReleasePath =
+            "/AlexanderYunker1983/GCodeGenerator/releases";
+
+        public static string Normalize(string? value)
+        {
+            if (!Uri.TryCreate(value, UriKind.Absolute, out var uri)
+                || uri.Scheme != Uri.UriSchemeHttps
+                || !string.Equals(uri.Host, "github.com", StringComparison.OrdinalIgnoreCase)
+                || !uri.IsDefaultPort
+                || uri.UserInfo.Length != 0)
+            {
+                return Fallback;
+            }
+
+            var path = uri.AbsolutePath.TrimEnd('/');
+            return path.Equals(ReleasePath, StringComparison.OrdinalIgnoreCase)
+                   || path.StartsWith(ReleasePath + "/", StringComparison.OrdinalIgnoreCase)
+                ? uri.AbsoluteUri
+                : Fallback;
+        }
+    }
 
     /// <summary>
     /// Чем закончился вопрос о последнем выпуске.
@@ -219,12 +256,8 @@ namespace GCodeGenerator.Services
             var page = Text(release, "html_url");
             return UpdateCheckResult.Found(new UpdateInfo(
                 version,
-                string.IsNullOrWhiteSpace(page) ? AboutViewModelReleasesUrl : page!));
+                page));
         }
-
-        /// <summary>Страница выпусков — запасной адрес, если ответ его не назвал.</summary>
-        private const string AboutViewModelReleasesUrl =
-            "https://github.com/AlexanderYunker1983/GCodeGenerator/releases";
 
         private static string? Text(JsonElement element, string name)
             => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
