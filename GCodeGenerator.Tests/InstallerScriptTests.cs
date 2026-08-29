@@ -146,6 +146,22 @@ namespace GCodeGenerator.Tests
                 "install/GCodeGenerator.iss: деинсталлятор остаётся неподписанным");
         }
 
+        [TestMethod]
+        public void Release_VerifiesDownloadedInnoSetupBeforeExecution()
+        {
+            var workflow = File.ReadAllText(Path.Combine(
+                Root, ".github", "workflows", "release.yml"));
+
+            StringAssert.Contains(workflow,
+                "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
+                "SHA-256 официального Inno Setup 6.7.3 не закреплён");
+            StringAssert.Contains(workflow, "Get-FileHash -Algorithm SHA256",
+                "Загруженный exe запускается без вычисления хеша");
+            Assert.IsTrue(workflow.IndexOf("Get-FileHash -Algorithm SHA256", StringComparison.Ordinal)
+                          < workflow.IndexOf("& $installer /VERYSILENT", StringComparison.Ordinal),
+                "Проверка хеша должна предшествовать запуску загруженного exe");
+        }
+
         /// <summary>
         /// Установщик связывает с программой файлы проектов — иначе двойной
         /// щелчок по <c>.ygc</c> ничего не открывает, а формат этот собственный
