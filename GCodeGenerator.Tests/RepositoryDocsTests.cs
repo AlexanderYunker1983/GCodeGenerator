@@ -372,7 +372,14 @@ namespace GCodeGenerator.Tests
                 "English README still claims that the active stable release must be signed");
             StringAssert.Contains(Read("CONTRIBUTING.md"), "Immutable releases");
             StringAssert.Contains(Read("SECURITY.md"), "gh release verify");
-            StringAssert.Contains(Read(Path.Combine("docs", "SMOKE_CHECKLIST.md")), "Get-AuthenticodeSignature");
+            var smokeChecklist = Read(Path.Combine("docs", "SMOKE_CHECKLIST.md"));
+            StringAssert.Contains(smokeChecklist, "Get-AuthenticodeSignature");
+            StringAssert.Contains(smokeChecklist,
+                "автоматический Authenticode gate включается только в режиме `Required`");
+            Assert.IsFalse(smokeChecklist.Contains(
+                    "проверка Authenticode всех упакованных EXE",
+                    StringComparison.Ordinal),
+                "Чек-лист обещает выключенную автоматику подписи unsigned-артефактов");
         }
 
         /// <summary>

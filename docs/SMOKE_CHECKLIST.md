@@ -274,4 +274,8 @@ dotnet build GCodeGenerator.sln -c Release
   выпуска (`RepositoryDocsTests`), уязвимости в дереве пакетов и причина
   закреплённой версии ControlzEx (`DependencyAuditTests` и шаг CI
   на каждом прогоне), реальное обновление с предыдущего опубликованного
-  инсталлятора и проверка Authenticode всех упакованных EXE.
+  инсталлятора, запуск установленной и распакованной portable-версий,
+  удаление, SHA-256 и GitHub attestation артефактов. Для текущего unsigned-
+  выпуска отсутствие Authenticode-подписи проверяется вручную в L9;
+  автоматический Authenticode gate включается только в режиме `Required`
+  после появления сертификата.
