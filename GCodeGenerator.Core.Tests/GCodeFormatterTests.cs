@@ -180,9 +180,9 @@ namespace GCodeGenerator.Tests
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(
                 new[] { "N10 (hdr)", "N20 G54", "N30 M30" }, lines);
-            Assert.AreEqual(10, program.Blocks[0].LineNumber);
-            Assert.AreEqual(20, program.Blocks[1].LineNumber);
-            Assert.AreEqual(30, program.Blocks[2].LineNumber);
+            Assert.AreEqual(10L, program.Blocks[0].LineNumber);
+            Assert.AreEqual(20L, program.Blocks[1].LineNumber);
+            Assert.AreEqual(30L, program.Blocks[2].LineNumber);
         }
 
         [TestMethod]
@@ -192,7 +192,7 @@ namespace GCodeGenerator.Tests
             var program = Program(Comment("hdr"), Move(GCodeWord.G(54)));
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(new[] { "(hdr)", "G54" }, lines);
-            Assert.AreEqual(0, program.Blocks[0].LineNumber);
+            Assert.AreEqual(0L, program.Blocks[0].LineNumber);
         }
 
         [TestMethod]
@@ -202,6 +202,26 @@ namespace GCodeGenerator.Tests
             var program = Program(Move(GCodeWord.G(54)), Move(GCodeWord.Raw("M30")));
             var lines = GCodeFormatter.Format(program, s);
             CollectionAssert.AreEqual(new[] { "N5 G54", "N10 M30" }, lines);
+        }
+
+        [TestMethod]
+        public void LineNumbers_DoNotWrapAfterIntMaximum()
+        {
+            var settings = new GCodeSettings
+            {
+                Format = new GCodeFormatSettings
+                {
+                    LineNumberStart = int.MaxValue,
+                    LineNumberStep = int.MaxValue,
+                }
+            };
+            var program = Program(Move(GCodeWord.G(0)), Move(GCodeWord.G(1)));
+
+            var lines = GCodeFormatter.Format(program, settings);
+
+            Assert.AreEqual("N2147483647 G0", lines[0]);
+            Assert.AreEqual("N4294967294 G1", lines[1]);
+            Assert.AreEqual(4294967294L, program.Blocks[1].LineNumber);
         }
 
         [TestMethod]

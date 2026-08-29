@@ -21,7 +21,7 @@ namespace GCodeGenerator.Models
         /// Line number assigned by the formatter when rendering with line
         /// numbers enabled; 0 means "no number" (or not rendered yet).
         /// </summary>
-        public int LineNumber { get; set; }
+        public long LineNumber { get; set; }
 
         /// <summary>Command words of the line; empty for comment lines.</summary>
         public IReadOnlyList<GCodeWord> Words { get; }

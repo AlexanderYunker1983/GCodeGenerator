@@ -31,7 +31,7 @@ namespace GCodeGenerator.GCodeGenerators
             // Пункт 8.1 плана: форматирование читает только группу Format.
             var format = settings.Format;
             var lines = new List<string>(program.Blocks.Count);
-            int lineNumber = format.UseLineNumbers ? format.LineNumberStart : 0;
+            long lineNumber = format.UseLineNumbers ? format.LineNumberStart : 0;
 
             foreach (var block in program.Blocks)
             {
