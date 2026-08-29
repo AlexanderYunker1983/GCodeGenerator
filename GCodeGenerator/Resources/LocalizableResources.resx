@@ -495,6 +495,9 @@
   <data name="UnexpectedErrorMessage" xml:space="preserve">
     <value>Unexpected error. The application keeps running, please save the project. Details are written to the log:</value>
   </data>
+  <data name="SingleInstanceDeliveryFailed" xml:space="preserve">
+    <value>GCodeGenerator is already running, but the request could not be delivered.</value>
+  </data>
   <data name="FatalErrorMessage" xml:space="preserve">
     <value>Unexpected error: continuing is unsafe, the application will close. The project has been saved to a separate file, details are written to the log:</value>
   </data>

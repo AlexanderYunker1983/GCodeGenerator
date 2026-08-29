@@ -47,7 +47,7 @@ namespace GCodeGenerator
                 if (!forwarded)
                 {
                     MessageBox.Show(
-                        "GCodeGenerator is already running, but the request could not be delivered.",
+                        SingleInstanceDeliveryFailureText(StartupLanguage(logger)),
                         "GCodeGenerator",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
@@ -58,6 +58,33 @@ namespace GCodeGenerator
 
             StartupCore(projectFile, logger);
             _singleInstance.StartListening();
+        }
+
+        /// <summary>
+        /// Язык для сообщения второго экземпляра читается без сборки
+        /// контейнера: основной экземпляр уже запущен, а этот сейчас выйдет.
+        /// </summary>
+        private static string StartupLanguage(IAppLogger logger)
+        {
+            try
+            {
+                var settings = new ApplicationPersistedSettings(logger);
+                return settings[nameof(GCodeGenerator.Properties.Settings.Language)] as string ?? string.Empty;
+            }
+            catch (Exception failure)
+            {
+                logger.Log(LogLevel.Warning, "Не удалось прочитать язык для сообщения при запуске", failure);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>Локализует ошибку до создания основного менеджера приложения.</summary>
+        internal static string SingleInstanceDeliveryFailureText(string? languageCode)
+        {
+            var localization = new AppLocalizationManager();
+            localization.AddAssembly("GCodeGenerator");
+            localization.ChangeCulture(LanguageChoice.ToCulture(languageCode ?? string.Empty));
+            return localization.GetString("SingleInstanceDeliveryFailed");
         }
 
         /// <summary>

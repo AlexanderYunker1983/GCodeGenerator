@@ -64,6 +64,17 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual("Lines imported: 42", manager.GetString("DxfImportInfo", 42));
         }
 
+        [TestMethod]
+        public void SecondInstanceFailure_UsesPersistedInterfaceLanguage()
+        {
+            Assert.AreEqual(
+                "GCodeGenerator уже запущен, но передать запрос работающему экземпляру не удалось.",
+                App.SingleInstanceDeliveryFailureText("ru"));
+            Assert.AreEqual(
+                "GCodeGenerator is already running, but the request could not be delivered.",
+                App.SingleInstanceDeliveryFailureText("en"));
+        }
+
         /// <summary>
         /// Отсутствующий ключ → «?key?» (пункт 8.3: лог + сам ключ;
         /// захардкоженные фолбэки в VM удалены).
