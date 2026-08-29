@@ -39,7 +39,7 @@ namespace GCodeGenerator.Tests
                     $"Mutation scope не содержит {criticalFile}");
             }
 
-            Assert.IsTrue(stryker.GetProperty("thresholds").GetProperty("break").GetInt32() >= 70,
+            Assert.IsTrue(stryker.GetProperty("thresholds").GetProperty("break").GetInt32() >= 75,
                 "Низкий mutation score должен останавливать workflow");
             Assert.IsTrue(stryker.GetProperty("break-on-initial-test-failure").GetBoolean());
         }

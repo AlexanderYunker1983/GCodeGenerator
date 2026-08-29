@@ -20,9 +20,9 @@
       "json"
     ],
     "thresholds": {
-      "high": 80,
-      "low": 70,
-      "break": 70
+      "high": 85,
+      "low": 75,
+      "break": 75
     },
     "concurrency": 4,
     "additional-timeout": 3000,
