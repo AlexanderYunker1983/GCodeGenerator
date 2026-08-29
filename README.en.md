@@ -173,9 +173,9 @@ Signing is off by default: it needs a certificate, and there is no place for one
 build\Make-Installer.ps1 -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p PASSWORD $f'
 ```
 
-Instead of the parameter the command can be put into the `GCODEGEN_SIGN_COMMAND` environment variable. `GCodeGenerator.exe` and both product assemblies in the publish directory are signed, then the installer and the uninstaller (`SignedUninstaller`); the .NET runtime files need no attention — they are already signed by Microsoft. Without this setting the script builds an unsigned installer and warns about it.
+Instead of the parameter the command can be put into the `GCODEGEN_SIGN_COMMAND` environment variable, and the expected certificate's SHA-1 thumbprint into `GCODEGEN_EXPECTED_SIGNER_THUMBPRINT` (or pass `-ExpectedSignerThumbprint`). `GCodeGenerator.exe` and both product assemblies in the publish directory are signed, then the installer and the uninstaller (`SignedUninstaller`); Authenticode trust, the certificate and the timestamp are verified after every signing stage. The .NET runtime files need no attention — they are already signed by Microsoft. Without this setting the script builds an unsigned installer and warns about it; a stable release requires both the command and the pinned thumbprint.
 
-In the release workflow the command comes from the `SIGN_COMMAND` repository secret. Modern OV and EV certificates live on a hardware token or in a cloud key store, so automated signing is usually performed by the provider's service (Azure Trusted Signing, DigiCert KeyLocker, SSL.com eSigner) — its command is what goes into the secret. For a certificate in a file, add a step before the build that writes the `.pfx` from a secret into a temporary file.
+In the release workflow the command comes from the `SIGN_COMMAND` repository secret and the expected thumbprint from `SIGNER_THUMBPRINT`. Modern OV and EV certificates live on a hardware token or in a cloud key store, so automated signing is usually performed by the provider's service (Azure Trusted Signing, DigiCert KeyLocker, SSL.com eSigner) — its command is what goes into the secret. For a certificate in a file, add a step before the build that writes the `.pfx` from a secret into a temporary file.
 
 ### Building from source
 

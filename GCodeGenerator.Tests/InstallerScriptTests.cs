@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -109,12 +110,47 @@ namespace GCodeGenerator.Tests
                 "Стабильный выпуск не останавливается без сертификата");
             StringAssert.Contains(build, "$AllowUnsignedStable",
                 "Нет явного локального обхода для диагностической сборки");
+            StringAssert.Contains(build, "GCODEGEN_EXPECTED_SIGNER_THUMBPRINT",
+                "Стабильный выпуск не закрепляет ожидаемый сертификат");
+            StringAssert.Contains(build, "Assert-AuthenticodeSignature.ps1",
+                "Код возврата команды подписи принимается без проверки результата");
+            StringAssert.Contains(build, "RequireTimestamp = $true",
+                "Подпись не обязана иметь доверенную метку времени");
 
             StringAssert.Contains(InstallerScript, "#ifdef SignToolName",
                 "install/GCodeGenerator.iss: SignTool объявлен безусловно — "
                 + "сборка без сертификата перестанет компилироваться");
             StringAssert.Contains(InstallerScript, "SignedUninstaller=yes",
                 "install/GCodeGenerator.iss: деинсталлятор остаётся неподписанным");
+        }
+
+        [TestMethod]
+        public void AuthenticodeGate_RejectsAnUnsignedBinary()
+        {
+            var script = Path.Combine(Root, "build", "Assert-AuthenticodeSignature.ps1");
+            var unsignedBinary = typeof(InstallerScriptTests).Assembly.Location;
+            var start = new ProcessStartInfo("powershell.exe")
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            foreach (var argument in new[]
+                     {
+                         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                         "-File", script, "-FilePath", unsignedBinary, "-RequireTimestamp"
+                     })
+            {
+                start.ArgumentList.Add(argument);
+            }
+
+            using var process = Process.Start(start)!;
+            var output = process.StandardOutput.ReadToEnd() + process.StandardError.ReadToEnd();
+            process.WaitForExit(30000);
+
+            Assert.AreNotEqual(0, process.ExitCode, "Неподписанная DLL прошла Authenticode gate");
+            StringAssert.Contains(output, "does not have a valid Authenticode");
         }
 
         /// <summary>

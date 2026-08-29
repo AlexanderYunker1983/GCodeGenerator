@@ -187,6 +187,8 @@ jobs:
       # Секрета нет — pre-release собирается с явным предупреждением, а
       # стабильный выпуск останавливается: распространять его неподписанным
       # workflow не позволяет. Сертификат в репозитории лежать не может:
+      # секрет SIGNER_THUMBPRINT закрепляет ожидаемый сертификат, чтобы
+      # успешная команда не могла подписать выпуск случайным ключом.
       # добавить секрет, а для сертификата в файле — ещё и шаг, который пишет
       # .pfx из секрета во временный файл перед этим шагом.
       - name: Build installer
@@ -194,6 +196,7 @@ jobs:
         shell: pwsh
         env:
           GCODEGEN_SIGN_COMMAND: ${{ secrets.SIGN_COMMAND }}
+          GCODEGEN_EXPECTED_SIGNER_THUMBPRINT: ${{ secrets.SIGNER_THUMBPRINT }}
         run: build/Make-Installer.ps1
 
       # Портативная версия (без инсталлятора) — тот же publish-каталог.
@@ -210,14 +213,23 @@ jobs:
       - name: Smoke-test packaged artifacts
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
+        env:
+          GCODEGEN_SIGN_COMMAND: ${{ secrets.SIGN_COMMAND }}
+          GCODEGEN_EXPECTED_SIGNER_THUMBPRINT: ${{ secrets.SIGNER_THUMBPRINT }}
         run: |
           $installer = (Get-ChildItem artifacts/installer/GCodeGenerator-Setup-*.exe -File -ErrorAction Stop).FullName
           $work = Join-Path $env:RUNNER_TEMP "gcodegen-package-smoke-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
-          build/Test-PackagedArtifacts.ps1 `
-            -InstallerPath $installer `
-            -PortableExePath artifacts/publish/GCodeGenerator/GCodeGenerator.exe `
-            -WorkRoot $work `
-            -OutputLog artifacts/installer/packaged-artifact-smoke.log
+          $smoke = @{
+            InstallerPath = $installer
+            PortableExePath = 'artifacts/publish/GCodeGenerator/GCodeGenerator.exe'
+            WorkRoot = $work
+            OutputLog = 'artifacts/installer/packaged-artifact-smoke.log'
+          }
+          if (-not [string]::IsNullOrWhiteSpace($env:GCODEGEN_SIGN_COMMAND)) {
+            $smoke.RequireAuthenticodeSignature = $true
+            $smoke.ExpectedSignerThumbprint = $env:GCODEGEN_EXPECTED_SIGNER_THUMBPRINT
+          }
+          build/Test-PackagedArtifacts.ps1 @smoke
 
       # Диагностика сохраняется и при падении smoke-теста; общий release
       # bundle ниже создаётся лишь после полностью успешной сборки.

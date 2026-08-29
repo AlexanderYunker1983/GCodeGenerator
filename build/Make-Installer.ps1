@@ -34,6 +34,7 @@
 #   build\Make-Installer.ps1 [-Configuration Release] [-Runtime win-x64]
 #                            [-FrameworkDependent] [-IsccPath <path to ISCC.exe>]
 #                            [-SignCommand '<command with $f>']
+#                            [-ExpectedSignerThumbprint <SHA-1 thumbprint>]
 #                            [-AllowUnsignedStable]
 # ---------------------------------------------------------------------------
 param(
@@ -42,6 +43,7 @@ param(
     [switch]$FrameworkDependent,
     [string]$IsccPath = '',
     [string]$SignCommand = '',
+    [string]$ExpectedSignerThumbprint = '',
     [switch]$AllowUnsignedStable
 )
 
@@ -126,9 +128,16 @@ if ($LASTEXITCODE -ne 0) { throw 'Copy-ReleaseNotices.ps1 failed' }
 # The parameter wins over the environment variable, so a workflow can export
 # the command once and a local build can still override it.
 if ($SignCommand -eq '') { $SignCommand = $env:GCODEGEN_SIGN_COMMAND }
+if ($ExpectedSignerThumbprint -eq '') {
+    $ExpectedSignerThumbprint = $env:GCODEGEN_EXPECTED_SIGNER_THUMBPRINT
+}
 
 if ($SignCommand -eq '' -and $suffix -eq '' -and -not $AllowUnsignedStable) {
     throw 'A stable release must be code-signed. Configure GCODEGEN_SIGN_COMMAND or use -AllowUnsignedStable only for a local diagnostic build.'
+}
+if ($SignCommand -ne '' -and $ExpectedSignerThumbprint -eq '' -and
+    $suffix -eq '' -and -not $AllowUnsignedStable) {
+    throw 'A stable release must pin the signing certificate. Configure GCODEGEN_EXPECTED_SIGNER_THUMBPRINT.'
 }
 
 # Runs the signing command for one file: $f is replaced by its quoted path,
@@ -140,6 +149,15 @@ function Invoke-SignCommand([string]$Command, [string]$FilePath) {
     if ($LASTEXITCODE -ne 0) {
         throw "Signing failed for '$FilePath' (exit code $LASTEXITCODE)"
     }
+
+    $verification = @{
+        FilePath = $FilePath
+        RequireTimestamp = $true
+    }
+    if ($ExpectedSignerThumbprint -ne '') {
+        $verification.ExpectedSignerThumbprint = $ExpectedSignerThumbprint
+    }
+    & (Join-Path $scriptDir 'Assert-AuthenticodeSignature.ps1') @verification
 }
 
 if ($SignCommand -ne '') {
@@ -206,6 +224,16 @@ if ($LASTEXITCODE -ne 0) { throw 'ISCC failed' }
 
 $setup = Get-ChildItem -Path $installerDir -Filter 'GCodeGenerator-Setup-*.exe' | Select-Object -First 1
 if (-not $setup) { throw "Installer not found in $installerDir" }
+if ($SignCommand -ne '') {
+    $verification = @{
+        FilePath = $setup.FullName
+        RequireTimestamp = $true
+    }
+    if ($ExpectedSignerThumbprint -ne '') {
+        $verification.ExpectedSignerThumbprint = $ExpectedSignerThumbprint
+    }
+    & (Join-Path $scriptDir 'Assert-AuthenticodeSignature.ps1') @verification
+}
 Write-Host ""
 Write-Host "Installer: $($setup.FullName) ($([math]::Round($setup.Length / 1MB, 1)) MB)"
 if ($SignCommand -eq '') {

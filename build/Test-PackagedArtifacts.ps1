@@ -10,7 +10,11 @@ param(
     [string]$WorkRoot,
 
     [Parameter(Mandatory = $true)]
-    [string]$OutputLog
+    [string]$OutputLog,
+
+    [switch]$RequireAuthenticodeSignature,
+
+    [string]$ExpectedSignerThumbprint = ''
 )
 
 # ASCII-only: Windows PowerShell 5.1 reads a BOM-less script as ANSI.
@@ -37,6 +41,23 @@ function Write-SmokeLog([string]$Message) {
     $line = "[$([DateTime]::UtcNow.ToString('o'))] $Message"
     [System.IO.File]::AppendAllText($logPath, $line + [Environment]::NewLine, $utf8)
     Write-Host $line
+}
+
+function Assert-PackagedSignature([string]$FilePath, [string]$Stage) {
+    if (-not $RequireAuthenticodeSignature) {
+        return
+    }
+
+    Write-SmokeLog "${Stage}: verifying Authenticode signature"
+    $verification = @{
+        FilePath = $FilePath
+        RequireTimestamp = $true
+    }
+    if ($ExpectedSignerThumbprint -ne '') {
+        $verification.ExpectedSignerThumbprint = $ExpectedSignerThumbprint
+    }
+    & (Join-Path $PSScriptRoot 'Assert-AuthenticodeSignature.ps1') @verification
+    Write-SmokeLog "${Stage}: signature passed"
 }
 
 function Invoke-CheckedProcess([string]$FilePath, [string[]]$Arguments, [string]$Stage) {
@@ -85,6 +106,8 @@ $uninstallLog = Join-Path $workDirectory 'uninstall.log'
 
 try {
     New-Item -ItemType Directory -Path $workDirectory | Out-Null
+    Assert-PackagedSignature $installer 'Installer before installation'
+    Assert-PackagedSignature $portableExe 'Portable executable'
     $installArguments = @(
         '/VERYSILENT',
         '/SUPPRESSMSGBOXES',
@@ -103,10 +126,19 @@ try {
     if (-not (Test-Path -LiteralPath $uninstaller)) {
         throw "Uninstaller is missing: '$uninstaller'."
     }
+    foreach ($signedFile in @(
+        $installedExe,
+        (Join-Path $installDirectory 'GCodeGenerator.dll'),
+        (Join-Path $installDirectory 'GCodeGenerator.Core.dll'),
+        $uninstaller)) {
+        Assert-PackagedSignature $signedFile 'Installed payload'
+    }
     Test-ApplicationStart $installedExe 'Start installed application'
 
     $installArguments[-1] = "/LOG=`"$upgradeLog`""
     Invoke-CheckedProcess $installer $installArguments 'Upgrade over existing installation'
+    Assert-PackagedSignature $installedExe 'Upgraded executable'
+    Assert-PackagedSignature $uninstaller 'Upgraded uninstaller'
     Test-ApplicationStart $installedExe 'Start upgraded application'
 
     Test-ApplicationStart $portableExe 'Start portable application'

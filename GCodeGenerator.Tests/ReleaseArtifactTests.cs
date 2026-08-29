@@ -224,6 +224,11 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(script, "CloseMainWindow()",
                 "Приложение принудительно убивается вместо проверки штатного закрытия");
             StringAssert.Contains(script, "Installed executable remains after uninstall");
+            StringAssert.Contains(script, "RequireAuthenticodeSignature");
+            StringAssert.Contains(script, "Assert-AuthenticodeSignature.ps1");
+            StringAssert.Contains(script, "Upgraded uninstaller");
+            StringAssert.Contains(workflow, "SIGNER_THUMBPRINT");
+            StringAssert.Contains(workflow, "smoke.RequireAuthenticodeSignature = $true");
 
             var install = script.IndexOf("'Install'", StringComparison.Ordinal);
             var upgrade = script.IndexOf("'Upgrade over existing installation'", StringComparison.Ordinal);
