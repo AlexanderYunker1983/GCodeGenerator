@@ -138,7 +138,7 @@ namespace GCodeGenerator.Tests
 
             StringAssert.Contains(workflow, "build/Get-ReleaseNotes.ps1",
                 "Рабочий процесс не вызывает скрипт описания выпуска");
-            StringAssert.Contains(workflow, "body_path: ${{ steps.notes.outputs.path }}",
+            StringAssert.Contains(workflow, "body_path: ${{ needs.build.outputs.notes_found",
                 "Описание выпуска не подставляется");
             Assert.IsFalse(Regex.IsMatch(workflow, @"generate_release_notes:\s*true\s*$", RegexOptions.Multiline),
                 "Список коммитов выводится всегда, а должен — только без раздела в журнале");
@@ -172,6 +172,34 @@ namespace GCodeGenerator.Tests
                         $"{Path.GetFileName(path)}: рядом с SHA {action} нет читаемого комментария версии");
                 }
             }
+        }
+
+        /// <summary>
+        /// Компиляция и тесты обрабатывают недоверенный исходный код и не
+        /// должны владеть токеном, способным изменить репозиторий. Запись
+        /// нужна лишь отдельному job, который получает готовый bundle и
+        /// создаёт выпуск.
+        /// </summary>
+        [TestMethod]
+        public void Workflows_GrantWritePermissionOnlyToThePublishJob()
+        {
+            var ci = Read(".github", "workflows", "ci.yml");
+            var release = Read(".github", "workflows", "release.yml");
+
+            Assert.IsTrue(Regex.IsMatch(ci, @"(?m)^permissions:\s*\r?\n\s+contents:\s+read\s*$"),
+                "CI не объявляет минимальные права токена");
+            Assert.IsTrue(Regex.IsMatch(release, @"(?m)^permissions:\s*\r?\n\s+contents:\s+read\s*$"),
+                "Release по умолчанию имеет права выше чтения");
+            Assert.AreEqual(1, Regex.Matches(release, @"(?m)^\s+contents:\s+write\s*$").Count,
+                "Право записи должно существовать ровно в одном job");
+
+            var publish = Regex.Match(release, @"(?ms)^  publish:\s.*\z").Value;
+            StringAssert.Contains(publish, "contents: write",
+                "Право записи не ограничено коротким job публикации");
+            StringAssert.Contains(publish, "actions/download-artifact@",
+                "Job публикации должен получать готовый bundle, а не собирать исходники");
+            Assert.IsFalse(publish.Contains("actions/checkout@"),
+                "Job с записью в репозиторий не должен checkout недоверенный исходный код");
         }
 
         // ------------------------------------------------------------------

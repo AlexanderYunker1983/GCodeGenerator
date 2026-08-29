@@ -11,16 +11,20 @@ on:
       - '*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  release:
-    name: Build & Publish Release
+  build:
+    name: Build Release
     runs-on: windows-latest
+    outputs:
+      skip: ${{ steps.tag.outputs.skip }}
+      prerelease: ${{ steps.tag.outputs.prerelease }}
+      notes_found: ${{ steps.notes.outputs.found }}
     env:
       TAG_NAME: ${{ github.ref_name }}
     steps:
@@ -122,7 +126,7 @@ jobs:
         id: notes
         shell: pwsh
         run: |
-          $file = Join-Path $env:RUNNER_TEMP 'release-notes.md'
+          $file = 'artifacts/installer/release-notes.md'
           build/Get-ReleaseNotes.ps1 -Tag $env:TAG_NAME -OutFile $file | Out-Null
           if (Test-Path $file) {
             Write-Host "Release notes: $file"
@@ -134,19 +138,43 @@ jobs:
             Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=false'
           }
 
-      - name: Create GitHub Release
+      # Job публикации не получает исходный checkout, компилятор или скачанный
+      # Inno Setup: через границу прав передаются только готовые файлы выпуска.
+      - name: Upload release bundle
         if: steps.tag.outputs.skip == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-bundle
+          path: artifacts/installer
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    name: Publish Release
+    needs: build
+    if: needs.build.outputs.skip == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: release-bundle
+          path: release-assets
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
         with:
           name: ${{ github.ref_name }}
           files: |
-            artifacts/installer/GCodeGenerator-Setup-*.exe
-            artifacts/installer/GCodeGenerator-*-portable.zip
+            release-assets/GCodeGenerator-Setup-*.exe
+            release-assets/GCodeGenerator-*-portable.zip
           # Тег с суффиксом (-alpha/-beta/-rc) — pre-release.
-          prerelease: ${{ steps.tag.outputs.prerelease == 'true' }}
+          prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
           # Раздел CHANGELOG, если он есть; иначе — список коммитов, как раньше.
-          body_path: ${{ steps.notes.outputs.path }}
-          generate_release_notes: ${{ steps.notes.outputs.found != 'true' }}
+          body_path: ${{ needs.build.outputs.notes_found == 'true' && 'release-assets/release-notes.md' || '' }}
+          generate_release_notes: ${{ needs.build.outputs.notes_found != 'true' }}
           fail_on_unmatched_files: true
           # Повторный push того же тега заменяет релиз, а не падает.
           overwrite: true
