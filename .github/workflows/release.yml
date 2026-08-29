@@ -268,12 +268,23 @@ jobs:
             $candidateIndex++
             $downloadDirectory = Join-Path $downloadRoot $candidateIndex
             New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
-            gh release download $candidate.tagName `
-              --repo $env:GITHUB_REPOSITORY `
-              --pattern $installerAssets[0].name `
-              --dir $downloadDirectory `
-              --clobber
-            if ($LASTEXITCODE -ne 0) {
+            $downloaded = $false
+            for ($downloadAttempt = 1; $downloadAttempt -le 3; $downloadAttempt++) {
+              gh release download $candidate.tagName `
+                --repo $env:GITHUB_REPOSITORY `
+                --pattern $installerAssets[0].name `
+                --dir $downloadDirectory `
+                --clobber
+              if ($LASTEXITCODE -eq 0) {
+                $downloaded = $true
+                break
+              }
+              if ($downloadAttempt -lt 3) {
+                Write-Warning "Downloading previous installer failed (attempt $downloadAttempt of 3); retrying."
+                Start-Sleep -Seconds (5 * $downloadAttempt)
+              }
+            }
+            if (-not $downloaded) {
               throw "Downloading the previous installer from $($candidate.tagName) failed."
             }
             $previousInstaller = Join-Path $downloadDirectory $installerAssets[0].name

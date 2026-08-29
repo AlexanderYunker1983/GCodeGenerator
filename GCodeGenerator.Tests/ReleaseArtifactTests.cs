@@ -263,6 +263,11 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(script, "Installed executable remains after uninstall");
             StringAssert.Contains(workflow, "gh release list");
             StringAssert.Contains(workflow, "gh release download");
+            StringAssert.Contains(workflow,
+                "for ($downloadAttempt = 1; $downloadAttempt -le 3; $downloadAttempt++)",
+                "Краткий сетевой сбой скачивания предыдущего инсталлятора роняет весь release job");
+            StringAssert.Contains(workflow, "if (-not $downloaded)",
+                "Исчерпание retry должно оставаться fail-closed");
             StringAssert.Contains(workflow, "PreviousInstallerPath = '${{ steps.previous.outputs.path }}'");
             StringAssert.Contains(workflow, "PortableArchivePath = $portableArchive");
             StringAssert.Contains(script, "Expand-Archive -LiteralPath $portableArchive");
