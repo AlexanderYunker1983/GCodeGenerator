@@ -4,6 +4,7 @@ using GCodeGenerator.Import;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using netDxf;
 using netDxf.Entities;
+using netDxf.Units;
 
 namespace GCodeGenerator.Tests
 {
@@ -29,6 +30,7 @@ namespace GCodeGenerator.Tests
         public void Read_OpenSpline_BecomesDensePolyline()
         {
             var document = new DxfDocument();
+            document.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
             document.Entities.Add(new Spline(new List<Vector3>
             {
                 new Vector3(0, 0, 0),
@@ -66,6 +68,7 @@ namespace GCodeGenerator.Tests
         public void PocketContours_SplineEdgeClosesContourDrawnWithLines()
         {
             var document = new DxfDocument();
+            document.DrawingVariables.InsUnits = DrawingUnits.Millimeters;
             document.Entities.Add(new Line(new Vector3(0, 0, 0), new Vector3(30, 0, 0)));
             document.Entities.Add(new Line(new Vector3(30, 0, 0), new Vector3(30, 20, 0)));
             document.Entities.Add(new Line(new Vector3(30, 20, 0), new Vector3(0, 20, 0)));

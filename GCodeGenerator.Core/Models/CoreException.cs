@@ -62,6 +62,9 @@ namespace GCodeGenerator.Models
         /// <summary>Файл не является чертежом DXF.</summary>
         public const string DxfNotADrawing = "DxfNotADrawing";
 
+        /// <summary>В чертеже не заданы линейные единицы.</summary>
+        public const string DxfUnitsNotSpecified = "DxfUnitsNotSpecified";
+
         /// <summary>Чертёж слишком сложен для поиска замкнутых контуров.</summary>
         public const string DxfTooComplex = "DxfTooComplex";
 

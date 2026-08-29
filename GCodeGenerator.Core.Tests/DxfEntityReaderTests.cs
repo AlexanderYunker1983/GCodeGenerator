@@ -100,6 +100,29 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(10.0, Width(DxfImportServiceProbe.ReadProfile(_path)), 1e-6);
         }
 
+        [TestMethod]
+        public void Drawing_WithoutUnits_IsRejectedInsteadOfAssumingMillimeters()
+        {
+            var document = NewDocument(DrawingUnits.Unitless);
+            document.Entities.Add(new Line(new Vector2(0, 0), new Vector2(10, 0)));
+            document.Save(_path);
+
+            var failure = Assert.Throws<GCodeGenerator.Models.CoreException>(
+                () => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(GCodeGenerator.Models.CoreErrorCodes.DxfUnitsNotSpecified, failure.Code);
+        }
+
+        [TestMethod]
+        public void Drawing_InKilometers_UsesLibraryConversionTable()
+        {
+            var document = NewDocument(DrawingUnits.Kilometers);
+            document.Entities.Add(new Line(new Vector2(0, 0), new Vector2(0.01, 0)));
+            document.Save(_path);
+
+            Assert.AreEqual(10000.0, Width(DxfImportServiceProbe.ReadProfile(_path)), 1e-6);
+        }
+
         /// <summary>
         /// Геометрия внутри вставленного блока — часть чертежа. Прежний разбор
         /// читал определение блока как обычные сущности, игнорируя смещение

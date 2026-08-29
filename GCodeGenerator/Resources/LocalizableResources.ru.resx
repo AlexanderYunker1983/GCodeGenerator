@@ -414,6 +414,9 @@
   <data name="CoreError_DxfNotADrawing" xml:space="preserve">
     <value>Файл не является чертежом DXF: {0}.</value>
   </data>
+  <data name="CoreError_DxfUnitsNotSpecified" xml:space="preserve">
+    <value>В чертеже DXF не заданы линейные единицы. Укажите INSUNITS в исходном чертеже (например, миллиметры) и повторите импорт.</value>
+  </data>
   <data name="CoreError_DxfTooComplex" xml:space="preserve">
     <value>Чертёж слишком сложен для поиска замкнутых контуров: превышен предел перебора. Уменьшите число пересекающихся линий или замкните контур полилинией.</value>
   </data>

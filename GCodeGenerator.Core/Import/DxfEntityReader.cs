@@ -73,28 +73,28 @@ namespace GCodeGenerator.Import
         }
 
         /// <summary>
-        /// Коэффициент перевода координат чертежа в миллиметры. Чертёж без
-        /// заданных единиц трактуется как миллиметровый: так же работал
-        /// прежний разбор.
+        /// Коэффициент перевода координат чертежа в миллиметры. Безразмерный
+        /// DXF неоднозначен: одно и то же значение может означать миллиметры,
+        /// дюймы или другую единицу, поэтому такой файл нельзя безопасно
+        /// превращать в траекторию станка.
         /// </summary>
         private static double GetMillimeterScale(DrawingUnits units)
         {
-            switch (units)
+            if (units == DrawingUnits.Unitless ||
+                !Enum.IsDefined(typeof(DrawingUnits), units))
             {
-                case DrawingUnits.Centimeters: return 10.0;
-                case DrawingUnits.Decimeters: return 100.0;
-                case DrawingUnits.Meters: return 1000.0;
-                case DrawingUnits.Inches: return 25.4;
-                case DrawingUnits.Feet: return 304.8;
-                case DrawingUnits.Yards: return 914.4;
-                case DrawingUnits.Microinches: return 25.4e-6;
-                case DrawingUnits.Mils: return 0.0254;
-                case DrawingUnits.Microns: return 0.001;
-                case DrawingUnits.Millimeters:
-                case DrawingUnits.Unitless:
-                default:
-                    return 1.0;
+                throw new CoreException(CoreErrorCodes.DxfUnitsNotSpecified,
+                    "The DXF drawing has no supported linear units. Set INSUNITS in the source drawing before importing it.");
             }
+
+            var scale = UnitHelper.ConversionFactor(units, DrawingUnits.Millimeters);
+            if (!double.IsFinite(scale) || scale <= 0)
+            {
+                throw new CoreException(CoreErrorCodes.DxfUnitsNotSpecified,
+                    "The DXF drawing has no supported linear units. Set INSUNITS in the source drawing before importing it.");
+            }
+
+            return scale;
         }
 
         private static void AppendEntity(EntityObject entity, double scale, List<Polyline2D> result)

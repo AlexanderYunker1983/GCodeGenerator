@@ -414,6 +414,9 @@
   <data name="CoreError_DxfNotADrawing" xml:space="preserve">
     <value>The file is not a DXF drawing: {0}.</value>
   </data>
+  <data name="CoreError_DxfUnitsNotSpecified" xml:space="preserve">
+    <value>The DXF drawing has no linear units. Set INSUNITS in the source drawing (for example, millimeters) and import it again.</value>
+  </data>
   <data name="CoreError_DxfTooComplex" xml:space="preserve">
     <value>The drawing is too complex for closed-contour search: the traversal limit was exceeded. Reduce the number of intersecting lines or close the contour with a polyline.</value>
   </data>
