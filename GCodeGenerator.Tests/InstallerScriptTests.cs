@@ -118,9 +118,8 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Подпись можно включить, не трогая скрипты: команда приходит
-        /// параметром или переменной окружения, а .iss объявляет SignTool
-        /// только когда она задана.
+        /// Подпись приходит извне, но стабильный выпуск без неё запрещён.
+        /// Pre-release можно собирать неподписанным для тестирования.
         /// </summary>
         [TestMethod]
         public void Build_SupportsOptionalSigning()
@@ -133,6 +132,12 @@ namespace GCodeGenerator.Tests
                 "build/Make-Installer.ps1: команду подписи нельзя задать переменной окружения");
             StringAssert.Contains(build, "/DSignToolName=",
                 "build/Make-Installer.ps1: подпись не передаётся компилятору установщика");
+            StringAssert.Contains(build, "$suffix -eq ''",
+                "Стабильная версия не отличается от pre-release при проверке подписи");
+            StringAssert.Contains(build, "A stable release must be code-signed",
+                "Стабильный выпуск не останавливается без сертификата");
+            StringAssert.Contains(build, "$AllowUnsignedStable",
+                "Нет явного локального обхода для диагностической сборки");
 
             StringAssert.Contains(InstallerScript, "#ifdef SignToolName",
                 "install/GCodeGenerator.iss: SignTool объявлен безусловно — "

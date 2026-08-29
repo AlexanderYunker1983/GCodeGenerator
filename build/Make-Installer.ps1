@@ -12,8 +12,9 @@
 #   4. Compile install\GCodeGenerator.iss with ISCC, passing the version via
 #      /D defines; output into artifacts\installer.
 #
-# Signing is OPTIONAL and off by default: it needs a code-signing certificate,
-# which cannot live in the repository. Give -SignCommand (or set the
+# Signing is optional for pre-releases and mandatory for stable releases.
+# It needs a code-signing certificate, which cannot live in the repository.
+# Give -SignCommand (or set the
 # GCODEGEN_SIGN_COMMAND environment variable) to a command line that signs one
 # file, with $f standing for the file - the same placeholder Inno Setup uses,
 # so one setting covers both the app and the installer. Examples:
@@ -21,9 +22,9 @@
 #   -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p SECRET $f'
 #   -SignCommand 'azuresigntool.exe sign -kvu ... -kvc ... -tr http://timestamp.digicert.com -td SHA256 $f'
 #
-# Without it the build produces an unsigned installer exactly as before, and
-# says so: Windows SmartScreen warns about unsigned installers, so a release
-# meant for other people should be signed.
+# Without it an alpha/beta/rc build is explicitly marked unsigned. A stable
+# version fails unless -AllowUnsignedStable is passed deliberately for a local
+# diagnostic build; the release workflow never passes that escape hatch.
 #
 # Requires: .NET 10 SDK, git, Inno Setup 6 (ISCC.exe) - or -IsccPath.
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
@@ -33,13 +34,15 @@
 #   build\Make-Installer.ps1 [-Configuration Release] [-Runtime win-x64]
 #                            [-FrameworkDependent] [-IsccPath <path to ISCC.exe>]
 #                            [-SignCommand '<command with $f>']
+#                            [-AllowUnsignedStable]
 # ---------------------------------------------------------------------------
 param(
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
     [switch]$FrameworkDependent,
     [string]$IsccPath = '',
-    [string]$SignCommand = ''
+    [string]$SignCommand = '',
+    [switch]$AllowUnsignedStable
 )
 
 $ErrorActionPreference = 'Stop'
@@ -113,6 +116,10 @@ if (-not (Test-Path (Join-Path $publishDir 'GCodeGenerator.exe'))) {
 # the command once and a local build can still override it.
 if ($SignCommand -eq '') { $SignCommand = $env:GCODEGEN_SIGN_COMMAND }
 
+if ($SignCommand -eq '' -and $suffix -eq '' -and -not $AllowUnsignedStable) {
+    throw 'A stable release must be code-signed. Configure GCODEGEN_SIGN_COMMAND or use -AllowUnsignedStable only for a local diagnostic build.'
+}
+
 # Runs the signing command for one file: $f is replaced by its quoted path,
 # the same placeholder Inno Setup expands for its own SignTool.
 function Invoke-SignCommand([string]$Command, [string]$FilePath) {
@@ -138,9 +145,8 @@ if ($SignCommand -ne '') {
     }
 }
 else {
-    # Said out loud on purpose: an unsigned installer is met by a SmartScreen
-    # warning on every machine it reaches, and that is easy not to notice when
-    # the build succeeds either way.
+    # Only a pre-release or an explicitly overridden local stable build can
+    # reach this branch.
     Write-Host 'Signing is not configured: the installer will be UNSIGNED.' -ForegroundColor Yellow
     Write-Host '  Pass -SignCommand or set GCODEGEN_SIGN_COMMAND to sign the release.'
 }
