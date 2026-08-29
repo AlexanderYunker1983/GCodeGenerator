@@ -132,6 +132,27 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public async Task DeletingLastOperation_CanBeSavedToCurrentFile()
+        {
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
+            main.OperationsWorkspace.AllOperations.Add(Drill());
+            dialogs.SaveDialogResult = _projectPath;
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+
+            main.OperationsWorkspace.AllOperations.Clear();
+
+            Assert.IsTrue(main.ProjectWorkflow.SaveProjectCommand.CanExecute(null),
+                "Ctrl+S остаётся доступен для опустошённого изменённого документа");
+            await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+
+            var restored = new GCodeGenerator.Persistence.ProjectFileService().Load(_projectPath);
+            Assert.AreEqual(0, restored.Operations.Count,
+                "Удаление последней операции записано в текущий проект");
+            Assert.IsFalse(main.ProjectWorkflow.IsDirty,
+                "Успешно сохранённый пустой проект больше не помечен изменённым");
+        }
+
+        [TestMethod]
         public async Task SaveAs_AlwaysAsksForFileName()
         {
             var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();

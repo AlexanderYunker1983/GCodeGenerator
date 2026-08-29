@@ -80,8 +80,8 @@ namespace GCodeGenerator.ViewModels
             // окно остаётся живым. К документу фон не прикасается — слепок
             // и применение выполняются на потоке интерфейса.
             NewProgramCommand = new AsyncRelayCommand(CreateNewProgramAsync);
-            SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync, () => _operations.Count > 0);
-            SaveProjectAsCommand = new AsyncRelayCommand(SaveProjectAsAsync, () => _operations.Count > 0);
+            SaveProjectCommand = new AsyncRelayCommand(SaveProjectAsync);
+            SaveProjectAsCommand = new AsyncRelayCommand(SaveProjectAsAsync);
             OpenProjectCommand = new AsyncRelayCommand(OpenProjectAsync);
         }
 
@@ -148,8 +148,6 @@ namespace GCodeGenerator.ViewModels
 
         public void NotifyOperationsChanged()
         {
-            ((IRelayCommand)SaveProjectCommand).NotifyCanExecuteChanged();
-            ((IRelayCommand)SaveProjectAsCommand).NotifyCanExecuteChanged();
             MarkDirty();
         }
 
@@ -251,9 +249,6 @@ namespace GCodeGenerator.ViewModels
             await _workflowGate.WaitAsync();
             try
             {
-                if (_operations.Count == 0)
-                    return;
-
                 await SaveToFileAsync(CurrentPath ?? AskFileName());
             }
             finally
@@ -267,9 +262,6 @@ namespace GCodeGenerator.ViewModels
             await _workflowGate.WaitAsync();
             try
             {
-                if (_operations.Count == 0)
-                    return;
-
                 await SaveToFileAsync(AskFileName());
             }
             finally
