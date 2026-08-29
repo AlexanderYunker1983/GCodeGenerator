@@ -35,6 +35,7 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual("Генератор G-кода", manager.GetString("MainTitle"));
             Assert.AreEqual("Сверление по линии", manager.GetString("AddDrillLine"));
+            Assert.AreEqual("Z, мм", manager.GetString("MachineAxisZMillimeters"));
         }
 
         /// <summary>
@@ -50,6 +51,7 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual("G-code Generator", manager.GetString("MainTitle"));
             Assert.AreEqual("Drilling along a line", manager.GetString("AddDrillLine"));
             Assert.AreEqual("Spindle speed, RPM", manager.GetString("SpindleSpeedRpm"));
+            Assert.AreEqual("Z, mm", manager.GetString("MachineAxisZMillimeters"));
         }
 
         /// <summary>Форматирование параметров работает и в нейтральном наборе.</summary>

@@ -252,7 +252,7 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Column="1" Text="{loc:Loc MachineMinimum}" HorizontalAlignment="Center"/>
                             <TextBlock Grid.Column="2" Text="{loc:Loc MachineMaximum}" HorizontalAlignment="Center"/>
-                            <Label Grid.Row="1" Content="X, mm"/>
+                            <Label Grid.Row="1" Content="{loc:Loc MachineAxisXMillimeters}"/>
                             <TextBox Grid.Row="1" Grid.Column="1" Margin="4"
                                      Style="{StaticResource MahApps.Styles.TextBox}"
                                      Text="{Binding MinX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
@@ -261,7 +261,7 @@
                                      Style="{StaticResource MahApps.Styles.TextBox}"
                                      Text="{Binding MaxX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
                                      infrastructure:NumericInput.Mode="Decimal"/>
-                            <Label Grid.Row="2" Content="Y, mm"/>
+                            <Label Grid.Row="2" Content="{loc:Loc MachineAxisYMillimeters}"/>
                             <TextBox Grid.Row="2" Grid.Column="1" Margin="4"
                                      Style="{StaticResource MahApps.Styles.TextBox}"
                                      Text="{Binding MinY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
@@ -270,7 +270,7 @@
                                      Style="{StaticResource MahApps.Styles.TextBox}"
                                      Text="{Binding MaxY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
                                      infrastructure:NumericInput.Mode="Decimal"/>
-                            <Label Grid.Row="3" Content="Z, mm"/>
+                            <Label Grid.Row="3" Content="{loc:Loc MachineAxisZMillimeters}"/>
                             <TextBox Grid.Row="3" Grid.Column="1" Margin="4"
                                      Style="{StaticResource MahApps.Styles.TextBox}"
                                      Text="{Binding MinZ, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"

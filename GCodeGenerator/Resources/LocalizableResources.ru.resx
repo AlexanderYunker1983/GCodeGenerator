@@ -312,6 +312,15 @@
   <data name="MachineMinimum" xml:space="preserve">
     <value>Минимум</value>
   </data>
+  <data name="MachineAxisXMillimeters" xml:space="preserve">
+    <value>X, мм</value>
+  </data>
+  <data name="MachineAxisYMillimeters" xml:space="preserve">
+    <value>Y, мм</value>
+  </data>
+  <data name="MachineAxisZMillimeters" xml:space="preserve">
+    <value>Z, мм</value>
+  </data>
   <data name="MachineMaximum" xml:space="preserve">
     <value>Максимум</value>
   </data>
