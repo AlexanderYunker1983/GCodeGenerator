@@ -69,6 +69,23 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(expected.Z, camera.LookDirection.Z, 1e-6);
         }
 
+        [TestMethod]
+        public void ZoomAfterCursorOrbit_ContinuesTowardsTheSamePivot()
+        {
+            var camera = CameraAt(new Point3D(0, 0, 0), 100);
+            var pivot = new Point3D(20, -15, 3);
+
+            camera.Orbit(-30, 15, pivot);
+            var distanceAfterOrbit = (camera.Position - pivot).Length;
+            camera.Zoom(closer: true);
+
+            Assert.AreEqual(pivot, camera.Target,
+                "Точка под курсором остаётся целью камеры после поворота");
+            Assert.IsTrue((camera.Position - pivot).Length < distanceAfterOrbit,
+                "Колесо приближает к выбранной точке без возврата к старому центру");
+            Assert.AreEqual(camera.Distance, (camera.Position - pivot).Length, 1e-6);
+        }
+
         /// <summary>
         /// Наклон упирается в пределы, не доходя до полюсов: там «верх» кадра
         /// неопределён, и сцена скачком переворачивается вверх ногами.

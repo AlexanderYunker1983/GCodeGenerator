@@ -113,6 +113,13 @@ namespace GCodeGenerator.Views.Scene
             if (radius < 0.001)
                 return;
 
+            // Точка под курсором становится не только центром текущего
+            // поворота, но и целью следующих действий. Иначе Zoom после
+            // Shift+ПКМ пересчитывал позицию относительно прежней Target и
+            // камера скачком возвращалась к центру модели.
+            Target = pivot;
+            Distance = Clamp(radius, MinDistance, MaxDistance);
+
             _theta -= deltaX * RotationSpeed;
             _phi -= deltaY * RotationSpeed;
 
@@ -121,9 +128,9 @@ namespace GCodeGenerator.Views.Scene
             _phi = Clamp(_phi, MinPolarAngle, Math.PI - MinPolarAngle);
 
             var offset = new Vector3D(
-                radius * Math.Sin(_phi) * Math.Cos(_theta),
-                radius * Math.Sin(_phi) * Math.Sin(_theta),
-                radius * Math.Cos(_phi));
+                Distance * Math.Sin(_phi) * Math.Cos(_theta),
+                Distance * Math.Sin(_phi) * Math.Sin(_theta),
+                Distance * Math.Cos(_phi));
 
             Position = pivot + offset;
             LookDirection = pivot - Position;
