@@ -90,6 +90,7 @@ namespace GCodeGenerator.Tests.Fixtures
 
                 // Перекрёстные варианты.
                 cases.Add(new FixtureCase("Multi.Operation.Default", MultiOperation(), SettingsFixtures.Default()));
+                cases.Add(new FixtureCase("Multi.Operation.Grbl", MultiOperation(), SettingsFixtures.GrblSpindleDelay()));
                 cases.Add(new FixtureCase("Multi.Operation.WcsG55", MultiOperation(), SettingsFixtures.WcsG55()));
                 cases.Add(new FixtureCase("Multi.Operation.G92StartEnd", MultiOperation(), SettingsFixtures.G92StartEnd()));
                 cases.Add(new FixtureCase("Drill.Points.NoLineNumbers", Ops(OperationFixtures.DrillPoints()), SettingsFixtures.NoLineNumbers()));
