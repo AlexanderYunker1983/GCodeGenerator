@@ -18,6 +18,7 @@
                     Content="{loc:Loc Close}"
                     Command="{Binding CloseCommand}"
                     IsDefault="True" IsCancel="True"
+                    TabIndex="1000"
                     MinWidth="90"/>
             <TextBlock/>
         </DockPanel>

@@ -7,8 +7,8 @@
          пояснение, а операция остаётся такой, какой была. -->
     <DockPanel LastChildFill="True" Margin="10,8,10,10">
         <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" MinWidth="80" Margin="0,0,8,0"/>
-            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" MinWidth="80"/>
+            <Button Content="{loc:Loc Ok}" Command="{Binding OkCommand}" IsDefault="True" TabIndex="1000" MinWidth="80" Margin="0,0,8,0"/>
+            <Button Content="{loc:Loc Cancel}" Command="{Binding CancelCommand}" IsCancel="True" TabIndex="1001" MinWidth="80"/>
         </StackPanel>
         <!-- Цвет подобран так, чтобы читаться и на светлой, и на тёмной теме:
              кисти тем MahApps для сообщений об ошибке различаются между версиями,
