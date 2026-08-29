@@ -162,21 +162,28 @@ namespace GCodeGenerator.Tests
             AssertHoleAt(holes[2], 0, 10, "Конец дуги");
         }
 
-        /// <summary>Совпадение начального и конечного углов означает полную окружность.</summary>
+        /// <summary>
+        /// Совпадение начального и конечного углов означает полную окружность,
+        /// но не дополнительное отверстие в начальной точке.
+        /// </summary>
         [TestMethod]
-        public void Arc_ZeroSpan_BecomesFullCircle()
+        public void Arc_FullCircle_DoesNotRepeatTheFirstHole()
         {
             var operation = Operation(DrillMode.Arc);
             operation.Radius = 10;
-            operation.HoleCount = 5;
+            operation.HoleCount = 8;
             operation.StartAngleDeg = 0;
-            operation.EndAngleDeg = 0;
+            operation.EndAngleDeg = 360;
 
             var holes = operation.HolesToDrill;
 
-            Assert.AreEqual(5, holes.Count);
+            Assert.AreEqual(8, holes.Count);
             AssertHoleAt(holes[0], 10, 0, "Начало");
-            AssertHoleAt(holes[4], 10, 0, "Последнее отверстие возвращается к началу");
+            AssertHoleAt(holes[2], 0, 10, "Четверть окружности");
+            Assert.AreEqual(8, holes
+                .Select(hole => (Math.Round(hole.X, 9), Math.Round(hole.Y, 9)))
+                .Distinct()
+                .Count(), "Каждая координата полного круга должна сверлиться один раз");
         }
 
         /// <summary>

@@ -352,11 +352,16 @@ namespace GCodeGenerator.Models
             if (arcSpan < 0)
                 arcSpan += 2 * Math.PI;
 
-            // Нулевой раскрыв трактуется как полная окружность.
-            if (arcSpan < FullCircleSpanRadians)
+            // Нулевой раскрыв трактуется как полная окружность. В полном
+            // круге конечная точка совпадает с начальной, поэтому шаг делит
+            // окружность на N частей; у обычной дуги обе границы входят в
+            // расстановку и промежутков между N отверстиями только N - 1.
+            var isFullCircle = arcSpan < FullCircleSpanRadians;
+            if (isFullCircle)
                 arcSpan = 2 * Math.PI;
 
-            var stepRad = operation.HoleCount > 1 ? arcSpan / (operation.HoleCount - 1) : 0;
+            var divisor = isFullCircle ? operation.HoleCount : operation.HoleCount - 1;
+            var stepRad = divisor > 0 ? arcSpan / divisor : 0;
 
             for (int i = 0; i < operation.HoleCount; i++)
             {
