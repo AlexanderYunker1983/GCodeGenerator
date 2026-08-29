@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
@@ -41,8 +42,11 @@ namespace GCodeGenerator.Tests
 
             var error = Generate(settings);
 
-            Assert.IsTrue(error.SettingsIssues.Any(i => i.Property == "WorkCoordinateSystem"),
-                "Названа причина: система координат");
+            var issue = error.SettingsIssues.Single(i => i.Property == "WorkCoordinateSystem");
+            Assert.AreEqual(
+                "must be one of G54, G55, G56, G57, G58, G59, but is \"G99\"",
+                issue.Message,
+                "Диагностика перечисляет допустимые системы и отвергнутое значение");
             StringAssert.Contains(error.Message, "G99", "В сообщении видно отвергнутое значение");
         }
 
@@ -55,7 +59,10 @@ namespace GCodeGenerator.Tests
 
             var error = Generate(settings);
 
-            Assert.IsTrue(error.SettingsIssues.Any(i => i.Property == "WorkCoordinateSystem"),
+            var issue = error.SettingsIssues.Single(i => i.Property == "WorkCoordinateSystem");
+            Assert.AreEqual(
+                "must be one of G54, G55, G56, G57, G58, G59, but is empty",
+                issue.Message,
                 "Пустая система координат при включённой настройке — тоже отказ");
         }
 
@@ -69,9 +76,53 @@ namespace GCodeGenerator.Tests
 
             var error = Generate(settings);
 
-            Assert.IsTrue(error.SettingsIssues.Any(i => i.Property == "SpindleStartCommand"),
-                "Названа причина: команда пуска шпинделя");
+            var issue = error.SettingsIssues.Single(i => i.Property == "SpindleStartCommand");
+            Assert.AreEqual(
+                "must be one of M3, M4, but is \"M13\"",
+                issue.Message,
+                "Диагностика перечисляет допустимые команды и отвергнутое значение");
             StringAssert.Contains(error.Message, "M13", "В сообщении видно отвергнутое значение");
+        }
+
+        [TestMethod]
+        public void NullSettings_AreRejectedAtTheValidationBoundary()
+        {
+            var error = Assert.Throws<ArgumentNullException>(
+                () => GCodeSettingsValidation.Validate(null!));
+
+            Assert.AreEqual("settings", error.ParamName);
+        }
+
+        [TestMethod]
+        public void MissingSettingsSections_AreAllReported()
+        {
+            var settings = new GCodeSettings
+            {
+                WorkCoordinate = null!,
+                Format = null!,
+                Spindle = null!,
+                Coolant = null!,
+                Machine = null!,
+            };
+
+            var issues = GCodeSettingsValidation.Validate(settings);
+            var expected = new Dictionary<string, string>
+            {
+                [nameof(GCodeSettings.WorkCoordinate)] = "work-coordinate settings are missing",
+                [nameof(GCodeSettings.Format)] = "format settings are missing",
+                [nameof(GCodeSettings.Spindle)] = "spindle settings are missing",
+                [nameof(GCodeSettings.Coolant)] = "coolant settings are missing",
+                [nameof(GCodeSettings.Machine)] = "machine-profile settings are missing",
+            };
+
+            Assert.AreEqual(expected.Count, issues.Count,
+                "Каждая обязательная секция даёт ровно одну самостоятельную причину отказа");
+            foreach (var issue in issues)
+            {
+                Assert.AreEqual(ValidationCode.Empty, issue.Code, issue.Property);
+                Assert.IsTrue(expected.TryGetValue(issue.Property, out var message), issue.Property);
+                Assert.AreEqual(message, issue.Message, issue.Property);
+            }
         }
 
         /// <summary>

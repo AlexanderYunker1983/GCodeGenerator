@@ -1,0 +1,31 @@
+{
+  "stryker-config": {
+    "project": "GCodeGenerator.Core.csproj",
+    "test-projects": [
+      "GCodeGenerator.Core.Tests.csproj"
+    ],
+    "configuration": "Release",
+    "target-framework": "net10.0",
+    "mutation-level": "Standard",
+    "mutate": [
+      "**/GenericPostProcessor.cs",
+      "**/MachineProfileValidator.cs",
+      "**/GCodeSettingsValidation.cs",
+      "**/OperationValidation.cs",
+      "**/ProjectFileReader.cs"
+    ],
+    "reporters": [
+      "progress",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 70,
+      "break": 70
+    },
+    "concurrency": 4,
+    "additional-timeout": 3000,
+    "break-on-initial-test-failure": true
+  }
+}

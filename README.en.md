@@ -212,6 +212,18 @@ dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Releas
 dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-build
 ```
 
+4. Before changing release-critical validation or generation code, run the
+mutation suite (a complete run takes several minutes):
+```bash
+dotnet tool restore
+cd GCodeGenerator.Core.Tests
+dotnet stryker --config-file stryker-config.json --skip-version-check
+```
+
+The tool version is pinned in `.config/dotnet-tools.json`, and a score below
+70% fails the run. The `Mutation Tests` workflow runs the same check weekly or
+on demand and retains both HTML and JSON reports as an artifact.
+
 The application: `GCodeGenerator\bin\Release\GCodeGenerator.exe` (running it requires the .NET 10 Desktop Runtime).
 
 Alternatively, open `GCodeGenerator.sln` in Visual Studio 2026 and build the solution (the Release configuration).

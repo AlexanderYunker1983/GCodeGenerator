@@ -1,0 +1,50 @@
+name: Mutation Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '25 2 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety-critical-core:
+    name: Safety-critical core
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore locked dependencies
+        run: dotnet restore GCodeGenerator.sln --locked-mode
+
+      - name: Restore pinned tools
+        run: dotnet tool restore
+
+      # Дорогая проверка идёт еженедельно и вручную. Мутируются только
+      # релизно-критичные правила: предполётная и машинная безопасность,
+      # эпилог программы и строгий разбор проекта. Порог break делает
+      # результат условием успеха, а не информационным отчётом.
+      - name: Run mutation tests
+        working-directory: GCodeGenerator.Core.Tests
+        run: dotnet stryker --config-file stryker-config.json --skip-version-check
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: mutation-report
+          path: GCodeGenerator.Core.Tests/StrykerOutput
+          if-no-files-found: error
+          retention-days: 30
