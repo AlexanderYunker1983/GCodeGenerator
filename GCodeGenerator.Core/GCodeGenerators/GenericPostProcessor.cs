@@ -39,7 +39,7 @@ namespace GCodeGenerator.GCodeGenerators
 
             WriteHeader(builder, settings);
             WriteOperations(builder, toolPath);
-            WriteFooter(builder, settings);
+            WriteFooter(builder, toolPath, settings);
 
             GCodeFormatter.Format(program, settings);
             return program;
@@ -161,25 +161,58 @@ namespace GCodeGenerator.GCodeGenerators
         }
 
         /// <summary>
-        /// Конец программы: выключение охлаждения, отход в конечную точку,
-        /// остановка шпинделя и завершение.
+        /// Конец программы: вертикальный отвод из материала, остановка
+        /// шпинделя и охлаждения, горизонтальная парковка и завершение.
         /// </summary>
-        private static void WriteFooter(ProgramBuilder builder, GCodeSettings settings)
+        private static void WriteFooter(ProgramBuilder builder, ToolPath toolPath, GCodeSettings settings)
         {
             var spindle = settings.Spindle;
             var coolant = settings.Coolant;
             var workCoordinate = settings.WorkCoordinate;
 
-            if (coolant.CoolantControlEnabled && coolant.CoolantStopEnabled)
-                builder.CoolantOff();
-
             if (workCoordinate.AddEndPosition)
-                builder.SetEndPosition(workCoordinate.EndX, workCoordinate.EndY, workCoordinate.EndZ);
+            {
+                // Сначала только Z: одновременный G0 X/Y/Z строит диагональ,
+                // которая может пересечь заготовку или оснастку. Высота
+                // берётся из выполняемых операций, а не угадывается по EndZ.
+                builder.RapidTo(z: EndClearanceZ(toolPath, workCoordinate.EndZ));
+            }
 
             if (spindle.SpindleControlEnabled && spindle.SpindleStopEnabled)
                 builder.SpindleOff();
 
+            if (coolant.CoolantControlEnabled && coolant.CoolantStopEnabled)
+                builder.CoolantOff();
+
+            if (workCoordinate.AddEndPosition)
+            {
+                var clearanceZ = EndClearanceZ(toolPath, workCoordinate.EndZ);
+                builder.RapidTo(x: workCoordinate.EndX, y: workCoordinate.EndY);
+                if (workCoordinate.EndZ != clearanceZ)
+                    builder.RapidTo(z: workCoordinate.EndZ);
+            }
+
             builder.EndProgram();
+        }
+
+        /// <summary>Наибольшая безопасная высота всех выполненных операций.</summary>
+        private static double EndClearanceZ(ToolPath toolPath, double endZ)
+        {
+            var clearanceZ = endZ;
+            foreach (var operation in toolPath.Operations)
+            {
+                switch (operation.Source)
+                {
+                    case MillingOperationBase milling:
+                        clearanceZ = Math.Max(clearanceZ, milling.SafeZHeight);
+                        break;
+                    case DrillPointsOperation drill:
+                        clearanceZ = Math.Max(clearanceZ, drill.SafeZBetweenHoles);
+                        break;
+                }
+            }
+
+            return clearanceZ;
         }
     }
 }

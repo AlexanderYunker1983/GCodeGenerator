@@ -178,10 +178,17 @@ namespace GCodeGenerator.GCodeGenerators
             AddCode(GCodeWord.Raw("G92"), GCodeWord.X(x, -1), GCodeWord.Y(y, -1), GCodeWord.Z(z, -1));
         }
 
-        /// <summary>End position: rapid (G0) to (x, y, z), plain coordinates.</summary>
-        public void SetEndPosition(double x, double y, double z)
+        /// <summary>
+        /// Безопасный переход в конечную позицию: сначала отвод по Z,
+        /// затем горизонтальный ход и лишь после него заданная конечная Z.
+        /// Диагональный быстрый ход к трём координатам сразу не строится.
+        /// </summary>
+        public void SetEndPosition(double x, double y, double z, double clearanceZ)
         {
-            RapidTo(x, y, z);
+            RapidTo(z: clearanceZ);
+            RapidTo(x: x, y: y);
+            if (z != clearanceZ)
+                RapidTo(z: z);
         }
 
         /// <summary>Program end (M30). Legacy behavior: M30 is never padded.</summary>

@@ -159,10 +159,12 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void SetEndPosition_RapidPlain()
+        public void SetEndPosition_SplitsVerticalAndHorizontalRapids()
         {
-            _builder.SetEndPosition(100.0, 0.0, 5.0);
-            AssertBlock(0, "G:0(-1) X:100(-1) Y:0(-1) Z:5(-1)");
+            _builder.SetEndPosition(100.0, 0.0, -2.0, 5.0);
+            AssertBlock(0, "G:0(-1) Z:5(-1)");
+            AssertBlock(1, "G:0(-1) X:100(-1) Y:0(-1)");
+            AssertBlock(2, "G:0(-1) Z:-2(-1)");
         }
 
         [TestMethod]

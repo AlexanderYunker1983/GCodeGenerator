@@ -176,10 +176,41 @@ namespace GCodeGenerator.Tests
             var g92 = program.Lines.FirstOrDefault(l => l.Contains("G92 X0 Y0 Z5"));
             Assert.IsNotNull(g92, "Ожидалась строка G92 X0 Y0 Z5");
 
-            var endMove = program.Lines
-                .Where(l => l.Contains("X100 Y0 Z5"))
-                .LastOrDefault();
-            Assert.IsNotNull(endMove, "Ожидался быстрый переход в конечную точку X100 Y0 Z5 перед M5/M30");
+            Assert.IsFalse(program.Lines.Any(l => l.Contains("X100 Y0 Z5")),
+                "Конечная позиция не должна строить диагональный быстрый ход X/Y/Z");
+
+            var normalized = program.Lines
+                .Select(line => Regex.Replace(line, @"^N\d+ ", ""))
+                .ToList();
+            var retract = normalized.FindLastIndex(line => line == "G0 Z5");
+            var spindleOff = normalized.FindLastIndex(line => line == "M5");
+            var coolantOff = normalized.FindLastIndex(line => line == "M9");
+            var park = normalized.FindLastIndex(line => line == "G0 X100 Y0");
+
+            Assert.IsTrue(retract >= 0 && retract < spindleOff, "Перед остановкой есть вертикальный отвод");
+            Assert.IsTrue(spindleOff < coolantOff, "Шпиндель остановлен до отключения охлаждения");
+            Assert.IsTrue(coolantOff < park, "Горизонтальная парковка начинается после остановки оборудования");
+        }
+
+        [TestMethod]
+        public void EndPositionBelowClearance_LowersZOnlyAfterHorizontalParking()
+        {
+            var fixture = FixtureCatalog.All.First(item => item.Name == "Profile.Circle.Default");
+            var settings = SettingsFixtures.Default();
+            settings.WorkCoordinate.AddEndPosition = true;
+            settings.WorkCoordinate.EndX = 100;
+            settings.WorkCoordinate.EndY = 50;
+            settings.WorkCoordinate.EndZ = -2;
+
+            var normalized = Generator.Generate(fixture.Operations, settings).Lines
+                .Select(line => Regex.Replace(line, @"^N\d+ ", ""))
+                .ToList();
+            var retract = normalized.FindLastIndex(line => line == "G0 Z1");
+            var park = normalized.FindLastIndex(line => line == "G0 X100 Y50");
+            var finalZ = normalized.FindLastIndex(line => line == "G0 Z-2");
+
+            Assert.IsTrue(retract >= 0 && retract < park, "Сначала инструмент отведён над заготовкой");
+            Assert.IsTrue(park < finalZ, "Конечная Z устанавливается после горизонтальной парковки");
         }
 
         [TestMethod]

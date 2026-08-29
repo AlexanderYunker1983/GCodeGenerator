@@ -6,6 +6,6 @@ N50 M8
 N60 (Tiny contour: DXF pocket contours: 1, depth 4mm)
 N70 (Pass 1, depth -1.000)
 N80 (Contour too small for tool, stopping)
-N90 M9
-N100 M5
+N90 M5
+N100 M9
 N110 M30
