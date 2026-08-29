@@ -126,6 +126,33 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Точечное сверление — единственный редактор с восемью колонками,
+        /// но их звёздная ширина позволяет окну сжиматься. Минимум 1200 DIP
+        /// запрещал это и не помещался в 1097 DIP рабочей области Full HD
+        /// при масштабе 175 %, хотя сама таблица могла стать уже.
+        /// </summary>
+        [TestMethod]
+        public void DrillPointsWindow_FitsFullHdAt175PercentScaling()
+        {
+            TestApplication.Run(() =>
+            {
+                var window = new GCodeGenerator.Views.Drill.DrillPointsOperationView();
+                try
+                {
+                    const double availableWidth = 1097;
+                    Assert.IsTrue(window.MinWidth <= availableWidth,
+                        $"минимум {window.MinWidth} не помещается в {availableWidth} DIP");
+                    Assert.IsTrue(window.Width <= availableWidth,
+                        "диалог должен сразу открываться внутри рабочей области, без системного принудительного сжатия");
+                }
+                finally
+                {
+                    window.Close();
+                }
+            });
+        }
+
+        /// <summary>
         /// Кнопки «о программе» и «настройки» одного размера.
         ///
         /// Значок настроек — картинка 24×24, а знак вопроса сам по себе

@@ -10,8 +10,8 @@
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance viewModels:DrillPointsOperationViewModel}"
         Title="{Binding DisplayName}"
-        Width="1200" Height="600"
-        MinWidth="1200" MinHeight="600"
+        Width="1000" Height="600"
+        MinWidth="900" MinHeight="600"
         WindowStartupLocation="CenterOwner">
     <DockPanel>
         <common:DialogButtons DockPanel.Dock="Bottom"/>
