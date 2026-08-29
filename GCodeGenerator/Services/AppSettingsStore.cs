@@ -40,13 +40,13 @@ namespace GCodeGenerator.Services
         public GCodeSettings Current { get; }
 
         public AppSettingsStore()
-            : this(new ApplicationPersistedSettings())
+            : this(new ApplicationPersistedSettings(NullAppLogger.Instance))
         {
         }
 
         /// <summary>Хранилище с журналом: сбой переноса настроек оставляет след.</summary>
         public AppSettingsStore(IAppLogger logger)
-            : this(new ApplicationPersistedSettings(), logger)
+            : this(new ApplicationPersistedSettings(logger), logger)
         {
         }
 

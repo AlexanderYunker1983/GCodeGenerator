@@ -1,5 +1,9 @@
 #nullable enable
+using System;
 using System.Configuration;
+using System.Globalization;
+using System.IO;
+using GCodeGenerator.Diagnostics;
 
 namespace GCodeGenerator.Services
 {
@@ -36,7 +40,64 @@ namespace GCodeGenerator.Services
     /// </summary>
     internal sealed class ApplicationPersistedSettings : IPersistedSettings
     {
-        private readonly ApplicationSettingsBase _settings = Properties.Settings.Default;
+        private ApplicationSettingsBase _settings;
+
+        internal ApplicationPersistedSettings(IAppLogger? logger = null)
+            : this(
+                logger ?? NullAppLogger.Instance,
+                () => new Properties.Settings(),
+                settings => _ = settings[nameof(Properties.Settings.UpgradeRequired)],
+                () => DateTime.UtcNow)
+        {
+        }
+
+        /// <summary>
+        /// Конструктор с заменяемыми чтением и временем нужен проверке
+        /// аварийного пути без вмешательства в настоящий профиль тестового
+        /// пользователя.
+        /// </summary>
+        internal ApplicationPersistedSettings(
+            IAppLogger logger,
+            Func<ApplicationSettingsBase> settingsFactory,
+            Action<ApplicationSettingsBase> probe,
+            Func<DateTime> utcNow)
+        {
+            if (logger == null)
+                throw new ArgumentNullException(nameof(logger));
+            if (settingsFactory == null)
+                throw new ArgumentNullException(nameof(settingsFactory));
+            if (probe == null)
+                throw new ArgumentNullException(nameof(probe));
+            if (utcNow == null)
+                throw new ArgumentNullException(nameof(utcNow));
+
+            _settings = settingsFactory();
+            try
+            {
+                // ApplicationSettingsBase загружает user.config лениво:
+                // создание экземпляра ещё не доказывает, что файл читается.
+                probe(_settings);
+            }
+            catch (ConfigurationErrorsException failure)
+            {
+                var corruptPath = FindCorruptUserConfig(failure);
+                if (corruptPath == null)
+                    throw;
+
+                var quarantinePath = Quarantine(corruptPath, utcNow());
+                logger.Log(
+                    LogLevel.Warning,
+                    $"Corrupt user settings were moved from '{corruptPath}' to '{quarantinePath}'. "
+                    + "The application will continue with default settings.",
+                    failure);
+
+                // Сломанное состояние могло остаться внутри экземпляра,
+                // который уже начал ленивую загрузку. Новый экземпляр после
+                // переноса файла читает только значения по умолчанию.
+                _settings = settingsFactory();
+                probe(_settings);
+            }
+        }
 
         public object this[string name]
         {
@@ -46,12 +107,48 @@ namespace GCodeGenerator.Services
 
         public bool UpgradeRequired
         {
-            get => Properties.Settings.Default.UpgradeRequired;
-            set => Properties.Settings.Default.UpgradeRequired = value;
+            get => (bool)_settings[nameof(Properties.Settings.UpgradeRequired)];
+            set => _settings[nameof(Properties.Settings.UpgradeRequired)] = value;
         }
 
         public void Upgrade() => _settings.Upgrade();
 
         public void Save() => _settings.Save();
+
+        private static string? FindCorruptUserConfig(ConfigurationErrorsException failure)
+        {
+            for (Exception? current = failure; current != null; current = current.InnerException)
+            {
+                if (current is not ConfigurationErrorsException configuration
+                    || string.IsNullOrWhiteSpace(configuration.Filename))
+                {
+                    continue;
+                }
+
+                var fullPath = Path.GetFullPath(configuration.Filename);
+                if (string.Equals(
+                        Path.GetFileName(fullPath),
+                        "user.config",
+                        StringComparison.OrdinalIgnoreCase)
+                    && File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+            }
+
+            return null;
+        }
+
+        private static string Quarantine(string corruptPath, DateTime utcNow)
+        {
+            var stamp = utcNow.ToUniversalTime().ToString("yyyyMMdd'T'HHmmssfff'Z'", CultureInfo.InvariantCulture);
+            var basePath = corruptPath + ".corrupt-" + stamp;
+            var quarantinePath = basePath;
+            for (var suffix = 1; File.Exists(quarantinePath); suffix++)
+                quarantinePath = basePath + "-" + suffix.ToString(CultureInfo.InvariantCulture);
+
+            File.Move(corruptPath, quarantinePath);
+            return quarantinePath;
+        }
     }
 }
