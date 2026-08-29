@@ -163,9 +163,9 @@ namespace GCodeGenerator.ViewModels
             UpdateStatus = Localize("UpdateChecking");
             try
             {
-                var answer = await _updates.GetLatestReleaseAsync(CancellationToken.None)
-                    .ConfigureAwait(true);
                 var installed = ProductVersion.Parse(Version);
+                var answer = await _updates.GetLatestReleaseAsync(installed, CancellationToken.None)
+                    .ConfigureAwait(true);
 
                 if (answer.Release == null)
                 {

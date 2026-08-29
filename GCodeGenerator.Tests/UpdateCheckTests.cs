@@ -130,6 +130,38 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public async Task Service_SelectsPrereleaseOnlyForPrereleaseInstallation()
+        {
+            const string releases = @"[
+              { ""tag_name"": ""0.4.1-rc2"", ""prerelease"": true,
+                ""html_url"": ""https://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/0.4.1-rc2"" },
+              { ""tag_name"": ""0.4.0"", ""prerelease"": false,
+                ""html_url"": ""https://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/0.4.0"" }
+            ]";
+            using var service = Service(HttpStatusCode.OK, releases);
+
+            var rc = await service.Service.GetLatestReleaseAsync(ProductVersion.Parse("0.4.1-rc1"));
+            var stable = await service.Service.GetLatestReleaseAsync(ProductVersion.Parse("0.4.0"));
+
+            Assert.AreEqual("0.4.1-rc2", rc.Release!.Version.Text,
+                "RC-установка видит следующий предвыпуск");
+            Assert.AreEqual("0.4.0", stable.Release!.Version.Text,
+                "Стабильная установка не переводится на предварительный канал");
+        }
+
+        [TestMethod]
+        public async Task Service_RequestsReleaseListInsteadOfStableLatestAlias()
+        {
+            using var service = Service(HttpStatusCode.OK, "[]");
+
+            await service.Service.GetLatestReleaseAsync();
+
+            Assert.IsFalse(service.Handler.LastRequest!.RequestUri!.AbsolutePath.EndsWith("/latest"),
+                "Алиас latest скрывает RC-выпуски");
+            StringAssert.Contains(service.Handler.LastRequest.RequestUri.Query, "per_page=");
+        }
+
+        [TestMethod]
         [DataRow("file:///C:/Windows/System32/calc.exe")]
         [DataRow("https://github.com.evil.example/AlexanderYunker1983/GCodeGenerator/releases/tag/9.9.9")]
         [DataRow("http://github.com/AlexanderYunker1983/GCodeGenerator/releases/tag/9.9.9")]

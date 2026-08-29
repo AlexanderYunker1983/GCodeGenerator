@@ -102,22 +102,33 @@ namespace GCodeGenerator.Services
         /// </summary>
         /// <param name="cancellation">Отмена ожидания.</param>
         Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default);
+
+        /// <summary>
+        /// Последний выпуск в канале установленной версии: стабильная
+        /// сборка не предлагает предвыпуски, а alpha/beta/rc видит их.
+        /// Реализация по умолчанию сохраняет совместимость замен службы.
+        /// </summary>
+        /// <param name="installedVersion">Установленная версия или null.</param>
+        /// <param name="cancellation">Отмена ожидания.</param>
+        Task<UpdateCheckResult> GetLatestReleaseAsync(
+            ProductVersion? installedVersion,
+            CancellationToken cancellation = default)
+            => GetLatestReleaseAsync(cancellation);
     }
 
     /// <summary>
     /// Последний выпуск по данным GitHub.
     ///
-    /// Запрашивается один документ — описание последнего выпуска
-    /// (<c>releases/latest</c>): предвыпуски в него не попадают, и это верно
-    /// для программы, которая ставится на станочный компьютер. Ни ключей, ни
-    /// учётных данных запрос не требует и ничего о пользователе не сообщает,
-    /// кроме того, что неизбежно сообщает любой запрос по сети.
+    /// Запрашивается список выпусков: стабильная установка выбирает из него
+    /// только стабильные версии, предвыпуск — также alpha, beta и rc. Ни
+    /// ключей, ни учётных данных запрос не требует и ничего о пользователе
+    /// не сообщает, кроме неизбежного для любого сетевого запроса.
     /// </summary>
     public sealed class GitHubUpdateService : IUpdateService
     {
-        /// <summary>Описание последнего выпуска продукта.</summary>
-        public const string LatestReleaseUrl =
-            "https://api.github.com/repos/AlexanderYunker1983/GCodeGenerator/releases/latest";
+        /// <summary>Последние выпуски продукта, включая предвыпуски.</summary>
+        public const string ReleasesUrl =
+            "https://api.github.com/repos/AlexanderYunker1983/GCodeGenerator/releases?per_page=30";
 
         /// <summary>
         /// Дольше этого проверка не ждёт: она нужна к слову, а не любой ценой,
@@ -133,7 +144,7 @@ namespace GCodeGenerator.Services
         /// <param name="logger">Журнал: отказ проверки виден только в нём.</param>
         /// <param name="programInfo">Версия — она уходит в User-Agent запроса.</param>
         public GitHubUpdateService(IAppLogger? logger = null, IProgramInfo? programInfo = null)
-            : this(new HttpClient { Timeout = Timeout }, LatestReleaseUrl, logger, programInfo)
+            : this(new HttpClient { Timeout = Timeout }, ReleasesUrl, logger, programInfo)
         {
         }
 
@@ -144,7 +155,7 @@ namespace GCodeGenerator.Services
         /// <param name="programInfo">Версия для User-Agent.</param>
         public GitHubUpdateService(
             HttpClient client,
-            string requestUrl = LatestReleaseUrl,
+            string requestUrl = ReleasesUrl,
             IAppLogger? logger = null,
             IProgramInfo? programInfo = null)
         {
@@ -165,6 +176,12 @@ namespace GCodeGenerator.Services
 
         /// <inheritdoc />
         public async Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
+            => await GetLatestReleaseAsync(installedVersion: null, cancellation).ConfigureAwait(false);
+
+        /// <inheritdoc />
+        public async Task<UpdateCheckResult> GetLatestReleaseAsync(
+            ProductVersion? installedVersion,
+            CancellationToken cancellation = default)
         {
             try
             {
@@ -189,7 +206,7 @@ namespace GCodeGenerator.Services
                 using var stream = await response.Content.ReadAsStreamAsync(cancellation).ConfigureAwait(false);
                 using var document = await JsonDocument.ParseAsync(stream, default, cancellation).ConfigureAwait(false);
 
-                return Read(document.RootElement);
+                return Read(document.RootElement, installedVersion);
             }
             catch (OperationCanceledException)
             {
@@ -236,33 +253,56 @@ namespace GCodeGenerator.Services
             return current;
         }
 
-        /// <summary>Версия и страница выпуска из ответа либо причина отказа.</summary>
-        /// <param name="release">Корень ответа GitHub.</param>
-        private UpdateCheckResult Read(JsonElement release)
+        /// <summary>Новейшая совместимая версия из ответа либо причина отказа.</summary>
+        /// <param name="root">Массив выпусков GitHub или один выпуск.</param>
+        /// <param name="installedVersion">Определяет стабильный или предварительный канал.</param>
+        private UpdateCheckResult Read(JsonElement root, ProductVersion? installedVersion)
         {
-            if (release.ValueKind != JsonValueKind.Object)
-                return UpdateCheckResult.Failed(release.ValueKind.ToString());
-
-            var tag = Text(release, "tag_name");
-            var version = ProductVersion.Parse(tag);
-            if (version == null)
+            UpdateInfo? newest = null;
+            var includePrereleases = installedVersion != null && installedVersion.ClassRank < 4;
+            var releases = root.ValueKind switch
             {
-                // Тег вне формата продукта: сравнивать его не с чем, и
-                // предлагать обновление на неизвестное — хуже молчания.
-                _logger.Warning($"Update check: tag '{tag}' is not a product version");
-                return UpdateCheckResult.Failed($"tag_name: {tag}");
+                JsonValueKind.Array => root.EnumerateArray().ToArray(),
+                JsonValueKind.Object => new[] { root },
+                _ => Array.Empty<JsonElement>(),
+            };
+
+            foreach (var release in releases)
+            {
+                if (release.ValueKind != JsonValueKind.Object || Boolean(release, "draft"))
+                    continue;
+
+                var tag = Text(release, "tag_name");
+                var version = ProductVersion.Parse(tag);
+                if (version == null)
+                {
+                    _logger.Warning($"Update check: tag '{tag}' is not a product version");
+                    continue;
+                }
+
+                if (!includePrereleases
+                    && (Boolean(release, "prerelease") || version.ClassRank < 4))
+                {
+                    continue;
+                }
+
+                if (newest == null || version.IsNewerThan(newest.Version))
+                    newest = new UpdateInfo(version, Text(release, "html_url"));
             }
 
-            var page = Text(release, "html_url");
-            return UpdateCheckResult.Found(new UpdateInfo(
-                version,
-                page));
+            return newest == null
+                ? UpdateCheckResult.Failed(root.ValueKind.ToString())
+                : UpdateCheckResult.Found(newest);
         }
 
         private static string? Text(JsonElement element, string name)
             => element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String
                 ? value.GetString()
                 : null;
+
+        private static bool Boolean(JsonElement element, string name)
+            => element.TryGetProperty(name, out var value)
+               && value.ValueKind == JsonValueKind.True;
 
         /// <summary>
         /// Значение для User-Agent: заголовок не принимает пробелов и

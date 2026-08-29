@@ -145,7 +145,8 @@ namespace GCodeGenerator.ViewModels
         {
             try
             {
-                var answer = await _updates!.GetLatestReleaseAsync(CancellationToken.None)
+                var installed = ProductVersion.Parse(_programInfo.Version);
+                var answer = await _updates!.GetLatestReleaseAsync(installed, CancellationToken.None)
                     .ConfigureAwait(true);
 
                 // Отказ при запуске остаётся в журнале и только там: проверку
@@ -154,7 +155,6 @@ namespace GCodeGenerator.ViewModels
                 if (answer.Release == null)
                     return;
 
-                var installed = ProductVersion.Parse(_programInfo.Version);
                 if (!answer.Release.Version.IsNewerThan(installed))
                     return;
 
