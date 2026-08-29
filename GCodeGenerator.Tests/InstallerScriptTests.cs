@@ -192,6 +192,10 @@ namespace GCodeGenerator.Tests
                 "SHA-256 официального Inno Setup 7.1.0 x64 не закреплён");
             StringAssert.Contains(workflow, "Get-FileHash -Algorithm SHA256",
                 "Загруженный exe запускается без вычисления хеша");
+            const string launchMarker = "Start-Process -FilePath $installer";
+            var launchIndex = workflow.IndexOf(launchMarker, StringComparison.Ordinal);
+            Assert.AreNotEqual(-1, launchIndex,
+                "Не найдена контролируемая граница запуска загруженного Inno Setup");
             foreach (var verification in new[]
                      {
                          "Get-FileHash -Algorithm SHA256",
@@ -202,7 +206,7 @@ namespace GCodeGenerator.Tests
             {
                 StringAssert.Contains(workflow, verification);
                 Assert.IsTrue(workflow.IndexOf(verification, StringComparison.Ordinal)
-                              < workflow.IndexOf("& $installer /VERYSILENT", StringComparison.Ordinal),
+                              < launchIndex,
                     $"Проверка '{verification}' должна предшествовать запуску загруженного exe");
             }
 
