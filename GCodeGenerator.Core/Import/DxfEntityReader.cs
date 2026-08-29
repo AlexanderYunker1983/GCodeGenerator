@@ -26,20 +26,26 @@ namespace GCodeGenerator.Import
     /// превращалось в координату 0, то есть битый файл давал не ошибку,
     /// а тихо испорченную геометрию.
     ///
-    /// Дискретизация окружностей, дуг и эллипсов осталась прежней: сегменты
-    /// считаются теми же формулами, поэтому геометрия ранее импортированных
-    /// чертежей не меняется.
+    /// Кривые дискретизируются по максимальному отклонению хорды в реальных
+    /// миллиметрах, поэтому крупная окружность не становится грубым
+    /// 32-угольником, а масштаб единиц учитывается до аппроксимации.
     /// </summary>
     internal static class DxfEntityReader
     {
-        /// <summary>Число сегментов аппроксимации окружности.</summary>
-        private const int CircleSegments = 32;
+        /// <summary>Наименьшее число сегментов аппроксимации окружности.</summary>
+        private const int MinimumCircleSegments = 32;
 
         /// <summary>Наименьшее число сегментов аппроксимации дуги.</summary>
         private const int MinimumArcSegments = 8;
 
         /// <summary>Наименьшее число сегментов аппроксимации эллипса.</summary>
         private const int MinimumEllipseSegments = 16;
+
+        /// <summary>Допустимое отклонение аналитической кривой от хорды, мм.</summary>
+        internal const double MaximumChordDeviationMillimeters = 0.025;
+
+        /// <summary>Защитный предел тесселяции одной аналитической сущности.</summary>
+        private const int MaximumCurveSegments = 4096;
 
         /// <summary>Число сегментов пробной оценки длины сплайна.</summary>
         private const int SplineProbeSegments = 16;
@@ -162,10 +168,12 @@ namespace GCodeGenerator.Import
             if (circle.Radius <= 0)
                 return null;
 
-            var points = new List<Point2D>(CircleSegments + 1);
-            for (int i = 0; i <= CircleSegments; i++)
+            var segments = CurveSegmentCount(circle.Radius * scale, 2.0 * Math.PI,
+                MinimumCircleSegments);
+            var points = new List<Point2D>(segments + 1);
+            for (int i = 0; i <= segments; i++)
             {
-                var angle = 2.0 * Math.PI * i / CircleSegments;
+                var angle = 2.0 * Math.PI * i / segments;
                 points.Add(Point(
                     circle.Center.X + circle.Radius * Math.Cos(angle),
                     circle.Center.Y + circle.Radius * Math.Sin(angle),
@@ -185,7 +193,8 @@ namespace GCodeGenerator.Import
                 endAngle += 2.0 * Math.PI;
 
             var angleSpan = endAngle - startAngle;
-            var segments = Math.Max(MinimumArcSegments, (int)(angleSpan / (Math.PI / 16.0)));
+            var segments = CurveSegmentCount(arc.Radius * scale, angleSpan,
+                MinimumArcSegments);
 
             var points = new List<Point2D>(segments + 1);
             for (int i = 0; i <= segments; i++)
@@ -212,7 +221,10 @@ namespace GCodeGenerator.Import
                 endParam += 2.0 * Math.PI;
 
             var paramSpan = endParam - startParam;
-            var segments = Math.Max(MinimumEllipseSegments, (int)(paramSpan / (Math.PI / 16.0)));
+            // MajorRadius даёт консервативную верхнюю оценку отклонения
+            // параметрической хорды для обеих осей эллипса.
+            var segments = CurveSegmentCount(majorRadius * scale, paramSpan,
+                MinimumEllipseSegments);
 
             var rotation = ellipse.Rotation * Math.PI / 180.0;
             var cosRotation = Math.Cos(rotation);
@@ -230,6 +242,25 @@ namespace GCodeGenerator.Import
                     scale));
             }
             return points;
+        }
+
+        private static int CurveSegmentCount(double radiusMillimeters, double angleSpan,
+            int minimumSegments)
+        {
+            if (!double.IsFinite(radiusMillimeters) || radiusMillimeters <= 0 ||
+                !double.IsFinite(angleSpan) || angleSpan <= 0)
+                return minimumSegments;
+
+            // sagitta = r * (1 - cos(theta / 2)); отсюда максимально
+            // допустимый центральный угол одной хорды.
+            var normalizedDeviation = Math.Min(1.0,
+                MaximumChordDeviationMillimeters / radiusMillimeters);
+            var maximumAngle = 2.0 * Math.Acos(1.0 - normalizedDeviation);
+            if (!double.IsFinite(maximumAngle) || maximumAngle <= 0)
+                return MaximumCurveSegments;
+
+            var required = (int)Math.Ceiling(angleSpan / maximumAngle);
+            return Math.Min(MaximumCurveSegments, Math.Max(minimumSegments, required));
         }
 
         /// <summary>

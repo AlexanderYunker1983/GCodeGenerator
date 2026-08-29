@@ -124,6 +124,32 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Постоянные 32 сегмента давали на окружности R100 отклонение почти
+        /// 0,5 мм. Число хорд должно зависеть от физического радиуса, а их
+        /// максимальная стрела оставаться в заявленном допуске.
+        /// </summary>
+        [TestMethod]
+        public void LargeCircle_IsTessellatedToChordDeviationTolerance()
+        {
+            const double radius = 100.0;
+            var document = NewDocument();
+            document.Entities.Add(new Circle(Vector2.Zero, radius));
+            document.Save(_path);
+
+            var points = DxfImportServiceProbe.ReadProfile(_path)[0].Points;
+
+            Assert.IsTrue(points.Count > 33, "Крупная окружность не должна оставаться 32-угольником");
+            for (int i = 1; i < points.Count; i++)
+            {
+                var midX = (points[i - 1].X + points[i].X) / 2.0;
+                var midY = (points[i - 1].Y + points[i].Y) / 2.0;
+                var deviation = radius - Math.Sqrt(midX * midX + midY * midY);
+                Assert.IsTrue(deviation <= DxfEntityReader.MaximumChordDeviationMillimeters + 1e-9,
+                    $"Отклонение хорды {deviation} мм превышает допуск");
+            }
+        }
+
+        /// <summary>
         /// Геометрия внутри вставленного блока — часть чертежа. Прежний разбор
         /// читал определение блока как обычные сущности, игнорируя смещение
         /// вставки, поэтому деталь оказывалась не на своём месте.

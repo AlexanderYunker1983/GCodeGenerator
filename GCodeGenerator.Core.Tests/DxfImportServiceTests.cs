@@ -34,7 +34,7 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(1, contours.Count,
                 "Одна сущность CIRCLE не должна дублироваться как connected contour");
             Assert.AreEqual(33, contours[0].Points.Count,
-                "Окружность аппроксимируется 32 сегментами и замыкающей точкой");
+                "Для малой окружности сохраняется минимум 32 сегмента и замыкающая точка");
         }
     }
 }

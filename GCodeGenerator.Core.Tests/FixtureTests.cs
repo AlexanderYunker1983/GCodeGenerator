@@ -59,11 +59,12 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Profile_Dxf_Asset_Parses_Expected_Polylines()
         {
-            // profile_sample.dxf: «D»-контур = 3 LINE + 1 ARC (270°→90°, 180° → 16 сегментов → 17 точек).
+            // profile_sample.dxf: «D»-контур = 3 LINE + 1 ARC (270°→90°).
+            // R10 разбивается по отклонению хорды не более 0,025 мм.
             var polylines = DxfFixtureLoader.LoadProfilePolylines("profile_sample.dxf");
 
             Assert.AreEqual(4, polylines.Count, "Ожидалось 4 полилинии (3 LINE + 1 ARC)");
-            CollectionAssert.AreEqual(new[] { 2, 17, 2, 2 },
+            CollectionAssert.AreEqual(new[] { 2, 24, 2, 2 },
                 polylines.Select(p => p.Points.Count).ToArray(), "Неверное число точек в полилиниях");
 
             var first = polylines[0];
