@@ -369,6 +369,54 @@ namespace GCodeGenerator
             _logger.Error(
                 $"Необработанное исключение вне потока пользовательского интерфейса (IsTerminating={e.IsTerminating})",
                 e.ExceptionObject as Exception);
+
+            if (e.IsTerminating)
+            {
+                TryInvokeCrashSnapshot(
+                    Dispatcher,
+                    SaveCrashSnapshot,
+                    _logger,
+                    TimeSpan.FromSeconds(2));
+            }
+        }
+
+        /// <summary>
+        /// Запрашивает снимок на потоке интерфейса: коллекция операций
+        /// принадлежит ему и не должна перечисляться из аварийного потока.
+        /// Таймаут не позволяет зависшему интерфейсу задержать завершение
+        /// процесса, а ошибка второй попытки только попадает в журнал.
+        /// </summary>
+        internal static string? TryInvokeCrashSnapshot(
+            Dispatcher dispatcher,
+            Func<string?> saveSnapshot,
+            IAppLogger logger,
+            TimeSpan timeout)
+        {
+            try
+            {
+                if (dispatcher.HasShutdownStarted || dispatcher.HasShutdownFinished)
+                    return null;
+
+                if (dispatcher.CheckAccess())
+                    return saveSnapshot();
+
+                var operation = dispatcher.InvokeAsync(saveSnapshot, DispatcherPriority.Send);
+                if (!operation.Task.Wait(timeout))
+                {
+                    operation.Abort();
+                    throw new TimeoutException(
+                        $"Поток интерфейса не принял запрос аварийного снимка за {timeout}.");
+                }
+
+                return operation.Task.GetAwaiter().GetResult();
+            }
+            catch (Exception snapshotFailure)
+            {
+                (logger ?? NullAppLogger.Instance).Error(
+                    "Не удалось запросить аварийный снимок из фонового потока",
+                    snapshotFailure);
+                return null;
+            }
         }
 
         private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
