@@ -39,31 +39,27 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                     $"StepDepth must be greater than zero (got {op.StepDepth.ToString(CultureInfo.InvariantCulture)}); otherwise the layer loop would run forever.");
 
             int decimals = op.Decimals;
-            double currentZ = op.ContourHeight;
-            double finalZ = op.ContourHeight - op.TotalDepth;
             int passNumber = 0;
 
-            while (currentZ > finalZ)
+            foreach (var (currentDepth, nextDepth) in DepthPassPlanner.Plan(op.TotalDepth, op.StepDepth))
             {
                 // Слой — единица работы: глубокая операция строится из сотен
                 // слоёв, и отмена не должна ждать конца операции.
                 cancellation.ThrowIfCancellationRequested();
 
-                double nextZ = currentZ - op.StepDepth;
-                if (nextZ < finalZ) nextZ = finalZ;
+                var currentZ = op.ContourHeight - currentDepth;
+                var nextZ = op.ContourHeight - nextDepth;
                 passNumber++;
 
                 builder.Comment(ProgramComments.Pass(passNumber, GCodeGenerationHelper.FormatNumber(nextZ, GCodeGenerationHelper.DecimalFormat(decimals))));
 
                 generateLayer(currentZ, nextZ, passNumber);
 
-                if (nextZ > finalZ)
+                if (nextDepth < op.TotalDepth)
                 {
                     var retractZAfterPass = nextZ + op.RetractHeight;
                     builder.RapidTo(z: retractZAfterPass, feed: op.FeedZRapid);
                 }
-
-                currentZ = nextZ;
             }
 
             builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);

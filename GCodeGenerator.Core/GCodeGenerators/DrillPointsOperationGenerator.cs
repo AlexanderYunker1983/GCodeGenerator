@@ -2,6 +2,7 @@
 using System;
 using System.Globalization;
 using System.Threading;
+using GCodeGenerator.GCodeGenerators.Helpers;
 using GCodeGenerator.Models;
 
 using GCodeGenerator.Toolpath;
@@ -54,14 +55,10 @@ namespace GCodeGenerator.GCodeGenerators
                 builder.RapidTo(z: drill.SafeZBetweenHoles, feed: hole.FeedZRapid);
                 builder.RapidTo(x: hole.X, y: hole.Y, feed: drill.FeedXYRapid);
 
-                var currentZ = hole.Z;
-                var finalZ = hole.Z - hole.TotalDepth;
-
-                while (currentZ > finalZ)
+                foreach (var (currentDepth, nextDepth) in DepthPassPlanner.Plan(hole.TotalDepth, hole.StepDepth))
                 {
-                    var nextZ = currentZ - hole.StepDepth;
-                    if (nextZ < finalZ)
-                        nextZ = finalZ;
+                    var currentZ = hole.Z - currentDepth;
+                    var nextZ = hole.Z - nextDepth;
 
                     // Быстрый ход обрывается над пройденной глубиной, и
                     // последний участок сверло проходит рабочей подачей.
@@ -72,9 +69,7 @@ namespace GCodeGenerator.GCodeGenerators
                     builder.RapidTo(z: entryZ, feed: hole.FeedZRapid);
                     builder.LinearTo(z: nextZ, feed: hole.FeedZWork);
 
-                    currentZ = nextZ;
-
-                    if (currentZ > finalZ)
+                    if (nextDepth < hole.TotalDepth)
                         builder.RapidTo(z: hole.RetractHeight, feed: hole.FeedZRapid);
                 }
 

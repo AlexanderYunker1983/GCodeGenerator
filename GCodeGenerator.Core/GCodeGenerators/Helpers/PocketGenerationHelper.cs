@@ -38,18 +38,16 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             int decimals = op.Decimals;
 
-            double currentZ = op.ContourHeight;
-            double finalZ = op.ContourHeight - op.TotalDepth;
             int pass = 0;
 
-            while (currentZ > finalZ)
+            foreach (var (currentDepth, nextDepth) in DepthPassPlanner.Plan(op.TotalDepth, op.StepDepth))
             {
                 // Слой — единица работы: глубокий карман строится из сотен
                 // слоёв, и отмена не должна ждать конца операции.
                 cancellation.ThrowIfCancellationRequested();
 
-                double nextZ = currentZ - op.StepDepth;
-                if (nextZ < finalZ) nextZ = finalZ;
+                var currentZ = op.ContourHeight - currentDepth;
+                var nextZ = op.ContourHeight - nextDepth;
                 pass++;
 
                 builder.Comment(ProgramComments.Pass(pass, GCodeGenerationHelper.FormatNumber(nextZ, GCodeGenerationHelper.DecimalFormat(decimals))));
@@ -60,8 +58,6 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
                     builder.Comment(ProgramComments.ContourTooSmall);
                     break;
                 }
-
-                currentZ = nextZ;
             }
         }
     }
