@@ -92,6 +92,13 @@
                               ToolTip="{loc:Loc CoordinateGridYZ}"
                               MinWidth="44"
                               Padding="8,4"/>
+                <Button x:Name="FitCameraButton"
+                        Content="{loc:Loc ShowAll}"
+                        ToolTip="{loc:Loc ShowAll}"
+                        MinWidth="76"
+                        Padding="8,4"
+                        Margin="8,0,0,0"
+                        Click="FitCameraButton_Click"/>
             </StackPanel>
         </Border>
 

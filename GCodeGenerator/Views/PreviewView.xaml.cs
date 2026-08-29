@@ -20,6 +20,7 @@ namespace GCodeGenerator.Views
 
         private PreviewViewModel? _viewModel;
         private CoordinateGridModels? _coordinateGrids;
+        private (Vec3 Min, Vec3 Max)? _trajectoryBounds;
         private bool _fitCameraOnNextNonEmptyScene = true;
 
         /// <summary>
@@ -65,7 +66,8 @@ namespace GCodeGenerator.Views
 
         private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(PreviewViewModel.ToolPath)
+            if ((e.PropertyName == nameof(PreviewViewModel.ToolPath)
+                 || e.PropertyName == nameof(PreviewViewModel.Program))
                 && ReferenceEquals(sender, _viewModel))
             {
                 // Новая программа получает начальное автокадрирование. Смена
@@ -92,11 +94,12 @@ namespace GCodeGenerator.Views
             // Сцены может не быть, пока траектория не построена: тогда
             // окно показывает пустую модель, а не отказывается рисовать.
             var actualScene = scene ?? TrajectoryScene.Empty;
+            _trajectoryBounds = actualScene.Bounds;
             _coordinateGrids = CoordinateGridBuilder.Build(actualScene, _materials);
             UpdateCoordinateGrids();
             UpdateTrajectoryModel(
                 SceneRenderer.Render(actualScene, _materials),
-                _fitCameraOnNextNonEmptyScene);
+                _fitCameraOnNextNonEmptyScene && actualScene.Segments.Count > 0);
         }
 
         private void UpdateCoordinateGrids()
@@ -127,35 +130,69 @@ namespace GCodeGenerator.Views
                 if (!fitCamera)
                     return;
 
-                // Auto-fit camera to model
-                if (model != null && model.Children.Count > 0)
-                {
-                    var bounds = model.Bounds;
-                    if (_coordinateGrids != null)
-                    {
-                        // Камера с самого начала знает полный диапазон сеток,
-                        // поэтому их включение не обрезает отрицательные
-                        // координаты и не требует сбрасывать ракурс.
-                        bounds.Union(_coordinateGrids.Xy.Model.Bounds);
-                        bounds.Union(_coordinateGrids.Xz.Model.Bounds);
-                        bounds.Union(_coordinateGrids.Yz.Model.Bounds);
-                    }
-                    if (!bounds.IsEmpty)
-                    {
-                        // Программа целиком в кадре: камера встаёт над её
-                        // серединой на удалении в два наибольших размера.
-                        var center = new Point3D(
-                            bounds.X + bounds.SizeX / 2,
-                            bounds.Y + bounds.SizeY / 2,
-                            bounds.Z + bounds.SizeZ / 2);
-                        var maxSize = Math.Max(Math.Max(bounds.SizeX, bounds.SizeY), bounds.SizeZ);
-
-                        _camera.LookAt(center, maxSize * 2);
-                        ApplyCamera();
-                        _fitCameraOnNextNonEmptyScene = false;
-                    }
-                }
+                if (FitCameraToTrajectory())
+                    _fitCameraOnNextNonEmptyScene = false;
             }
+        }
+
+        /// <summary>
+        /// Вписывает только траекторию — без осей и сеток, которые существуют
+        /// даже у пустой сцены и прежде преждевременно гасили автокадрирование.
+        /// Расстояние выводится из угла обзора и соотношения сторон viewport,
+        /// поэтому широкая или высокая программа действительно помещается.
+        /// </summary>
+        private bool FitCameraToTrajectory()
+        {
+            if (_trajectoryBounds == null || Camera == null)
+                return false;
+
+            var (minimum, maximum) = _trajectoryBounds.Value;
+            var center = new Point3D(
+                (minimum.X + maximum.X) / 2.0,
+                (minimum.Y + maximum.Y) / 2.0,
+                (minimum.Z + maximum.Z) / 2.0);
+            var sizeX = Math.Max(0.0, maximum.X - minimum.X);
+            var sizeY = Math.Max(0.0, maximum.Y - minimum.Y);
+            var sizeZ = Math.Max(0.0, maximum.Z - minimum.Z);
+            var aspect = Viewport != null && Viewport.ActualWidth > 1 && Viewport.ActualHeight > 1
+                ? Viewport.ActualWidth / Viewport.ActualHeight
+                : Math.Max(1.0, Width) / Math.Max(1.0, Height);
+            var distance = CameraDistance(sizeX, sizeY, sizeZ, Camera.FieldOfView, aspect);
+
+            _camera.LookAt(center, distance);
+            ApplyCamera();
+            return true;
+        }
+
+        /// <summary>Расстояние камеры верхнего вида, при котором AABB входит в кадр.</summary>
+        internal static double CameraDistance(
+            double sizeX,
+            double sizeY,
+            double sizeZ,
+            double horizontalFieldOfViewDegrees,
+            double aspectRatio)
+        {
+            const double padding = 1.15;
+            var halfFov = Math.Max(1.0, Math.Min(179.0, horizontalFieldOfViewDegrees))
+                * Math.PI / 360.0;
+            var tanHalfHorizontal = Math.Tan(halfFov);
+            var safeAspect = double.IsFinite(aspectRatio) && aspectRatio > 0
+                ? aspectRatio
+                : 1.0;
+
+            // WPF задаёт горизонтальный FieldOfView. Вертикальный размер
+            // переводится в ту же линейку умножением на aspect.
+            var projectedHalfExtent = Math.Max(sizeX / 2.0, sizeY * safeAspect / 2.0);
+            var depthAllowance = sizeZ / 2.0;
+            var required = projectedHalfExtent / Math.Max(1e-6, tanHalfHorizontal) + depthAllowance;
+            return Math.Max(1.0, required * padding);
+        }
+
+        private void FitCameraButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (FitCameraToTrajectory())
+                _fitCameraOnNextNonEmptyScene = false;
+            e.Handled = true;
         }
 
         private void Viewport_MouseWheel(object? sender, MouseWheelEventArgs e)
