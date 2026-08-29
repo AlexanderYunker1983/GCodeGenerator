@@ -250,8 +250,6 @@ namespace GCodeGenerator.Persistence
                         FormattableString.Invariant($"operation [{operationIndex}] ({typeName}) could not be read"));
                 }
 
-                RejectCurrentMetadata(payload, typeName, operationIndex);
-
                 result.Add(operation);
                 operationIndex++;
             }
@@ -298,41 +296,5 @@ namespace GCodeGenerator.Persistence
             => new CoreException(CoreErrorCodes.ProjectFileCorrupt,
                 "The project file is damaged or has an unexpected structure ({0}).", detail);
 
-        private static void RejectCurrentMetadata(JsonElement payload, string typeName, int operationIndex)
-        {
-            if (TryGetSingleMetadata(payload, typeName, operationIndex, out _))
-            {
-                throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
-                    "The project file is damaged or has an unexpected structure ({0}).",
-                    FormattableString.Invariant(
-                        $"operation [{operationIndex}] ({typeName}) contains the removed Metadata field"));
-            }
-        }
-
-        private static bool TryGetSingleMetadata(
-            JsonElement payload,
-            string typeName,
-            int operationIndex,
-            out JsonElement metadata)
-        {
-            metadata = default;
-            var found = false;
-            foreach (var property in payload.EnumerateObject())
-            {
-                if (!string.Equals(property.Name, "Metadata", StringComparison.Ordinal))
-                    continue;
-
-                if (found)
-                {
-                    throw new JsonException(
-                        $"Поле Metadata операции [{operationIndex}] (type={typeName}) указано несколько раз.");
-                }
-
-                metadata = property.Value;
-                found = true;
-            }
-
-            return found;
-        }
     }
 }

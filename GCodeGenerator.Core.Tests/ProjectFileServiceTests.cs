@@ -326,6 +326,29 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Deserialize_RemovedMetadata_IsRejectedByCommonStructureChecks()
+        {
+            var payloads = new[]
+            {
+                "\"Metadata\":{}",
+                "\"Metadata\":{},\"Metadata\":{}",
+            };
+
+            foreach (var payload in payloads)
+            {
+                var json = "{\"version\":4,\"operations\":[{\"type\":\"ProfileCircle\",\"data\":{"
+                    + payload
+                    + "}}]}";
+                var failure = Assert.Throws<CoreException>(() => Service.Deserialize(json));
+
+                Assert.AreEqual(CoreErrorCodes.ProjectFileCorrupt, failure.Code);
+                StringAssert.Contains(failure.Message, "Metadata");
+                Assert.IsFalse(failure.Message.Contains("Поле", StringComparison.Ordinal),
+                    "Нейтральное сообщение ядра не должно зависеть от языка интерфейса");
+            }
+        }
+
+        [TestMethod]
         public void Save_OverExistingProject_UsesAtomicReplacementWithoutTemporaryFiles()
         {
             var directory = Path.Combine(Path.GetTempPath(), "gcg_atomic_" + Guid.NewGuid().ToString("N"));
