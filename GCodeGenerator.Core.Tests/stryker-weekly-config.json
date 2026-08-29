@@ -1,0 +1,45 @@
+{
+  "stryker-config": {
+    "project": "GCodeGenerator.Core.csproj",
+    "test-projects": [
+      "GCodeGenerator.Core.Tests.csproj"
+    ],
+    "configuration": "Release",
+    "target-framework": "net10.0",
+    "mutation-level": "Standard",
+    "mutate": [
+      "**/GenericPostProcessor.cs",
+      "**/MachineProfileValidator.cs",
+      "**/GCodeSettingsValidation.cs",
+      "**/OperationValidation.cs",
+      "**/ProjectFileReader.cs",
+      "**/DrillPointsOperationGenerator.cs",
+      "**/UnifiedPocketGenerator.cs",
+      "**/UnifiedProfileGenerator.cs",
+      "**/ProgramBuilder.cs",
+      "**/GCodeFormatter.cs",
+      "**/Strategies/ConcentricPocketingStrategy.cs",
+      "**/Strategies/LinesPocketingStrategy.cs",
+      "**/Strategies/RadialPocketingStrategy.cs",
+      "**/Strategies/SpiralPocketingStrategy.cs",
+      "**/Strategies/ZigZagPocketingStrategy.cs",
+      "**/Geometry/Geometry2D.cs",
+      "**/Geometry/ContourOffset.cs",
+      "**/Import/DxfEntityReader.cs",
+      "**/Import/DxfClosedContourBuilder.cs"
+    ],
+    "reporters": [
+      "progress",
+      "html",
+      "json"
+    ],
+    "thresholds": {
+      "high": 85,
+      "low": 75,
+      "break": 75
+    },
+    "concurrency": 4,
+    "additional-timeout": 3000,
+    "break-on-initial-test-failure": true
+  }
+}

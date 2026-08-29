@@ -2,6 +2,12 @@ name: Mutation Tests
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'GCodeGenerator.Core/**'
+      - 'GCodeGenerator.Core.Tests/**'
+      - '.config/dotnet-tools.json'
+      - '.github/workflows/mutation.yml'
   schedule:
     - cron: '25 2 * * 1'
 
@@ -34,13 +40,14 @@ jobs:
       - name: Restore pinned tools
         run: dotnet tool restore
 
-      # Дорогая проверка идёт еженедельно и вручную. Мутируются только
-      # релизно-критичные правила: предполётная и машинная безопасность,
-      # эпилог программы и строгий разбор проекта. Порог break делает
-      # результат условием успеха, а не информационным отчётом.
+      # Расширенный срез идёт еженедельно, вручную и на PR ядра. Помимо
+      # правил безопасности он мутирует эмиттеры, стратегии карманов,
+      # геометрию и DXF-импорт. Более короткий релизный минимум остаётся в
+      # stryker-config.json, чтобы отдельный release job имел предсказуемый
+      # бюджет. Порог break делает результат условием успеха.
       - name: Run mutation tests
         working-directory: GCodeGenerator.Core.Tests
-        run: dotnet stryker --config-file stryker-config.json --skip-version-check
+        run: dotnet stryker --config-file stryker-weekly-config.json --skip-version-check
 
       - name: Upload mutation report
         if: always()
