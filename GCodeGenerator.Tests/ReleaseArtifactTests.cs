@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -293,6 +294,26 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(legacyDigest < exposePreviousPath,
                 "Путь к legacy-инсталлятору публикуется для запуска до проверки хэша");
             Assert.IsTrue(install < upgrade && upgrade < uninstall, "Этапы жизненного цикла перепутаны");
+        }
+
+        [TestMethod]
+        public void ReleaseWorkflow_ManualRehearsalCannotPublish()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+
+            StringAssert.Contains(workflow, "workflow_dispatch:",
+                "Packaged smoke нельзя заранее выполнить на hosted runner");
+            StringAssert.Contains(workflow,
+                "TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}");
+            Assert.AreEqual(2,
+                Regex.Matches(
+                    workflow,
+                    @"(?m)^    if: needs\.build\.outputs\.skip == 'false' && github\.event_name == 'push'\r?$")
+                    .Count,
+                "Attest и publish должны быть недоступны ручной репетиции");
+            StringAssert.Contains(workflow,
+                "if: steps.tag.outputs.skip == 'false' && github.event_name == 'push'",
+                "Ручной прогон не должен требовать существующий git-тег");
         }
 
         [TestMethod]
