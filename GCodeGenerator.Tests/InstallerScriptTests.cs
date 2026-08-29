@@ -13,8 +13,8 @@ namespace GCodeGenerator.Tests
     /// Скрипт Inno Setup и скрипт сборки компилируются не компилятором C#,
     /// поэтому их правки не ломают ни сборку, ни прогон тестов: расхождение
     /// увидели бы только на машине пользователя. Здесь закреплены два
-    /// свойства, потеря которых обходится дорого: запущенная программа
-    /// закрывается по-хорошему, а вывод можно подписать.
+    /// свойства, потеря которых обходится дорого: обновляется именно
+    /// установленный экземпляр, а вывод можно подписать.
     /// </summary>
     [TestClass]
     public class InstallerScriptTests
@@ -28,52 +28,23 @@ namespace GCodeGenerator.Tests
             => File.ReadAllText(Path.Combine(Root, "build", "Make-Installer.ps1"));
 
         /// <summary>
-        /// Запущенную программу сначала просят закрыться. Принудительное
-        /// завершение не даёт ей ничего выполнить, то есть уносит несохранённый
-        /// проект без вопроса; мягкое закрытие идёт через окно, и программа
-        /// спрашивает о сохранении сама.
+        /// Windows Restart Manager определяет процесс по файлам из {app},
+        /// а не по общему имени exe: portable-копия из другого каталога не
+        /// должна быть закрыта обновлением установленной версии.
         /// </summary>
         [TestMethod]
-        public void Installer_AsksTheAppToCloseBeforeKillingIt()
+        public void Installer_UsesPathAwareRestartManagerWithoutForcedKill()
         {
             var script = InstallerScript;
 
-            var graceful = script.IndexOf("'/IM ' + AppExeName", StringComparison.Ordinal);
-            var forced = script.IndexOf("'/F /IM ' + AppExeName", StringComparison.Ordinal);
-
-            Assert.IsTrue(graceful >= 0,
-                "install/GCodeGenerator.iss: нет мягкого закрытия (taskkill без /F) — "
-                + "принудительное завершение уносит несохранённый проект без вопроса");
-            Assert.IsTrue(forced < 0 || graceful < forced,
-                "install/GCodeGenerator.iss: принудительное завершение стоит раньше просьбы закрыться");
-        }
-
-        /// <summary>
-        /// Принудительное завершение предлагается отдельным вопросом, где
-        /// названа его цена. Молчаливый переход к нему после неудачной
-        /// попытки вернул бы прежнее поведение другим путём.
-        /// </summary>
-        [TestMethod]
-        public void Installer_WarnsAboutDataLossBeforeForcedKill()
-        {
-            var script = InstallerScript;
-
-            StringAssert.Contains(script, "AppStillRunningForceQuestion",
-                "install/GCodeGenerator.iss: перед принудительным завершением не задаётся вопрос");
-
-            foreach (var language in new[] { "english", "russian" })
-            {
-                var message = Regex.Match(
-                    script,
-                    @"^" + language + @"\.AppStillRunningForceQuestion=(.+)$",
-                    RegexOptions.Multiline);
-
-                Assert.IsTrue(message.Success, $"Нет сообщения на языке {language}");
-                Assert.IsTrue(
-                    message.Groups[1].Value.Contains("Unsaved changes will be lost")
-                    || message.Groups[1].Value.Contains("Несохранённые изменения будут потеряны"),
-                    $"{language}: в вопросе не сказано о потере несохранённых изменений");
-            }
+            Assert.IsTrue(Regex.IsMatch(script, @"^CloseApplications=yes\s*$", RegexOptions.Multiline));
+            Assert.IsTrue(Regex.IsMatch(script, @"^RestartApplications=yes\s*$", RegexOptions.Multiline));
+            Assert.IsFalse(script.Contains("tasklist", StringComparison.OrdinalIgnoreCase),
+                "Поиск по имени видит чужие portable-копии");
+            Assert.IsFalse(script.Contains("taskkill", StringComparison.OrdinalIgnoreCase),
+                "Глобальный taskkill может уничтожить несохранённую работу другого экземпляра");
+            Assert.IsFalse(script.Contains("CloseApplications=force", StringComparison.OrdinalIgnoreCase),
+                "Принудительное закрытие обходит вопрос приложения о сохранении");
         }
 
         /// <summary>

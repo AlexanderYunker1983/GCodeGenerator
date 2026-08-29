@@ -28,6 +28,12 @@ namespace GCodeGenerator.Infrastructure
             // и то и другое, а работать с оболочкой само оно не должно.
             builder.RegisterType<ShellService>().As<IShellService>().SingleInstance();
 
+            // Windows Restart Manager закрывает и возвращает после обновления
+            // только процесс, использующий файлы установленного экземпляра.
+            builder.RegisterType<ApplicationRestartService>()
+                .As<IApplicationRestartService>()
+                .SingleInstance();
+
             // Проверка обновлений. Служба существует всегда, спрашивает —
             // только когда её просят: настройка выключена по умолчанию,
             // а кнопка в окне «О программе» — уже действие человека.

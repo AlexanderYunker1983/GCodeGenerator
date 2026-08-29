@@ -150,6 +150,13 @@ namespace GCodeGenerator
             // Ссылка на его view-модель нужна аварийному снимку: документ
             // живёт в ней, а зарегистрирована она как создаваемая заново.
             _mainViewModel = _container.Resolve<MainViewModel>();
+            var restart = _container.Resolve<IApplicationRestartService>();
+            restart.Register(_mainViewModel.ProjectWorkflow.CurrentPath);
+            _mainViewModel.ProjectWorkflow.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(ProjectWorkflowViewModel.CurrentPath))
+                    restart.Register(_mainViewModel.ProjectWorkflow.CurrentPath);
+            };
             var mainWindow = new MainView { DataContext = _mainViewModel };
             MainWindow = mainWindow;
 

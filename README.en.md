@@ -149,7 +149,7 @@ For a signed build there is no SmartScreen window, and the publisher is visible 
 
 ### Updating over a running application
 
-The installer does not kill the running application: it asks it to close, and the application gets to ask about an unsaved project — answer in its window and the installation continues on its own. If the application does not respond, the installer offers to terminate it and warns that unsaved changes will be lost; declining stops the installation so that the application can be closed by hand.
+During an update, Windows Restart Manager identifies the installed instance by the files it is using rather than every process with the same name, so a portable copy in another directory is left alone. The application can still ask about an unsaved project; refusing to close stops file replacement without a forced loss of data. After a successful update, the previous instance is started again and reopens the same saved project.
 
 ### Building the installer locally
 
