@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using GCodeGenerator.Models;
 
 namespace GCodeGenerator.Persistence
@@ -20,7 +21,10 @@ namespace GCodeGenerator.Persistence
         /// <summary>Настройки чтения содержимого операций и секций настроек.</summary>
         // Общие настройки сериализации: чтение обязано разбирать ровно то
         // представление, которое пишет ProjectFileWriter (см. ProjectJson).
-        private static readonly JsonSerializerOptions PayloadOptions = ProjectJson.Options;
+        private static readonly JsonSerializerOptions PayloadOptions = new JsonSerializerOptions(ProjectJson.Options)
+        {
+            UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow
+        };
 
         /// <summary>
         /// Десериализует JSON проекта .ygc (v4, v3 или v2).
@@ -137,7 +141,16 @@ namespace GCodeGenerator.Persistence
                     "The project file is damaged or has an unexpected structure ({0}).",
                     FormattableString.Invariant($"the section '{sectionName}' is not a JSON object"));
             }
-            return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
+            RejectDuplicateProperties(section, sectionName);
+            try
+            {
+                return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
+            }
+            catch (JsonException failure)
+            {
+                throw Corrupt(FormattableString.Invariant(
+                    $"section '{sectionName}' contains unsupported or invalid data: {failure.Message}"));
+            }
         }
 
         private static List<OperationBase>? ReadOperationsArray(JsonElement operationsElement)
@@ -162,6 +175,8 @@ namespace GCodeGenerator.Persistence
                         "The project file is damaged or has an unexpected structure ({0}).",
                         FormattableString.Invariant($"operation [{operationIndex}] is not a JSON object"));
                 }
+
+                ValidateOperationEnvelope(entry, operationIndex);
 
                 var typeName = entry.TryGetProperty("type", out var typeElement)
                     && typeElement.ValueKind == JsonValueKind.String
@@ -207,8 +222,19 @@ namespace GCodeGenerator.Persistence
                         FormattableString.Invariant($"operation data [{operationIndex}] ({typeName}) is not a JSON object"));
                 }
 
-                // Валидный тип + не-объектный JSON данных — исключение (как в прежнем JavaScriptSerializer).
-                var operation = JsonSerializer.Deserialize(payload.GetRawText(), type, PayloadOptions) as OperationBase;
+                RejectDuplicateProperties(payload,
+                    FormattableString.Invariant($"operation [{operationIndex}] ({typeName})"));
+
+                OperationBase? operation;
+                try
+                {
+                    operation = JsonSerializer.Deserialize(payload.GetRawText(), type, PayloadOptions) as OperationBase;
+                }
+                catch (JsonException failure)
+                {
+                    throw Corrupt(FormattableString.Invariant(
+                        $"operation [{operationIndex}] ({typeName}) contains unsupported or invalid data: {failure.Message}"));
+                }
                 if (operation == null)
                 {
                     throw new CoreException(CoreErrorCodes.ProjectFileCorrupt,
@@ -224,6 +250,45 @@ namespace GCodeGenerator.Persistence
 
             return result;
         }
+
+        private static void ValidateOperationEnvelope(JsonElement entry, int operationIndex)
+        {
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var property in entry.EnumerateObject())
+            {
+                if (!seen.Add(property.Name))
+                    throw Corrupt(FormattableString.Invariant(
+                        $"operation [{operationIndex}] field '{property.Name}' occurs more than once"));
+                if (property.Name != "type" && property.Name != "data")
+                    throw Corrupt(FormattableString.Invariant(
+                        $"operation [{operationIndex}] contains unsupported field '{property.Name}'"));
+            }
+        }
+
+        private static void RejectDuplicateProperties(JsonElement element, string path)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                var seen = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var property in element.EnumerateObject())
+                {
+                    if (!seen.Add(property.Name))
+                        throw Corrupt(FormattableString.Invariant(
+                            $"{path} field '{property.Name}' occurs more than once"));
+                    RejectDuplicateProperties(property.Value, path + "." + property.Name);
+                }
+            }
+            else if (element.ValueKind == JsonValueKind.Array)
+            {
+                var index = 0;
+                foreach (var item in element.EnumerateArray())
+                    RejectDuplicateProperties(item, FormattableString.Invariant($"{path}[{index++}]"));
+            }
+        }
+
+        private static CoreException Corrupt(string detail)
+            => new CoreException(CoreErrorCodes.ProjectFileCorrupt,
+                "The project file is damaged or has an unexpected structure ({0}).", detail);
 
         private static void RejectCurrentMetadata(JsonElement payload, string typeName, int operationIndex)
         {

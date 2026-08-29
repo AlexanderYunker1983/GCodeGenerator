@@ -299,6 +299,33 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Deserialize_UnknownNestedFields_AreRejectedInsteadOfLostOnSave()
+        {
+            const string settings = "{\"version\":4,\"operations\":[],"
+                + "\"spindle\":{\"SpindleControlEnabled\":true,\"FutureMode\":\"laser\"}}";
+            const string operation = "{\"version\":4,\"operations\":[{"
+                + "\"type\":\"ProfileCircle\",\"data\":{\"Radius\":10,\"FutureDepth\":7}}]}";
+
+            foreach (var json in new[] { settings, operation })
+            {
+                var failure = Assert.Throws<CoreException>(() => Service.Deserialize(json));
+                Assert.AreEqual(CoreErrorCodes.ProjectFileCorrupt, failure.Code);
+            }
+        }
+
+        [TestMethod]
+        public void Deserialize_DuplicateNestedField_IsRejectedInsteadOfTakingLastValue()
+        {
+            const string json = "{\"version\":4,\"operations\":[],\"spindle\":{"
+                + "\"SpindleSpeedRpm\":12000,\"SpindleSpeedRpm\":60000}}";
+
+            var failure = Assert.Throws<CoreException>(() => Service.Deserialize(json));
+
+            Assert.AreEqual(CoreErrorCodes.ProjectFileCorrupt, failure.Code);
+            StringAssert.Contains(failure.Message, "SpindleSpeedRpm");
+        }
+
+        [TestMethod]
         public void Save_OverExistingProject_UsesAtomicReplacementWithoutTemporaryFiles()
         {
             var directory = Path.Combine(Path.GetTempPath(), "gcg_atomic_" + Guid.NewGuid().ToString("N"));
