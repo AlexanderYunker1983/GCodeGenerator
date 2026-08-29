@@ -60,6 +60,28 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Обратная сторона соответствия: удалённая или переименованная
+        /// фикстура не должна оставлять в репозитории мёртвый эталон.
+        /// </summary>
+        [TestMethod]
+        public void Golden_SourceDirectory_HasNoOrphanedPrograms()
+        {
+            var fixtureFiles = FixtureCatalog.All
+                .Select(fixture => fixture.Name + ".nc")
+                .ToHashSet(StringComparer.Ordinal);
+            var orphanedFiles = Directory
+                .EnumerateFiles(GoldenSourceDirectory, "*.nc", SearchOption.TopDirectoryOnly)
+                .Select(Path.GetFileName)
+                .Where(fileName => !fixtureFiles.Contains(fileName))
+                .OrderBy(fileName => fileName, StringComparer.Ordinal)
+                .ToArray();
+
+            Assert.AreEqual(0, orphanedFiles.Length,
+                "Golden-каталог содержит файлы без действующей фикстуры: "
+                + string.Join(", ", orphanedFiles));
+        }
+
+        /// <summary>
         /// Перегенерация golden-файлов в исходный каталог.
         /// Выполняется только при GCG_WRITE_GOLDEN=1 (в CI — no-op).
         /// </summary>
