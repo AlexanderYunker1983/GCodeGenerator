@@ -65,9 +65,12 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(3, workspace.AllOperations.Count, "Удаление отменено");
             Assert.AreEqual(middle.Id, workspace.AllOperations[1].Id, "Операция вернулась на своё место");
+            Assert.AreSame(workspace.AllOperations[1], workspace.SelectedOperation,
+                "Восстановленная операция снова выделена");
 
             workspace.RedoCommand.Execute(null);
             Assert.IsFalse(workspace.AllOperations.Any(op => op.Id == middle.Id), "Удаление повторено");
+            Assert.IsNull(workspace.SelectedOperation, "Повторно удалённую операцию нельзя оставить выделенной");
         }
 
         [TestMethod]
@@ -118,11 +121,15 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(operation.Id, reverted.Id, "Та же операция документа");
             Assert.AreEqual(10, reverted.Radius, "Первый параметр возвращён");
             Assert.AreEqual(2, reverted.ToolDiameter, "Второй параметр возвращён тем же шагом");
+            Assert.AreSame(reverted, workspace.SelectedOperation,
+                "Ctrl+Z сохраняет выделение на восстановленном экземпляре");
 
             workspace.RedoCommand.Execute(null);
             var reapplied = (ProfileCircleOperation)workspace.AllOperations[0];
             Assert.AreEqual(42, reapplied.Radius, "Повтор вернул правку");
             Assert.AreEqual(4, reapplied.ToolDiameter);
+            Assert.AreSame(reapplied, workspace.SelectedOperation,
+                "Ctrl+Y сохраняет выделение на повторно восстановленном экземпляре");
         }
 
         /// <summary>

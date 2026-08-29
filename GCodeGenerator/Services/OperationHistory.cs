@@ -78,6 +78,13 @@ namespace GCodeGenerator.Services
         /// <summary>Сколько шагов сейчас можно отменить.</summary>
         public int UndoCount => _undo.Count;
 
+        /// <summary>
+        /// Идентификатор операции, затронутой последней отменой или повтором.
+        /// Рабочая область использует его, чтобы вернуть выделение экземпляру,
+        /// который история могла заменить восстановленной копией.
+        /// </summary>
+        public Guid? LastAppliedOperationId { get; private set; }
+
         public void Undo()
         {
             if (_undo.Count == 0)
@@ -86,6 +93,7 @@ namespace GCodeGenerator.Services
             var step = _undo.Last!.Value;
             _undo.RemoveLast();
             Restore(() => step.Undo(_operations));
+            LastAppliedOperationId = step.OperationId;
             _redo.Push(step);
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -97,6 +105,7 @@ namespace GCodeGenerator.Services
 
             var step = _redo.Pop();
             Restore(() => step.Redo(_operations));
+            LastAppliedOperationId = step.OperationId;
             _undo.AddLast(step);
             StateChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -180,7 +189,10 @@ namespace GCodeGenerator.Services
                     break;
 
                 case NotifyCollectionChangedAction.Move:
-                    Record(new MoveStep(e.OldStartingIndex, e.NewStartingIndex));
+                    Record(new MoveStep(
+                        e.OldStartingIndex,
+                        e.NewStartingIndex,
+                        (e.NewItems?[0] as OperationBase)?.Id ?? Guid.Empty));
                     break;
 
                 default:
@@ -207,6 +219,8 @@ namespace GCodeGenerator.Services
 
         private interface IUndoStep
         {
+            Guid OperationId { get; }
+
             void Undo(ObservableCollection<OperationBase> operations);
 
             void Redo(ObservableCollection<OperationBase> operations);
@@ -223,6 +237,8 @@ namespace GCodeGenerator.Services
                 _index = index;
                 _memento = memento;
             }
+
+            public Guid OperationId => _memento.Id;
 
             public void Undo(ObservableCollection<OperationBase> operations)
             {
@@ -247,6 +263,8 @@ namespace GCodeGenerator.Services
                 _memento = memento;
             }
 
+            public Guid OperationId => _memento.Id;
+
             public void Undo(ObservableCollection<OperationBase> operations)
                 => operations.Insert(Math.Min(_index, operations.Count), _memento.Restore());
 
@@ -263,12 +281,16 @@ namespace GCodeGenerator.Services
         {
             private readonly int _from;
             private readonly int _to;
+            private readonly Guid _operationId;
 
-            public MoveStep(int from, int to)
+            public MoveStep(int from, int to, Guid operationId)
             {
                 _from = from;
                 _to = to;
+                _operationId = operationId;
             }
+
+            public Guid OperationId => _operationId;
 
             public void Undo(ObservableCollection<OperationBase> operations)
             {
@@ -298,6 +320,8 @@ namespace GCodeGenerator.Services
                 _before = before;
                 _after = after;
             }
+
+            public Guid OperationId => _before.Id;
 
             public void Undo(ObservableCollection<OperationBase> operations)
                 => Replace(operations, _before);

@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows.Input;
 
 namespace GCodeGenerator.ViewModels
@@ -70,8 +71,8 @@ namespace GCodeGenerator.ViewModels
             MoveOperationDownCommand = new RelayCommand(MoveSelectedOperationDown, CanMoveSelectedOperationDown);
             RemoveOperationCommand = new RelayCommand(RemoveSelectedOperation, CanModifySelectedOperation);
             EditOperationCommand = new RelayCommand(EditSelectedOperation, CanModifySelectedOperation);
-            UndoCommand = new RelayCommand(History.Undo, () => History.CanUndo);
-            RedoCommand = new RelayCommand(History.Redo, () => History.CanRedo);
+            UndoCommand = new RelayCommand(Undo, () => History.CanUndo);
+            RedoCommand = new RelayCommand(Redo, () => History.CanRedo);
             History.StateChanged += (_, _) =>
             {
                 ((RelayCommand)UndoCommand).NotifyCanExecuteChanged();
@@ -256,6 +257,26 @@ namespace GCodeGenerator.ViewModels
         private void OnCategoryOperationAdded(OperationBase operation)
         {
             SelectedOperation = operation;
+        }
+
+        private void Undo()
+        {
+            History.Undo();
+            RestoreHistorySelection();
+        }
+
+        private void Redo()
+        {
+            History.Redo();
+            RestoreHistorySelection();
+        }
+
+        private void RestoreHistorySelection()
+        {
+            if (History.LastAppliedOperationId is not Guid operationId)
+                return;
+
+            SelectedOperation = AllOperations.FirstOrDefault(operation => operation.Id == operationId);
         }
 
         private bool CanModifySelectedOperation() => SelectedOperation != null;
