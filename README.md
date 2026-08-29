@@ -162,7 +162,7 @@ Get-FileHash .\GCodeGenerator-Setup-<версия>.exe
 build\Make-Installer.ps1
 ```
 
-Скрипт берёт версию из git-тега (тот же механизм, что и версия сборки), выполняет `dotnet publish` (self-contained, win-x64 — рантайм входит в инсталлятор) и компилирует `install\GCodeGenerator.iss` (ISCC). Результат: `artifacts\installer\GCodeGenerator-Setup-<версия>.exe`.
+Скрипт берёт версию из точного git-тега либо `build/NEXT_VERSION` для промежуточной сборки (тот же механизм, что и версия сборки), выполняет `dotnet publish` (self-contained, win-x64 — рантайм входит в инсталлятор) и компилирует `install\GCodeGenerator.iss` (ISCC). Результат: `artifacts\installer\GCodeGenerator-Setup-<версия>.exe`.
 
 Параметры: `-FrameworkDependent` (publish без рантайма — инсталлятор меньше, но пользователю нужен .NET 10 Desktop Runtime), `-IsccPath <путь к ISCC.exe>`, `-Configuration`, `-Runtime`, `-SignCommand`.
 
@@ -234,17 +234,18 @@ dotnet stryker --config-file stryker-config.json --skip-version-check
 
 ### Версионирование
 
-Версия продукта проставляется при сборке **из git-тегов** (`build/Get-GitVersion.ps1` + `Directory.Build.targets`):
+Версия продукта проставляется при сборке из git-тегов и явного плана следующего выпуска (`build/NEXT_VERSION`, `build/Get-GitVersion.ps1`, `Directory.Build.targets`):
 
 - Формат тега: `X.Y.Z` или `X.Y.Z-suffix` (например, `1.2.3`, `1.2.3-alpha`, `1.2.3-rc5`).
 - Если на текущем коммите несколько тегов — выбирается тег с максимальным приоритетом (SemVer): `1.2.3` > `1.2.3-rc5` > `1.2.3-beta3` > `1.2.3-alpha2` > `1.2.3-alpha` (в пределах класса — по номеру: `rc10` > `rc5`).
-- Если текущий коммит без тега — к ближайшему корректному тегу добавляются
+- Если текущий коммит без тега — к версии из `build/NEXT_VERSION` добавляются
   расстояние и короткий SHA, например `1.2.3-dev4g12ab34cd`; сборка с
   незакоммиченными изменениями получает также окончание `dirty`. Поэтому две
   разные dev-сборки не выдают себя за один и тот же релиз.
-- Если корректных тегов нет, git-сборка получает вид
-  `0.1.0-alphadev<число-коммитов>g<SHA>`; только вне git остаётся
-  `0.1.0-alpha`. Теги вне формата (например, `v1.2.3`) игнорируются с предупреждением.
+- `NEXT_VERSION` обязан содержать одну корректную версию, которая выше
+  ближайшего тега; устаревший или повреждённый файл останавливает сборку.
+  Без явно переданного файла скрипт сохраняет прежний резервный алгоритм.
+- Теги вне формата (например, `v1.2.3`) игнорируются с предупреждением.
 
 Версия попадает в свойства сборки (`Version`/`AssemblyVersion`/`FileVersion`/`InformationalVersion`) и в заголовок программы. Переопределение: `dotnet build /p:Version=1.2.3-rc5` (явная версия) или `/p:SkipGitVersion=true` (пропустить git).
 
@@ -302,7 +303,7 @@ GCodeGenerator/
 │   └── Localization/        # Словари и выбор языка
 ├── GCodeGenerator.Core.Tests/  # Тесты ядра (MSTest, без WPF)
 ├── GCodeGenerator.Tests/    # Тесты приложения (MSTest, WPF)
-├── build/                   # Скрипты сборки (версионирование из git-тегов, инсталлятор)
+├── build/                   # Скрипты сборки (теги/NEXT_VERSION, инсталлятор)
 ├── install/                 # Инсталлятор (Inno Setup)
 ├── docs/                    # Документация (smoke-чек-лист)
 ├── .github/                 # Рабочие процессы, формы issue и pull request

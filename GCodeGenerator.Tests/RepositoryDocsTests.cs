@@ -64,9 +64,15 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public void Changelog_HasANonEmptySectionForTheNextRelease()
         {
-            var section = ExtractSection(Read("CHANGELOG.md"), "Не выпущено");
+            var changelog = Read("CHANGELOG.md");
+            var nextVersion = Read("build", "NEXT_VERSION").Trim();
+            var unreleased = ExtractSection(changelog, "Не выпущено");
+            var section = ExtractSection(changelog, nextVersion);
 
-            Assert.IsNotNull(section, "В журнале нет раздела «Не выпущено»");
+            Assert.IsTrue(Regex.IsMatch(nextVersion, @"^\d+\.\d+\.\d+(-[A-Za-z][A-Za-z0-9]*)?$"),
+                "build/NEXT_VERSION содержит некорректную версию");
+            Assert.IsNotNull(unreleased, "В журнале нет раздела «Не выпущено»");
+            Assert.IsNotNull(section, $"В журнале нет раздела следующей версии {nextVersion}");
             Assert.IsTrue(section.Contains("- "), "Раздел очередной версии пуст");
         }
 
@@ -96,6 +102,8 @@ namespace GCodeGenerator.Tests
                 "",
                 "- Строка про версию 1.2.2.",
                 "",
+                "## [1.2.4]",
+                "",
                 "## [2x0x0]",
                 "",
                 "- Строка про версию, которой нет.",
@@ -114,12 +122,21 @@ namespace GCodeGenerator.Tests
                 // Точка в номере версии — не «любой символ»: иначе описание
                 // одной версии досталось бы другой, у которой на месте точек
                 // стоит что угодно.
-                Assert.AreEqual(string.Empty, RunReleaseNotes("2.0.0", changelog).Trim(),
+                StringAssert.Contains(
+                    RunReleaseNotes("2.0.0", changelog, shouldSucceed: false),
+                    "has no section for '2.0.0'",
                     "Номер версии сверяется буквально, а не как выражение");
-
-                // Раздела нет — скрипт молчит: собранный и проверенный выпуск
-                // не должен срываться из-за незаполненного журнала.
-                Assert.AreEqual(string.Empty, RunReleaseNotes("9.9.9", changelog).Trim());
+                StringAssert.Contains(
+                    RunReleaseNotes("9.9.9", changelog, shouldSucceed: false),
+                    "has no section for '9.9.9'");
+                StringAssert.Contains(
+                    RunReleaseNotes("1.2.4", changelog, shouldSucceed: false),
+                    "Section '1.2.4'",
+                    "Пустой раздел версии не должен разрешать выпуск");
+                StringAssert.Contains(
+                    RunReleaseNotes("1.2.3", changelog + ".missing", shouldSucceed: false),
+                    "Changelog not found",
+                    "Отсутствующий CHANGELOG не должен разрешать выпуск");
             }
             finally
             {
@@ -128,9 +145,9 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Рабочий процесс выпуска берёт описание из журнала, а список
-        /// коммитов остаётся запасным вариантом. Без этой связи журнал —
-        /// файл, который никто не читает.
+        /// Рабочий процесс выпуска берёт описание только из журнала. Без этой
+        /// связи журнал — файл, который никто не читает, а отсутствие раздела
+        /// незаметно выдаёт пользователю внутренние сообщения коммитов.
         /// </summary>
         [TestMethod]
         public void ReleaseWorkflow_TakesItsDescriptionFromTheChangelog()
@@ -139,10 +156,11 @@ namespace GCodeGenerator.Tests
 
             StringAssert.Contains(workflow, "build/Get-ReleaseNotes.ps1",
                 "Рабочий процесс не вызывает скрипт описания выпуска");
-            StringAssert.Contains(workflow, "body_path: ${{ needs.build.outputs.notes_found",
+            StringAssert.Contains(workflow, "body_path: release-assets/release-notes.md",
                 "Описание выпуска не подставляется");
-            Assert.IsFalse(Regex.IsMatch(workflow, @"generate_release_notes:\s*true\s*$", RegexOptions.Multiline),
-                "Список коммитов выводится всегда, а должен — только без раздела в журнале");
+            StringAssert.Contains(workflow, "generate_release_notes: false");
+            Assert.IsFalse(workflow.Contains("notes_found", StringComparison.Ordinal),
+                "В workflow остался обходной путь для отсутствующего раздела CHANGELOG");
         }
 
         /// <summary>
@@ -499,7 +517,11 @@ namespace GCodeGenerator.Tests
         /// </summary>
         /// <param name="tag">Версия, раздел которой нужен.</param>
         /// <param name="changelogPath">Журнал изменений.</param>
-        private static string RunReleaseNotes(string tag, string changelogPath)
+        /// <param name="shouldSucceed">Ожидается ли успешное извлечение раздела.</param>
+        private static string RunReleaseNotes(
+            string tag,
+            string changelogPath,
+            bool shouldSucceed = true)
         {
             var script = Path.Combine(Root, "build", "Get-ReleaseNotes.ps1");
             var outFile = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".md");
@@ -525,6 +547,15 @@ namespace GCodeGenerator.Tests
                 process.StandardOutput.ReadToEnd();
                 var errors = process.StandardError.ReadToEnd();
                 process.WaitForExit(30000);
+
+                if (!shouldSucceed)
+                {
+                    Assert.AreNotEqual(0, process.ExitCode,
+                        "Ошибочный журнал изменений не остановил скрипт");
+                    Assert.IsFalse(File.Exists(outFile),
+                        "При ошибке не должен оставаться файл описания выпуска");
+                    return errors;
+                }
 
                 Assert.AreEqual(0, process.ExitCode,
                     $"Скрипт завершился с кодом {process.ExitCode}: {errors}");

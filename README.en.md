@@ -161,7 +161,7 @@ Requirements: the **.NET 10 SDK**, **git** and **64-bit Inno Setup 7** ([downloa
 build\Make-Installer.ps1
 ```
 
-The script takes the version from the git tag (the same mechanism as the assembly version), runs `dotnet publish` (self-contained, win-x64 — the runtime goes into the installer) and compiles `install\GCodeGenerator.iss` (ISCC). The result is `artifacts\installer\GCodeGenerator-Setup-<version>.exe`.
+The script takes the version from an exact git tag or from `build/NEXT_VERSION` for a development build (the same mechanism as the assembly version), runs `dotnet publish` (self-contained, win-x64 — the runtime goes into the installer) and compiles `install\GCodeGenerator.iss` (ISCC). The result is `artifacts\installer\GCodeGenerator-Setup-<version>.exe`.
 
 Parameters: `-FrameworkDependent` (publish without the runtime — a smaller installer, but the user needs the .NET 10 Desktop Runtime), `-IsccPath <path to ISCC.exe>`, `-Configuration`, `-Runtime`, `-SignCommand`.
 
@@ -232,17 +232,18 @@ Alternatively, open `GCodeGenerator.sln` in Visual Studio 2026 and build the sol
 
 ### Versioning
 
-The product version is set at build time **from git tags** (`build/Get-GitVersion.ps1` + `Directory.Build.targets`):
+The product version is set from git tags and an explicit next-release plan (`build/NEXT_VERSION`, `build/Get-GitVersion.ps1`, `Directory.Build.targets`):
 
 - Tag format: `X.Y.Z` or `X.Y.Z-suffix` (for example `1.2.3`, `1.2.3-alpha`, `1.2.3-rc5`).
 - If the current commit carries several tags, the one with the highest precedence wins (SemVer): `1.2.3` > `1.2.3-rc5` > `1.2.3-beta3` > `1.2.3-alpha2` > `1.2.3-alpha` (within a class, by number: `rc10` > `rc5`).
 - If the current commit has no tag, its distance and short SHA are appended to
-  the nearest valid tag, for example `1.2.3-dev4g12ab34cd`; a build with
+  the version in `build/NEXT_VERSION`, for example `1.2.3-dev4g12ab34cd`; a build with
   uncommitted changes also ends in `dirty`. Two different development builds
   therefore cannot present themselves as the same release.
-- If there are no valid tags, a git build uses
-  `0.1.0-alphadev<commit-count>g<SHA>`; only a build outside git remains
-  `0.1.0-alpha`. Tags outside the format (`v1.2.3`, for example) are ignored with a warning.
+- `NEXT_VERSION` must contain one valid version newer than the nearest tag;
+  a stale or malformed file stops the build. Without an explicitly supplied
+  file, the script retains its previous fallback algorithm.
+- Tags outside the format (`v1.2.3`, for example) are ignored with a warning.
 
 The version goes into the assembly properties (`Version`/`AssemblyVersion`/`FileVersion`/`InformationalVersion`) and into the window title. To override: `dotnet build /p:Version=1.2.3-rc5` (an explicit version) or `/p:SkipGitVersion=true` (skip git).
 
@@ -300,7 +301,7 @@ GCodeGenerator/
 │   └── Localization/        # Dictionaries and language selection
 ├── GCodeGenerator.Core.Tests/  # Core tests (MSTest, no WPF)
 ├── GCodeGenerator.Tests/    # Application tests (MSTest, WPF)
-├── build/                   # Build scripts (versioning from git tags, installer)
+├── build/                   # Build scripts (tags/NEXT_VERSION, installer)
 ├── install/                 # Installer (Inno Setup)
 ├── docs/                    # Documentation (the smoke checklist)
 ├── GCodeGenerator.sln       # Visual Studio solution

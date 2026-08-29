@@ -2,9 +2,9 @@
 # Make-Installer.ps1 - build the Windows installer (Inno Setup).
 #
 # Steps:
-#   1. Version from the git tag (build/Get-GitVersion.ps1 - the same
-#      mechanism that stamps the assembly version), split into the numeric
-#      part (0.0.1) and the suffix (-rc5).
+#   1. Version from the exact git tag or build/NEXT_VERSION for development
+#      builds (build/Get-GitVersion.ps1 - the same mechanism that stamps the
+#      assembly version), split into the numeric part and suffix.
 #   2. dotnet publish (SELF-CONTAINED win-x64 by default: the installer ships
 #      the .NET 10 Desktop Runtime, so end users need nothing preinstalled)
 #      into artifacts\publish\GCodeGenerator.
@@ -55,7 +55,10 @@ $scriptDir = $PSScriptRoot
 # --- 1) Version from the git tag -------------------------------------------
 $versionFile = Join-Path $env:TEMP ("gcodegen_installer_version_" + [guid]::NewGuid().ToString('N') + '.txt')
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $scriptDir 'Get-GitVersion.ps1') $versionFile | Out-Null
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass `
+        -File (Join-Path $scriptDir 'Get-GitVersion.ps1') `
+        -OutFile $versionFile `
+        -NextVersionFile (Join-Path $scriptDir 'NEXT_VERSION') | Out-Null
     if ($LASTEXITCODE -ne 0 -or -not (Test-Path $versionFile)) {
         throw 'Get-GitVersion.ps1 failed (git unavailable or not a repository?)'
     }

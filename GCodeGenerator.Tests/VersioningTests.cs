@@ -9,9 +9,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Версионирование из git-тегов: build/Get-GitVersion.ps1 (выбор тега и
-    /// приоритет нескольких тегов на одном коммите) и версия, проставленная в
-    /// сборку GCodeGenerator (формат X.Y.Z[-suffix], численная часть == тег).
+    /// Версионирование из git-тегов и NEXT_VERSION: выбор тега, приоритет
+    /// нескольких тегов, план следующего выпуска и версия, проставленная в
+    /// сборку GCodeGenerator (формат X.Y.Z[-suffix]).
     /// </summary>
     [TestClass]
     public class VersioningTests
@@ -67,25 +67,47 @@ namespace GCodeGenerator.Tests
             RunGit(dir, $"commit -q -m {file}");
         }
 
-        /// <summary>Запускает build/Get-GitVersion.ps1 в рабочем каталоге = dir.</summary>
-        private static string RunVersionScript(string dir)
+        private static (int ExitCode, string Stdout, string Stderr) ExecuteVersionScript(
+            string dir,
+            string nextVersionFile = null)
         {
             var script = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "build", "Get-GitVersion.ps1");
             Assert.IsTrue(File.Exists(script), $"Скрипт не скопирован в вывод тестов: {script}");
 
-            var psi = new ProcessStartInfo("powershell.exe", $"-NoProfile -ExecutionPolicy Bypass -File \"{script}\"")
+            var psi = new ProcessStartInfo("powershell.exe")
             {
                 WorkingDirectory = dir,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false
             };
+            foreach (var argument in new[]
+                     {
+                         "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script
+                     })
+            {
+                psi.ArgumentList.Add(argument);
+            }
+            if (nextVersionFile != null)
+            {
+                psi.ArgumentList.Add("-NextVersionFile");
+                psi.ArgumentList.Add(nextVersionFile);
+            }
+
             using var process = Process.Start(psi);
             var stdout = process.StandardOutput.ReadToEnd();
             var stderr = process.StandardError.ReadToEnd();
             process.WaitForExit();
-            Assert.AreEqual(0, process.ExitCode, $"Скрипт завершился с ошибкой. stderr: {stderr}");
-            return stdout.Trim();
+            return (process.ExitCode, stdout.Trim(), stderr.Trim());
+        }
+
+        /// <summary>Запускает build/Get-GitVersion.ps1 в рабочем каталоге = dir.</summary>
+        private static string RunVersionScript(string dir, string nextVersionFile = null)
+        {
+            var result = ExecuteVersionScript(dir, nextVersionFile);
+            Assert.AreEqual(0, result.ExitCode,
+                $"Скрипт завершился с ошибкой. stderr: {result.Stderr}");
+            return result.Stdout;
         }
 
         private static void CheckSelection(string name, string[] tags, string expected)
@@ -174,6 +196,32 @@ namespace GCodeGenerator.Tests
             var sha = RunGit(dir, "rev-parse --short=8 HEAD");
 
             Assert.AreEqual($"0.5.0-dev1g{sha}", RunVersionScript(dir));
+        }
+
+        [TestMethod]
+        public void NextVersionFile_BecomesTheBaseOfDevelopmentBuilds()
+        {
+            var dir = NewRepo("planned-next-version");
+            RunGit(dir, "tag 0.4.1-rc1");
+            Commit(dir, "NEXT_VERSION", "0.5.0");
+            var sha = RunGit(dir, "rev-parse --short=8 HEAD");
+
+            Assert.AreEqual(
+                $"0.5.0-dev1g{sha}",
+                RunVersionScript(dir, Path.Combine(dir, "NEXT_VERSION")));
+        }
+
+        [TestMethod]
+        public void NextVersionFile_MustAdvanceTheNearestTag()
+        {
+            var dir = NewRepo("stale-next-version");
+            RunGit(dir, "tag 0.5.0");
+            Commit(dir, "NEXT_VERSION", "0.4.9");
+
+            var result = ExecuteVersionScript(dir, Path.Combine(dir, "NEXT_VERSION"));
+
+            Assert.AreNotEqual(0, result.ExitCode, "Устаревший план версии принят");
+            StringAssert.Contains(result.Stderr, "must be newer than the nearest tag '0.5.0'");
         }
 
         [TestMethod]

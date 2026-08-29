@@ -10,9 +10,13 @@
 #      the one with the highest precedence (SemVer):
 #      1.2.3 > 1.2.3-rc5 > 1.2.3-beta3 > 1.2.3-alpha2 > 1.2.3-alpha
 #      (within a class - by number: alpha2 > alpha, rc10 > rc5).
-#   2. Otherwise - the nearest valid tag in history plus commit distance/SHA.
-#   3. Otherwise, in a git repository - 0.1.0-alphadev<count>g<sha>.
-#   4. No git / not a repository - 0.1.0-alpha.
+#   2. Otherwise - the version in -NextVersionFile, when supplied, plus the
+#      distance from the nearest valid tag and SHA. It must be newer than the
+#      nearest tag, so a stale release plan fails instead of going unnoticed.
+#   3. Without -NextVersionFile - the nearest valid tag plus distance/SHA.
+#   4. Otherwise, in a git repository - 0.1.0-alphadev<count>g<sha>.
+#   5. No git / not a repository - 0.1.0-alpha (or <next>-dev0 when a valid
+#      -NextVersionFile was explicitly supplied).
 #
 # Tag format: ^\d+\.\d+\.\d+(-[A-Za-z][A-Za-z0-9]*)?$
 # (three-part version + optional suffix: -alpha, -alpha2, -beta, -beta3,
@@ -22,11 +26,14 @@
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
 # Compatible with Windows PowerShell 5.1 (no PS7 syntax).
 #
-# Usage: Get-GitVersion.ps1 [-OutFile <path>]
+# Usage: Get-GitVersion.ps1 [-OutFile <path>] [-NextVersionFile <path>]
 #   -OutFile - additionally write the version to a file (used by MSBuild:
 #   the Exec task of this SDK cannot capture stdout into a property).
 # ---------------------------------------------------------------------------
-param([string]$OutFile)
+param(
+    [string]$OutFile,
+    [string]$NextVersionFile
+)
 
 $ErrorActionPreference = 'Stop'
 $defaultVersion = '0.1.0-alpha'
@@ -86,6 +93,18 @@ foreach ($t in $headTags) {
     }
 }
 
+$nextVersion = $null
+if ($NextVersionFile -ne '') {
+    if (-not (Test-Path -LiteralPath $NextVersionFile -PathType Leaf)) {
+        throw "Next-version file not found: '$NextVersionFile'."
+    }
+    $candidate = (Get-Content -LiteralPath $NextVersionFile -Raw).Trim()
+    if (-not (Test-VersionTag $candidate)) {
+        throw "Next-version file '$NextVersionFile' must contain one X.Y.Z[-suffix] version."
+    }
+    $nextVersion = $candidate
+}
+
 function Select-HighestVersionTag {
     param([string[]]$Candidates)
     $best = $null
@@ -139,9 +158,21 @@ if ($exactCleanTag) {
 }
 elseif ($commit.Count -gt 0 -and $commit[0] -match '^[0-9a-fA-F]+$') {
     if ($baseVersion -eq $null) {
-        $baseVersion = $defaultVersion
         $count = @(Invoke-Git @('rev-list', '--count', 'HEAD'))
         if ($count.Count -gt 0 -and $count[0] -match '^\d+$') { $distance = [int]$count[0] }
+    }
+
+    if ($nextVersion -ne $null) {
+        if ($baseVersion -ne $null -and
+            [string]::CompareOrdinal(
+                (Get-VersionRank $nextVersion),
+                (Get-VersionRank $baseVersion)) -le 0) {
+            throw "Next version '$nextVersion' must be newer than the nearest tag '$baseVersion'."
+        }
+        $baseVersion = $nextVersion
+    }
+    elseif ($baseVersion -eq $null) {
+        $baseVersion = $defaultVersion
     }
 
     $parts = $baseVersion -split '-', 2
@@ -150,6 +181,11 @@ elseif ($commit.Count -gt 0 -and $commit[0] -match '^[0-9a-fA-F]+$') {
     $developmentSuffix = $existingSuffix + 'dev' + $distance + 'g' + $commit[0].ToLowerInvariant()
     if ($dirty) { $developmentSuffix += 'dirty' }
     $best = "$numeric-$developmentSuffix"
+}
+elseif ($nextVersion -ne $null) {
+    $parts = $nextVersion -split '-', 2
+    $existingSuffix = if ($parts.Count -eq 2) { $parts[1] } else { '' }
+    $best = $parts[0] + '-' + $existingSuffix + 'dev0'
 }
 else {
     $best = $defaultVersion

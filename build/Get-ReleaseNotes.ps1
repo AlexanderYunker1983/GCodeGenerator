@@ -9,9 +9,9 @@
 # Headings follow Keep a Changelog: "## [1.2.3]" or "## [1.2.3] - 2026-08-28".
 # The tag is matched literally, so "1.2.3-rc5" never matches "1.2.3".
 #
-# No section for the tag - prints nothing and exits with 0: the caller then
-# falls back to generated notes. A missing description must not break a
-# release that is otherwise built and tested.
+# A missing changelog, section or section body is a release error. Publishing
+# generated commit notes would hide the omission and expose developer-facing
+# messages to end users, so every failure is deliberately fail-closed.
 #
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
 # The changelog itself is UTF-8 and is read as such.
@@ -37,9 +37,8 @@ if (-not $Path) {
     $Path = Join-Path (Split-Path -Parent $PSScriptRoot) 'CHANGELOG.md'
 }
 
-if (-not (Test-Path $Path)) {
-    Write-Warning "Changelog not found: $Path"
-    return
+if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "Changelog not found: $Path"
 }
 
 $lines = Get-Content -LiteralPath $Path -Encoding UTF8
@@ -57,8 +56,7 @@ for ($i = 0; $i -lt $lines.Count; $i++) {
 }
 
 if ($start -lt 0) {
-    Write-Warning "Changelog has no section for '$Tag' in $Path"
-    return
+    throw "Changelog has no section for '$Tag' in $Path"
 }
 
 $end = $lines.Count
@@ -76,16 +74,25 @@ if ($end -gt $start) {
 
 # Blank lines around the section carry no meaning and only add empty space
 # to the release page.
-while ($section.Count -gt 0 -and $section[0].Trim().Length -eq 0) {
-    $section = $section[1..($section.Count - 1)]
+$firstContentLine = 0
+while ($firstContentLine -lt $section.Count -and
+       $section[$firstContentLine].Trim().Length -eq 0) {
+    $firstContentLine++
 }
-while ($section.Count -gt 0 -and $section[$section.Count - 1].Trim().Length -eq 0) {
-    $section = $section[0..($section.Count - 2)]
+$lastContentLine = $section.Count - 1
+while ($lastContentLine -ge $firstContentLine -and
+       $section[$lastContentLine].Trim().Length -eq 0) {
+    $lastContentLine--
+}
+if ($lastContentLine -ge $firstContentLine) {
+    $section = @($section[$firstContentLine..$lastContentLine])
+}
+else {
+    $section = @()
 }
 
 if ($section.Count -eq 0) {
-    Write-Warning "Section '$Tag' in $Path is empty"
-    return
+    throw "Section '$Tag' in $Path is empty"
 }
 
 $text = $section -join "`n"

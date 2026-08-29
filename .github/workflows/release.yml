@@ -25,7 +25,6 @@ jobs:
     outputs:
       skip: ${{ steps.tag.outputs.skip }}
       prerelease: ${{ steps.tag.outputs.prerelease }}
-      notes_found: ${{ steps.notes.outputs.found }}
     env:
       TAG_NAME: ${{ github.ref_name }}
     steps:
@@ -326,27 +325,17 @@ jobs:
         shell: pwsh
         run: build/New-ReleaseChecksums.ps1 -Directory artifacts/installer
 
-      # Описание выпуска берётся из CHANGELOG: раздел с номером версии написан
-      # для пользователя, а generate_release_notes выдаёт список коммитов,
-      # написанный для разработчика. Раздела для тега нет — скрипт молчит,
-      # и остаётся прежнее поведение: собранный и проверенный релиз не должен
-      # срываться из-за незаполненного журнала изменений.
+      # Описание выпуска берётся только из CHANGELOG: раздел с номером версии
+      # написан для пользователя, а список коммитов — для разработчика.
+      # Отсутствующий или пустой раздел останавливает выпуск.
       - name: Release notes from CHANGELOG
         if: steps.tag.outputs.skip == 'false'
-        id: notes
         shell: pwsh
         run: |
           $file = 'artifacts/installer/release-notes.md'
           build/Get-ReleaseNotes.ps1 -Tag $env:TAG_NAME -OutFile $file | Out-Null
-          if (Test-Path $file) {
-            Write-Host "Release notes: $file"
-            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=true'
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$file"
-          }
-          else {
-            Write-Host "CHANGELOG has no section for $env:TAG_NAME - falling back to generated notes."
-            Add-Content -Path $env:GITHUB_OUTPUT -Value 'found=false'
-          }
+          if (-not (Test-Path -LiteralPath $file)) { throw "Release notes were not created: $file" }
+          Write-Host "Release notes: $file"
 
       # Job публикации не получает исходный checkout, компилятор или скачанный
       # Inno Setup: через границу прав передаются только готовые файлы выпуска.
@@ -409,9 +398,8 @@ jobs:
             release-assets/SHA256SUMS.txt
           # Тег с суффиксом (-alpha/-beta/-rc) — pre-release.
           prerelease: ${{ needs.build.outputs.prerelease == 'true' }}
-          # Раздел CHANGELOG, если он есть; иначе — список коммитов, как раньше.
-          body_path: ${{ needs.build.outputs.notes_found == 'true' && 'release-assets/release-notes.md' || '' }}
-          generate_release_notes: ${{ needs.build.outputs.notes_found != 'true' }}
+          body_path: release-assets/release-notes.md
+          generate_release_notes: false
           fail_on_unmatched_files: true
           # Повторный push того же тега заменяет релиз, а не падает.
           overwrite: true

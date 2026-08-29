@@ -3,8 +3,8 @@
 ;
 ; The version is NOT hardcoded here - it is passed on the ISCC command line:
 ;   /DAppVersionNumeric=0.0.1  /DAppVersionSuffix=-rc5
-; build/Make-Installer.ps1 computes both from the git tag (the same
-; build/Get-GitVersion.ps1 mechanism that stamps the assembly version).
+; build/Make-Installer.ps1 computes both from an exact git tag or the planned
+; build/NEXT_VERSION (the same mechanism that stamps the assembly version).
 ; The #define values below are fallbacks for a local compile without /D;
 ; #ifndef keeps the command-line /D values in effect (a plain #define in the
 ; script would OVERRIDE them).

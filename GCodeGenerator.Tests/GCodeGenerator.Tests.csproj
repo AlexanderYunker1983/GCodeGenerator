@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Версионирование из git-тега: скрипт для VersioningTests (интеграция). -->
+    <!-- Версионирование из git-тега/NEXT_VERSION: скрипт для интеграционных тестов. -->
     <None Include="..\build\Get-GitVersion.ps1" Link="build\Get-GitVersion.ps1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
