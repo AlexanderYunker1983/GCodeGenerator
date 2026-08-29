@@ -141,7 +141,16 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
             var entryAngleRad = op.EntryAngle * Math.PI / 180.0;
             var retractZ = currentZ + op.RetractHeight;
 
-            builder.RapidTo(z: retractZ, feed: op.FeedZRapid);
+            // На первом слое retractZ находится над поверхностью, но на
+            // последующих он может оказаться уже внутри материала. Даже если
+            // предыдущий проход должен был очистить стартовую колонку, быстрый
+            // ход ниже верха заготовки не оставляет запаса на потерю шага,
+            // биение и неполный предыдущий рез. До поверхности идём быстро,
+            // ниже — только с рабочей вертикальной подачей.
+            var rapidEntryZ = Math.Max(retractZ, op.ContourHeight);
+            builder.RapidTo(z: rapidEntryZ, feed: op.FeedZRapid);
+            if (retractZ < rapidEntryZ)
+                builder.LinearTo(z: retractZ, feed: op.FeedZWork);
 
             var totalDepth = retractZ - nextZ;
             var tangent = Math.Tan(entryAngleRad);
@@ -271,7 +280,14 @@ namespace GCodeGenerator.GCodeGenerators.Helpers
 
             builder.RapidTo(z: retractZ, feed: op.FeedZRapid);
             builder.RapidTo(x: startPoint.x, y: startPoint.y, feed: op.FeedXYRapid);
-            builder.RapidTo(z: z, feed: op.FeedZRapid);
+
+            // Начальная точка рампы не гарантированно очищена до глубины z:
+            // виток уходит от неё, одновременно начиная спуск, и может
+            // закончиться в другой точке контура. Возврат быстрым ходом
+            // поэтому превращался в вертикальный удар фрезой в материал.
+            // Опускаемся на рабочей подаче; если колонка уже очищена, это
+            // лишь короткий безопасный ход, если нет — штатное врезание.
+            builder.LinearTo(z: z, feed: op.FeedZWork);
         }
     }
 }

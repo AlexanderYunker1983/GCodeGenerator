@@ -71,6 +71,39 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        /// <summary>
+        /// После возврата к началу рампы колонка под этой точкой может быть
+        /// ещё не выбрана до текущей глубины: первый виток сразу уходит от
+        /// старта. Поэтому любой быстрый спуск ниже поверхности является
+        /// ударом в материал; опускаться туда можно только рабочим ходом.
+        /// </summary>
+        [TestMethod]
+        public void ReturnToStart_NeverRapidPlungesBelowStockTop()
+        {
+            var operation = Circle(entryAngle: 1, safeDistance: 0.8);
+            var toolPath = new SimpleGCodeGenerator()
+                .BuildToolPath(new List<OperationBase> { operation }, new GCodeSettings());
+
+            var previousZ = 0.0;
+            foreach (var move in toolPath.Moves())
+            {
+                var targetZ = move.Z ?? previousZ;
+                var isDescendingRapid = move.Kind == Toolpath.ToolMoveKind.Rapid
+                    && targetZ < previousZ - Geometry.GeometryTolerances.Degenerate;
+
+                Assert.IsFalse(
+                    isDescendingRapid && targetZ < operation.ContourHeight - Geometry.GeometryTolerances.Degenerate,
+                    $"Быстрый спуск из Z{previousZ:0.###} в Z{targetZ:0.###} вошёл в материал");
+                previousZ = targetZ;
+            }
+
+            Assert.IsTrue(toolPath.Moves().Any(move =>
+                    move.Kind == Toolpath.ToolMoveKind.Linear
+                    && move.Z.HasValue
+                    && move.Z.Value < operation.ContourHeight),
+                "Возврат к глубине рампы выполняется рабочей подачей");
+        }
+
         [TestMethod]
         public void ZeroSafeDistance_KeepsPreviousBehaviour()
         {
