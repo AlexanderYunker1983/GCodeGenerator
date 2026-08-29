@@ -25,6 +25,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
 
         public static bool RequiresSafeTransitions(IPocketGeometry geometry)
-            => geometry is IMultiContourPocketGeometry multi && multi.RequiresSafeTransitions;
+            => geometry.RequiresSafeTransitions
+                || geometry is IMultiContourPocketGeometry multi && multi.RequiresSafeTransitions;
     }
 }

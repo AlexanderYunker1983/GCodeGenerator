@@ -26,6 +26,14 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         /// </summary>
         public bool SplitsIntoAreas => true;
 
+        /// <summary>
+        /// DXF допускает произвольный вогнутый контур. Две точки внутри него
+        /// не гарантируют, что соединяющий их отрезок тоже лежит внутри,
+        /// поэтому для такой области стратегии не имеют права связывать
+        /// проходы на рабочей Z. Выпуклые области сохраняют короткие связки.
+        /// </summary>
+        public bool RequiresSafeTransitions => IsConcave(_primaryContour?.Points);
+
         /// <inheritdoc />
         public IReadOnlyList<IPocketGeometry> GetAreas(double toolRadius, double taperOffset)
         {
@@ -91,6 +99,36 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 (operation.ClosedContours != null && operation.ClosedContours.Count > 0
                     ? operation.ClosedContours[0]
                     : null);
+        }
+
+        private static bool IsConcave(IReadOnlyList<Point2D>? points)
+        {
+            if (points == null || points.Count < 4)
+                return false;
+
+            var count = points.Count;
+            if (Geometry2D.PointsMatch(points[0], points[count - 1], GeometryTolerances.Vertex))
+                count--;
+            if (count < 4)
+                return false;
+
+            var orientation = 0;
+            for (var index = 0; index < count; index++)
+            {
+                var a = points[index];
+                var b = points[(index + 1) % count];
+                var c = points[(index + 2) % count];
+                var cross = (b.X - a.X) * (c.Y - b.Y) - (b.Y - a.Y) * (c.X - b.X);
+                if (Math.Abs(cross) <= GeometryTolerances.Degenerate)
+                    continue;
+
+                var current = cross > 0 ? 1 : -1;
+                if (orientation == 0)
+                    orientation = current;
+                else if (orientation != current)
+                    return true;
+            }
+            return false;
         }
 
         /// <summary>

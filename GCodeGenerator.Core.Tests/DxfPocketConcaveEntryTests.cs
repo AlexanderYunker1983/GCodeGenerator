@@ -4,6 +4,7 @@ using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
+using GCodeGenerator.Toolpath;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -90,7 +91,7 @@ namespace GCodeGenerator.Tests
                 var targetZ = move.Z ?? z;
                 if (targetZ < z - 1e-9 && targetZ < -1e-9)
                 {
-                    Assert.IsTrue(Geometry2D.IsPointInsidePolygon(x, y, offsetContour),
+                    Assert.IsTrue(IsInsideOrOnBoundary(x, y, offsetContour),
                         FormattableString.Invariant(
                             $"врезание на глубину {targetZ} в точке ({x:0.###}; {y:0.###}) — вне области кармана"));
                     plunges++;
@@ -102,6 +103,81 @@ namespace GCodeGenerator.Tests
             }
 
             Assert.IsTrue(plunges > 0, "в программе должно быть хотя бы одно врезание");
+        }
+
+        /// <summary>
+        /// Концы связки могут лежать внутри подковы, а её середина — в
+        /// выемке. ZigZag прежде соединял так соседние сегменты, Radial шёл
+        /// к самому дальнему пересечению луча; оба резали сохраняемый остров
+        /// прямой рабочей подачей.
+        /// </summary>
+        [TestMethod]
+        [DataRow(PocketStrategy.ZigZag)]
+        [DataRow(PocketStrategy.Radial)]
+        public void WorkingMoves_StayInsideConcaveOffsetArea(PocketStrategy strategy)
+        {
+            var op = HorseshoePocket();
+            op.PocketStrategy = strategy;
+            var offsetContour = ContourOffset.Offset(Horseshoe().Points, -ToolRadius)[0];
+            var toolPath = OperationToolPath.Build(new UnifiedPocketGenerator(), op, new GCodeSettings());
+
+            var x = 0.0;
+            var y = 0.0;
+            var z = 0.0;
+            var checkedSegments = 0;
+            var safeTransfers = 0;
+            foreach (var move in toolPath.Moves())
+            {
+                var targetX = move.X ?? x;
+                var targetY = move.Y ?? y;
+                var targetZ = move.Z ?? z;
+
+                if (move.Kind == ToolMoveKind.Rapid && move.X.HasValue && move.Y.HasValue)
+                    safeTransfers++;
+
+                if (move.Kind == ToolMoveKind.Linear
+                    && targetZ < -1e-9
+                    && (Math.Abs(targetX - x) > 1e-9 || Math.Abs(targetY - y) > 1e-9))
+                {
+                    foreach (var fraction in new[] { 0.25, 0.5, 0.75 })
+                    {
+                        var sampleX = x + (targetX - x) * fraction;
+                        var sampleY = y + (targetY - y) * fraction;
+                        Assert.IsTrue(Geometry2D.IsPointInsidePolygon(sampleX, sampleY, offsetContour),
+                            FormattableString.Invariant(
+                                $"{strategy}: рабочий ход ({x:0.###}; {y:0.###}) → ({targetX:0.###}; {targetY:0.###}) выходит из кармана"));
+                    }
+                    checkedSegments++;
+                }
+
+                x = targetX;
+                y = targetY;
+                z = targetZ;
+            }
+
+            Assert.IsTrue(checkedSegments > 0, "стратегия должна построить рабочие участки");
+            Assert.IsTrue(safeTransfers > 1,
+                "раздельные участки вогнутого кармана соединяются быстрыми ходами после отвода");
+        }
+
+        private static bool IsInsideOrOnBoundary(double x, double y, IReadOnlyList<Point2D> contour)
+        {
+            if (Geometry2D.IsPointInsidePolygon(x, y, contour))
+                return true;
+
+            for (var index = 0; index < contour.Count; index++)
+            {
+                var next = (index + 1) % contour.Count;
+                if (Geometry2D.DistanceToSegment(
+                        x, y,
+                        contour[index].X, contour[index].Y,
+                        contour[next].X, contour[next].Y,
+                        GeometryTolerances.Degenerate) <= GeometryTolerances.Vertex)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
