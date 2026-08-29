@@ -89,5 +89,49 @@ namespace GCodeGenerator.Tests
                     $"на глубине {depth} нет касания стенки (радиус {wallRadius}); стенка доведена только на: {reached}"));
             }
         }
+
+        /// <summary>
+        /// В режиме «только стенки» чистовой проход не пересекает дно от
+        /// центра к контуру и обратно. На полной глубине чернового прохода
+        /// уже нет, поэтому любой XY-рез там обязан лежать на стенке.
+        /// </summary>
+        [TestMethod]
+        public void WallOnlyPass_DoesNotTraverseTheBottom()
+        {
+            var op = CircleWithWallFinishing();
+            var toolPath = OperationToolPath.Build(new UnifiedPocketGenerator(), op, new GCodeSettings());
+
+            var wallRadius = Radius - ToolDiameter / 2.0;
+            var x = 0.0;
+            var y = 0.0;
+            var z = 0.0;
+            var bottomCuts = 0;
+
+            foreach (var move in toolPath.Moves())
+            {
+                var previousX = x;
+                var previousY = y;
+                x = move.X ?? x;
+                y = move.Y ?? y;
+                z = move.Z ?? z;
+
+                if (move.Kind != GCodeGenerator.Toolpath.ToolMoveKind.Linear
+                    || Math.Abs(z + TotalDepth) > 1e-9
+                    || (!move.X.HasValue && !move.Y.HasValue))
+                {
+                    continue;
+                }
+
+                bottomCuts++;
+                var startRadius = Math.Sqrt(previousX * previousX + previousY * previousY);
+                var endRadius = Math.Sqrt(x * x + y * y);
+                Assert.AreEqual(wallRadius, startRadius, 0.05,
+                    "Начало каждого XY-реза на полной глубине должно лежать на стенке");
+                Assert.AreEqual(wallRadius, endRadius, 0.05,
+                    "Конец каждого XY-реза на полной глубине должен лежать на стенке");
+            }
+
+            Assert.IsTrue(bottomCuts > 3, "Регрессия должна наблюдать чистовой обход стенки");
+        }
     }
 }

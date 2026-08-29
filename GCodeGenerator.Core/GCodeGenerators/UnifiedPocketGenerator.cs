@@ -86,7 +86,8 @@ namespace GCodeGenerator.GCodeGenerators
             // прежде он существовал дважды, отдельно для стенки и для дна.
             foreach (var pass in plan.Passes)
             {
-                var strategy = pass.Kind == PocketPassKind.WallFinishing
+                var isWallFinishing = pass.Kind == PocketPassKind.WallFinishing;
+                var strategy = isWallFinishing
                     ? WallFinishingStrategy.Instance
                     : _strategies.For(pass.Operation.PocketStrategy);
 
@@ -98,6 +99,7 @@ namespace GCodeGenerator.GCodeGenerators
                     settings,
                     context.PocketIslands,
                     plan.TaperOriginZ,
+                    isWallFinishing,
                     cancellation);
             }
         }
@@ -113,6 +115,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="islands">Включённые острова всего проекта.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон стенок. Для чистовых
         /// операций (слой припуска) — верх исходного кармана, а не верх слоя.</param>
+        /// <param name="isWallFinishing">Проход обрабатывает только стенку и не должен пересекать дно.</param>
         /// <param name="cancellation">Отмена: проверяется перед каждым слоем.</param>
         private void MillPocket(
             PocketOperationBase op,
@@ -122,6 +125,7 @@ namespace GCodeGenerator.GCodeGenerators
             GCodeSettings settings,
             System.Collections.Generic.IReadOnlyList<PocketOperationBase> islands,
             double? taperOriginZ = null,
+            bool isWallFinishing = false,
             CancellationToken cancellation = default)
         {
             var geometry = CreateGeometry(op);
@@ -145,7 +149,8 @@ namespace GCodeGenerator.GCodeGenerators
                     builder,
                     settings,
                     islands,
-                    taperOriginZ),
+                    taperOriginZ,
+                    isWallFinishing),
                 builder,
                 settings,
                 cancellation);
@@ -166,6 +171,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// <param name="strategy">Способ обхода слоя.</param>
         /// <param name="islands">Включённые острова всего проекта.</param>
         /// <param name="taperOriginZ">Z, от которой измеряется уклон (null — верх операции).</param>
+        /// <param name="isWallFinishing">Проход обрабатывает только стенку и не должен пересекать дно.</param>
         /// <returns>true, если обработку нужно продолжить; false, если контур слишком маленький и обработку нужно прекратить</returns>
         private bool GenerateLayer(
             PocketOperationBase op,
@@ -179,7 +185,8 @@ namespace GCodeGenerator.GCodeGenerators
             ToolPathBuilder builder,
             GCodeSettings settings,
             System.Collections.Generic.IReadOnlyList<PocketOperationBase> islands,
-            double? taperOriginZ = null)
+            double? taperOriginZ = null,
+            bool isWallFinishing = false)
         {
             double depthFromTop = (taperOriginZ ?? op.ContourHeight) - nextZ;
             double taperOffset = GCodeGenerationHelper.CalculateTaperOffset(depthFromTop, op.WallTaperAngleDeg);
@@ -240,20 +247,26 @@ namespace GCodeGenerator.GCodeGenerators
                 step,
                 op.EntryMode == PocketEntryMode.Helical ? op.HelicalEntryDiameter / 2.0 : 0.0);
 
-            // Общий подвод для всех геометрий и стратегий: вертикальная
-            // колонна или винтовая траектория заданного диаметра и угла.
-            PocketEntryGenerator.Generate(
-                op,
-                geometry,
-                contourOffset,
-                taperOffset,
-                contourPoints,
-                center,
-                currentZ,
-                nextZ,
-                moveToSafeZ: true,
-                builder,
-                settings);
+            // Обычная выборка начинается в центре. Для чистовой стенки такой
+            // подвод неприемлем: путь от центра к контуру на рабочей Z
+            // прорезает дно, хотя пользователь мог отключить его чистовую
+            // обработку. Стратегия стенки сама входит в начало каждого
+            // контура через безопасную высоту.
+            if (!isWallFinishing)
+            {
+                PocketEntryGenerator.Generate(
+                    op,
+                    geometry,
+                    contourOffset,
+                    taperOffset,
+                    contourPoints,
+                    center,
+                    currentZ,
+                    nextZ,
+                    moveToSafeZ: true,
+                    builder,
+                    settings);
+            }
 
             // Обработка слоя выбранным способом обхода.
             strategy.MillContour(
@@ -262,8 +275,10 @@ namespace GCodeGenerator.GCodeGenerators
                     currentZ, nextZ, contourPoints, center, settings),
                 builder);
 
-            // Возврат в центр и подъем
-            builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
+            // Выборка возвращается в центр по уже обработанному дну. Чистовая
+            // стенка остаётся на контуре: возвращаться по дну ей нельзя.
+            if (!isWallFinishing)
+                builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
             builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
 
             return true; // Обработка успешно завершена, продолжаем
@@ -297,8 +312,10 @@ namespace GCodeGenerator.GCodeGenerators
                     if (contourPoints == null || contourPoints.Count < 3)
                         continue;
 
-                    if (layer.RequiresSafeTransitions)
-                        PocketLayerEntry.Enter(layer, builder, contourPoints[0].x, contourPoints[0].y);
+                    // Даже единственный контур начинается непосредственно
+                    // у стенки. Общий вход через центр для этого прохода
+                    // отключён, иначе движение к стенке прорезало бы дно.
+                    PocketLayerEntry.Enter(layer, builder, contourPoints[0].x, contourPoints[0].y);
 
                     // Фрезеруем замкнутый контур (инструмент на рабочей Z)
                     foreach (var point in contourPoints)
