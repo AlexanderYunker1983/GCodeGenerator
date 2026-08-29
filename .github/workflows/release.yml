@@ -77,18 +77,7 @@ jobs:
       - name: Verify tag points to current master
         if: steps.tag.outputs.skip == 'false' && github.event_name == 'push'
         shell: pwsh
-        run: |
-          git fetch origin master --no-tags
-          $tagCommit = (git rev-list -n 1 --verify "refs/tags/$env:TAG_NAME").Trim()
-          $masterCommit = (git rev-parse refs/remotes/origin/master).Trim()
-          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit) -or
-              [string]::IsNullOrWhiteSpace($masterCommit)) {
-            throw 'Cannot resolve the release tag or origin/master.'
-          }
-          if ($tagCommit -ne $masterCommit) {
-            throw "Release tag points to $tagCommit, but current origin/master is $masterCommit."
-          }
-          Write-Host "Release commit is current origin/master: $tagCommit"
+        run: build/Assert-ReleaseTagAtMaster.ps1 -Tag $env:TAG_NAME
 
       - name: Restore
         if: steps.tag.outputs.skip == 'false'

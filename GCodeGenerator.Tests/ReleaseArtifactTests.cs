@@ -90,8 +90,7 @@ namespace GCodeGenerator.Tests
 
             foreach (var required in new[]
                      {
-                         "git rev-list -n 1 --verify \"refs/tags/$env:TAG_NAME\"",
-                         "git rev-parse refs/remotes/origin/master",
+                         "build/Assert-ReleaseTagAtMaster.ps1 -Tag $env:TAG_NAME",
                          "dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror",
                          "Code Coverage;Format=cobertura",
                          "build/Assert-Coverage.ps1",
@@ -114,6 +113,51 @@ namespace GCodeGenerator.Tests
                 masterCheck < build && build < coverage && coverage < vulnerabilities &&
                 vulnerabilities < mutation && mutation < installer,
                 "Упаковка начинается до завершения release quality gates");
+        }
+
+        [TestMethod]
+        public void ReleaseTagGuard_AcceptsBothTagKindsAndRejectsAnOldCommit()
+        {
+            var directory = Path.Combine(
+                Path.GetTempPath(), "gcodegenerator-release-tag-" + Guid.NewGuid().ToString("N"));
+            var remote = Path.Combine(directory, "origin.git");
+            var work = Path.Combine(directory, "work");
+            Directory.CreateDirectory(directory);
+
+            try
+            {
+                RunGit(directory, "init", "--bare", remote);
+                RunGit(directory, "init", "-b", "master", work);
+                RunGit(work, "config", "user.email", "release-test@example.com");
+                RunGit(work, "config", "user.name", "Release Test");
+                RunGit(work, "config", "commit.gpgsign", "false");
+                File.WriteAllText(Path.Combine(work, "version.txt"), "one");
+                RunGit(work, "add", "version.txt");
+                RunGit(work, "commit", "-m", "one");
+                RunGit(work, "remote", "add", "origin", remote);
+                RunGit(work, "push", "-u", "origin", "master");
+                RunGit(work, "tag", "-a", "1.2.3", "-m", "annotated release");
+
+                var annotated = RunReleaseTagGuard(work, "1.2.3");
+                Assert.AreEqual(0, annotated.ExitCode, annotated.Output);
+
+                File.AppendAllText(Path.Combine(work, "version.txt"), "two");
+                RunGit(work, "add", "version.txt");
+                RunGit(work, "commit", "-m", "two");
+                RunGit(work, "push", "origin", "master");
+
+                var stale = RunReleaseTagGuard(work, "1.2.3");
+                Assert.AreNotEqual(0, stale.ExitCode, "Устаревший release tag принят");
+                StringAssert.Contains(stale.Output, "Release tag points to");
+
+                RunGit(work, "tag", "1.2.4");
+                var lightweight = RunReleaseTagGuard(work, "1.2.4");
+                Assert.AreEqual(0, lightweight.ExitCode, lightweight.Output);
+            }
+            finally
+            {
+                DeleteTestDirectory(directory);
+            }
         }
 
         [TestMethod]
@@ -469,6 +513,63 @@ namespace GCodeGenerator.Tests
                         $"В уведомлениях нет поставляемой зависимости {name} {version}");
                 }
             }
+        }
+
+        private static string RunGit(string workingDirectory, params string[] arguments)
+        {
+            var result = RunProcess("git", workingDirectory, arguments);
+            Assert.AreEqual(0, result.ExitCode, result.Output);
+            return result.Output.Trim();
+        }
+
+        private static (int ExitCode, string Output) RunReleaseTagGuard(
+            string workingDirectory,
+            string tag)
+        {
+            return RunProcess(
+                "powershell.exe",
+                workingDirectory,
+                "-NoProfile",
+                "-NonInteractive",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                Path.Combine(Root, "build", "Assert-ReleaseTagAtMaster.ps1"),
+                "-Tag",
+                tag);
+        }
+
+        private static (int ExitCode, string Output) RunProcess(
+            string fileName,
+            string workingDirectory,
+            params string[] arguments)
+        {
+            var start = new ProcessStartInfo(fileName)
+            {
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            foreach (var argument in arguments)
+                start.ArgumentList.Add(argument);
+
+            using var process = Process.Start(start)!;
+            var output = process.StandardOutput.ReadToEnd();
+            var errors = process.StandardError.ReadToEnd();
+            Assert.IsTrue(process.WaitForExit(30000), $"Процесс {fileName} завис");
+            return (process.ExitCode, output + errors);
+        }
+
+        private static void DeleteTestDirectory(string directory)
+        {
+            if (!Directory.Exists(directory))
+                return;
+
+            foreach (var file in Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories))
+                File.SetAttributes(file, FileAttributes.Normal);
+            Directory.Delete(directory, true);
         }
     }
 }
