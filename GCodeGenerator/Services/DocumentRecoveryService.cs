@@ -56,7 +56,39 @@ namespace GCodeGenerator.Services
 
         public string RecoveryPath { get; }
 
+        public string BackupPath => RecoveryPath + ".bak";
+
         public bool Exists => File.Exists(RecoveryPath);
+
+        public bool BackupExists => File.Exists(BackupPath);
+
+        public string? QuarantineCorruptSnapshot()
+        {
+            _writeGate.Wait();
+            try
+            {
+                if (!File.Exists(RecoveryPath))
+                    return null;
+
+                var quarantinePath = RecoveryPath
+                    + ".corrupt-"
+                    + DateTime.UtcNow.ToString("yyyyMMddTHHmmssfffZ", System.Globalization.CultureInfo.InvariantCulture)
+                    + "-"
+                    + Guid.NewGuid().ToString("N");
+                File.Move(RecoveryPath, quarantinePath);
+                _logger.Warning($"Corrupt project recovery snapshot quarantined: {quarantinePath}");
+                return quarantinePath;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error($"Quarantining project recovery snapshot failed: {RecoveryPath}", ex);
+                return null;
+            }
+            finally
+            {
+                _writeGate.Release();
+            }
+        }
 
         public void Schedule(Func<string> snapshotFactory)
         {
@@ -87,7 +119,7 @@ namespace GCodeGenerator.Services
             try
             {
                 DeleteIfExists(RecoveryPath);
-                DeleteIfExists(RecoveryPath + ".bak");
+                DeleteIfExists(BackupPath);
             }
             catch (Exception ex)
             {

@@ -170,6 +170,33 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        [TestMethod]
+        public void CorruptSnapshot_IsQuarantinedWithoutDeletingBackup()
+        {
+            var directory = TemporaryDirectory();
+            var path = Path.Combine(directory, "autosave.ygc");
+            var recovery = new DocumentRecoveryService(
+                new ProjectFileService(), null, path, TimeSpan.Zero, new InlineContext());
+            try
+            {
+                File.WriteAllText(path, "broken primary");
+                File.WriteAllText(path + ".bak", "valid backup");
+
+                var quarantined = recovery.QuarantineCorruptSnapshot();
+
+                Assert.IsNotNull(quarantined);
+                Assert.IsFalse(recovery.Exists, "Повреждённый путь больше не предложится на следующем запуске");
+                Assert.IsTrue(recovery.BackupExists, "Резервная копия сохраняется для второй попытки");
+                Assert.AreEqual("broken primary", File.ReadAllText(quarantined));
+                StringAssert.StartsWith(Path.GetFileName(quarantined), "autosave.ygc.corrupt-");
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, true);
+            }
+        }
+
         private static DrillPointsOperation Drill(string name)
             => new DrillPointsOperation
             {

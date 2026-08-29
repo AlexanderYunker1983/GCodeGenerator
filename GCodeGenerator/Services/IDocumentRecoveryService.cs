@@ -10,8 +10,20 @@ namespace GCodeGenerator.Services
         /// <summary>Предсказуемый файл, который можно открыть как обычный проект.</summary>
         string RecoveryPath { get; }
 
+        /// <summary>Резервная версия предыдущего успешного автоснимка.</summary>
+        string BackupPath { get; }
+
         /// <summary>Остался ли снимок от предыдущего запуска.</summary>
         bool Exists { get; }
+
+        /// <summary>Существует ли резервная версия автоснимка.</summary>
+        bool BackupExists { get; }
+
+        /// <summary>
+        /// Убирает повреждённый основной снимок из стартового пути, сохраняя
+        /// его рядом для диагностики. Возвращает новый путь или null.
+        /// </summary>
+        string? QuarantineCorruptSnapshot();
 
         /// <summary>
         /// Перезапускает debounce. Фабрика вызывается на UI-контексте,

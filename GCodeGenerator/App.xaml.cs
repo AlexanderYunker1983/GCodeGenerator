@@ -282,7 +282,18 @@ namespace GCodeGenerator
                     // сочла бы замену документа успешной и очистила бы recovery
                     // вместе с резервной копией. Пользователь уже выбрал
                     // восстановление, а отказ ему показал сам workflow.
-                    await openRecovery(recovery.RecoveryPath);
+                    var opened = await openRecovery(recovery.RecoveryPath);
+                    if (!opened)
+                    {
+                        // Повреждённый основной снимок больше не должен
+                        // зацикливать вопрос на каждом запуске. Сохраняем его
+                        // рядом для диагностики и пробуем предыдущую атомарно
+                        // сохранённую версию; она не удаляется, пока
+                        // восстановленный документ не сохранён вручную.
+                        recovery.QuarantineCorruptSnapshot();
+                        if (recovery.BackupExists)
+                            await openRecovery(recovery.BackupPath);
+                    }
                     return;
                 }
 
