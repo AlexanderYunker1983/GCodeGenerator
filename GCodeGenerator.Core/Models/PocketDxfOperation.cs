@@ -46,6 +46,7 @@ namespace GCodeGenerator.Models
             }
             else
             {
+                OperationValidation.AddPolylinePointIssues(issues, nameof(ClosedContours), ClosedContours);
                 for (int i = 0; i < ClosedContours.Count; i++)
                 {
                     var contour = ClosedContours[i];
@@ -64,4 +65,3 @@ namespace GCodeGenerator.Models
         }
     }
 }
-

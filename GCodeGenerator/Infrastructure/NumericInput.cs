@@ -123,13 +123,22 @@ namespace GCodeGenerator.Infrastructure
                 return true; // один минус — начало отрицательного числа
 
             if (mode == NumericInputMode.Integer)
-                return body.All(char.IsDigit);
+                return body.All(char.IsDigit)
+                       && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out _);
 
             var separators = body.Count(IsDecimalSeparator);
             if (separators > 1)
                 return false;
 
-            return body.All(character => char.IsDigit(character) || IsDecimalSeparator(character));
+            if (!body.All(character => char.IsDigit(character) || IsDecimalSeparator(character)))
+                return false;
+
+            if (IsDecimalSeparator(body[body.Length - 1]))
+                return true;
+
+            var normalized = text.Replace(',', '.');
+            return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+                   && double.IsFinite(value);
         }
 
         /// <summary>

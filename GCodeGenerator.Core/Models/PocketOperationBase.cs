@@ -118,7 +118,7 @@ namespace GCodeGenerator.Models
         /// Наибольший уклон стенки. При 90 градусах стенка становится
         /// горизонтальной, а смещение контура обращается в бесконечность.
         /// </summary>
-        private const double MaxWallTaperAngleDeg = 89.999999;
+        public const double MaxWallTaperAngleDeg = 89.999999;
 
         private double _wallTaperAngleDeg;
         private bool _isRoughingEnabled;
@@ -126,15 +126,14 @@ namespace GCodeGenerator.Models
 
         /// <summary>
         /// Уклон стенки, градусы (0 — вертикально). Положительные значения
-        /// сужают карман книзу. Значение вне диапазона заменяется ближайшим
-        /// допустимым: ограничение принадлежит самой операции, а не окну —
-        /// нарушить его может и файл проекта.
+        /// сужают карман книзу. Значение вне диапазона хранится без тихой
+        /// подмены и отклоняется общей предполётной проверкой — так ошибка
+        /// проекта остаётся видимой пользователю.
         /// </summary>
         public double WallTaperAngleDeg
         {
             get => _wallTaperAngleDeg;
-            set => SetProperty(ref _wallTaperAngleDeg,
-                value < 0 ? 0 : value > MaxWallTaperAngleDeg ? MaxWallTaperAngleDeg : value);
+            set => SetProperty(ref _wallTaperAngleDeg, value);
         }
 
         /// <summary>

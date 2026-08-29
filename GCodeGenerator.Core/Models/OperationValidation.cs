@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
+using System.Reflection;
 using GCodeGenerator.Geometry;
 
 namespace GCodeGenerator.Models
@@ -55,12 +57,15 @@ namespace GCodeGenerator.Models
 
         private static string Text(double value) => value.ToString(CultureInfo.InvariantCulture);
 
+        private static bool HasIssue(IList<ValidationIssue> issues, string property)
+            => issues.Any(issue => issue != null && issue.Property == property);
+
         /// <summary>
         /// Adds an issue if <paramref name="value"/> is non-finite or not greater than zero.
         /// </summary>
         public static void AddIfNotPositive(IList<ValidationIssue> issues, string property, double value)
         {
-            if (!double.IsFinite(value) || value <= 0)
+            if ((!double.IsFinite(value) || value <= 0) && !HasIssue(issues, property))
                 issues.Add(new ValidationIssue(property, ValidationCode.NotPositive,
                     $"must be finite and greater than zero, but is {Text(value)}"));
         }
@@ -68,9 +73,70 @@ namespace GCodeGenerator.Models
         /// <summary>Значение должно быть конечным числом (координата, высота).</summary>
         public static void AddIfNotFinite(IList<ValidationIssue> issues, string property, double value)
         {
-            if (!double.IsFinite(value))
+            if (!double.IsFinite(value) && !HasIssue(issues, property))
                 issues.Add(new ValidationIssue(property, ValidationCode.NotFinite,
                     $"must be a finite number, but is {Text(value)}"));
+        }
+
+        /// <summary>
+        /// Проверяет все публичные числовые и enum-свойства операции.
+        /// Геометрические параметры объявлены в конкретных наследниках, и
+        /// ручной перечень общих полей неизбежно пропускал очередную
+        /// координату или угол. Отражение выполняется только предполётно, а
+        /// не во внутренних циклах построения траектории.
+        /// </summary>
+        public static void AddPublicValueIssues(IList<ValidationIssue> issues, OperationBase operation)
+        {
+            foreach (var property in operation.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (!property.CanRead || property.GetIndexParameters().Length != 0)
+                    continue;
+
+                if (property.PropertyType == typeof(double))
+                {
+                    AddIfNotFinite(issues, property.Name, (double)property.GetValue(operation)!);
+                    continue;
+                }
+
+                var enumType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+                if (!enumType.IsEnum)
+                    continue;
+
+                var value = property.GetValue(operation);
+                if (value != null && !Enum.IsDefined(enumType, value) && !HasIssue(issues, property.Name))
+                {
+                    issues.Add(new ValidationIssue(
+                        property.Name,
+                        ValidationCode.NotAllowed,
+                        $"value {Convert.ToInt64(value, CultureInfo.InvariantCulture)} is not a valid {enumType.Name}"));
+                }
+            }
+        }
+
+        /// <summary>Проверяет конечность каждой точки импортированной ломаной.</summary>
+        public static void AddPolylinePointIssues(
+            IList<ValidationIssue> issues,
+            string collectionProperty,
+            IReadOnlyList<Polyline2D> polylines)
+        {
+            for (var polylineIndex = 0; polylineIndex < polylines.Count; polylineIndex++)
+            {
+                var points = polylines[polylineIndex]?.Points;
+                if (points == null)
+                    continue;
+
+                for (var pointIndex = 0; pointIndex < points.Count; pointIndex++)
+                {
+                    var point = points[pointIndex];
+                    if (point == null)
+                        continue;
+
+                    AddIfNotFinite(issues,
+                        $"{collectionProperty}[{polylineIndex}].Points[{pointIndex}].X", point.X);
+                    AddIfNotFinite(issues,
+                        $"{collectionProperty}[{polylineIndex}].Points[{pointIndex}].Y", point.Y);
+                }
+            }
         }
 
         /// <summary>Значение не может быть отрицательным (припуск, расстояние).</summary>
@@ -231,6 +297,7 @@ namespace GCodeGenerator.Models
             AddIfNegative(issues, nameof(operation.RetractHeight), operation.RetractHeight);
 
             AddIfOutOfRange(issues, nameof(operation.Decimals), operation.Decimals, 0, MaxDecimals);
+            AddPublicValueIssues(issues, operation);
         }
 
         /// <summary>
@@ -266,7 +333,16 @@ namespace GCodeGenerator.Models
         /// </summary>
         public static void AddPocketIssues(IList<ValidationIssue> issues, PocketOperationBase operation)
         {
+            // Остров не режется сам, но его геометрия используется другими
+            // карманами и тоже обязана быть конечной.
+            AddPublicValueIssues(issues, operation);
             EnumValidation.AddIfUndefined(issues, nameof(operation.PocketMode), operation.PocketMode);
+            AddIfOutOfRange(
+                issues,
+                nameof(operation.WallTaperAngleDeg),
+                operation.WallTaperAngleDeg,
+                0,
+                PocketOperationBase.MaxWallTaperAngleDeg);
 
             // Остров задаёт только запрещённую для резания геометрию. Подачи,
             // глубина, инструмент, стратегия и подвод у него не исполняются и

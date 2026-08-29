@@ -46,6 +46,7 @@ namespace GCodeGenerator.Models
             }
             else
             {
+                OperationValidation.AddPolylinePointIssues(issues, nameof(Polylines), Polylines);
                 for (int i = 0; i < Polylines.Count; i++)
                 {
                     var points = Polylines[i]?.Points;
@@ -58,5 +59,4 @@ namespace GCodeGenerator.Models
         }
     }
 }
-
 

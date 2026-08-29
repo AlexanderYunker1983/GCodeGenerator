@@ -69,6 +69,13 @@ namespace GCodeGenerator.Toolpath
                     nameof(kind));
             }
 
+            RequireFinite(x, nameof(x));
+            RequireFinite(y, nameof(y));
+            RequireFinite(z, nameof(z));
+            RequireFinite(centerOffsetX, nameof(centerOffsetX));
+            RequireFinite(centerOffsetY, nameof(centerOffsetY));
+            RequireFinite(feed, nameof(feed));
+
             Kind = kind;
             X = x;
             Y = y;
@@ -76,6 +83,12 @@ namespace GCodeGenerator.Toolpath
             CenterOffsetX = centerOffsetX;
             CenterOffsetY = centerOffsetY;
             Feed = feed;
+        }
+
+        private static void RequireFinite(double? value, string parameter)
+        {
+            if (value.HasValue && !double.IsFinite(value.Value))
+                throw new ArgumentOutOfRangeException(parameter, value, "Tool-path values must be finite.");
         }
 
         public ToolMoveKind Kind { get; }

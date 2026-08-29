@@ -71,6 +71,7 @@ namespace GCodeGenerator.Infrastructure
             }
 
             return double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue)
+                   && double.IsFinite(doubleValue)
                 ? (object)doubleValue
                 : Binding.DoNothing;
         }

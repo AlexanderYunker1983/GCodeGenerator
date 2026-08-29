@@ -215,6 +215,21 @@ namespace GCodeGenerator.Tests
                 "Один минус — начало набора, не значение");
         }
 
+        [TestMethod]
+        public void NonFiniteOrOverflowingInput_IsRejected()
+        {
+            var converter = new NumericTextConverter();
+            var overflowingDecimal = new string('9', 400);
+            var overflowingInteger = new string('9', 40);
+
+            Assert.IsFalse(NumericInput.IsAllowed(NumericInputMode.Decimal, overflowingDecimal));
+            Assert.IsFalse(NumericInput.IsAllowed(NumericInputMode.Integer, overflowingInteger));
+            Assert.AreSame(Binding.DoNothing,
+                converter.ConvertBack("1e400", typeof(double), null, CultureInfo.InvariantCulture));
+            Assert.AreSame(Binding.DoNothing,
+                converter.ConvertBack("NaN", typeof(double), null, CultureInfo.InvariantCulture));
+        }
+
         /// <summary>
         /// Каждое числовое поле разметки должно объявлять режим ввода:
         /// забытое поле снова принимало бы буквы и путало разделители.

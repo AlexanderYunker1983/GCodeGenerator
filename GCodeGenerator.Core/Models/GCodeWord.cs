@@ -12,6 +12,9 @@ namespace GCodeGenerator.Models
     {
         public GCodeWord(char letter, double number, int decimals = -1)
         {
+            if (!double.IsFinite(number))
+                throw new ArgumentOutOfRangeException(nameof(number), number, "G-code word value must be finite.");
+
             Letter = letter;
             Number = number;
             Decimals = decimals;

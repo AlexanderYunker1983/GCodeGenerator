@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace GCodeGenerator.Models
 {
@@ -54,6 +55,28 @@ namespace GCodeGenerator.Models
             var issues = new List<ValidationIssue>();
 
             var workCoordinate = settings.WorkCoordinate;
+            if (workCoordinate == null)
+            {
+                issues.Add(new ValidationIssue(nameof(GCodeSettings.WorkCoordinate), ValidationCode.Empty,
+                    "work-coordinate settings are missing"));
+            }
+            else
+            {
+                if (workCoordinate.AddStartPosition)
+                {
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartX), workCoordinate.StartX);
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartY), workCoordinate.StartY);
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartZ), workCoordinate.StartZ);
+                }
+
+                if (workCoordinate.AddEndPosition)
+                {
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndX), workCoordinate.EndX);
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndY), workCoordinate.EndY);
+                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndZ), workCoordinate.EndZ);
+                }
+            }
+
             if (workCoordinate != null && workCoordinate.SetWorkCoordinateSystem)
             {
                 var wcs = (workCoordinate.WorkCoordinateSystem ?? string.Empty).Trim().ToUpperInvariant();
@@ -67,6 +90,9 @@ namespace GCodeGenerator.Models
             }
 
             var format = settings.Format;
+            if (format == null)
+                issues.Add(new ValidationIssue(nameof(GCodeSettings.Format), ValidationCode.Empty,
+                    "format settings are missing"));
             if (format != null && format.UseLineNumbers)
             {
                 // Нулевой шаг даёт программу, где каждая строка называется
@@ -79,6 +105,9 @@ namespace GCodeGenerator.Models
             }
 
             var spindle = settings.Spindle;
+            if (spindle == null)
+                issues.Add(new ValidationIssue(nameof(GCodeSettings.Spindle), ValidationCode.Empty,
+                    "spindle settings are missing"));
             if (spindle != null && spindle.SpindleControlEnabled)
             {
                 if (spindle.SpindleSpeedEnabled)
@@ -102,6 +131,10 @@ namespace GCodeGenerator.Models
                 }
             }
 
+            if (settings.Coolant == null)
+                issues.Add(new ValidationIssue(nameof(GCodeSettings.Coolant), ValidationCode.Empty,
+                    "coolant settings are missing"));
+
             return issues;
         }
     }
@@ -121,7 +154,8 @@ namespace GCodeGenerator.Models
         public static void AddIfUndefined<TEnum>(IList<ValidationIssue> issues, string property, TEnum value)
             where TEnum : struct, Enum
         {
-            if (Enum.IsDefined(typeof(TEnum), value))
+            if (Enum.IsDefined(typeof(TEnum), value)
+                || issues.Any(issue => issue != null && issue.Property == property))
                 return;
 
             issues.Add(new ValidationIssue(property, ValidationCode.NotAllowed,
