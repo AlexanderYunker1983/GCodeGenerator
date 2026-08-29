@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace GCodeGenerator.Models
@@ -220,7 +221,7 @@ namespace GCodeGenerator.Models
                 issues.Add(new ValidationIssue(
                     maxProperty,
                     ValidationCode.Inconsistent,
-                    $"must be greater than {minProperty} ({min}), but is {max}"));
+                    $"must be greater than {minProperty} ({Text(min)}), but is {Text(max)}"));
             }
         }
 
@@ -237,14 +238,17 @@ namespace GCodeGenerator.Models
             if (value < min)
             {
                 issues.Add(new ValidationIssue(property, ValidationCode.BelowMinimum,
-                    $"must be at least the machine-profile limit {min}, but is {value}", min));
+                    $"must be at least the machine-profile limit {Text(min)}, but is {Text(value)}", min));
             }
             else if (value > max)
             {
                 issues.Add(new ValidationIssue(property, ValidationCode.AboveMaximum,
-                    $"must be at most the machine-profile limit {max}, but is {value}", max));
+                    $"must be at most the machine-profile limit {Text(max)}, but is {Text(value)}", max));
             }
         }
+
+        private static string Text(double value)
+            => value.ToString("G17", CultureInfo.InvariantCulture);
     }
 
     /// <summary>

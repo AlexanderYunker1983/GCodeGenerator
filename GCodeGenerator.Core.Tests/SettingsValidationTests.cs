@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
@@ -325,6 +326,47 @@ namespace GCodeGenerator.Tests
             var builder = new ProgramBuilder(new GCodeProgram());
 
             Assert.Throws<System.ArgumentException>(() => builder.SpindleOn("M13"));
+        }
+
+        [TestMethod]
+        public void MachineProfileMessages_UseInvariantNumbersUnderRussianCulture()
+        {
+            var previousCulture = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("ru-RU");
+
+                var coordinates = new GCodeSettings();
+                coordinates.Machine.Enabled = true;
+                coordinates.Machine.MinX = 1.5;
+                coordinates.Machine.MaxX = 10.5;
+                coordinates.WorkCoordinate.AddStartPosition = true;
+                coordinates.WorkCoordinate.StartX = 1.25;
+                coordinates.WorkCoordinate.AddEndPosition = true;
+                coordinates.WorkCoordinate.EndX = 10.75;
+
+                var coordinateIssues = GCodeSettingsValidation.Validate(coordinates);
+                Assert.AreEqual(
+                    "must be at least the machine-profile limit 1.5, but is 1.25",
+                    coordinateIssues.Single(issue => issue.Property == nameof(WorkCoordinateSettings.StartX)).Message);
+                Assert.AreEqual(
+                    "must be at most the machine-profile limit 10.5, but is 10.75",
+                    coordinateIssues.Single(issue => issue.Property == nameof(WorkCoordinateSettings.EndX)).Message);
+
+                var range = new GCodeSettings();
+                range.Machine.Enabled = true;
+                range.Machine.MinX = 1.5;
+                range.Machine.MaxX = 1.25;
+                var rangeIssue = GCodeSettingsValidation.Validate(range)
+                    .Single(issue => issue.Property == nameof(MachineProfileSettings.MaxX));
+                Assert.AreEqual(
+                    "must be greater than MinX (1.5), but is 1.25",
+                    rangeIssue.Message);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = previousCulture;
+            }
         }
     }
 }
