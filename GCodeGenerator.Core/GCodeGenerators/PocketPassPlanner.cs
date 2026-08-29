@@ -136,20 +136,24 @@ namespace GCodeGenerator.GCodeGenerators
         {
             skipComment = null;
 
-            var depthAllowance = Math.Min(allowance, Math.Max(0.0, operation.TotalDepth - NegligibleDepth));
-            if (depthAllowance <= 0)
+            var bottomAllowance = Math.Min(allowance, Math.Max(0.0, operation.TotalDepth - NegligibleDepth));
+            if (bottomAllowance <= 0)
                 return new PocketPass(operation, PocketPassKind.Pocketing);
 
             var roughOperation = OperationCloner.Clone(operation);
-            roughOperation.TotalDepth -= depthAllowance;
+            roughOperation.TotalDepth -= bottomAllowance;
 
-            if (IsTooSmall(roughOperation, depthAllowance))
+            // Припуск дна ограничен общей глубиной, но припуск стенки — нет:
+            // это независимое расстояние в плоскости XY. Прежде мелкий
+            // карман глубиной 0,5 мм обрезал заданный стеновой припуск 1 мм
+            // до 0,5 мм и оставлял чистовой проход без ожидаемого материала.
+            if (IsTooSmall(roughOperation, allowance))
             {
                 skipComment = ProgramComments.PocketTooSmallForAllowance;
                 return null;
             }
 
-            return new PocketPass(roughOperation, PocketPassKind.Pocketing, depthAllowance);
+            return new PocketPass(roughOperation, PocketPassKind.Pocketing, allowance);
         }
 
         /// <summary>

@@ -49,6 +49,22 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ShallowRoughing_DoesNotClipWallAllowanceByDepth()
+        {
+            var operation = Pocket();
+            operation.TotalDepth = 0.5;
+            operation.IsRoughingEnabled = true;
+            operation.FinishAllowance = 1.0;
+
+            var rough = PocketPassPlanner.Plan(operation).Passes.Single();
+
+            Assert.AreEqual(1.0, rough.Allowance, 1e-9,
+                "Стеновой припуск в XY не зависит от глубины кармана");
+            Assert.AreEqual(1e-6, rough.Operation.TotalDepth, 1e-9,
+                "Припуск дна ограничивается глубиной и оставляет невырожденный черновой слой");
+        }
+
+        [TestMethod]
         public void Roughing_StopsWhenPocketDisappearsUnderAllowance()
         {
             var operation = Pocket();
