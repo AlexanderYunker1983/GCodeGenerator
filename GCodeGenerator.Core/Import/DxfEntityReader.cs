@@ -57,6 +57,9 @@ namespace GCodeGenerator.Import
         /// <summary>Верхний предел числа сегментов сплайна.</summary>
         private const int MaximumSplineSegments = 512;
 
+        /// <summary>Допуск направления нормали плоскости аналитической кривой.</summary>
+        private const double SupportedCurveNormalTolerance = 1e-9;
+
         /// <summary>
         /// Читает геометрию чертежа. Координаты приводятся к миллиметрам
         /// по единицам чертежа.
@@ -145,10 +148,12 @@ namespace GCodeGenerator.Import
                     break;
 
                 case Arc arc:
+                    EnsureSupportedCurvePlane(arc);
                     Add(result, budget, ApproximateArc(arc, scale));
                     break;
 
                 case Ellipse ellipse:
+                    EnsureSupportedCurvePlane(ellipse);
                     Add(result, budget, ApproximateEllipse(ellipse, scale));
                     break;
 
@@ -177,6 +182,30 @@ namespace GCodeGenerator.Import
                     // Тексты, размеры, штриховки и прочее геометрией контура не являются.
                     break;
             }
+        }
+
+        /// <summary>
+        /// Углы ARC и параметры ELLIPSE заданы в объектной системе координат
+        /// сущности. Текущая аппроксимация работает в XY и корректна только
+        /// при нормали +Z; зеркальная −Z или наклонная плоскость требуют
+        /// полноценного OCS→WCS-преобразования. Молчаливо прочитать их как XY
+        /// значит выдать геометрически другой контур, поэтому такой чертёж
+        /// отклоняется до добавления точек.
+        /// </summary>
+        private static void EnsureSupportedCurvePlane(EntityObject curve)
+        {
+            var normal = curve.Normal;
+            if (Math.Abs(normal.X) <= SupportedCurveNormalTolerance
+                && Math.Abs(normal.Y) <= SupportedCurveNormalTolerance
+                && Math.Abs(normal.Z - 1.0) <= SupportedCurveNormalTolerance)
+            {
+                return;
+            }
+
+            throw new CoreException(
+                CoreErrorCodes.DxfUnsupportedCurvePlane,
+                "The DXF drawing contains an arc or ellipse outside the supported +Z XY plane. "
+                + "Flatten the curve to the XY plane or convert it to a polyline before importing.");
         }
 
         private static void Add(

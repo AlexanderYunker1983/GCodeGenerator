@@ -153,6 +153,44 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Углы дуги и параметры эллипса хранятся в OCS. Нормаль −Z
+        /// зеркалит эту систему относительно XY; чтение её как обычной +Z
+        /// давало правдоподобную, но неверную геометрию. Пока полноценного
+        /// преобразования нет, импорт обязан честно отказаться.
+        /// </summary>
+        [TestMethod]
+        [DataRow("Arc")]
+        [DataRow("Ellipse")]
+        public void CurveWithNegativeZNormal_IsRejectedInsteadOfMirrored(string kind)
+        {
+            var document = NewDocument();
+            EntityObject curve = kind == "Arc"
+                ? new Arc(new Vector2(10, 10), 5, 0, 90)
+                : new Ellipse(new Vector2(10, 10), 10, 4);
+            curve.Normal = new Vector3(0, 0, -1);
+            document.Entities.Add(curve);
+            document.Save(_path);
+
+            var failure = Assert.Throws<CoreException>(() => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(CoreErrorCodes.DxfUnsupportedCurvePlane, failure.Code, kind);
+        }
+
+        [TestMethod]
+        public void CurvesInPositiveZPlane_RemainSupported()
+        {
+            var document = NewDocument();
+            document.Entities.Add(new Arc(new Vector2(10, 10), 5, 0, 90));
+            document.Entities.Add(new Ellipse(new Vector2(30, 10), 10, 4));
+            document.Save(_path);
+
+            var polylines = DxfImportServiceProbe.ReadProfile(_path);
+
+            Assert.AreEqual(2, polylines.Count);
+            Assert.IsTrue(polylines.All(polyline => polyline.Points.Count > 2));
+        }
+
+        /// <summary>
         /// Геометрия внутри вставленного блока — часть чертежа. Прежний разбор
         /// читал определение блока как обычные сущности, игнорируя смещение
         /// вставки, поэтому деталь оказывалась не на своём месте.

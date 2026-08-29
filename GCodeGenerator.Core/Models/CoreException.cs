@@ -77,6 +77,9 @@ namespace GCodeGenerator.Models
         /// <summary>Чертёж слишком сложен для поиска замкнутых контуров.</summary>
         public const string DxfTooComplex = "DxfTooComplex";
 
+        /// <summary>Плоскость дуги или эллипса DXF не поддерживается импортом.</summary>
+        public const string DxfUnsupportedCurvePlane = "DxfUnsupportedCurvePlane";
+
         /// <summary>Инструмент не помещается внутри эллипса.</summary>
         public const string EllipseToolDoesNotFit = "EllipseToolDoesNotFit";
 

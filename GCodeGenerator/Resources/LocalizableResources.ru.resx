@@ -456,6 +456,9 @@
   <data name="CoreError_DxfTooComplex" xml:space="preserve">
     <value>Чертёж DXF слишком сложен для безопасного импорта. Уменьшите число сущностей и точек, упростите вложенность блоков или разделите чертёж.</value>
   </data>
+  <data name="CoreError_DxfUnsupportedCurvePlane" xml:space="preserve">
+    <value>Чертёж DXF содержит дугу или эллипс вне поддерживаемой плоскости XY с нормалью +Z. Перенесите кривую в плоскость XY или преобразуйте её в полилинию перед импортом.</value>
+  </data>
   <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
     <value>Инструмент не помещается внутри эллипса: эквидистанта с таким смещением пуста. Уменьшите диаметр инструмента или увеличьте эллипс.</value>
   </data>

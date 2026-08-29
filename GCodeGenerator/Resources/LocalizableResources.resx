@@ -456,6 +456,9 @@
   <data name="CoreError_DxfTooComplex" xml:space="preserve">
     <value>The DXF drawing is too complex to import safely. Reduce the number of entities and points, simplify block nesting or split the drawing.</value>
   </data>
+  <data name="CoreError_DxfUnsupportedCurvePlane" xml:space="preserve">
+    <value>The DXF drawing contains an arc or ellipse outside the supported +Z XY plane. Flatten the curve to the XY plane or convert it to a polyline before importing.</value>
+  </data>
   <data name="CoreError_EllipseToolDoesNotFit" xml:space="preserve">
     <value>The tool does not fit inside the ellipse: the offset contour is empty. Use a smaller tool or a larger ellipse.</value>
   </data>
