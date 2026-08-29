@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -33,6 +34,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ISettingsStore? _settingsStore;
         private readonly IThemeService? _themeService;
         private readonly ILocalizationManager? _localizationManager;
+        private readonly IPostProcessorRegistry _postProcessors;
 
         /// <summary>Язык на момент открытия окна — к нему возвращает отмена.</summary>
         private readonly string _initialLanguage;
@@ -68,7 +70,8 @@ namespace GCodeGenerator.ViewModels
             // Список стоек берётся из того же реестра, по которому генерация
             // выбирает постпроцессор: окно не может предложить стойку,
             // которую генерация отвергнет.
-            PostProcessors = (postProcessors ?? new PostProcessorRegistry()).All;
+            _postProcessors = postProcessors ?? new PostProcessorRegistry();
+            PostProcessors = _postProcessors.All;
 
             // Настройки и тема поступают через IoC. Безаргументный конструктор —
             // для XAML-дизайнера: фолбэк на настройки по умолчанию.
@@ -191,6 +194,10 @@ namespace GCodeGenerator.ViewModels
         [ObservableProperty]
         private string _language = string.Empty;
 
+        /// <summary>Причины, по которым значения окна нельзя сохранить.</summary>
+        [ObservableProperty]
+        private string _validationMessage = string.Empty;
+
         /// <summary>
         /// Языки, между которыми выбирает пользователь. Пустой код означает
         /// язык системы — он и стоит по умолчанию.
@@ -259,6 +266,9 @@ namespace GCodeGenerator.ViewModels
 
         private void OnOk()
         {
+            if (!TryBuildValidatedSettings(out _))
+                return;
+
             ApplyToSettings(_settings);
             _settingsStore?.Save();
             _isAccepted = true;
@@ -272,9 +282,34 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         private void OnSaveAsDefaults()
         {
-            var defaults = new GCodeSettings();
-            ApplyToSettings(defaults);
+            if (!TryBuildValidatedSettings(out var defaults))
+                return;
+
             _settingsStore?.SaveGenerationDefaults(defaults);
+        }
+
+        /// <summary>
+        /// Строит независимый кандидат и проверяет его до изменения текущего
+        /// документа или постоянных умолчаний.
+        /// </summary>
+        private bool TryBuildValidatedSettings(out GCodeSettings candidate)
+        {
+            candidate = new GCodeSettings();
+            ApplyToSettings(candidate);
+
+            var issues = new List<ValidationIssue>(GCodeSettingsValidation.Validate(candidate));
+            if (_postProcessors.Find(candidate.Format.PostProcessorName) == null)
+            {
+                issues.Add(new ValidationIssue(
+                    nameof(GCodeFormatSettings.PostProcessorName),
+                    ValidationCode.NotAllowed,
+                    $"must be one of {string.Join(", ", _postProcessors.All.Select(item => item.Key))}"));
+            }
+
+            ValidationMessage = string.Join(
+                Environment.NewLine,
+                issues.Select(issue => $"{issue.Property}: {CoreErrorMessages.Describe(issue, _localizationManager)}"));
+            return issues.Count == 0;
         }
 
         /// <summary>Читает настройки в свойства окна по таблице маппинга.</summary>

@@ -137,6 +137,42 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Ok_WithInvalidValues_DoesNotSaveOrClose()
+        {
+            var store = new FakeSettingsStore();
+            var dialog = new SettingsViewModel(null, store, new FakeThemeService());
+            var closed = 0;
+            dialog.CloseRequested += () => closed++;
+            dialog.UseLineNumbers = true;
+            dialog.LineNumberStep = 0;
+
+            Execute(dialog.OkCommand);
+
+            Assert.AreEqual(10, store.Current.Format.LineNumberStep, "Текущий документ не изменён");
+            Assert.AreEqual(0, store.SaveCount, "Постоянные настройки не записаны");
+            Assert.AreEqual(0, closed, "Окно остаётся открытым для исправления");
+            StringAssert.Contains(dialog.ValidationMessage, nameof(dialog.LineNumberStep));
+        }
+
+        [TestMethod]
+        public void SaveAsDefaults_WithInvalidValues_DoesNotPersistThem()
+        {
+            var store = new FakeSettingsStore();
+            var dialog = new SettingsViewModel(null, store, new FakeThemeService())
+            {
+                SpindleControlEnabled = true,
+                SpindleStartEnabled = true,
+                SpindleSpeedEnabled = true,
+                SpindleSpeedRpm = int.MaxValue,
+            };
+
+            Execute(dialog.SaveAsDefaultsCommand);
+
+            Assert.AreEqual(0, store.SavedDefaults.Count);
+            StringAssert.Contains(dialog.ValidationMessage, nameof(dialog.SpindleSpeedRpm));
+        }
+
+        [TestMethod]
         public void ThemeSwitch_IsPreviewedImmediately()
         {
             var theme = new FakeThemeService();
