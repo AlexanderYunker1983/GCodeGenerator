@@ -312,6 +312,12 @@ namespace GCodeGenerator.Tests
         {
             public event EventHandler GenerationSettingsChanged;
 
+            public event EventHandler MachineProfileChanged
+            {
+                add { }
+                remove { }
+            }
+
             public GCodeSettings Current { get; } = new GCodeSettings();
 
             public int SaveCount { get; private set; }

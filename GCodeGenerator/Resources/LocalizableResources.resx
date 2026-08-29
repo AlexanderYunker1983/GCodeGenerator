@@ -297,6 +297,30 @@
   <data name="GCodeSettingsTitle" xml:space="preserve">
     <value>Settings</value>
   </data>
+  <data name="MachineProfileTab" xml:space="preserve">
+    <value>Machine</value>
+  </data>
+  <data name="MachineProfileEnabled" xml:space="preserve">
+    <value>Validate against this machine profile</value>
+  </data>
+  <data name="MachineProfileHint" xml:space="preserve">
+    <value>Limits use program coordinates. Enter the verified travel envelope and ratings from your machine documentation; work offsets cannot prove physical clearance.</value>
+  </data>
+  <data name="MachineMinimum" xml:space="preserve">
+    <value>Minimum</value>
+  </data>
+  <data name="MachineMaximum" xml:space="preserve">
+    <value>Maximum</value>
+  </data>
+  <data name="MachineMaxWorkFeed" xml:space="preserve">
+    <value>Maximum work feed, mm/min</value>
+  </data>
+  <data name="MachineMaxRapidFeed" xml:space="preserve">
+    <value>Maximum rapid feed, mm/min</value>
+  </data>
+  <data name="MachineMaxSpindleSpeed" xml:space="preserve">
+    <value>Maximum spindle speed, rpm</value>
+  </data>
   <data name="UseLineNumbers" xml:space="preserve">
     <value>Use line numbers (N...)</value>
   </data>

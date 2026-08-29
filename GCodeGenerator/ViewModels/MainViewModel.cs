@@ -61,6 +61,7 @@ namespace GCodeGenerator.ViewModels
             _programInfo = programInfo ?? throw new ArgumentNullException(nameof(programInfo));
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _settingsStore.GenerationSettingsChanged += OnGenerationSettingsChanged;
+            _settingsStore.MachineProfileChanged += OnMachineProfileChanged;
             _operationsWorkspace = operationsWorkspace
                 ?? throw new ArgumentNullException(nameof(operationsWorkspace));
 
@@ -295,6 +296,13 @@ namespace GCodeGenerator.ViewModels
             // фактическом их изменении: смена темы или языка программу не
             // сбрасывает и проект не пачкает.
             _projectWorkflow.MarkDirty();
+        }
+
+        private void OnMachineProfileChanged(object? sender, EventArgs e)
+        {
+            // Профиль не входит в проект, но ранее построенная программа
+            // могла оказаться вне новых границ и больше не экспортируется.
+            _gCodeWorkflow.InvalidateGeneratedProgram();
         }
 
         private void OpenSettings()

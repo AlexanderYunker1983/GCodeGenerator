@@ -35,6 +35,26 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(true, persisted["UseDarkTheme"], "Ui-настройка записана");
         }
 
+        [TestMethod]
+        public void MachineProfile_IsPersistedWithoutDirtyingTheProject()
+        {
+            var persisted = new InMemoryPersistedSettings();
+            var store = new AppSettingsStore(persisted);
+            var generationChanges = 0;
+            var machineChanges = 0;
+            store.GenerationSettingsChanged += (_, _) => generationChanges++;
+            store.MachineProfileChanged += (_, _) => machineChanges++;
+
+            store.Current.Machine.Enabled = true;
+            store.Current.Machine.MaxX = 450;
+            store.Save();
+
+            Assert.AreEqual(true, persisted["MachineProfileEnabled"]);
+            Assert.AreEqual(450.0, persisted["MachineMaxX"]);
+            Assert.AreEqual(0, generationChanges, "Локальный профиль не является частью проекта");
+            Assert.AreEqual(1, machineChanges, "Готовую программу нужно проверить заново");
+        }
+
         /// <summary>
         /// Генерационные настройки после OK принадлежат документу: событие
         /// поднимается, но умолчания приложения в хранилище не меняются.

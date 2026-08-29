@@ -9,7 +9,7 @@ namespace GCodeGenerator.Services
     /// Пункт 8.1 плана: единственная таблица маппинга настроек
     /// «путь до свойства в <see cref="GCodeSettings"/> → имя в Properties.Settings».
     /// Используется <see cref="AppSettingsStore"/> и для загрузки, и для сохранения
-    /// (ранее — ручная копия всех 28 свойств ×2).
+    /// (ранее — ручная копия каждого свойства ×2).
     /// </summary>
     public static class SettingsMapping
     {
@@ -48,7 +48,17 @@ namespace GCodeGenerator.Services
             ("WorkCoordinate.EndY", "EndY"),
             ("WorkCoordinate.EndZ", "EndZ"),
             ("WorkCoordinate.SetWorkCoordinateSystem", "SetWorkCoordinateSystem"),
-            ("WorkCoordinate.WorkCoordinateSystem", "WorkCoordinateSystem")
+            ("WorkCoordinate.WorkCoordinateSystem", "WorkCoordinateSystem"),
+            ("Machine.Enabled", "MachineProfileEnabled"),
+            ("Machine.MinX", "MachineMinX"),
+            ("Machine.MaxX", "MachineMaxX"),
+            ("Machine.MinY", "MachineMinY"),
+            ("Machine.MaxY", "MachineMaxY"),
+            ("Machine.MinZ", "MachineMinZ"),
+            ("Machine.MaxZ", "MachineMaxZ"),
+            ("Machine.MaxWorkFeed", "MachineMaxWorkFeed"),
+            ("Machine.MaxRapidFeed", "MachineMaxRapidFeed"),
+            ("Machine.MaxSpindleSpeedRpm", "MachineMaxSpindleSpeedRpm")
         };
 
         /// <summary>Читает значение свойства по пути (напр. "Spindle.SpindleSpeedRpm").</summary>

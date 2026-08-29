@@ -135,7 +135,115 @@ namespace GCodeGenerator.Models
                 issues.Add(new ValidationIssue(nameof(GCodeSettings.Coolant), ValidationCode.Empty,
                     "coolant settings are missing"));
 
+            ValidateMachineProfile(settings.Machine, workCoordinate, spindle, issues);
+
             return issues;
+        }
+
+        private static void ValidateMachineProfile(
+            MachineProfileSettings? machine,
+            WorkCoordinateSettings? workCoordinate,
+            SpindleSettings? spindle,
+            IList<ValidationIssue> issues)
+        {
+            if (machine == null)
+            {
+                issues.Add(new ValidationIssue(nameof(GCodeSettings.Machine), ValidationCode.Empty,
+                    "machine-profile settings are missing"));
+                return;
+            }
+
+            if (!machine.Enabled)
+                return;
+
+            AddRangeIssues(issues, nameof(MachineProfileSettings.MinX), machine.MinX,
+                nameof(MachineProfileSettings.MaxX), machine.MaxX);
+            AddRangeIssues(issues, nameof(MachineProfileSettings.MinY), machine.MinY,
+                nameof(MachineProfileSettings.MaxY), machine.MaxY);
+            AddRangeIssues(issues, nameof(MachineProfileSettings.MinZ), machine.MinZ,
+                nameof(MachineProfileSettings.MaxZ), machine.MaxZ);
+            OperationValidation.AddIfOutOfPositiveRange(
+                issues, nameof(MachineProfileSettings.MaxWorkFeed),
+                machine.MaxWorkFeed, OperationValidation.MaxWorkFeed);
+            OperationValidation.AddIfOutOfPositiveRange(
+                issues, nameof(MachineProfileSettings.MaxRapidFeed),
+                machine.MaxRapidFeed, OperationValidation.MaxRapidFeed);
+            OperationValidation.AddIfOutOfRange(
+                issues, nameof(MachineProfileSettings.MaxSpindleSpeedRpm),
+                machine.MaxSpindleSpeedRpm, 1, MaxSpindleSpeedRpm);
+
+            if (spindle != null
+                && spindle.SpindleControlEnabled
+                && spindle.SpindleStartEnabled
+                && spindle.SpindleSpeedEnabled
+                && spindle.SpindleSpeedRpm > machine.MaxSpindleSpeedRpm)
+            {
+                issues.Add(new ValidationIssue(
+                    nameof(SpindleSettings.SpindleSpeedRpm),
+                    ValidationCode.AboveMaximum,
+                    $"must be at most the machine-profile limit {machine.MaxSpindleSpeedRpm}, but is {spindle.SpindleSpeedRpm}",
+                    machine.MaxSpindleSpeedRpm));
+            }
+
+            if (workCoordinate?.AddStartPosition == true)
+            {
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.StartX),
+                    workCoordinate.StartX, machine.MinX, machine.MaxX);
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.StartY),
+                    workCoordinate.StartY, machine.MinY, machine.MaxY);
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.StartZ),
+                    workCoordinate.StartZ, machine.MinZ, machine.MaxZ);
+            }
+
+            if (workCoordinate?.AddEndPosition == true)
+            {
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.EndX),
+                    workCoordinate.EndX, machine.MinX, machine.MaxX);
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.EndY),
+                    workCoordinate.EndY, machine.MinY, machine.MaxY);
+                AddCoordinateIssue(issues, nameof(WorkCoordinateSettings.EndZ),
+                    workCoordinate.EndZ, machine.MinZ, machine.MaxZ);
+            }
+        }
+
+        private static void AddRangeIssues(
+            IList<ValidationIssue> issues,
+            string minProperty,
+            double min,
+            string maxProperty,
+            double max)
+        {
+            OperationValidation.AddIfNotFinite(issues, minProperty, min);
+            OperationValidation.AddIfNotFinite(issues, maxProperty, max);
+            if (double.IsFinite(min) && double.IsFinite(max) && min >= max)
+            {
+                issues.Add(new ValidationIssue(
+                    maxProperty,
+                    ValidationCode.Inconsistent,
+                    $"must be greater than {minProperty} ({min}), but is {max}"));
+            }
+        }
+
+        private static void AddCoordinateIssue(
+            IList<ValidationIssue> issues,
+            string property,
+            double value,
+            double min,
+            double max)
+        {
+            if (!double.IsFinite(value) || !double.IsFinite(min) || !double.IsFinite(max))
+                return;
+
+            if (value < min)
+            {
+                issues.Add(new ValidationIssue(property, ValidationCode.BelowMinimum,
+                    $"must be at least the machine-profile limit {min}, but is {value}", min));
+            }
+            else if (value > max)
+            {
+                issues.Add(new ValidationIssue(property, ValidationCode.AboveMaximum,
+                    $"must be at most the machine-profile limit {max}, but is {value}", max));
+            }
         }
     }
 

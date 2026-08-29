@@ -297,6 +297,30 @@
   <data name="GCodeSettingsTitle" xml:space="preserve">
     <value>Настройки</value>
   </data>
+  <data name="MachineProfileTab" xml:space="preserve">
+    <value>Станок</value>
+  </data>
+  <data name="MachineProfileEnabled" xml:space="preserve">
+    <value>Проверять по этому профилю станка</value>
+  </data>
+  <data name="MachineProfileHint" xml:space="preserve">
+    <value>Границы заданы в программных координатах. Перенесите рабочую область и пределы из документации станка; рабочие смещения сами по себе не гарантируют отсутствие столкновений.</value>
+  </data>
+  <data name="MachineMinimum" xml:space="preserve">
+    <value>Минимум</value>
+  </data>
+  <data name="MachineMaximum" xml:space="preserve">
+    <value>Максимум</value>
+  </data>
+  <data name="MachineMaxWorkFeed" xml:space="preserve">
+    <value>Предельная рабочая подача, мм/мин</value>
+  </data>
+  <data name="MachineMaxRapidFeed" xml:space="preserve">
+    <value>Предельная быстрая подача, мм/мин</value>
+  </data>
+  <data name="MachineMaxSpindleSpeed" xml:space="preserve">
+    <value>Предельные обороты шпинделя, об/мин</value>
+  </data>
   <data name="UseLineNumbers" xml:space="preserve">
     <value>Использовать номера строк (N...)</value>
   </data>

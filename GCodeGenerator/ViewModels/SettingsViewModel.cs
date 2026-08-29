@@ -190,6 +190,36 @@ namespace GCodeGenerator.ViewModels
         [ObservableProperty]
         private string _workCoordinateSystem = string.Empty;
 
+        [ObservableProperty]
+        private bool _enabled;
+
+        [ObservableProperty]
+        private double _minX;
+
+        [ObservableProperty]
+        private double _maxX;
+
+        [ObservableProperty]
+        private double _minY;
+
+        [ObservableProperty]
+        private double _maxY;
+
+        [ObservableProperty]
+        private double _minZ;
+
+        [ObservableProperty]
+        private double _maxZ;
+
+        [ObservableProperty]
+        private double _maxWorkFeed;
+
+        [ObservableProperty]
+        private double _maxRapidFeed;
+
+        [ObservableProperty]
+        private int _maxSpindleSpeedRpm;
+
         /// <summary>Код языка интерфейса; пустая строка — язык системы.</summary>
         [ObservableProperty]
         private string _language = string.Empty;

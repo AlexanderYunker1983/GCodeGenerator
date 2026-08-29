@@ -494,6 +494,96 @@ namespace GCodeGenerator.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MachineProfileEnabled
+        {
+            get { return ((bool)(this["MachineProfileEnabled"])); }
+            set { this["MachineProfileEnabled"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double MachineMinX
+        {
+            get { return ((double)(this["MachineMinX"])); }
+            set { this["MachineMinX"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("300")]
+        public double MachineMaxX
+        {
+            get { return ((double)(this["MachineMaxX"])); }
+            set { this["MachineMaxX"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public double MachineMinY
+        {
+            get { return ((double)(this["MachineMinY"])); }
+            set { this["MachineMinY"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("300")]
+        public double MachineMaxY
+        {
+            get { return ((double)(this["MachineMaxY"])); }
+            set { this["MachineMaxY"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("-100")]
+        public double MachineMinZ
+        {
+            get { return ((double)(this["MachineMinZ"])); }
+            set { this["MachineMinZ"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("100")]
+        public double MachineMaxZ
+        {
+            get { return ((double)(this["MachineMaxZ"])); }
+            set { this["MachineMaxZ"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3000")]
+        public double MachineMaxWorkFeed
+        {
+            get { return ((double)(this["MachineMaxWorkFeed"])); }
+            set { this["MachineMaxWorkFeed"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("6000")]
+        public double MachineMaxRapidFeed
+        {
+            get { return ((double)(this["MachineMaxRapidFeed"])); }
+            set { this["MachineMaxRapidFeed"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("24000")]
+        public int MachineMaxSpindleSpeedRpm
+        {
+            get { return ((int)(this["MachineMaxSpindleSpeedRpm"])); }
+            set { this["MachineMaxSpindleSpeedRpm"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool UpgradeRequired
         {

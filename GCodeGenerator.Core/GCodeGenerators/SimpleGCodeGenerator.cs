@@ -113,7 +113,7 @@ namespace GCodeGenerator.GCodeGenerators
                 }
 
                 var pathOperation = new ToolPathOperation(
-                    operation.Name, operation.GetDescription(), OperationDecimals(operation), operation);
+                    operation.Name, operation.GetDescription(), OperationDecimals(operation), operation, index);
                 toolPath.AddOperation(pathOperation);
 
                 var operationBuilder = new ToolPathBuilder(pathOperation, budget);
@@ -152,6 +152,12 @@ namespace GCodeGenerator.GCodeGenerators
                 if (total > 0)
                     progress?.Report((index + 1) * 100 / total);
             }
+
+            cancellation.ThrowIfCancellationRequested();
+            var machineFailures = MachineProfileValidator.Validate(
+                toolPath, settings.Machine, cancellation);
+            if (machineFailures.Count > 0)
+                throw new GCodeGenerationValidationException(machineFailures);
 
             return toolPath;
         }

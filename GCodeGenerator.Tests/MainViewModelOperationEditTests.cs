@@ -92,6 +92,17 @@ namespace GCodeGenerator.Tests
 
             public event EventHandler GenerationSettingsChanged;
 
+            private EventHandler _machineProfileChanged;
+
+            public event EventHandler MachineProfileChanged
+            {
+                add => _machineProfileChanged += value;
+                remove => _machineProfileChanged -= value;
+            }
+
+            public void RaiseMachineProfileChanged()
+                => _machineProfileChanged?.Invoke(this, EventArgs.Empty);
+
             public GCodeSettings Current { get; } = new GCodeSettings();
             public int RestoreCalls { get; private set; }
 
@@ -342,6 +353,8 @@ namespace GCodeGenerator.Tests
             settings.WorkCoordinate.WorkCoordinateSystem = "G57";
             settings.Ui.UseDarkTheme = false;
             store.Current.Ui.UseDarkTheme = true;
+            store.Current.Machine.Enabled = true;
+            store.Current.Machine.MaxX = 450;
 
             var filePath = Path.Combine(Path.GetTempPath(), "gcg_open_" + Guid.NewGuid().ToString("N") + ".ygc");
             try
@@ -360,6 +373,8 @@ namespace GCodeGenerator.Tests
                 Assert.AreEqual("G57", store.Current.WorkCoordinate.WorkCoordinateSystem,
                     "Рабочая система координат из секции файла в сессии");
                 Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Проект не должен менять тему UI");
+                Assert.IsTrue(store.Current.Machine.Enabled, "Проект не должен отключать локальный профиль станка");
+                Assert.AreEqual(450.0, store.Current.Machine.MaxX, "Предел станка принадлежит компьютеру");
             }
             finally
             {
@@ -462,6 +477,19 @@ namespace GCodeGenerator.Tests
                 "Новый проект → глобальная система координат");
             Assert.IsTrue(store.Current.Ui.UseDarkTheme, "Новый проект не должен менять тему UI");
             Assert.IsTrue(store.RestoreCalls >= 1, "RestoreGlobalGenerationSettings вызван");
+        }
+
+        [TestMethod]
+        public void MachineProfileChange_InvalidatesProgramWithoutDirtyingDocument()
+        {
+            var (main, _, _, store) = CreateMain();
+            main.GCodeWorkflow.ProgramLines = new[] { "M30" };
+
+            store.RaiseMachineProfileChanged();
+
+            Assert.IsNull(main.GCodeWorkflow.ProgramLines);
+            Assert.IsFalse(main.ProjectWorkflow.IsDirty,
+                "Локальная защита станка не является содержимым проекта");
         }
     }
 }

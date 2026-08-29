@@ -228,6 +228,87 @@
                 </ScrollViewer>
             </mah:MetroTabItem>
 
+            <mah:MetroTabItem Header="{loc:Loc MachineProfileTab}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="8">
+                        <CheckBox Content="{loc:Loc MachineProfileEnabled}"
+                                  IsChecked="{Binding Enabled}"/>
+                        <TextBlock Text="{loc:Loc MachineProfileHint}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.75"
+                                   Margin="0,6,0,12"/>
+
+                        <Grid IsEnabled="{Binding Enabled}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140"/>
+                                <ColumnDefinition Width="90"/>
+                                <ColumnDefinition Width="90"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Column="1" Text="{loc:Loc MachineMinimum}" HorizontalAlignment="Center"/>
+                            <TextBlock Grid.Column="2" Text="{loc:Loc MachineMaximum}" HorizontalAlignment="Center"/>
+                            <Label Grid.Row="1" Content="X, mm"/>
+                            <TextBox Grid.Row="1" Grid.Column="1" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MinX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                            <TextBox Grid.Row="1" Grid.Column="2" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MaxX, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                            <Label Grid.Row="2" Content="Y, mm"/>
+                            <TextBox Grid.Row="2" Grid.Column="1" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MinY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                            <TextBox Grid.Row="2" Grid.Column="2" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MaxY, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                            <Label Grid.Row="3" Content="Z, mm"/>
+                            <TextBox Grid.Row="3" Grid.Column="1" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MinZ, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                            <TextBox Grid.Row="3" Grid.Column="2" Margin="4"
+                                     Style="{StaticResource MahApps.Styles.TextBox}"
+                                     Text="{Binding MaxZ, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                     infrastructure:NumericInput.Mode="Decimal"/>
+                        </Grid>
+
+                        <Separator Margin="0,12,0,8"/>
+                        <StackPanel IsEnabled="{Binding Enabled}">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="{loc:Loc MachineMaxWorkFeed}" Width="280"/>
+                                <TextBox Width="100"
+                                         Style="{StaticResource MahApps.Styles.TextBox}"
+                                         Text="{Binding MaxWorkFeed, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                         infrastructure:NumericInput.Mode="Decimal"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Label Content="{loc:Loc MachineMaxRapidFeed}" Width="280"/>
+                                <TextBox Width="100"
+                                         Style="{StaticResource MahApps.Styles.TextBox}"
+                                         Text="{Binding MaxRapidFeed, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                         infrastructure:NumericInput.Mode="Decimal"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <Label Content="{loc:Loc MachineMaxSpindleSpeed}" Width="280"/>
+                                <TextBox Width="100"
+                                         Style="{StaticResource MahApps.Styles.TextBox}"
+                                         Text="{Binding MaxSpindleSpeedRpm, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NumericText}}"
+                                         infrastructure:NumericInput.Mode="Integer"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </mah:MetroTabItem>
+
             <mah:MetroTabItem Header="{loc:Loc InterfaceSettingsTab}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8">

@@ -173,12 +173,21 @@ namespace GCodeGenerator.Toolpath
     /// </summary>
     public sealed class ToolPathOperation
     {
-        public ToolPathOperation(string name, string description, int decimals, object? source = null)
+        public ToolPathOperation(
+            string name,
+            string description,
+            int decimals,
+            object? source = null,
+            int sourceIndex = -1)
         {
+            if (sourceIndex < -1)
+                throw new ArgumentOutOfRangeException(nameof(sourceIndex));
+
             Name = name ?? string.Empty;
             Description = description ?? string.Empty;
             Decimals = decimals;
             Source = source;
+            SourceIndex = sourceIndex;
         }
 
         /// <summary>
@@ -188,6 +197,12 @@ namespace GCodeGenerator.Toolpath
         /// обязан знать, чей участок траектории показывает.
         /// </summary>
         public object? Source { get; }
+
+        /// <summary>
+        /// Место исходной операции в проекте; -1 у вручную собранных
+        /// траекторий. Нужна постпроверкам, чтобы назвать опасную операцию.
+        /// </summary>
+        public int SourceIndex { get; }
 
         /// <summary>Имя операции, заданное пользователем.</summary>
         public string Name { get; }

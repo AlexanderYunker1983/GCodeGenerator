@@ -30,7 +30,12 @@ namespace GCodeGenerator.Services
         /// </summary>
         private string _generationSnapshot;
 
+        /// <summary>Последний сообщённый слепок локального профиля станка.</summary>
+        private string _machineSnapshot;
+
         public event EventHandler? GenerationSettingsChanged;
+
+        public event EventHandler? MachineProfileChanged;
 
         public GCodeSettings Current { get; }
 
@@ -58,6 +63,7 @@ namespace GCodeGenerator.Services
 
             NormalizeCurrent();
             _generationSnapshot = GenerationSnapshot(Current);
+            _machineSnapshot = MachineSnapshot(Current);
         }
 
         /// <summary>
@@ -98,13 +104,14 @@ namespace GCodeGenerator.Services
 
         public void Save()
         {
-            // Пишутся только Ui-настройки: генерационные принадлежат
+            // Пишутся только Ui-настройки и локальный профиль станка: генерационные принадлежат
             // документу, их копия в хранилище — умолчания новых проектов,
             // и меняет её только явная команда SaveGenerationDefaults.
             var persisted = _persisted;
             foreach (var (path, setting) in SettingsMapping.Entries)
             {
-                if (!path.StartsWith("Ui.", StringComparison.Ordinal))
+                if (!path.StartsWith("Ui.", StringComparison.Ordinal)
+                    && !path.StartsWith("Machine.", StringComparison.Ordinal))
                     continue;
 
                 // Настройка без значения хранилищу не нужна: при чтении
@@ -130,7 +137,8 @@ namespace GCodeGenerator.Services
             var persisted = _persisted;
             foreach (var (path, setting) in SettingsMapping.Entries)
             {
-                if (path.StartsWith("Ui.", StringComparison.Ordinal))
+                if (path.StartsWith("Ui.", StringComparison.Ordinal)
+                    || path.StartsWith("Machine.", StringComparison.Ordinal))
                     continue;
 
                 var value = SettingsMapping.GetValue(source, path);
@@ -214,11 +222,23 @@ namespace GCodeGenerator.Services
         private void RaiseGenerationSettingsChangedIfNeeded()
         {
             var snapshot = GenerationSnapshot(Current);
-            if (snapshot == _generationSnapshot)
+            if (snapshot != _generationSnapshot)
+            {
+                _generationSnapshot = snapshot;
+                GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            RaiseMachineProfileChangedIfNeeded();
+        }
+
+        private void RaiseMachineProfileChangedIfNeeded()
+        {
+            var snapshot = MachineSnapshot(Current);
+            if (snapshot == _machineSnapshot)
                 return;
 
-            _generationSnapshot = snapshot;
-            GenerationSettingsChanged?.Invoke(this, EventArgs.Empty);
+            _machineSnapshot = snapshot;
+            MachineProfileChanged?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
@@ -235,5 +255,8 @@ namespace GCodeGenerator.Services
                     settings.WorkCoordinate,
                 },
                 ProjectJson.Options);
+
+        private static string MachineSnapshot(GCodeSettings settings)
+            => JsonSerializer.Serialize(settings.Machine, ProjectJson.Options);
     }
 }

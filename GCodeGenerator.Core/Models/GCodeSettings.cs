@@ -3,7 +3,7 @@ namespace GCodeGenerator.Models
 {
     /// <summary>
     /// Aggregate of all settings that influence the application and generated
-    /// g-code. Пункт 8.1 плана: плоский класс на 28 свойств разбит на
+    /// g-code. Пункт 8.1 плана: прежний плоский класс разбит на
     /// тематические группы — <see cref="Format"/>, <see cref="Spindle"/>,
     /// <see cref="Coolant"/>, <see cref="WorkCoordinate"/> и <see cref="Ui"/>.
     /// </summary>
@@ -20,6 +20,13 @@ namespace GCodeGenerator.Models
 
         /// <summary>Work coordinate system (G54-G59, G92 start, end position).</summary>
         public WorkCoordinateSettings WorkCoordinate { get; set; } = new WorkCoordinateSettings();
+
+        /// <summary>
+        /// Локальный профиль допустимых координат, подач и оборотов станка.
+        /// В проект не сохраняется: открытие чужого файла не должно менять
+        /// ограничения оборудования, на котором его собираются выполнять.
+        /// </summary>
+        public MachineProfileSettings Machine { get; set; } = new MachineProfileSettings();
 
         /// <summary>UI settings (theme).</summary>
         public UiSettings Ui { get; set; } = new UiSettings();
