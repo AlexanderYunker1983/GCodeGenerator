@@ -20,6 +20,7 @@ namespace GCodeGenerator.Services
         private readonly IProjectFileService _projectFiles;
         private readonly IAppLogger _logger;
         private readonly TimeSpan _delay;
+        private readonly Func<TimeSpan, CancellationToken, Task> _delayAsync;
         private readonly SynchronizationContext? _uiContext;
         private readonly object _sync = new object();
         private readonly SemaphoreSlim _writeGate = new SemaphoreSlim(1, 1);
@@ -45,13 +46,15 @@ namespace GCodeGenerator.Services
             IAppLogger? logger,
             string recoveryPath,
             TimeSpan delay,
-            SynchronizationContext? uiContext)
+            SynchronizationContext? uiContext,
+            Func<TimeSpan, CancellationToken, Task>? delayAsync = null)
         {
             _projectFiles = projectFiles ?? throw new ArgumentNullException(nameof(projectFiles));
             _logger = logger ?? NullAppLogger.Instance;
             RecoveryPath = Path.GetFullPath(recoveryPath ?? throw new ArgumentNullException(nameof(recoveryPath)));
             _delay = delay >= TimeSpan.Zero ? delay : throw new ArgumentOutOfRangeException(nameof(delay));
             _uiContext = uiContext;
+            _delayAsync = delayAsync ?? Task.Delay;
         }
 
         public string RecoveryPath { get; }
@@ -163,7 +166,7 @@ namespace GCodeGenerator.Services
         {
             try
             {
-                await Task.Delay(_delay, cancellation.Token).ConfigureAwait(false);
+                await _delayAsync(_delay, cancellation.Token).ConfigureAwait(false);
                 var json = await CaptureOnUiContextAsync(snapshotFactory, cancellation.Token).ConfigureAwait(false);
                 cancellation.Token.ThrowIfCancellationRequested();
 

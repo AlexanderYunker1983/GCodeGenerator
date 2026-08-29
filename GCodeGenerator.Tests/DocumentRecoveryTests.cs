@@ -124,18 +124,33 @@ namespace GCodeGenerator.Tests
             var directory = TemporaryDirectory();
             var path = Path.Combine(directory, "autosave.ygc");
             var files = new ProjectFileService();
+            var delayStarted = new TaskCompletionSource<CancellationToken>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            var releaseDelay = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            Task ControlledDelay(TimeSpan _, CancellationToken cancellation)
+            {
+                delayStarted.TrySetResult(cancellation);
+                return releaseDelay.Task;
+            }
             var recovery = new DocumentRecoveryService(
-                files, null, path, TimeSpan.FromMilliseconds(200), new InlineContext());
+                files, null, path, TimeSpan.FromMilliseconds(200), new InlineContext(), ControlledDelay);
             try
             {
                 files.Save(path, new[] { Drill("one") }, new GCodeSettings());
                 files.Save(path, new[] { Drill("two") }, new GCodeSettings());
                 Assert.IsTrue(File.Exists(path + ".bak"));
                 recovery.Schedule(() => files.Serialize(new[] { Drill("late") }, new GCodeSettings()));
+                var pendingSave = recovery.WaitForPendingSaveAsync();
+                var delayCancellation = await delayStarted.Task;
 
                 recovery.Clear();
-                await Task.Delay(250);
+                var cancellationObserved = delayCancellation.IsCancellationRequested;
+                releaseDelay.TrySetResult(true);
+                await pendingSave;
 
+                Assert.IsTrue(cancellationObserved,
+                    "Clear обязан отменить токен управляемой задержки старого снимка");
                 Assert.IsFalse(File.Exists(path));
                 Assert.IsFalse(File.Exists(path + ".bak"));
             }
