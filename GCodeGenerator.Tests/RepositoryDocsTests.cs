@@ -77,6 +77,26 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Ручная репетиция выпуска должна по умолчанию собирать именно
+        /// запланированную версию. Иначе зелёный прогон проверяет одни
+        /// release notes и имена артефактов, а тег публикует другие.
+        /// </summary>
+        [TestMethod]
+        public void ReleaseWorkflow_ManualRehearsalDefaultsToTheNextVersion()
+        {
+            var workflow = Read(".github", "workflows", "release.yml");
+            var nextVersion = Read("build", "NEXT_VERSION").Trim();
+            var versionInput = Regex.Match(
+                workflow,
+                @"(?m)^      version:\r?\n(?:        .*\r?\n)*?        default: '(?<version>[^']+)'\r?$");
+
+            Assert.IsTrue(versionInput.Success,
+                "В release workflow не найдено значение по умолчанию ручной репетиции");
+            Assert.AreEqual(nextVersion, versionInput.Groups["version"].Value,
+                "Ручная репетиция release workflow собирает не build/NEXT_VERSION");
+        }
+
+        /// <summary>
         /// Скрипт достаёт раздел версии из журнала.
         ///
         /// Проверяется запуском, а не чтением: скрипт компилируется не
