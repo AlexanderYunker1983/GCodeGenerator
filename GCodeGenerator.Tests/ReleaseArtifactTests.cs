@@ -334,6 +334,20 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ReleaseTag_DoesNotStartDuplicateCiWorkflow()
+        {
+            var ci = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "ci.yml"));
+            var release = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+
+            StringAssert.Contains(ci, "tags-ignore:");
+            StringAssert.Contains(ci, "- '**'",
+                "Push релизного тега параллельно запускает второй полный CI");
+            StringAssert.Contains(release, "push:");
+            StringAssert.Contains(release, "tags:",
+                "После исключения из CI тег должен остаться триггером release workflow");
+        }
+
+        [TestMethod]
         public void ReleaseWorkflow_AndPackagedProcesses_HaveExplicitTimeouts()
         {
             var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));

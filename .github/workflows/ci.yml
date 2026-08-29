@@ -2,6 +2,10 @@ name: CI
 
 on:
   push:
+    # Тег обрабатывает release.yml, который повторяет build, tests,
+    # coverage, dependency audit и mutation на выпускаемом commit.
+    tags-ignore:
+      - '**'
   pull_request:
 
 concurrency:
