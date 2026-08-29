@@ -248,6 +248,9 @@
                      ItemsSource="{Binding OperationsWorkspace.AllOperations}"
                      SelectedItem="{Binding OperationsWorkspace.SelectedOperation, Mode=TwoWay}"
                      MouseDoubleClick="OperationsList_MouseDoubleClick">
+                <ListBox.InputBindings>
+                    <KeyBinding Key="Delete" Command="{Binding OperationsWorkspace.RemoveOperationCommand}"/>
+                </ListBox.InputBindings>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">

@@ -1,4 +1,5 @@
 #nullable enable
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -148,6 +149,21 @@ namespace GCodeGenerator.Tests
                 MainWindowMarkup,
                 @"<KeyBinding Key=""F1"" Command=""{Binding OpenAboutCommand}""/>",
                 "MainView.xaml: F1 не открывает окно «О программе»");
+        }
+
+        [TestMethod]
+        public void OperationsList_DeletesSelectedOperationWithDeleteKey()
+        {
+            var listStart = MainWindowMarkup.IndexOf("<ListBox x:Name=\"OperationsList\"", StringComparison.Ordinal);
+            Assert.IsTrue(listStart >= 0, "Список операций найден");
+            var listEnd = MainWindowMarkup.IndexOf("</ListBox>", listStart, StringComparison.Ordinal);
+            Assert.IsTrue(listEnd > listStart, "Конец списка операций найден");
+            var listMarkup = MainWindowMarkup.Substring(listStart, listEnd - listStart);
+
+            StringAssert.Contains(
+                listMarkup,
+                "<KeyBinding Key=\"Delete\" Command=\"{Binding OperationsWorkspace.RemoveOperationCommand}\"/>",
+                "Delete должен действовать только когда фокус находится в списке операций");
         }
 
         /// <summary>
