@@ -349,6 +349,20 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Deserialize_DisabledNonFiniteSetting_IsRejectedImmediately()
+        {
+            const string json = "{\"version\":4,\"operations\":[],\"spindle\":{"
+                + "\"SpindleControlEnabled\":false,\"SpindleDelayEnabled\":false,"
+                + "\"SpindleDelaySeconds\":1e999}}";
+
+            var failure = Assert.Throws<CoreException>(() => Service.Deserialize(json));
+
+            Assert.AreEqual(CoreErrorCodes.ProjectFileCorrupt, failure.Code);
+            StringAssert.Contains(failure.Message, nameof(SpindleSettings.SpindleDelaySeconds));
+            StringAssert.Contains(failure.Message, "finite");
+        }
+
+        [TestMethod]
         public void Save_OverExistingProject_UsesAtomicReplacementWithoutTemporaryFiles()
         {
             var directory = Path.Combine(Path.GetTempPath(), "gcg_atomic_" + Guid.NewGuid().ToString("N"));

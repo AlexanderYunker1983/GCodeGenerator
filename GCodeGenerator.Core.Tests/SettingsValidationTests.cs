@@ -204,7 +204,7 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void SpindleStartDisabled_IgnoresUnusedSpeedAndDelay()
+        public void SpindleStartDisabled_IgnoresUnusedFiniteSpeedAndDelay()
         {
             var settings = new GCodeSettings();
             settings.Spindle.SpindleControlEnabled = true;
@@ -212,7 +212,7 @@ namespace GCodeGenerator.Tests
             settings.Spindle.SpindleSpeedEnabled = true;
             settings.Spindle.SpindleSpeedRpm = int.MaxValue;
             settings.Spindle.SpindleDelayEnabled = true;
-            settings.Spindle.SpindleDelaySeconds = double.PositiveInfinity;
+            settings.Spindle.SpindleDelaySeconds = GCodeSettingsValidation.MaxSpindleDelaySeconds + 100;
 
             var program = new SimpleGCodeGenerator().Generate(OneDrill(), settings);
 
@@ -220,6 +220,21 @@ namespace GCodeGenerator.Tests
                 "Неиспользуемая задержка не проверяется и не выводится");
             Assert.IsFalse(program.Lines.Any(line => line.Contains(" S")),
                 "Неиспользуемые обороты не проверяются и не выводятся");
+        }
+
+        [TestMethod]
+        public void DisabledSpindleDelay_StillRejectsNonFiniteValue()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = false;
+            settings.Spindle.SpindleDelayEnabled = false;
+            settings.Spindle.SpindleDelaySeconds = double.PositiveInfinity;
+
+            var error = Generate(settings);
+            var issue = error.SettingsIssues.Single(item =>
+                item.Property == nameof(SpindleSettings.SpindleDelaySeconds));
+
+            Assert.AreEqual(ValidationCode.NotFinite, issue.Code);
         }
 
         /// <summary>

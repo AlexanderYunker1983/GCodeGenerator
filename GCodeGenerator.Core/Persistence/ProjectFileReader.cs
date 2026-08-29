@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using GCodeGenerator.Models;
@@ -144,12 +145,37 @@ namespace GCodeGenerator.Persistence
             RejectDuplicateProperties(section, sectionName);
             try
             {
-                return JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
+                var value = JsonSerializer.Deserialize<T>(section.GetRawText(), PayloadOptions);
+                RejectNonFiniteSettings(value, sectionName);
+                return value;
             }
             catch (JsonException failure)
             {
                 throw Corrupt(FormattableString.Invariant(
                     $"section '{sectionName}' contains unsupported or invalid data: {failure.Message}"));
+            }
+        }
+
+        private static void RejectNonFiniteSettings<T>(T? value, string sectionName) where T : class
+        {
+            if (value == null)
+                return;
+
+            foreach (var property in value.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public))
+            {
+                if (!property.CanRead
+                    || property.GetIndexParameters().Length != 0
+                    || property.PropertyType != typeof(double))
+                {
+                    continue;
+                }
+
+                var number = (double)property.GetValue(value)!;
+                if (!double.IsFinite(number))
+                {
+                    throw Corrupt(FormattableString.Invariant(
+                        $"section '{sectionName}' field '{property.Name}' must be a finite number"));
+                }
             }
         }
 

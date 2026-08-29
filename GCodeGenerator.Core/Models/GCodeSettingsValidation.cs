@@ -63,19 +63,12 @@ namespace GCodeGenerator.Models
             }
             else
             {
-                if (workCoordinate.AddStartPosition)
-                {
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartX), workCoordinate.StartX);
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartY), workCoordinate.StartY);
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartZ), workCoordinate.StartZ);
-                }
-
-                if (workCoordinate.AddEndPosition)
-                {
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndX), workCoordinate.EndX);
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndY), workCoordinate.EndY);
-                    OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndZ), workCoordinate.EndZ);
-                }
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartX), workCoordinate.StartX);
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartY), workCoordinate.StartY);
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.StartZ), workCoordinate.StartZ);
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndX), workCoordinate.EndX);
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndY), workCoordinate.EndY);
+                OperationValidation.AddIfNotFinite(issues, nameof(WorkCoordinateSettings.EndZ), workCoordinate.EndZ);
             }
 
             if (workCoordinate != null && workCoordinate.SetWorkCoordinateSystem)
@@ -109,6 +102,11 @@ namespace GCodeGenerator.Models
             if (spindle == null)
                 issues.Add(new ValidationIssue(nameof(GCodeSettings.Spindle), ValidationCode.Empty,
                     "spindle settings are missing"));
+            if (spindle != null)
+                OperationValidation.AddIfNotFinite(
+                    issues,
+                    nameof(SpindleSettings.SpindleDelaySeconds),
+                    spindle.SpindleDelaySeconds);
             if (spindle != null && spindle.SpindleControlEnabled && spindle.SpindleStartEnabled)
             {
                 if (spindle.SpindleSpeedEnabled)
