@@ -1,0 +1,146 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory = $true)]
+    [string]$InstallerPath,
+
+    [Parameter(Mandatory = $true)]
+    [string]$PortableExePath,
+
+    [Parameter(Mandatory = $true)]
+    [string]$WorkRoot,
+
+    [Parameter(Mandatory = $true)]
+    [string]$OutputLog
+)
+
+# ASCII-only: Windows PowerShell 5.1 reads a BOM-less script as ANSI.
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+
+$installer = (Resolve-Path -LiteralPath $InstallerPath).Path
+$portableExe = (Resolve-Path -LiteralPath $PortableExePath).Path
+$workDirectory = [System.IO.Path]::GetFullPath($WorkRoot)
+$logPath = [System.IO.Path]::GetFullPath($OutputLog)
+$logDirectory = Split-Path -Parent $logPath
+
+if (Test-Path -LiteralPath $workDirectory) {
+    throw "Smoke-test work directory already exists: '$workDirectory'."
+}
+if (-not (Test-Path -LiteralPath $logDirectory)) {
+    New-Item -ItemType Directory -Path $logDirectory | Out-Null
+}
+
+$utf8 = [System.Text.UTF8Encoding]::new($false)
+[System.IO.File]::WriteAllText($logPath, '', $utf8)
+
+function Write-SmokeLog([string]$Message) {
+    $line = "[$([DateTime]::UtcNow.ToString('o'))] $Message"
+    [System.IO.File]::AppendAllText($logPath, $line + [Environment]::NewLine, $utf8)
+    Write-Host $line
+}
+
+function Invoke-CheckedProcess([string]$FilePath, [string[]]$Arguments, [string]$Stage) {
+    Write-SmokeLog "${Stage}: starting"
+    $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
+        -WindowStyle Hidden -Wait -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "$Stage failed with exit code $($process.ExitCode)."
+    }
+    Write-SmokeLog "${Stage}: passed"
+}
+
+function Test-ApplicationStart([string]$Executable, [string]$Stage) {
+    Write-SmokeLog "${Stage}: starting"
+    $process = Start-Process -FilePath $Executable -WindowStyle Hidden -PassThru
+    try {
+        Start-Sleep -Seconds 5
+        if ($process.HasExited) {
+            throw "$Stage exited during startup with code $($process.ExitCode)."
+        }
+
+        Write-SmokeLog "${Stage}: process remained alive"
+        if (-not $process.CloseMainWindow()) {
+            throw "$Stage has no closable main window."
+        }
+        if (-not $process.WaitForExit(10000)) {
+            throw "$Stage ignored a normal window close request."
+        }
+        if ($process.ExitCode -ne 0) {
+            throw "$Stage closed with exit code $($process.ExitCode)."
+        }
+        Write-SmokeLog "${Stage}: passed"
+    }
+    finally {
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+        $process.Dispose()
+    }
+}
+
+$installDirectory = Join-Path $workDirectory 'installed'
+$installLog = Join-Path $workDirectory 'install.log'
+$upgradeLog = Join-Path $workDirectory 'upgrade.log'
+$uninstallLog = Join-Path $workDirectory 'uninstall.log'
+
+try {
+    New-Item -ItemType Directory -Path $workDirectory | Out-Null
+    $installArguments = @(
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        '/CURRENTUSER',
+        "/DIR=`"$installDirectory`"",
+        "/LOG=`"$installLog`""
+    )
+
+    Invoke-CheckedProcess $installer $installArguments 'Install'
+    $installedExe = Join-Path $installDirectory 'GCodeGenerator.exe'
+    $uninstaller = Join-Path $installDirectory 'unins000.exe'
+    if (-not (Test-Path -LiteralPath $installedExe)) {
+        throw "Installed executable is missing: '$installedExe'."
+    }
+    if (-not (Test-Path -LiteralPath $uninstaller)) {
+        throw "Uninstaller is missing: '$uninstaller'."
+    }
+    Test-ApplicationStart $installedExe 'Start installed application'
+
+    $installArguments[-1] = "/LOG=`"$upgradeLog`""
+    Invoke-CheckedProcess $installer $installArguments 'Upgrade over existing installation'
+    Test-ApplicationStart $installedExe 'Start upgraded application'
+
+    Test-ApplicationStart $portableExe 'Start portable application'
+
+    $uninstallArguments = @(
+        '/VERYSILENT',
+        '/SUPPRESSMSGBOXES',
+        '/NORESTART',
+        "/LOG=`"$uninstallLog`""
+    )
+    Invoke-CheckedProcess $uninstaller $uninstallArguments 'Uninstall'
+    if (Test-Path -LiteralPath $installedExe) {
+        throw "Installed executable remains after uninstall: '$installedExe'."
+    }
+
+    Write-SmokeLog 'Packaged artifact smoke test: PASSED'
+}
+catch {
+    Write-SmokeLog "Packaged artifact smoke test: FAILED: $($_.Exception.Message)"
+    foreach ($detailLog in @($installLog, $upgradeLog, $uninstallLog)) {
+        if (Test-Path -LiteralPath $detailLog) {
+            Write-SmokeLog "----- $(Split-Path -Leaf $detailLog) -----"
+            [System.IO.File]::AppendAllText(
+                $logPath,
+                [System.IO.File]::ReadAllText($detailLog) + [Environment]::NewLine,
+                $utf8)
+        }
+    }
+    throw
+}
+finally {
+    # The exact directory was required not to exist and was created above by
+    # this script, so recursive cleanup cannot target pre-existing user data.
+    if (Test-Path -LiteralPath $workDirectory) {
+        Remove-Item -LiteralPath $workDirectory -Recurse -Force
+    }
+}

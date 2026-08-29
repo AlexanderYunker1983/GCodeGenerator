@@ -163,5 +163,39 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow, "needs: [build, attest]",
                 "Публикация не ждёт успешной аттестации");
         }
+
+        [TestMethod]
+        public void ReleaseWorkflow_ExercisesInstallerUpgradePortableAndUninstall()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+            var script = File.ReadAllText(Path.Combine(Root, "build", "Test-PackagedArtifacts.ps1"));
+
+            StringAssert.Contains(workflow, "build/Test-PackagedArtifacts.ps1");
+            StringAssert.Contains(workflow, "packaged-artifact-smoke.log");
+            StringAssert.Contains(workflow, "if: always() && steps.tag.outputs.skip == 'false'",
+                "Диагностический лог потеряется при падении smoke-теста");
+            foreach (var stage in new[]
+                     {
+                         "'Install'",
+                         "'Start installed application'",
+                         "'Upgrade over existing installation'",
+                         "'Start upgraded application'",
+                         "'Start portable application'",
+                         "'Uninstall'"
+                     })
+            {
+                StringAssert.Contains(script, stage, $"Не автоматизирован этап {stage}");
+            }
+
+            StringAssert.Contains(script, "/CURRENTUSER");
+            StringAssert.Contains(script, "CloseMainWindow()",
+                "Приложение принудительно убивается вместо проверки штатного закрытия");
+            StringAssert.Contains(script, "Installed executable remains after uninstall");
+
+            var install = script.IndexOf("'Install'", StringComparison.Ordinal);
+            var upgrade = script.IndexOf("'Upgrade over existing installation'", StringComparison.Ordinal);
+            var uninstall = script.IndexOf("'Uninstall'", StringComparison.Ordinal);
+            Assert.IsTrue(install < upgrade && upgrade < uninstall, "Этапы жизненного цикла перепутаны");
+        }
     }
 }

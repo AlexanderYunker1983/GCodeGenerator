@@ -116,6 +116,31 @@ jobs:
           Compress-Archive -Path 'artifacts/publish/GCodeGenerator/*' -DestinationPath $zip
           Write-Host "Portable: $zip"
 
+      # Проверяется именно упакованный продукт: тихая установка, запуск,
+      # повторная установка с тем же AppId, portable и деинсталляция.
+      - name: Smoke-test packaged artifacts
+        if: steps.tag.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          $installer = (Get-ChildItem artifacts/installer/GCodeGenerator-Setup-*.exe -File -ErrorAction Stop).FullName
+          $work = Join-Path $env:RUNNER_TEMP "gcodegen-package-smoke-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          build/Test-PackagedArtifacts.ps1 `
+            -InstallerPath $installer `
+            -PortableExePath artifacts/publish/GCodeGenerator/GCodeGenerator.exe `
+            -WorkRoot $work `
+            -OutputLog artifacts/installer/packaged-artifact-smoke.log
+
+      # Диагностика сохраняется и при падении smoke-теста; общий release
+      # bundle ниже создаётся лишь после полностью успешной сборки.
+      - name: Upload packaged artifact smoke log
+        if: always() && steps.tag.outputs.skip == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: packaged-artifact-smoke
+          path: artifacts/installer/packaged-artifact-smoke.log
+          if-no-files-found: error
+          retention-days: 14
+
       - name: Create CycloneDX SBOM
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
