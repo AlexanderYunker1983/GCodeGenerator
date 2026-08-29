@@ -38,6 +38,7 @@ namespace GCodeGenerator.Tests
         [DataRow("CONTRIBUTING.md")]
         [DataRow("SECURITY.md")]
         [DataRow("README.en.md")]
+        [DataRow("THIRD-PARTY-NOTICES.md")]
         [DataRow(".github/PULL_REQUEST_TEMPLATE.md")]
         [DataRow(".github/ISSUE_TEMPLATE/bug_report.yml")]
         [DataRow(".github/ISSUE_TEMPLATE/feature_request.yml")]

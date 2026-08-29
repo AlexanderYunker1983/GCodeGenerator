@@ -111,6 +111,12 @@ if (-not (Test-Path (Join-Path $publishDir 'GCodeGenerator.exe'))) {
     throw "Publish output is missing GCodeGenerator.exe: $publishDir"
 }
 
+# The installer and portable archive ship the same publish directory. Copy
+# product, dependency and self-contained .NET runtime notices before either
+# artifact is produced, so the legal terms cannot exist only in the repo.
+& (Join-Path $scriptDir 'Copy-ReleaseNotices.ps1') -PublishDirectory $publishDir -RepositoryRoot $repoRoot
+if ($LASTEXITCODE -ne 0) { throw 'Copy-ReleaseNotices.ps1 failed' }
+
 # --- 3) Sign the published executables ---------------------------------------
 # The parameter wins over the environment variable, so a workflow can export
 # the command once and a local build can still override it.

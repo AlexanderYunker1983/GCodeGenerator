@@ -197,5 +197,80 @@ namespace GCodeGenerator.Tests
             var uninstall = script.IndexOf("'Uninstall'", StringComparison.Ordinal);
             Assert.IsTrue(install < upgrade && upgrade < uninstall, "Этапы жизненного цикла перепутаны");
         }
+
+        [TestMethod]
+        public void ReleaseNotices_AreCopiedIntoTheSharedPublishDirectory()
+        {
+            var publish = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            Directory.CreateDirectory(publish);
+            try
+            {
+                var script = Path.Combine(Root, "build", "Copy-ReleaseNotices.ps1");
+                var start = new ProcessStartInfo("powershell.exe")
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true
+                };
+                foreach (var argument in new[]
+                         {
+                             "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass",
+                             "-File", script, "-PublishDirectory", publish, "-RepositoryRoot", Root
+                         })
+                {
+                    start.ArgumentList.Add(argument);
+                }
+
+                using var process = Process.Start(start)!;
+                var output = process.StandardOutput.ReadToEnd();
+                var errors = process.StandardError.ReadToEnd();
+                process.WaitForExit(30000);
+                Assert.AreEqual(0, process.ExitCode, output + errors);
+
+                var licenses = Path.Combine(publish, "licenses");
+                foreach (var name in new[]
+                         {
+                             "GCodeGenerator-LICENSE.txt",
+                             "THIRD-PARTY-NOTICES.md",
+                             "DOTNET-LICENSE.txt",
+                             "DOTNET-THIRD-PARTY-NOTICES.txt",
+                             "COMMUNITYTOOLKIT-LICENSE.md",
+                             "COMMUNITYTOOLKIT-THIRD-PARTY-NOTICES.txt"
+                         })
+                {
+                    var path = Path.Combine(licenses, name);
+                    Assert.IsTrue(File.Exists(path), $"Не скопирован {name}");
+                    Assert.IsTrue(new FileInfo(path).Length > 200, $"Пустой {name}");
+                }
+            }
+            finally
+            {
+                Directory.Delete(publish, true);
+            }
+        }
+
+        [TestMethod]
+        public void ThirdPartyNotice_NamesEveryShippedNuGetDependencyAndVersion()
+        {
+            var notice = File.ReadAllText(Path.Combine(Root, "THIRD-PARTY-NOTICES.md"));
+            foreach (var project in new[]
+                     {
+                         Path.Combine(Root, "GCodeGenerator", "GCodeGenerator.csproj"),
+                         Path.Combine(Root, "GCodeGenerator.Core", "GCodeGenerator.Core.csproj")
+                     })
+            {
+                var document = System.Xml.Linq.XDocument.Load(project);
+                foreach (var package in document.Descendants("PackageReference"))
+                {
+                    var name = package.Attribute("Include")?.Value;
+                    var version = package.Attribute("Version")?.Value;
+                    Assert.IsNotNull(name);
+                    Assert.IsNotNull(version);
+                    StringAssert.Contains(notice, $"{name} {version}",
+                        $"В уведомлениях нет поставляемой зависимости {name} {version}");
+                }
+            }
+        }
     }
 }

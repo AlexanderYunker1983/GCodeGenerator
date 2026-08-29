@@ -63,6 +63,7 @@ AppId={{BC1D74F7-289B-4721-951C-1B4885EA215E}
 AppName={#AppProductName}
 AppPublisher={#AppPublisher}
 AppCopyright={#AppCopyright}
+LicenseFile=..\LICENSE
 ; AppVersion = the full git tag (e.g. 0.0.1-rc5): displayed in the wizard
 ; and written to the uninstall registry (DisplayVersion, a string).
 ; Inno Setup 6 has no separate suffix directive - the full tag is the display

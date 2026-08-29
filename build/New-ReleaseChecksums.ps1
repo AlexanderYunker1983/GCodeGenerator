@@ -11,8 +11,8 @@ $resolvedDirectory = (Resolve-Path -LiteralPath $Directory).Path
 $outputPath = Join-Path $resolvedDirectory 'SHA256SUMS.txt'
 $temporaryPath = "$outputPath.tmp"
 
-# Только распространяемые файлы. Release notes намеренно не входят в список:
-# они не исполняются и GitHub может сгенерировать их уже после сборки.
+# Distributed files only. Release notes are intentionally excluded: they are
+# not executable and GitHub may generate them after the build has completed.
 $artifacts = @(
     Get-ChildItem -LiteralPath $resolvedDirectory -File |
         Where-Object {
