@@ -126,13 +126,13 @@ namespace GCodeGenerator.Tests
             // парсинг выполняется в пуле (Task.Run) внутри AsyncRelayCommand.
             // Неблокирование доказывается шлюзом, а не секундомером: вызов
             // вернулся, пока чтение ещё стоит на сигнале.
-            const int lineCount = 12000;
+            const int segmentCount = 12000;
             var path = Path.Combine(Path.GetTempPath(), $"gcodegen_big_dxf_{Guid.NewGuid():N}.dxf");
             try
             {
-                WriteBigDxf(path, lineCount);
+                WriteBigDxf(path, segmentCount);
 
-                var dialogs = new FakeDialogs { OpenDialogResult = path };
+                var dialogs = new FakeDialogs { OpenDialogResult = path, OnError = Assert.Fail };
                 var import = new GatedDxfImportService();
                 var vm = new ProfileDxfOperationViewModel(null, dialogs, dialogs, import);
 
@@ -144,9 +144,9 @@ namespace GCodeGenerator.Tests
                 import.Release.Set();
                 await task;
 
-                Assert.AreEqual(lineCount, vm.Operation.Polylines.Count, "Все сущности LINE распознаны");
+                Assert.AreEqual(1, vm.Operation.Polylines.Count, "Полилиния распознана как один контур");
                 var segments = vm.Operation.Polylines.Sum(p => Math.Max(0, p.Points.Count - 1));
-                Assert.IsTrue(segments > 10000, $"Ожидается >10000 сегментов, получено {segments}");
+                Assert.AreEqual(segmentCount, segments, "Все сегменты большой полилинии распознаны");
             }
             finally
             {
@@ -179,19 +179,17 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Генерирует полноценный DXF-чертёж с N отрезками — такой же, какой
-        /// приходит из CAD-системы: с шапкой, таблицами и секцией сущностей.
+        /// Генерирует полноценный DXF-чертёж с одной полилинией из N сегментов.
+        /// Он остаётся внутри лимита контуров, но по-прежнему достаточно велик,
+        /// чтобы проверять фоновый разбор, не нарушая защитные пределы продукта.
         /// </summary>
-        private static void WriteBigDxf(string path, int lineCount)
+        private static void WriteBigDxf(string path, int segmentCount)
         {
             var document = new DxfDocument(DxfVersion.AutoCad2000);
             document.DrawingVariables.InsUnits = netDxf.Units.DrawingUnits.Millimeters;
-            for (var i = 0; i < lineCount; i++)
-            {
-                document.Entities.Add(new netDxf.Entities.Line(
-                    new Vector2(i * 0.5, 0),
-                    new Vector2(i * 0.5 + 1, 5)));
-            }
+            var vertices = Enumerable.Range(0, segmentCount + 1)
+                .Select(i => new netDxf.Entities.Polyline2DVertex(i * 0.5, i % 2 == 0 ? 0 : 5));
+            document.Entities.Add(new netDxf.Entities.Polyline2D(vertices));
             document.Save(path);
         }
     }
