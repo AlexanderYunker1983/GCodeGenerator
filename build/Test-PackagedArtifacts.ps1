@@ -25,7 +25,10 @@ param(
     [int]$ApplicationStartupSeconds = 5,
 
     [ValidateRange(1, 300)]
-    [int]$ApplicationCloseTimeoutSeconds = 10
+    [int]$ApplicationCloseTimeoutSeconds = 10,
+
+    [ValidateRange(1, 60)]
+    [int]$CleanupTimeoutSeconds = 10
 )
 
 # ASCII-only: Windows PowerShell 5.1 reads a BOM-less script as ANSI.
@@ -58,6 +61,34 @@ function Write-SmokeLog([string]$Message) {
     $line = "[$([DateTime]::UtcNow.ToString('o'))] $Message"
     [System.IO.File]::AppendAllText($logPath, $line + [Environment]::NewLine, $utf8)
     Write-Host $line
+}
+
+function Remove-SmokeWorkDirectory {
+    if (-not (Test-Path -LiteralPath $workDirectory)) {
+        return
+    }
+
+    # Inno Setup's uninstaller can briefly keep its /LOG file open after the
+    # launcher has exited. Retry only the exact directory created by this run;
+    # a bounded wait handles that normal hand-off without hiding a real leak.
+    $deadline = [DateTime]::UtcNow.AddSeconds($CleanupTimeoutSeconds)
+    $retryLogged = $false
+    while ($true) {
+        try {
+            Remove-Item -LiteralPath $workDirectory -Recurse -Force -ErrorAction Stop
+            return
+        }
+        catch {
+            if ([DateTime]::UtcNow -ge $deadline) {
+                throw "Smoke-test cleanup did not finish within $CleanupTimeoutSeconds seconds: $($_.Exception.Message)"
+            }
+            if (-not $retryLogged) {
+                Write-SmokeLog 'Cleanup is waiting for packaged processes to release their files.'
+                $retryLogged = $true
+            }
+            Start-Sleep -Milliseconds 200
+        }
+    }
 }
 
 function Assert-PackagedSignature([string]$FilePath, [string]$Stage) {
@@ -223,7 +254,5 @@ catch {
 finally {
     # The exact directory was required not to exist and was created above by
     # this script, so recursive cleanup cannot target pre-existing user data.
-    if (Test-Path -LiteralPath $workDirectory) {
-        Remove-Item -LiteralPath $workDirectory -Recurse -Force
-    }
+    Remove-SmokeWorkDirectory
 }

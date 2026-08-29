@@ -255,6 +255,10 @@ namespace GCodeGenerator.Tests
                 "Установщик или деинсталлятор может зависнуть навсегда");
             StringAssert.Contains(script, "$process.WaitForExit($closeTimeoutMilliseconds)",
                 "Закрытие приложения должно быть ограничено по времени");
+            StringAssert.Contains(script, "[int]$CleanupTimeoutSeconds = 10");
+            StringAssert.Contains(script, "Remove-SmokeWorkDirectory");
+            StringAssert.Contains(script, "Start-Sleep -Milliseconds 200",
+                "Краткая блокировка лога деинсталлятором не должна ложно ронять smoke-тест");
             Assert.IsFalse(script.Contains("-Wait -PassThru", StringComparison.Ordinal),
                 "Start-Process -Wait не позволяет контролировать тайм-аут");
             StringAssert.Contains(script, "timed out after $ProcessTimeoutSeconds seconds");
