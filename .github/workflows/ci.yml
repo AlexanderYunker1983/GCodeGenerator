@@ -18,7 +18,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # Полная история: версионирование из git-тегов (git describe для
           # коммитов без тега; см. build/Get-GitVersion.ps1).
@@ -27,7 +27,7 @@ jobs:
       # Пункт 1.5: TFM net10.0-windows — нужен .NET 10 SDK (включает Windows Desktop runtime).
       # setup-dotnet ставит точную версию независимо от содержимого образа раннера.
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v6
+        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
         with:
           # Версия пакета разработки берётся из global.json: раннер собирает
           # тем же набором инструментов, что и разработчик.
@@ -86,7 +86,7 @@ jobs:
       # Отчёты выгружаются и при падении тестов — ради него они и нужны.
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: test-results
           path: TestResults

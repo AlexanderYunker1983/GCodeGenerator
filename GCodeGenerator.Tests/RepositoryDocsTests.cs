@@ -144,6 +144,36 @@ namespace GCodeGenerator.Tests
                 "Список коммитов выводится всегда, а должен — только без раздела в журнале");
         }
 
+        /// <summary>
+        /// Сторонний action — исполняемый код в доверенном раннере. Тег вроде
+        /// v7 владелец репозитория может передвинуть после ревью, поэтому для
+        /// исполнения годится только полный неизменяемый SHA. Комментарий с
+        /// версией оставляет обновление читаемым для Dependabot и человека.
+        /// </summary>
+        [TestMethod]
+        public void GitHubWorkflows_PinEveryExternalActionToAFullCommitSha()
+        {
+            var workflowDirectory = Path.Combine(Root, ".github", "workflows");
+            var useLine = new Regex(
+                @"^\s*uses:\s*(?!\./)(?<action>[^@\s]+)@(?<revision>[^\s#]+)(?:\s+#\s*(?<version>\S+))?\s*$",
+                RegexOptions.Multiline);
+
+            foreach (var path in Directory.EnumerateFiles(workflowDirectory, "*.yml"))
+            {
+                foreach (Match match in useLine.Matches(File.ReadAllText(path)))
+                {
+                    var action = match.Groups["action"].Value;
+                    var revision = match.Groups["revision"].Value;
+                    var version = match.Groups["version"].Value;
+
+                    Assert.IsTrue(Regex.IsMatch(revision, "^[0-9a-f]{40}$"),
+                        $"{Path.GetFileName(path)}: {action} закреплён не на полном commit SHA ({revision})");
+                    Assert.IsTrue(Regex.IsMatch(version, @"^v\d"),
+                        $"{Path.GetFileName(path)}: рядом с SHA {action} нет читаемого комментария версии");
+                }
+            }
+        }
+
         // ------------------------------------------------------------------
         // Формы issue
         // ------------------------------------------------------------------
