@@ -220,6 +220,18 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow,
                 "gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft",
                 "Mutable-выпуск не возвращается в draft при неудачной проверке");
+            StringAssert.Contains(workflow, "for ($attempt = 1; $attempt -le 30; $attempt++)",
+                "Минутного ожидания недостаточно для асинхронной release attestation");
+            StringAssert.Contains(workflow, "--json isImmutable,isDraft,url");
+            var immutableBranch = workflow.IndexOf("if ($releaseState.isImmutable)", StringComparison.Ordinal);
+            var mutableRollback = workflow.IndexOf(
+                "gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft",
+                immutableBranch,
+                StringComparison.Ordinal);
+            Assert.IsTrue(immutableBranch >= 0 && mutableRollback > immutableBranch,
+                "Состояние immutable должно проверяться до попытки вернуть выпуск в draft");
+            StringAssert.Contains(workflow, "Do not rerun publish. Verify manually",
+                "При задержке immutable attestation workflow должен направлять к ручной проверке");
         }
 
         [TestMethod]

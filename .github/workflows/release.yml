@@ -447,26 +447,41 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Publishing the completed draft release failed.' }
 
       # Repository Settings > Releases > Immutable releases must be enabled.
-      # GitHub creates the signed release attestation asynchronously, поэтому
-      # проверка имеет короткую верхнюю границу ожидания. Без attestation выпуск
-      # не считается успешным и, если GitHub позволяет, возвращается в draft.
+      # GitHub creates the signed release attestation asynchronously. Проверка
+      # ждёт до пяти минут; immutable release после публикации нельзя и не надо
+      # пытаться вернуть в draft — при задержке нужна ручная verify, не повтор
+      # publish-job с созданием второго черновика.
       - name: Verify immutable release and every uploaded asset
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $releaseVerified = $false
-          for ($attempt = 1; $attempt -le 12; $attempt++) {
+          for ($attempt = 1; $attempt -le 30; $attempt++) {
             gh release verify $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY
             if ($LASTEXITCODE -eq 0) {
               $releaseVerified = $true
               break
             }
-            if ($attempt -lt 12) { Start-Sleep -Seconds 5 }
+            if ($attempt -lt 30) { Start-Sleep -Seconds 10 }
           }
           if (-not $releaseVerified) {
-            gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft
-            throw 'Published release has no valid immutable release attestation. Enable immutable releases and retry with a new tag.'
+            $releaseState = gh release view $env:GITHUB_REF_NAME `
+              --repo $env:GITHUB_REPOSITORY `
+              --json isImmutable,isDraft,url | ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0 -or $null -eq $releaseState) {
+              throw 'Release attestation verification timed out and the published release state could not be read. Do not rerun publish; inspect the release manually.'
+            }
+            if ($releaseState.isImmutable) {
+              throw "Immutable release attestation was not verifiable within five minutes. Do not rerun publish. Verify manually: gh release verify $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY ($($releaseState.url))"
+            }
+            if (-not $releaseState.isDraft) {
+              gh release edit $env:GITHUB_REF_NAME --repo $env:GITHUB_REPOSITORY --draft
+              if ($LASTEXITCODE -ne 0) {
+                throw 'Release attestation verification failed and the mutable release could not be returned to draft. Do not rerun publish; inspect the release manually.'
+              }
+            }
+            throw 'Published release has no immutable release attestation and remains a draft. Enable immutable releases, then use a new tag.'
           }
 
           $uploadedAssets = @(
