@@ -203,6 +203,28 @@ namespace GCodeGenerator.Tests
                 "Job с записью в репозиторий не должен checkout недоверенный исходный код");
         }
 
+        /// <summary>
+        /// CodeQL проверяет не только каждый change, но и старый код новыми
+        /// запросами по расписанию. Для C# используется фактическая WPF-
+        /// сборка, поэтому база не зависит от догадок autobuild.
+        /// </summary>
+        [TestMethod]
+        public void CodeQl_AnalyzesTheManualLockedBuildOnChangesAndSchedule()
+        {
+            var workflow = Read(".github", "workflows", "codeql.yml");
+
+            StringAssert.Contains(workflow, "pull_request:");
+            StringAssert.Contains(workflow, "schedule:");
+            StringAssert.Contains(workflow, "security-events: write");
+            StringAssert.Contains(workflow, "github/codeql-action/init@");
+            StringAssert.Contains(workflow, "build-mode: manual");
+            StringAssert.Contains(workflow, "dotnet restore GCodeGenerator.sln --locked-mode");
+            StringAssert.Contains(workflow, "dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror");
+            StringAssert.Contains(workflow, "github/codeql-action/analyze@");
+            Assert.IsFalse(workflow.Contains("autobuild" + Environment.NewLine),
+                "CodeQL должен наблюдать явную сборку решения");
+        }
+
         // ------------------------------------------------------------------
         // Формы issue
         // ------------------------------------------------------------------
