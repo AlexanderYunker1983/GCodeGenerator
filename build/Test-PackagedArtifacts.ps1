@@ -4,7 +4,7 @@ param(
     [string]$InstallerPath,
 
     [Parameter(Mandatory = $true)]
-    [string]$PortableExePath,
+    [string]$PortableArchivePath,
 
     [Parameter(Mandatory = $true)]
     [string]$WorkRoot,
@@ -42,7 +42,7 @@ $previousInstaller = if ([string]::IsNullOrWhiteSpace($PreviousInstallerPath)) {
 else {
     (Resolve-Path -LiteralPath $PreviousInstallerPath).Path
 }
-$portableExe = (Resolve-Path -LiteralPath $PortableExePath).Path
+$portableArchive = (Resolve-Path -LiteralPath $PortableArchivePath).Path
 $workDirectory = [System.IO.Path]::GetFullPath($WorkRoot)
 $logPath = [System.IO.Path]::GetFullPath($OutputLog)
 $logDirectory = Split-Path -Parent $logPath
@@ -164,9 +164,17 @@ $installDirectory = Join-Path $workDirectory 'installed'
 $installLog = Join-Path $workDirectory 'install.log'
 $upgradeLog = Join-Path $workDirectory 'upgrade.log'
 $uninstallLog = Join-Path $workDirectory 'uninstall.log'
+$portableDirectory = Join-Path $workDirectory 'portable'
+$portableExe = Join-Path $portableDirectory 'GCodeGenerator.exe'
 
 try {
     New-Item -ItemType Directory -Path $workDirectory | Out-Null
+    Write-SmokeLog 'Extract portable archive: starting'
+    Expand-Archive -LiteralPath $portableArchive -DestinationPath $portableDirectory
+    if (-not (Test-Path -LiteralPath $portableExe -PathType Leaf)) {
+        throw "Portable archive does not contain GCodeGenerator.exe at its root: '$portableArchive'."
+    }
+    Write-SmokeLog 'Extract portable archive: passed'
     Assert-PackagedSignature $installer 'Installer before installation'
     Assert-PackagedSignature $portableExe 'Portable executable'
     $installArguments = @(

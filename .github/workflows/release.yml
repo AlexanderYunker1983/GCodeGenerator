@@ -305,11 +305,12 @@ jobs:
         shell: pwsh
         run: |
           $installer = (Get-ChildItem artifacts/installer/GCodeGenerator-Setup-*.exe -File -ErrorAction Stop).FullName
+          $portableArchive = (Get-ChildItem artifacts/installer/GCodeGenerator-*-portable.zip -File -ErrorAction Stop).FullName
           $work = Join-Path $env:RUNNER_TEMP "gcodegen-package-smoke-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $smoke = @{
             InstallerPath = $installer
             PreviousInstallerPath = '${{ steps.previous.outputs.path }}'
-            PortableExePath = 'artifacts/publish/GCodeGenerator/GCodeGenerator.exe'
+            PortableArchivePath = $portableArchive
             WorkRoot = $work
             OutputLog = 'artifacts/installer/packaged-artifact-smoke.log'
           }

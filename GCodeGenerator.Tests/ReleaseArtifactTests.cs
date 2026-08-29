@@ -251,6 +251,12 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow, "gh release list");
             StringAssert.Contains(workflow, "gh release download");
             StringAssert.Contains(workflow, "PreviousInstallerPath = '${{ steps.previous.outputs.path }}'");
+            StringAssert.Contains(workflow, "PortableArchivePath = $portableArchive");
+            StringAssert.Contains(script, "Expand-Archive -LiteralPath $portableArchive");
+            StringAssert.Contains(script, "$portableExe = Join-Path $portableDirectory 'GCodeGenerator.exe'",
+                "Smoke должен запускать exe из распакованного архива");
+            Assert.IsFalse(script.Contains("PortableExePath", StringComparison.Ordinal),
+                "Portable по-прежнему проверяется напрямую из publish-каталога");
             StringAssert.Contains(workflow,
                 "55c92678f32d500d103f40a777cc93c182d030b63fbf776acffe8a067cdaac6f",
                 "SHA-256 предыдущего legacy-инсталлятора не закреплён");
