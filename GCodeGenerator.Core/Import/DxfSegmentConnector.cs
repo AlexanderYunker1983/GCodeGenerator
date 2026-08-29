@@ -26,6 +26,7 @@ namespace GCodeGenerator.Import
         {
             var contours = new List<Polyline2D>();
             var used = new bool[segments.Count];
+            var endpoints = BuildEndpointIndex(segments);
             
             for (int i = 0; i < segments.Count; i++)
             {
@@ -33,7 +34,7 @@ namespace GCodeGenerator.Import
                     continue;
                 
                 // Пытаемся построить контур, начиная с этого сегмента
-                var contour = BuildContourFromSegment(segments, i, used);
+                var contour = BuildContourFromSegment(segments, i, used, endpoints);
                 if (contour != null && contour.Points != null && contour.Points.Count >= 3)
                 {
                     contours.Add(contour);
@@ -43,7 +44,8 @@ namespace GCodeGenerator.Import
             return contours;
         }
 
-        private Polyline2D BuildContourFromSegment(List<Polyline2D> segments, int startIdx, bool[] used)
+        private Polyline2D BuildContourFromSegment(List<Polyline2D> segments, int startIdx,
+            bool[] used, SpatialPointIndex<SegmentEndpoint> endpoints)
         {
             var contourPoints = new List<Point2D>();
             var startPoint = segments[startIdx].Points[0];
@@ -59,39 +61,13 @@ namespace GCodeGenerator.Import
             // Ищем следующий сегмент, который начинается там, где заканчивается текущий
             while (true)
             {
-                int nextSegmentIdx = -1;
-                bool reverseNext = false;
-                
-                for (int i = 0; i < segments.Count; i++)
-                {
-                    if (used[i] || segments[i].Points == null || segments[i].Points.Count < 2)
-                        continue;
-                    
-                    var seg = segments[i];
-                    var segStart = seg.Points[0];
-                    var segEnd = seg.Points[seg.Points.Count - 1];
-                    
-                    // Проверяем, совпадает ли начало или конец сегмента с текущей точкой
-                    if (PointsMatch(currentPoint, segStart))
-                    {
-                        nextSegmentIdx = i;
-                        reverseNext = false;
-                        break;
-                    }
-                    else if (PointsMatch(currentPoint, segEnd))
-                    {
-                        nextSegmentIdx = i;
-                        reverseNext = true;
-                        break;
-                    }
-                }
-                
-                if (nextSegmentIdx < 0)
+                if (!endpoints.TryFindFirst(currentPoint, endpoint => !used[endpoint.Index],
+                        out var connection))
                     break; // Не нашли следующий сегмент
                 
                 // Добавляем точки следующего сегмента
-                var nextSeg = segments[nextSegmentIdx];
-                if (reverseNext)
+                var nextSeg = segments[connection.Index];
+                if (connection.Reverse)
                 {
                     // Добавляем точки в обратном порядке
                     for (int j = nextSeg.Points.Count - 2; j >= 0; j--) // Пропускаем последнюю точку (она уже есть)
@@ -110,7 +86,7 @@ namespace GCodeGenerator.Import
                     currentPoint = nextSeg.Points[nextSeg.Points.Count - 1];
                 }
                 
-                used[nextSegmentIdx] = true;
+                used[connection.Index] = true;
                 
                 // Проверяем, замкнулся ли контур
                 if (PointsMatch(currentPoint, startPoint))
@@ -120,6 +96,35 @@ namespace GCodeGenerator.Import
             }
             
             return new Polyline2D { Points = contourPoints };
+        }
+
+        private SpatialPointIndex<SegmentEndpoint> BuildEndpointIndex(
+            IReadOnlyList<Polyline2D> segments)
+        {
+            var index = new SpatialPointIndex<SegmentEndpoint>(_tolerance);
+            for (var i = 0; i < segments.Count; i++)
+            {
+                var points = segments[i]?.Points;
+                if (points == null || points.Count < 2)
+                    continue;
+
+                index.Add(points[0], new SegmentEndpoint(i, false));
+                index.Add(points[points.Count - 1], new SegmentEndpoint(i, true));
+            }
+
+            return index;
+        }
+
+        private readonly struct SegmentEndpoint
+        {
+            internal SegmentEndpoint(int index, bool reverse)
+            {
+                Index = index;
+                Reverse = reverse;
+            }
+
+            internal int Index { get; }
+            internal bool Reverse { get; }
         }
 
         private bool PointsMatch(Point2D p1, Point2D p2)

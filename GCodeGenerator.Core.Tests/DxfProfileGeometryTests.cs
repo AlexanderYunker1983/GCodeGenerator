@@ -132,6 +132,27 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Большой профиль из отдельных LINE собирается через индекс концов,
+        /// а не полным просмотром оставшихся линий после каждого стыка.
+        /// Порядок точек при этом остаётся детерминированным.
+        /// </summary>
+        [TestMethod]
+        public void ThousandConnectedSegments_FormOneOrderedContour()
+        {
+            const int segmentCount = 1000;
+            var op = new ProfileDxfOperation { ToolPathMode = ToolPathMode.OnLine };
+            for (var i = 0; i < segmentCount; i++)
+                op.Polylines.Add(Poly((i, 0), (i + 1, 0)));
+
+            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
+
+            Assert.AreEqual(1, contours.Count);
+            Assert.AreEqual(segmentCount + 1, contours[0].Count);
+            Assert.AreEqual((0.0, 0.0), contours[0][0]);
+            Assert.AreEqual(((double)segmentCount, 0.0), contours[0][segmentCount]);
+        }
+
+        /// <summary>
         /// Незамкнутая полилиния смещается сдвигом вершин по нормали: области
         /// у линии нет, поэтому смещение остаётся односторонним и число точек
         /// сохраняется.

@@ -56,6 +56,7 @@ namespace GCodeGenerator.Import
         private Dictionary<Point2D, List<Point2D>> BuildPointGraph(List<Polyline2D> segments)
         {
             var graph = new Dictionary<Point2D, List<Point2D>>();
+            var points = new SpatialPointIndex<Point2D>(_tolerance);
             
             // Для каждого сегмента добавляем соединения между его концами
             foreach (var seg in segments)
@@ -67,8 +68,8 @@ namespace GCodeGenerator.Import
                 var end = seg.Points[seg.Points.Count - 1];
                 
                 // Находим или создаем ключи для точек
-                Point2D startKey = FindOrAddPoint(graph, start);
-                Point2D endKey = FindOrAddPoint(graph, end);
+                Point2D startKey = FindOrAddPoint(graph, points, start);
+                Point2D endKey = FindOrAddPoint(graph, points, end);
                 
                 // Добавляем соединение (двунаправленное)
                 if (!graph[startKey].Any(p => PointsMatch(p, endKey)))
@@ -80,17 +81,15 @@ namespace GCodeGenerator.Import
             return graph;
         }
 
-        private Point2D FindOrAddPoint(Dictionary<Point2D, List<Point2D>> graph, Point2D point)
+        private static Point2D FindOrAddPoint(Dictionary<Point2D, List<Point2D>> graph,
+            SpatialPointIndex<Point2D> points, Point2D point)
         {
-            // Ищем существующую точку в графе
-            foreach (var key in graph.Keys)
-            {
-                if (PointsMatch(key, point))
-                    return key;
-            }
+            if (points.TryFindFirst(point, null, out var existing))
+                return existing;
             
             // Если не нашли, добавляем новую точку
             graph[point] = new List<Point2D>();
+            points.Add(point, point);
             return point;
         }
 

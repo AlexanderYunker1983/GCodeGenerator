@@ -317,13 +317,14 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         {
             var contours = new List<List<Polyline2D>>();
             var used = new bool[polylines.Count];
+            var endpoints = BuildEndpointIndex(polylines, tolerance);
 
             for (int i = 0; i < polylines.Count; i++)
             {
                 if (used[i] || polylines[i]?.Points == null || polylines[i].Points.Count < 2)
                     continue;
 
-                var contour = BuildContourFromPolyline(polylines, i, used, tolerance);
+                var contour = BuildContourFromPolyline(polylines, i, used, tolerance, endpoints);
                 if (contour != null && contour.Count > 0)
                     contours.Add(contour);
             }
@@ -340,7 +341,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             List<Polyline2D> polylines,
             int startIdx,
             bool[] used,
-            double tolerance)
+            double tolerance,
+            SpatialPointIndex<PolylineEndpoint> endpoints)
         {
             var contour = new List<Polyline2D> { polylines[startIdx] };
             used[startIdx] = true;
@@ -348,49 +350,64 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             var startPoint = polylines[startIdx].Points[0];
             var currentPoint = polylines[startIdx].Points[polylines[startIdx].Points.Count - 1];
 
-            bool foundConnection = true;
-            while (foundConnection)
+            while (endpoints.TryFindFirst(currentPoint, endpoint => !used[endpoint.Index],
+                       out var connection))
             {
-                foundConnection = false;
-
-                for (int i = 0; i < polylines.Count; i++)
+                var polyline = polylines[connection.Index];
+                if (!connection.Reverse)
                 {
-                    if (used[i] || polylines[i]?.Points == null || polylines[i].Points.Count < 2)
-                        continue;
-
-                    var polyline = polylines[i];
-                    var polyStart = polyline.Points[0];
-                    var polyEnd = polyline.Points[polyline.Points.Count - 1];
-
-                    if (Geometry2D.PointsMatch(currentPoint, polyStart, tolerance))
-                    {
-                        contour.Add(polyline);
-                        used[i] = true;
-                        currentPoint = polyEnd;
-                        foundConnection = true;
-                        break;
-                    }
-
-                    if (Geometry2D.PointsMatch(currentPoint, polyEnd, tolerance))
-                    {
-                        var reversedPolyline = new Polyline2D
-                        {
-                            Points = new List<Point2D>(polyline.Points)
-                        };
-                        reversedPolyline.Points.Reverse();
-                        contour.Add(reversedPolyline);
-                        used[i] = true;
-                        currentPoint = polyStart;
-                        foundConnection = true;
-                        break;
-                    }
+                    contour.Add(polyline);
+                    currentPoint = polyline.Points[polyline.Points.Count - 1];
                 }
+                else
+                {
+                    var reversedPolyline = new Polyline2D
+                    {
+                        Points = new List<Point2D>(polyline.Points)
+                    };
+                    reversedPolyline.Points.Reverse();
+                    contour.Add(reversedPolyline);
+                    currentPoint = polyline.Points[0];
+                }
+
+                used[connection.Index] = true;
 
                 if (Geometry2D.PointsMatch(currentPoint, startPoint, tolerance))
                     break;
             }
 
             return contour;
+        }
+
+        private static SpatialPointIndex<PolylineEndpoint> BuildEndpointIndex(
+            IReadOnlyList<Polyline2D> polylines, double tolerance)
+        {
+            var index = new SpatialPointIndex<PolylineEndpoint>(tolerance);
+            for (var i = 0; i < polylines.Count; i++)
+            {
+                var points = polylines[i]?.Points;
+                if (points == null || points.Count < 2)
+                    continue;
+
+                // Порядок совпадает с прежним циклом: меньший индекс раньше,
+                // а начало той же полилинии имеет приоритет перед концом.
+                index.Add(points[0], new PolylineEndpoint(i, false));
+                index.Add(points[points.Count - 1], new PolylineEndpoint(i, true));
+            }
+
+            return index;
+        }
+
+        private readonly struct PolylineEndpoint
+        {
+            internal PolylineEndpoint(int index, bool reverse)
+            {
+                Index = index;
+                Reverse = reverse;
+            }
+
+            internal int Index { get; }
+            internal bool Reverse { get; }
         }
 
         public (double x, double y) GetStartPoint(double toolOffset)
