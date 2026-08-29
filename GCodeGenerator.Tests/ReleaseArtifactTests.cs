@@ -227,11 +227,17 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow, "gh release list");
             StringAssert.Contains(workflow, "gh release download");
             StringAssert.Contains(workflow, "PreviousInstallerPath = '${{ steps.previous.outputs.path }}'");
+            StringAssert.Contains(workflow, "build/Make-Installer.ps1 -SigningMode Unsigned",
+                "Активная политика unsigned-выпуска не задана явно");
+            Assert.IsFalse(workflow.Contains("secrets.SIGN_COMMAND", StringComparison.Ordinal),
+                "Секрет команды подписи доступен шагам, запускающим сторонний установщик");
+            Assert.IsFalse(workflow.Contains("secrets.SIGNER_THUMBPRINT", StringComparison.Ordinal),
+                "Секрет сертификата доступен шагам, запускающим сторонний установщик");
+            Assert.IsFalse(workflow.Contains("GCODEGEN_SIGN_COMMAND:", StringComparison.Ordinal),
+                "Команда подписи экспортируется в окружение release job");
             StringAssert.Contains(script, "RequireAuthenticodeSignature");
             StringAssert.Contains(script, "Assert-AuthenticodeSignature.ps1");
             StringAssert.Contains(script, "'Upgraded payload'");
-            StringAssert.Contains(workflow, "SIGNER_THUMBPRINT");
-            StringAssert.Contains(workflow, "smoke.RequireAuthenticodeSignature = $true");
 
             var install = script.IndexOf("'Install previous release'", StringComparison.Ordinal);
             var upgrade = script.IndexOf("'Upgrade previous release to candidate'", StringComparison.Ordinal);

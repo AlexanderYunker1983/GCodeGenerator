@@ -90,28 +90,37 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Подпись приходит извне, но стабильный выпуск без неё запрещён.
-        /// Pre-release можно собирать неподписанным для тестирования.
+        /// Активная политика выпуска явно допускает unsigned-сборку, пока нет
+        /// публично доверенного сертификата. Будущий Required-режим закрыт при
+        /// отсутствии команды, закреплённого сертификата или метки времени.
         /// </summary>
         [TestMethod]
-        public void Build_SupportsOptionalSigning()
+        public void Build_UsesExplicitUnsignedOrRequiredSigningPolicy()
         {
             var build = BuildScript;
 
+            StringAssert.Contains(build, "[ValidateSet('Unsigned', 'Required')]",
+                "build/Make-Installer.ps1: допустимые политики подписи не ограничены");
+            StringAssert.Contains(build, "$SigningMode = 'Unsigned'",
+                "Текущая политика unsigned не зафиксирована явно");
+            StringAssert.Contains(build, "$SigningMode -eq 'Required'",
+                "Required-режим не отделён от unsigned-сборки");
             StringAssert.Contains(build, "$SignCommand",
                 "build/Make-Installer.ps1: нет параметра команды подписи");
             StringAssert.Contains(build, "GCODEGEN_SIGN_COMMAND",
                 "build/Make-Installer.ps1: команду подписи нельзя задать переменной окружения");
             StringAssert.Contains(build, "/DSignToolName=",
                 "build/Make-Installer.ps1: подпись не передаётся компилятору установщика");
-            StringAssert.Contains(build, "$suffix -eq ''",
-                "Стабильная версия не отличается от pre-release при проверке подписи");
-            StringAssert.Contains(build, "A stable release must be code-signed",
-                "Стабильный выпуск не останавливается без сертификата");
-            StringAssert.Contains(build, "$AllowUnsignedStable",
-                "Нет явного локального обхода для диагностической сборки");
+            StringAssert.Contains(build, "SigningMode Required needs -SignCommand",
+                "Required-режим не останавливается без команды подписи");
+            StringAssert.Contains(build, "SigningMode Required needs -ExpectedSignerThumbprint",
+                "Required-режим не закрепляет ожидаемый сертификат");
+            StringAssert.Contains(build, "SigningMode Unsigned cannot be combined",
+                "Unsigned-режим может случайно подхватить секреты подписи");
+            Assert.IsFalse(build.Contains("$AllowUnsignedStable", StringComparison.Ordinal),
+                "Старый обход обязательной подписи остался доступен");
             StringAssert.Contains(build, "GCODEGEN_EXPECTED_SIGNER_THUMBPRINT",
-                "Стабильный выпуск не закрепляет ожидаемый сертификат");
+                "Required-режим не принимает закреплённый сертификат из окружения");
             StringAssert.Contains(build, "Assert-AuthenticodeSignature.ps1",
                 "Код возврата команды подписи принимается без проверки результата");
             StringAssert.Contains(build, "RequireTimestamp = $true",

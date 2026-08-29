@@ -8,23 +8,24 @@
 #   2. dotnet publish (SELF-CONTAINED win-x64 by default: the installer ships
 #      the .NET 10 Desktop Runtime, so end users need nothing preinstalled)
 #      into artifacts\publish\GCodeGenerator.
-#   3. Sign the published executables, if signing is configured (see below).
+#   3. Apply the explicit signing policy (see below).
 #   4. Compile install\GCodeGenerator.iss with ISCC, passing the version via
 #      /D defines; output into artifacts\installer.
 #
-# Signing is optional for pre-releases and mandatory for stable releases.
-# It needs a code-signing certificate, which cannot live in the repository.
-# Give -SignCommand (or set the
-# GCODEGEN_SIGN_COMMAND environment variable) to a command line that signs one
-# file, with $f standing for the file - the same placeholder Inno Setup uses,
-# so one setting covers both the app and the installer. Examples:
+# SigningMode is deliberately explicit. Unsigned is the current release policy
+# until a publicly trusted code-signing certificate is available. Required is
+# the fail-closed future policy: it needs a signing command and a pinned signer
+# thumbprint. Give -SignCommand (or set the GCODEGEN_SIGN_COMMAND environment
+# variable) to a command line that signs one file, with $f standing for the
+# file - the same placeholder Inno Setup uses, so one setting covers both the
+# app and the installer. Examples:
 #
 #   -SignCommand 'signtool.exe sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f C:\keys\cert.pfx /p SECRET $f'
 #   -SignCommand 'azuresigntool.exe sign -kvu ... -kvc ... -tr http://timestamp.digicert.com -td SHA256 $f'
 #
-# Without it an alpha/beta/rc build is explicitly marked unsigned. A stable
-# version fails unless -AllowUnsignedStable is passed deliberately for a local
-# diagnostic build; the release workflow never passes that escape hatch.
+# Unsigned mode rejects signing inputs instead of silently changing the release
+# policy when a stale environment variable is present. Required mode rejects a
+# build unless both the command and expected thumbprint are available.
 #
 # Requires: .NET 10 SDK, git, 64-bit Inno Setup 7 (ISCC.exe) - or -IsccPath.
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
@@ -33,18 +34,19 @@
 # Usage:
 #   build\Make-Installer.ps1 [-Configuration Release] [-Runtime win-x64]
 #                            [-FrameworkDependent] [-IsccPath <path to ISCC.exe>]
+#                            [-SigningMode Unsigned|Required]
 #                            [-SignCommand '<command with $f>']
 #                            [-ExpectedSignerThumbprint <SHA-1 thumbprint>]
-#                            [-AllowUnsignedStable]
 # ---------------------------------------------------------------------------
 param(
     [string]$Configuration = 'Release',
     [string]$Runtime = 'win-x64',
     [switch]$FrameworkDependent,
     [string]$IsccPath = '',
+    [ValidateSet('Unsigned', 'Required')]
+    [string]$SigningMode = 'Unsigned',
     [string]$SignCommand = '',
-    [string]$ExpectedSignerThumbprint = '',
-    [switch]$AllowUnsignedStable
+    [string]$ExpectedSignerThumbprint = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -127,20 +129,32 @@ if ($publishedSymbols.Count -ne 0) {
 & (Join-Path $scriptDir 'Copy-ReleaseNotices.ps1') -PublishDirectory $publishDir -RepositoryRoot $repoRoot
 if ($LASTEXITCODE -ne 0) { throw 'Copy-ReleaseNotices.ps1 failed' }
 
-# --- 3) Sign the published executables ---------------------------------------
-# The parameter wins over the environment variable, so a workflow can export
-# the command once and a local build can still override it.
-if ($SignCommand -eq '') { $SignCommand = $env:GCODEGEN_SIGN_COMMAND }
-if ($ExpectedSignerThumbprint -eq '') {
-    $ExpectedSignerThumbprint = $env:GCODEGEN_EXPECTED_SIGNER_THUMBPRINT
+# --- 3) Apply the signing policy ---------------------------------------------
+$signingEnabled = $SigningMode -eq 'Required'
+if ($signingEnabled) {
+    # The parameter wins over the environment variable, so a local invocation
+    # can still override credentials supplied by a protected build environment.
+    if ($SignCommand -eq '') { $SignCommand = $env:GCODEGEN_SIGN_COMMAND }
+    if ($ExpectedSignerThumbprint -eq '') {
+        $ExpectedSignerThumbprint = $env:GCODEGEN_EXPECTED_SIGNER_THUMBPRINT
+    }
+    if ($SignCommand -eq '') {
+        throw 'SigningMode Required needs -SignCommand or GCODEGEN_SIGN_COMMAND.'
+    }
+    if ($ExpectedSignerThumbprint -eq '') {
+        throw 'SigningMode Required needs -ExpectedSignerThumbprint or GCODEGEN_EXPECTED_SIGNER_THUMBPRINT.'
+    }
+    Write-Host 'Signing policy: REQUIRED (command and signer thumbprint are pinned).'
 }
-
-if ($SignCommand -eq '' -and $suffix -eq '' -and -not $AllowUnsignedStable) {
-    throw 'A stable release must be code-signed. Configure GCODEGEN_SIGN_COMMAND or use -AllowUnsignedStable only for a local diagnostic build.'
-}
-if ($SignCommand -ne '' -and $ExpectedSignerThumbprint -eq '' -and
-    $suffix -eq '' -and -not $AllowUnsignedStable) {
-    throw 'A stable release must pin the signing certificate. Configure GCODEGEN_EXPECTED_SIGNER_THUMBPRINT.'
+else {
+    $hasSigningInput = $SignCommand -ne '' -or
+        $ExpectedSignerThumbprint -ne '' -or
+        -not [string]::IsNullOrWhiteSpace($env:GCODEGEN_SIGN_COMMAND) -or
+        -not [string]::IsNullOrWhiteSpace($env:GCODEGEN_EXPECTED_SIGNER_THUMBPRINT)
+    if ($hasSigningInput) {
+        throw 'SigningMode Unsigned cannot be combined with signing parameters or GCODEGEN signing environment variables.'
+    }
+    Write-Warning 'Signing policy: UNSIGNED. Windows will show an unknown publisher and may block the application according to local reputation policy.'
 }
 
 # Runs the signing command for one file: $f is replaced by its quoted path,
@@ -163,7 +177,7 @@ function Invoke-SignCommand([string]$Command, [string]$FilePath) {
     & (Join-Path $scriptDir 'Assert-AuthenticodeSignature.ps1') @verification
 }
 
-if ($SignCommand -ne '') {
+if ($signingEnabled) {
     # Signed here: the app the user launches, not only the installer that
     # delivers it. SmartScreen looks at both, and an unsigned app inside a
     # signed installer warns on every start instead of once.
@@ -177,10 +191,7 @@ if ($SignCommand -ne '') {
     }
 }
 else {
-    # Only a pre-release or an explicitly overridden local stable build can
-    # reach this branch.
-    Write-Host 'Signing is not configured: the installer will be UNSIGNED.' -ForegroundColor Yellow
-    Write-Host '  Pass -SignCommand or set GCODEGEN_SIGN_COMMAND to sign the release.'
+    Write-Host 'Published product binaries will remain UNSIGNED.' -ForegroundColor Yellow
 }
 
 # --- 4) Compile the installer ------------------------------------------------
@@ -215,7 +226,7 @@ $isccArgs = @(
     "/DAppCopyright=$copyright",
     $outArg,
     $iss)
-if ($SignCommand -ne '') {
+if ($signingEnabled) {
     # /S<name>=<command> defines the signing tool, /D<name> switches on the
     # SignTool directives in the .iss (they are inside #ifdef, so an unsigned
     # build compiles the same script unchanged). The name is arbitrary and
@@ -227,7 +238,7 @@ if ($LASTEXITCODE -ne 0) { throw 'ISCC failed' }
 
 $setup = Get-ChildItem -Path $installerDir -Filter 'GCodeGenerator-Setup-*.exe' | Select-Object -First 1
 if (-not $setup) { throw "Installer not found in $installerDir" }
-if ($SignCommand -ne '') {
+if ($signingEnabled) {
     $verification = @{
         FilePath = $setup.FullName
         RequireTimestamp = $true
@@ -239,6 +250,6 @@ if ($SignCommand -ne '') {
 }
 Write-Host ""
 Write-Host "Installer: $($setup.FullName) ($([math]::Round($setup.Length / 1MB, 1)) MB)"
-if ($SignCommand -eq '') {
-    Write-Host "The installer is UNSIGNED - Windows SmartScreen will warn about it." -ForegroundColor Yellow
+if (-not $signingEnabled) {
+    Write-Host 'The installer is UNSIGNED - Windows may warn about or block an unknown publisher.' -ForegroundColor Yellow
 }
