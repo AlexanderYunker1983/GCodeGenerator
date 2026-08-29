@@ -182,7 +182,7 @@ jobs:
               $null -eq $authenticode.TimeStamperCertificate) {
             throw "Inno Setup Authenticode verification failed: $($authenticode.Status); $($authenticode.SignerCertificate.Subject)"
           }
-          gh release verify-asset $installer --repo jrsoftware/issrc
+          gh release verify-asset is-7_1_0 $installer --repo jrsoftware/issrc
           if ($LASTEXITCODE -ne 0) { throw 'Inno Setup GitHub release attestation is invalid.' }
 
           & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS

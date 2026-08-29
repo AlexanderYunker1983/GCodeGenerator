@@ -197,7 +197,7 @@ namespace GCodeGenerator.Tests
                          "Get-FileHash -Algorithm SHA256",
                          "Get-AuthenticodeSignature -LiteralPath $installer",
                          "O=Pyrsys B\\.V\\.",
-                         "gh release verify-asset $installer --repo jrsoftware/issrc"
+                         "gh release verify-asset is-7_1_0 $installer --repo jrsoftware/issrc"
                      })
             {
                 StringAssert.Contains(workflow, verification);
