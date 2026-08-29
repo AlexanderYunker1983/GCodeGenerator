@@ -276,12 +276,14 @@ namespace GCodeGenerator.Tests
         [TestMethod]
         public async Task FailedDocumentApply_RestoresPreviousOperations()
         {
-            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain();
+            var (main, _, dialogs, settingsStore) = MainViewModelOperationEditTests.CreateMain();
             var existing = Drill();
             main.OperationsWorkspace.AllOperations.Add(existing);
             dialogs.SaveDialogResult = _projectPath;
             await ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
             main.OperationsWorkspace.AllOperations.Add(Drill());
+            settingsStore.Current.Spindle.SpindleSpeedRpm = 4321;
+            settingsStore.Save();
             dialogs.SaveConfirmationResult = SaveConfirmation.Discard;
             dialogs.OpenDialogResult = _projectPath;
             // Падение только на операциях из файла: прежние операции откат
@@ -313,6 +315,8 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(string.IsNullOrEmpty(dialogs.LastErrorMessage), "Сбой открытия показан");
             Assert.AreEqual(2, main.OperationsWorkspace.AllOperations.Count, "Прежний документ возвращён");
             Assert.AreSame(existing, main.OperationsWorkspace.AllOperations[0], "Те же операции, не копии");
+            Assert.AreEqual(4321, settingsStore.Current.Spindle.SpindleSpeedRpm,
+                "Настройки откатываются вместе с операциями");
             StringAssert.Contains(main.DisplayName, "*",
                 "Несохранённые изменения не выданы за сохранённые");
         }

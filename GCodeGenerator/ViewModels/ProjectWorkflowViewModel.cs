@@ -7,6 +7,7 @@ using GCodeGenerator.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using GCodeGenerator.Persistence;
@@ -33,6 +34,8 @@ namespace GCodeGenerator.ViewModels
         private readonly ISettingsStore? _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
+        private readonly SemaphoreSlim _workflowGate = new SemaphoreSlim(1, 1);
+        private readonly SemaphoreSlim _fileIoGate = new SemaphoreSlim(1, 1);
 
         /// <summary>
         /// Документ меняется самой программой (создание, загрузка, сброс),
@@ -49,6 +52,7 @@ namespace GCodeGenerator.ViewModels
 
         private string? _currentPath;
         private bool _isDirty;
+        private long _documentRevision;
 
         internal ProjectWorkflowViewModel(
             ObservableCollection<OperationBase> operations,
@@ -154,6 +158,7 @@ namespace GCodeGenerator.ViewModels
         {
             if (_isApplyingDocument)
                 return;
+            unchecked { _documentRevision++; }
             IsDirty = true;
         }
 
@@ -213,32 +218,56 @@ namespace GCodeGenerator.ViewModels
 
         private async Task CreateNewProgramAsync()
         {
-            if (!await ConfirmDiscardChangesAsync())
-                return;
-
-            ApplyDocument(() =>
+            await _workflowGate.WaitAsync();
+            try
             {
-                ResetOperations();
-                _settingsStore?.RestoreGlobalGenerationSettings();
-                CurrentPath = null;
-                _loadedFileVersion = null;
-            });
+                if (!await ConfirmDiscardChangesAsync())
+                    return;
+
+                ApplyDocument(() =>
+                {
+                    ResetOperations();
+                    _settingsStore?.RestoreGlobalGenerationSettings();
+                    CurrentPath = null;
+                    _loadedFileVersion = null;
+                });
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
         }
 
-        private Task SaveProjectAsync()
+        private async Task SaveProjectAsync()
         {
-            if (_operations.Count == 0)
-                return Task.CompletedTask;
+            await _workflowGate.WaitAsync();
+            try
+            {
+                if (_operations.Count == 0)
+                    return;
 
-            return SaveToFileAsync(CurrentPath ?? AskFileName());
+                await SaveToFileAsync(CurrentPath ?? AskFileName());
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
         }
 
-        private Task SaveProjectAsAsync()
+        private async Task SaveProjectAsAsync()
         {
-            if (_operations.Count == 0)
-                return Task.CompletedTask;
+            await _workflowGate.WaitAsync();
+            try
+            {
+                if (_operations.Count == 0)
+                    return;
 
-            return SaveToFileAsync(AskFileName());
+                await SaveToFileAsync(AskFileName());
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
         }
 
         /// <summary>Спрашивает имя файла проекта; <c>null</c> — пользователь отменил.</summary>
@@ -266,8 +295,20 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
-                _projectFileService.SaveSerialized(fileName, SerializeProject());
-                return FinishSuccessfulSave(fileName);
+                var savedRevision = _documentRevision;
+                var operationCount = _operations.Count;
+                var json = SerializeProject();
+                _fileIoGate.Wait();
+                try
+                {
+                    _projectFileService.SaveSerialized(fileName, json);
+                }
+                finally
+                {
+                    _fileIoGate.Release();
+                }
+
+                return FinishSuccessfulSave(fileName, savedRevision, operationCount);
             }
             catch (Exception ex)
             {
@@ -290,9 +331,22 @@ namespace GCodeGenerator.ViewModels
 
             try
             {
+                var savedRevision = _documentRevision;
+                var operationCount = _operations.Count;
                 var json = SerializeProject();
-                await Task.Run(() => _projectFileService.SaveSerialized(fileName, json));
-                return FinishSuccessfulSave(fileName);
+                await Task.Run(() =>
+                {
+                    _fileIoGate.Wait();
+                    try
+                    {
+                        _projectFileService.SaveSerialized(fileName, json);
+                    }
+                    finally
+                    {
+                        _fileIoGate.Release();
+                    }
+                });
+                return FinishSuccessfulSave(fileName, savedRevision, operationCount);
             }
             catch (Exception ex)
             {
@@ -309,11 +363,15 @@ namespace GCodeGenerator.ViewModels
         /// признак изменений снимается — только теперь, когда данные
         /// действительно на диске.
         /// </summary>
-        private bool FinishSuccessfulSave(string fileName)
+        private bool FinishSuccessfulSave(string fileName, long savedRevision, int operationCount)
         {
             CurrentPath = fileName;
-            IsDirty = false;
-            _logger.Info($"Project saved: {fileName} ({_operations.Count} operation(s))");
+            // Пока диск писал снятый слепок, пользователь мог продолжить
+            // редактирование. Такой файл сохранён успешно, но текущий
+            // документ уже новее его и потому остаётся несохранённым.
+            if (_documentRevision == savedRevision)
+                IsDirty = false;
+            _logger.Info($"Project saved: {fileName} ({operationCount} operation(s))");
 
             // Файл старого формата после сохранения стал файлом текущей
             // версии — прежние сборки программы его больше не откроют.
@@ -346,15 +404,23 @@ namespace GCodeGenerator.ViewModels
 
         private async Task OpenProjectAsync()
         {
-            if (!await ConfirmDiscardChangesAsync())
-                return;
+            await _workflowGate.WaitAsync();
+            try
+            {
+                if (!await ConfirmDiscardChangesAsync())
+                    return;
 
-            var filter = Localize("ProjectFileFilter");
-            var fileName = _fileDialogService.ShowOpenDialog(Localize("OpenProjectTitle"), filter, "ygc");
-            if (fileName == null)
-                return;
+                var filter = Localize("ProjectFileFilter");
+                var fileName = _fileDialogService.ShowOpenDialog(Localize("OpenProjectTitle"), filter, "ygc");
+                if (fileName == null)
+                    return;
 
-            await LoadProjectAsync(fileName);
+                await LoadProjectAsync(fileName);
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
         }
 
         /// <summary>
@@ -374,10 +440,18 @@ namespace GCodeGenerator.ViewModels
             if (string.IsNullOrWhiteSpace(fileName))
                 return false;
 
-            if (!await ConfirmDiscardChangesAsync())
-                return false;
+            await _workflowGate.WaitAsync();
+            try
+            {
+                if (!await ConfirmDiscardChangesAsync())
+                    return false;
 
-            return await LoadProjectAsync(fileName!);
+                return await LoadProjectAsync(fileName!);
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
         }
 
         /// <summary>
@@ -433,33 +507,77 @@ namespace GCodeGenerator.ViewModels
         private void ApplyDocument(Action apply)
         {
             _isApplyingDocument = true;
-            DocumentApplying?.Invoke(this, EventArgs.Empty);
             var previousOperations = new List<OperationBase>(_operations);
+            var previousPath = CurrentPath;
+            var previousVersion = _loadedFileVersion;
+            var previousDirty = IsDirty;
+            var previousSettings = _settingsStore == null
+                ? null
+                : GenerationSnapshot.Capture(Array.Empty<OperationBase>(), _settingsStore.Current).Settings;
+            var documentApplyingStarted = false;
+            var documentRestored = false;
             try
             {
-                apply();
+                DocumentApplying?.Invoke(this, EventArgs.Empty);
+                documentApplyingStarted = true;
+                try
+                {
+                    apply();
+                }
+                catch
+                {
+                    RestoreDocument();
+                    throw;
+                }
+                finally
+                {
+                    if (documentApplyingStarted)
+                        DocumentApplied?.Invoke(this, EventArgs.Empty);
+                }
             }
             catch
             {
-                // Восстановление идёт при ещё поднятом признаке «замена
-                // документа»: откат — дело программы, не пользователя.
-                _operations.Clear();
-                foreach (var operation in previousOperations)
-                    _operations.Add(operation);
+                // Исключение мог выбросить и завершающий обработчик пакета.
+                // В этом случае применение уже прошло, но документ всё равно
+                // обязан вернуться целиком, включая настройки и путь.
+                RestoreDocument();
                 throw;
             }
             finally
             {
-                // Сначала закрывается пакет изменений: отложенные уведомления
-                // о новом содержимом должны прийти, пока замена документа
-                // ещё считается своей, иначе они пометят проект изменённым.
-                DocumentApplied?.Invoke(this, EventArgs.Empty);
                 _isApplyingDocument = false;
             }
 
             // Успешная замена — документ совпадает с источником: новым
             // проектом или только что открытым файлом.
+            unchecked { _documentRevision++; }
             IsDirty = false;
+
+            void RestoreDocument()
+            {
+                if (documentRestored)
+                    return;
+                documentRestored = true;
+
+                // Восстановление идёт при ещё поднятом признаке «замена
+                // документа»: откат — дело программы, не пользователя.
+                _operations.Clear();
+                foreach (var operation in previousOperations)
+                    _operations.Add(operation);
+
+                if (previousSettings != null)
+                {
+                    _settingsStore?.ApplyProjectSettings(
+                        previousSettings.Format,
+                        previousSettings.Spindle,
+                        previousSettings.Coolant,
+                        previousSettings.WorkCoordinate);
+                }
+
+                CurrentPath = previousPath;
+                _loadedFileVersion = previousVersion;
+                IsDirty = previousDirty;
+            }
         }
 
         private void ResetOperations()

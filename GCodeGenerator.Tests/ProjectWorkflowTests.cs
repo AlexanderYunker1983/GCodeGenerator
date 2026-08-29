@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.Models;
@@ -153,6 +154,131 @@ namespace GCodeGenerator.Tests
 
             public ProjectFileData Load(string filePath)
                 => throw new System.NotSupportedException();
+        }
+
+        private sealed class BlockingProjectFileService : IProjectFileService
+        {
+            private readonly ManualResetEventSlim _continueWrite = new ManualResetEventSlim(false);
+
+            public TaskCompletionSource<bool> WriteStarted { get; } =
+                new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public void ContinueWrite() => _continueWrite.Set();
+
+            public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => SaveSerialized(filePath, Serialize(operations, settings));
+
+            public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => "snapshot";
+
+            public void SaveSerialized(string filePath, string json)
+            {
+                WriteStarted.TrySetResult(true);
+                _continueWrite.Wait();
+            }
+
+            public ProjectFileData Load(string filePath)
+                => throw new System.NotSupportedException();
+        }
+
+        private sealed class SerializedLoadProjectFileService : IProjectFileService
+        {
+            private readonly ManualResetEventSlim _continueFirstLoad = new ManualResetEventSlim(false);
+            private int _activeLoads;
+            private int _maximumConcurrentLoads;
+
+            public TaskCompletionSource<bool> FirstLoadStarted { get; } =
+                new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            public int MaximumConcurrentLoads => _maximumConcurrentLoads;
+
+            public void ContinueFirstLoad() => _continueFirstLoad.Set();
+
+            public void Save(string filePath, IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => throw new System.NotSupportedException();
+
+            public string Serialize(IReadOnlyList<OperationBase> operations, GCodeSettings settings)
+                => throw new System.NotSupportedException();
+
+            public void SaveSerialized(string filePath, string json)
+                => throw new System.NotSupportedException();
+
+            public ProjectFileData Load(string filePath)
+            {
+                var active = Interlocked.Increment(ref _activeLoads);
+                int observed;
+                do
+                {
+                    observed = _maximumConcurrentLoads;
+                    if (observed >= active)
+                        break;
+                }
+                while (Interlocked.CompareExchange(ref _maximumConcurrentLoads, active, observed) != observed);
+
+                try
+                {
+                    if (filePath == "first.ygc")
+                    {
+                        FirstLoadStarted.TrySetResult(true);
+                        _continueFirstLoad.Wait();
+                    }
+
+                    return new ProjectFileData
+                    {
+                        Version = ProjectFileService.CurrentVersion,
+                        Operations = new List<OperationBase>
+                        {
+                            new DrillPointsOperation { Name = filePath }
+                        },
+                    };
+                }
+                finally
+                {
+                    Interlocked.Decrement(ref _activeLoads);
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task EditWhileSaveIsWriting_KeepsDocumentDirty()
+        {
+            var projectFiles = new BlockingProjectFileService();
+            var (main, _, dialogs, _) = MainViewModelOperationEditTests.CreateMain(
+                projectFileService: projectFiles);
+            main.OperationsWorkspace.AllOperations.Add(new DrillPointsOperation());
+            dialogs.SaveDialogResult = "snapshot.ygc";
+
+            var saving = ExecuteAsync(main.ProjectWorkflow.SaveProjectCommand);
+            await projectFiles.WriteStarted.Task;
+            main.OperationsWorkspace.AllOperations.Add(new DrillPointsOperation());
+            projectFiles.ContinueWrite();
+            await saving;
+
+            Assert.AreEqual("snapshot.ygc", main.ProjectWorkflow.CurrentPath, "Слепок записан в выбранный файл");
+            Assert.IsTrue(main.ProjectWorkflow.IsDirty,
+                "Правка, сделанная после слепка, не должна считаться попавшей в файл");
+        }
+
+        [TestMethod]
+        public async Task ConcurrentOpenRequests_AreAppliedInRequestOrder()
+        {
+            var projectFiles = new SerializedLoadProjectFileService();
+            var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain(
+                projectFileService: projectFiles);
+
+            var first = main.OpenProjectAsync("first.ygc");
+            await projectFiles.FirstLoadStarted.Task;
+            var second = main.OpenProjectAsync("second.ygc");
+            await Task.Yield();
+            projectFiles.ContinueFirstLoad();
+
+            Assert.IsTrue(await first);
+            Assert.IsTrue(await second);
+            Assert.AreEqual(1, projectFiles.MaximumConcurrentLoads,
+                "Чтение и применение проектов не перекрываются");
+            Assert.AreEqual("second.ygc", main.ProjectWorkflow.CurrentPath,
+                "Последний запрос остаётся текущим документом");
+            Assert.AreEqual("second.ygc", main.OperationsWorkspace.AllOperations[0].Name);
         }
 
         [TestMethod]
