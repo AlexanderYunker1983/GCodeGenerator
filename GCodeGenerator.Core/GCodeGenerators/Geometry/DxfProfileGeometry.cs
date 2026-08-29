@@ -65,6 +65,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         private List<(double x, double y)>? _cachedContourPoints;
         private MillingDirection _cachedContourDirection;
         private IReadOnlyList<IReadOnlyList<(double x, double y)>>? _cachedOrderedContours;
+        private HashSet<IReadOnlyList<(double x, double y)>>? _cachedClosedOrderedContours;
         private double _cachedOrderedTolerance;
 
         /// <summary>Точки контура в направлении обхода — материализованные один раз.</summary>
@@ -128,6 +129,7 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         private IReadOnlyList<IReadOnlyList<(double x, double y)>> BuildOrderedContours(double tolerance)
         {
             var result = new List<IReadOnlyList<(double x, double y)>>();
+            _cachedClosedOrderedContours = new HashSet<IReadOnlyList<(double x, double y)>>();
             if (_operation.Polylines == null || _operation.Polylines.Count == 0)
                 return result;
 
@@ -165,10 +167,33 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 }
 
                 if (contourPoints.Count > 0)
+                {
                     result.Add(contourPoints);
+                    if (IsClosedChain(chain, tolerance))
+                        _cachedClosedOrderedContours.Add(contourPoints);
+                }
             }
 
             return result;
+        }
+
+        /// <inheritdoc />
+        public bool IsOrderedContourClosed(IReadOnlyList<(double x, double y)> contour)
+            => contour != null
+                && _cachedClosedOrderedContours != null
+                && _cachedClosedOrderedContours.Contains(contour);
+
+        private static bool IsClosedChain(IReadOnlyList<Polyline2D> chain, double tolerance)
+        {
+            if (chain == null || chain.Count == 0)
+                return false;
+
+            var firstPoints = chain[0]?.Points;
+            var lastPoints = chain[chain.Count - 1]?.Points;
+            return firstPoints != null && firstPoints.Count > 0
+                && lastPoints != null && lastPoints.Count > 0
+                && Geometry2D.PointsMatch(
+                    firstPoints[0], lastPoints[lastPoints.Count - 1], tolerance);
         }
 
         /// <summary>

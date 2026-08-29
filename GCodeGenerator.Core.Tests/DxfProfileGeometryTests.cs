@@ -69,11 +69,25 @@ namespace GCodeGenerator.Tests
             var op = new ProfileDxfOperation { ToolDiameter = 4, ToolPathMode = ToolPathMode.OnLine };
             op.Polylines.Add(Poly((0, 0), (10, 0), (10, 10), (0, 10), (0, 0)));
 
-            var contours = new DxfProfileGeometry(op).GetOrderedContours(GeometryTolerances.Vertex);
+            var geometry = new DxfProfileGeometry(op);
+            var contours = geometry.GetOrderedContours(GeometryTolerances.Vertex);
 
             Assert.AreEqual(1, contours.Count);
             Assert.AreEqual(10.0 * 10.0, PolygonArea(contours[0]), 1e-6);
             Assert.AreEqual(4, contours[0].Count, "Замыкающая точка не дублируется");
+            Assert.IsTrue(geometry.IsOrderedContourClosed(contours[0]));
+        }
+
+        [TestMethod]
+        public void OpenPolyline_DoesNotRequireClosingMove()
+        {
+            var op = new ProfileDxfOperation { ToolPathMode = ToolPathMode.OnLine };
+            op.Polylines.Add(Poly((0, 0), (10, 0), (10, 10)));
+            var geometry = new DxfProfileGeometry(op);
+
+            var contour = geometry.GetOrderedContours(GeometryTolerances.Vertex)[0];
+
+            Assert.IsFalse(geometry.IsOrderedContourClosed(contour));
         }
 
         /// <summary>

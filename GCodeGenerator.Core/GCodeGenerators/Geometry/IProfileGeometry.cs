@@ -34,6 +34,14 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         IReadOnlyList<IReadOnlyList<(double x, double y)>> GetOrderedContours(double tolerance);
 
         /// <summary>
+        /// Требует ли готовый контур замыкающего рабочего хода. Список точек
+        /// намеренно не хранит повтор первой вершины: для открытого профиля
+        /// такой повтор был бы ложным резом, поэтому замкнутость передаётся
+        /// отдельной семантикой геометрии.
+        /// </summary>
+        bool IsOrderedContourClosed(IReadOnlyList<(double x, double y)> contour) => false;
+
+        /// <summary>
         /// Получить точки контура с учетом компенсации инструмента.
         /// </summary>
         /// <param name="toolOffset">Смещение траектории инструмента (положительное для Outside, отрицательное для Inside, 0 для OnLine)</param>
@@ -123,4 +131,3 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         bool IsClockwise { get; }
     }
 }
-

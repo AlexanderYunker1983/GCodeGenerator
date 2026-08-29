@@ -218,7 +218,6 @@ namespace GCodeGenerator.GCodeGenerators
             double workingZ,
             ToolPathBuilder builder)
         {
-            int decimals = op.Decimals;
             bool isFirstContour = true;
 
             foreach (var contourPoints in geometry.GetOrderedContours(GeometryTolerances.Vertex))
@@ -226,11 +225,14 @@ namespace GCodeGenerator.GCodeGenerators
                 if (contourPoints.Count == 0)
                     continue;
 
+                var traversalStart = op.Direction == MillingDirection.Clockwise
+                    ? contourPoints[contourPoints.Count - 1]
+                    : contourPoints[0];
+
                 if (!isFirstContour)
                 {
                     builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
-                    var entryPoint = contourPoints[0];
-                    builder.RapidTo(x: entryPoint.x, y: entryPoint.y, feed: op.FeedXYRapid);
+                    builder.RapidTo(x: traversalStart.x, y: traversalStart.y, feed: op.FeedXYRapid);
                     builder.LinearTo(z: workingZ, feed: op.FeedZWork);
                 }
 
@@ -250,6 +252,9 @@ namespace GCodeGenerator.GCodeGenerators
                         builder.LinearTo(x: point.x, y: point.y, feed: op.FeedXYWork);
                     }
                 }
+
+                if (geometry.IsOrderedContourClosed(contourPoints))
+                    builder.LinearTo(x: traversalStart.x, y: traversalStart.y, feed: op.FeedXYWork);
 
                 isFirstContour = false;
             }
@@ -281,4 +286,3 @@ namespace GCodeGenerator.GCodeGenerators
         }
     }
 }
-

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.GCodeGenerators.Geometry;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
+using GCodeGenerator.Toolpath;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
@@ -113,6 +115,32 @@ namespace GCodeGenerator.Tests
             }
 
             Assert.IsTrue(plunges > 0, "в программе должно быть хотя бы одно врезание");
+        }
+
+        /// <summary>
+        /// Замкнутая полилиния хранится без повторной первой вершины, но рез
+        /// обязан вернуться из последней вершины в стартовую. Прежде этот
+        /// четвёртый участок квадрата отсутствовал на каждом слое.
+        /// </summary>
+        [TestMethod]
+        [DataRow(MillingDirection.CounterClockwise)]
+        [DataRow(MillingDirection.Clockwise)]
+        public void ClosedPolyline_CutsClosingEdge(MillingDirection direction)
+        {
+            var op = Square(ToolPathMode.OnLine);
+            op.Direction = direction;
+            op.TotalDepth = 1.0;
+            op.StepDepth = 1.0;
+
+            var moves = OperationToolPath.Build(new UnifiedProfileGenerator(), op, new GCodeSettings())
+                .Moves()
+                .Where(move => move.Kind == ToolMoveKind.Linear && move.X.HasValue && move.Y.HasValue)
+                .ToList();
+
+            Assert.AreEqual(5, moves.Count,
+                "Нулевой ход в стартовую вершину и четыре стороны квадрата выводятся ровно один раз");
+            Assert.AreEqual(moves[0].X, moves[moves.Count - 1].X);
+            Assert.AreEqual(moves[0].Y, moves[moves.Count - 1].Y);
         }
 
         private static double DistanceToDrawing(double x, double y, IReadOnlyList<Point2D> drawing)
