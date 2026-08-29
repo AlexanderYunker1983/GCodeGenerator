@@ -190,6 +190,24 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(polylines.All(polyline => polyline.Points.Count > 2));
         }
 
+        [TestMethod]
+        public void ArcWithZeroSweep_IsIgnoredInsteadOfBecomingAContourPoint()
+        {
+            var document = NewDocument();
+            document.Entities.Add(new Arc(new Vector2(10, 10), 5, 45, 45));
+            document.Entities.Add(new Line(new Vector2(0, 0), new Vector2(10, 0)));
+            document.Save(_path);
+
+            var polylines = DxfImportServiceProbe.ReadProfile(_path);
+
+            Assert.AreEqual(1, polylines.Count,
+                "Нулевая дуга не должна добавлять самостоятельный контур");
+            Assert.AreEqual(2, polylines[0].Points.Count,
+                "Остаётся только контрольный отрезок");
+            Assert.AreEqual(0.0, polylines[0].Points[0].X, 1e-9);
+            Assert.AreEqual(10.0, polylines[0].Points[1].X, 1e-9);
+        }
+
         /// <summary>
         /// Геометрия внутри вставленного блока — часть чертежа. Прежний разбор
         /// читал определение блока как обычные сущности, игнорируя смещение

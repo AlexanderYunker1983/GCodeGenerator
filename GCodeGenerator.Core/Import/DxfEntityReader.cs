@@ -279,6 +279,13 @@ namespace GCodeGenerator.Import
                 endAngle += 2.0 * Math.PI;
 
             var angleSpan = endAngle - startAngle;
+            // ARC с совпавшими углами — не окружность (для неё в DXF есть
+            // отдельная сущность CIRCLE), а вырожденная дуга. Минимальное
+            // число сегментов прежде превращало её в девять одинаковых
+            // точек и затем в ложный профиль-точку с врезанием на месте.
+            if (!double.IsFinite(angleSpan) || angleSpan <= GeometryTolerances.Degenerate)
+                return null;
+
             var segments = CurveSegmentCount(arc.Radius * scale, angleSpan,
                 MinimumArcSegments);
 
