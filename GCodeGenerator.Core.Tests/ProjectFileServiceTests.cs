@@ -351,6 +351,41 @@ namespace GCodeGenerator.Tests
             }
         }
 
+        [TestMethod]
+        public void Save_WhenDestinationCannotBeReplaced_PreservesPreviousProject()
+        {
+            var directory = Path.Combine(Path.GetTempPath(), "gcg_atomic_failure_" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, "project.ygc");
+            var previous = Service.Serialize(
+                new List<OperationBase> { OperationFixtures.ProfileCircle() },
+                null);
+            try
+            {
+                Service.SaveSerialized(path, previous);
+                var previousBytes = File.ReadAllBytes(path);
+
+                using (File.Open(path, FileMode.Open, FileAccess.Read, FileShare.None))
+                {
+                    Assert.Throws<IOException>(() => Service.SaveSerialized(
+                        path,
+                        Service.Serialize(
+                            new List<OperationBase> { OperationFixtures.PocketCircle() },
+                            null)));
+                }
+
+                CollectionAssert.AreEqual(previousBytes, File.ReadAllBytes(path),
+                    "Неудачная замена не должна менять последний успешный проект");
+                Assert.AreEqual(0, Directory.GetFiles(directory, ".project.ygc.*.tmp").Length,
+                    "После исходной ошибки временный файл удаляется по возможности");
+            }
+            finally
+            {
+                if (Directory.Exists(directory))
+                    Directory.Delete(directory, recursive: true);
+            }
+        }
+
         /// <summary>
         /// Валидный тип + не-объектный JSON данных (42) — БРОСАЕТ исключение
         /// (не возвращает null) — зафиксировано как поведение прежнего

@@ -19,6 +19,8 @@ namespace GCodeGenerator.Persistence
     /// </summary>
     public class ProjectFileService : IProjectFileService
     {
+        private static readonly Encoding Utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+
         /// <summary>Текущая версия формата файла .ygc (поле "version").</summary>
         public const int CurrentVersion = ProjectFileWriter.Version;
 
@@ -74,16 +76,57 @@ namespace GCodeGenerator.Persistence
 
             try
             {
-                File.WriteAllText(temporaryPath, json, new UTF8Encoding(true));
+                // Сначала полностью и физически фиксируем соседний временный
+                // файл. Только после Flush(true) имя назначения может начать
+                // указывать на новую версию: успешный Save гарантирует не
+                // только заполненный буфер процесса, но и отправку данных
+                // устройству хранения.
+                using (var stream = new FileStream(
+                           temporaryPath,
+                           FileMode.CreateNew,
+                           FileAccess.Write,
+                           FileShare.None,
+                           bufferSize: 4096,
+                           FileOptions.WriteThrough))
+                {
+                    using (var writer = new StreamWriter(
+                               stream,
+                               Utf8WithBom,
+                               bufferSize: 4096,
+                               leaveOpen: true))
+                    {
+                        writer.Write(json);
+                        writer.Flush();
+                    }
+
+                    stream.Flush(flushToDisk: true);
+                }
+
                 if (File.Exists(destinationPath))
                     File.Replace(temporaryPath, destinationPath, backupPath);
                 else
                     File.Move(temporaryPath, destinationPath);
             }
-            finally
+            catch
+            {
+                // Сбой уборки не должен скрыть исходную ошибку записи или
+                // замены. Временный файл имеет уникальное имя и не подменяет
+                // последнюю успешно сохранённую версию проекта.
+                TryDeleteTemporary(temporaryPath);
+                throw;
+            }
+        }
+
+        private static void TryDeleteTemporary(string temporaryPath)
+        {
+            try
             {
                 if (File.Exists(temporaryPath))
                     File.Delete(temporaryPath);
+            }
+            catch
+            {
+                // Исходное исключение важнее ошибки удаления служебного файла.
             }
         }
 
