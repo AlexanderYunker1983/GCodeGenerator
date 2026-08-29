@@ -225,36 +225,8 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             => ContourCornerDistances.FromPolyline(
                 GetContourPoints(toolOffset, _operation.Direction).ToList());
 
-        public double GetPerimeter(double toolOffset)        {
-            double centerX, centerY;
-            switch (_operation.ReferencePointType)
-            {
-                case ReferencePointType.Center:
-                    centerX = _operation.ReferencePointX;
-                    centerY = _operation.ReferencePointY;
-                    break;
-                case ReferencePointType.TopLeft:
-                    centerX = _operation.ReferencePointX + _operation.Width / 2.0;
-                    centerY = _operation.ReferencePointY - _operation.Height / 2.0;
-                    break;
-                case ReferencePointType.TopRight:
-                    centerX = _operation.ReferencePointX - _operation.Width / 2.0;
-                    centerY = _operation.ReferencePointY - _operation.Height / 2.0;
-                    break;
-                case ReferencePointType.BottomLeft:
-                    centerX = _operation.ReferencePointX + _operation.Width / 2.0;
-                    centerY = _operation.ReferencePointY + _operation.Height / 2.0;
-                    break;
-                case ReferencePointType.BottomRight:
-                    centerX = _operation.ReferencePointX - _operation.Width / 2.0;
-                    centerY = _operation.ReferencePointY + _operation.Height / 2.0;
-                    break;
-                default:
-                    centerX = _operation.ReferencePointX;
-                    centerY = _operation.ReferencePointY;
-                    break;
-            }
-
+        public double GetPerimeter(double toolOffset)
+        {
             var halfWidth = _operation.Width / 2.0 + toolOffset;
             var halfHeight = _operation.Height / 2.0 + toolOffset;
 
@@ -296,10 +268,15 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 var dx = endCorner.Item1 - startCorner.Item1;
                 var dy = endCorner.Item2 - startCorner.Item2;
                 var len = Math.Sqrt(dx * dx + dy * dy);
-                perimeter += len;
-                var r = radii[seg.endIdx];
-                if (r > 0)
-                    perimeter += Math.PI * r / 2.0; // четверть окружности
+                var startRadius = radii[seg.startIdx];
+                var endRadius = radii[seg.endIdx];
+
+                // Скругление отрезает от стороны радиус в каждом её конце.
+                // Прежде в периметр входила полная сторона и поверх неё дуга,
+                // поэтому каждый радиус учитывался лишних два раза.
+                perimeter += Math.Max(0.0, len - startRadius - endRadius);
+                if (endRadius > 0)
+                    perimeter += Math.PI * endRadius / 2.0; // четверть окружности
             }
 
             return perimeter;
@@ -329,4 +306,3 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
     }
 }
-
