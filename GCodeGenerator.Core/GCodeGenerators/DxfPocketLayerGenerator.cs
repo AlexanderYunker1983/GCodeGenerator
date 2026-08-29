@@ -57,7 +57,6 @@ namespace GCodeGenerator.GCodeGenerators
             if (geometry == null)
                 throw new ArgumentNullException(nameof(geometry));
 
-            bool isFirstArea = true;
             bool atLeastOneAreaProcessed = false;
 
             // Отступ от стенки: радиус фрезы вместе с припуском. Области
@@ -82,10 +81,13 @@ namespace GCodeGenerator.GCodeGenerators
                     step,
                     op.EntryMode == PocketEntryMode.Helical ? op.HelicalEntryDiameter / 2.0 : 0.0);
 
-                // Для первой области сохраняется исходное положение после
-                // подхода операции; перед каждой следующей выполняется
-                // отдельный безопасный подъём. Сам вход общий с обычными
-                // карманами и умеет вертикальную и винтовую траектории.
+                // Каждая область начинает подход с явно заданной безопасной
+                // высоты, включая самую первую. У DXF-ветки нет отдельного
+                // общего подвода операции: предположение, будто первая
+                // область уже получила SafeZ снаружи, оставляло первым
+                // движением быстрый XY прямо на текущей высоте инструмента.
+                // Сам вход общий с обычными карманами и умеет вертикальную
+                // и винтовую траектории.
                 PocketEntryGenerator.Generate(
                     op,
                     area,
@@ -95,7 +97,7 @@ namespace GCodeGenerator.GCodeGenerators
                     center,
                     currentZ,
                     nextZ,
-                    moveToSafeZ: !isFirstArea,
+                    moveToSafeZ: true,
                     builder,
                     settings);
 
@@ -109,7 +111,6 @@ namespace GCodeGenerator.GCodeGenerators
                     builder.LinearTo(x: center.x, y: center.y, feed: op.FeedXYWork);
                 builder.RapidTo(z: op.SafeZHeight, feed: op.FeedZRapid);
 
-                isFirstArea = false;
                 atLeastOneAreaProcessed = true;
             }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
 using GCodeGenerator.Tests.Fixtures;
@@ -100,6 +101,33 @@ namespace GCodeGenerator.Tests
 
             Assert.AreEqual(2, workPlunges,
                 "две раздельные области — два врезания рабочим ходом, по одному на область");
+        }
+
+        /// <summary>
+        /// DXF-ветка не имеет общего подвода перед циклом областей, поэтому
+        /// первая область сама обязана поднять инструмент. Иначе первым
+        /// движением прямого вызова генератора был быстрый XY на исходной Z,
+        /// которая может совпадать с поверхностью или находиться в детали.
+        /// </summary>
+        [TestMethod]
+        public void FirstArea_RaisesToSafeZBeforeAnyXyPositioning()
+        {
+            var operation = TwoSquares();
+            var moves = OperationToolPath.Build(
+                    new UnifiedPocketGenerator(), operation, new GCodeSettings())
+                .Moves()
+                .ToList();
+
+            Assert.IsTrue(moves.Count > 0, "траектория DXF-кармана построена");
+            Assert.AreEqual(ToolMoveKind.Rapid, moves[0].Kind);
+            Assert.AreEqual(operation.SafeZHeight, moves[0].Z ?? double.NaN, 1e-9,
+                "первый ход поднимает инструмент на SafeZ");
+            Assert.IsFalse(moves[0].X.HasValue || moves[0].Y.HasValue,
+                "XY-позиционирование начинается только после подъёма");
+
+            var firstXy = moves.FindIndex(move => move.X.HasValue || move.Y.HasValue);
+            Assert.IsTrue(firstXy > 0, "перед первым XY существует отдельный подъём");
+            Assert.AreEqual(operation.SafeZHeight, moves[firstXy - 1].Z ?? double.NaN, 1e-9);
         }
     }
 }
