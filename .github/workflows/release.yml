@@ -57,17 +57,106 @@ jobs:
           # Версия пакета разработки берётся из global.json: раннер собирает
           # тем же набором инструментов, что и разработчик.
           global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      # Тег не должен выпускать старый, экспериментальный или неслитый коммит.
+      # Сравниваются commit-объекты, поэтому работают и lightweight-, и
+      # annotated-теги. Для выпуска нужен именно актуальный HEAD master.
+      - name: Verify tag points to current master
+        if: steps.tag.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          git fetch origin master --no-tags
+          $tagCommit = (git rev-list -n 1 --verify "refs/tags/$env:TAG_NAME").Trim()
+          $masterCommit = (git rev-parse refs/remotes/origin/master).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit) -or
+              [string]::IsNullOrWhiteSpace($masterCommit)) {
+            throw 'Cannot resolve the release tag or origin/master.'
+          }
+          if ($tagCommit -ne $masterCommit) {
+            throw "Release tag points to $tagCommit, but current origin/master is $masterCommit."
+          }
+          Write-Host "Release commit is current origin/master: $tagCommit"
 
       - name: Restore
         if: steps.tag.outputs.skip == 'false'
         run: dotnet restore GCodeGenerator.sln --locked-mode
 
-      # Релиз публикуется только при зелёных тестах (сборка тестов собирает и приложение).
-      - name: Test (Release)
+      - name: Restore for publish (win-x64, locked)
         if: steps.tag.outputs.skip == 'false'
+        run: dotnet restore GCodeGenerator/GCodeGenerator.csproj -r win-x64 --locked-mode
+
+      - name: Build (Release)
+        if: steps.tag.outputs.skip == 'false'
+        run: dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror
+
+      # Release повторяет исполняемые quality gates обычного CI на том же
+      # commit, который затем будет упакован. Один лишь факт существования
+      # отдельного CI-run недостаточен: его можно отменить или обойти тегом.
+      - name: Run core tests
+        if: steps.tag.outputs.skip == 'false'
+        run: >
+          dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=core-tests.trx"
+          --collect "Code Coverage;Format=cobertura"
+          --results-directory TestResults/core
+
+      - name: Run application tests
+        if: steps.tag.outputs.skip == 'false'
+        run: >
+          dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj
+          -c Release --no-build
+          --logger "trx;LogFileName=app-tests.trx"
+          --collect "Code Coverage;Format=cobertura"
+          --results-directory TestResults/app
+
+      - name: Upload test results
+        if: always() && steps.tag.outputs.skip == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-test-results
+          path: TestResults
+          retention-days: 14
+
+      - name: Enforce coverage thresholds
+        if: steps.tag.outputs.skip == 'false'
+        shell: pwsh
         run: |
-          dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj -c Release -warnaserror
-          dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release -warnaserror
+          build/Assert-Coverage.ps1 `
+            -ResultsDirectory TestResults/core `
+            -Assembly GCodeGenerator.Core `
+            -MinimumLinePercent 80 `
+            -MinimumBranchPercent 65
+          build/Assert-Coverage.ps1 `
+            -ResultsDirectory TestResults/app `
+            -Assembly GCodeGenerator `
+            -MinimumLinePercent 80 `
+            -MinimumBranchPercent 65
+
+      - name: Check for vulnerable packages
+        if: always() && steps.tag.outputs.skip == 'false'
+        shell: pwsh
+        run: build/Test-VulnerablePackages.ps1
+
+      - name: Restore pinned mutation tool
+        if: steps.tag.outputs.skip == 'false'
+        run: dotnet tool restore
+
+      - name: Run mutation tests
+        if: steps.tag.outputs.skip == 'false'
+        working-directory: GCodeGenerator.Core.Tests
+        run: dotnet stryker --config-file stryker-config.json --skip-version-check
+
+      - name: Upload mutation report
+        if: always() && steps.tag.outputs.skip == 'false'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: release-mutation-report
+          path: GCodeGenerator.Core.Tests/StrykerOutput
+          if-no-files-found: error
+          retention-days: 30
 
       # Inno Setup удалён из образа windows-2025 (windows-latest) — ставим
       # официальный инсталлятор с закреплённой версией (immutable GitHub release).

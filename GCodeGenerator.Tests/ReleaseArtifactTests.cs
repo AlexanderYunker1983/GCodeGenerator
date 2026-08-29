@@ -83,6 +83,39 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ReleaseWorkflow_RequiresCurrentMasterAndAllQualityGatesBeforePackaging()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+
+            foreach (var required in new[]
+                     {
+                         "git rev-list -n 1 --verify \"refs/tags/$env:TAG_NAME\"",
+                         "git rev-parse refs/remotes/origin/master",
+                         "dotnet build GCodeGenerator.sln -c Release --no-restore -warnaserror",
+                         "Code Coverage;Format=cobertura",
+                         "build/Assert-Coverage.ps1",
+                         "-Assembly GCodeGenerator.Core",
+                         "-Assembly GCodeGenerator",
+                         "build/Test-VulnerablePackages.ps1",
+                         "dotnet stryker --config-file stryker-config.json --skip-version-check"
+                     })
+            {
+                StringAssert.Contains(workflow, required);
+            }
+
+            var masterCheck = workflow.IndexOf("Verify tag points to current master", StringComparison.Ordinal);
+            var build = workflow.IndexOf("Build (Release)", StringComparison.Ordinal);
+            var coverage = workflow.IndexOf("Enforce coverage thresholds", StringComparison.Ordinal);
+            var vulnerabilities = workflow.IndexOf("Check for vulnerable packages", StringComparison.Ordinal);
+            var mutation = workflow.IndexOf("Run mutation tests", StringComparison.Ordinal);
+            var installer = workflow.IndexOf("Build installer", StringComparison.Ordinal);
+            Assert.IsTrue(
+                masterCheck < build && build < coverage && coverage < vulnerabilities &&
+                vulnerabilities < mutation && mutation < installer,
+                "Упаковка начинается до завершения release quality gates");
+        }
+
+        [TestMethod]
         public void SbomScript_ListsApplicationAndTransitivePackages()
         {
             var outputPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".cdx.json");
