@@ -76,20 +76,22 @@ namespace GCodeGenerator.GCodeGenerators
             if (workCoordinate.AddStartPosition)
                 builder.SetStartPosition(workCoordinate.StartX, workCoordinate.StartY, workCoordinate.StartZ);
 
-            if (!spindle.SpindleControlEnabled)
-                return;
-
-            if (spindle.SpindleStartEnabled)
+            if (spindle.SpindleControlEnabled && spindle.SpindleStartEnabled)
             {
                 builder.SpindleOn(
                     spindle.SpindleStartCommand.Trim().ToUpperInvariant(),
                     spindle.SpindleSpeedEnabled ? (int?)spindle.SpindleSpeedRpm : null);
             }
 
+            // Охлаждение — независимая система станка. Его разрешение не
+            // зависит от того, управляет ли эта программа шпинделем.
             if (coolant.CoolantControlEnabled && coolant.CoolantStartEnabled)
                 builder.CoolantOn();
 
-            if (spindle.SpindleDelayEnabled && spindle.SpindleDelaySeconds > 0)
+            if (spindle.SpindleControlEnabled
+                && spindle.SpindleStartEnabled
+                && spindle.SpindleDelayEnabled
+                && spindle.SpindleDelaySeconds > 0)
                 builder.Dwell(DwellArgument(spindle.SpindleDelaySeconds));
         }
 

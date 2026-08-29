@@ -108,7 +108,7 @@ namespace GCodeGenerator.Models
             if (spindle == null)
                 issues.Add(new ValidationIssue(nameof(GCodeSettings.Spindle), ValidationCode.Empty,
                     "spindle settings are missing"));
-            if (spindle != null && spindle.SpindleControlEnabled)
+            if (spindle != null && spindle.SpindleControlEnabled && spindle.SpindleStartEnabled)
             {
                 if (spindle.SpindleSpeedEnabled)
                     OperationValidation.AddIfOutOfRange(issues, nameof(SpindleSettings.SpindleSpeedRpm),

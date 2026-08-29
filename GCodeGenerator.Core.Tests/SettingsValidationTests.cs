@@ -151,6 +151,25 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(program.Lines.Count > 0, "Программа построена");
         }
 
+        [TestMethod]
+        public void SpindleStartDisabled_IgnoresUnusedSpeedAndDelay()
+        {
+            var settings = new GCodeSettings();
+            settings.Spindle.SpindleControlEnabled = true;
+            settings.Spindle.SpindleStartEnabled = false;
+            settings.Spindle.SpindleSpeedEnabled = true;
+            settings.Spindle.SpindleSpeedRpm = int.MaxValue;
+            settings.Spindle.SpindleDelayEnabled = true;
+            settings.Spindle.SpindleDelaySeconds = double.PositiveInfinity;
+
+            var program = new SimpleGCodeGenerator().Generate(OneDrill(), settings);
+
+            Assert.IsFalse(program.Lines.Any(line => line.Contains("G4 ")),
+                "Неиспользуемая задержка не проверяется и не выводится");
+            Assert.IsFalse(program.Lines.Any(line => line.Contains(" S")),
+                "Неиспользуемые обороты не проверяются и не выводятся");
+        }
+
         /// <summary>
         /// Задержка после пуска шпинделя задаётся в секундах, а выводится
         /// в миллисекундах: <c>G4 P</c> так понимают Fanuc-совместимые стойки.

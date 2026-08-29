@@ -158,6 +158,40 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void Settings_CoolantWorksWithoutSpindleControl()
+        {
+            var fixture = FixtureCatalog.All.First(item => item.Name == "Drill.Points.Default");
+            var settings = SettingsFixtures.Default();
+            settings.Spindle.SpindleControlEnabled = false;
+            settings.Coolant.CoolantControlEnabled = true;
+            settings.Coolant.CoolantStartEnabled = true;
+            settings.Coolant.CoolantStopEnabled = true;
+
+            var lines = Generator.Generate(fixture.Operations, settings).Lines;
+
+            Assert.IsTrue(lines.Any(line => Regex.IsMatch(line, @"(^| )M8$")),
+                "M8 выводится независимо от управления шпинделем");
+            Assert.IsTrue(lines.Any(line => Regex.IsMatch(line, @"(^| )M9$")),
+                "M9 завершает независимое управление охлаждением");
+            Assert.IsFalse(lines.Any(line => Regex.IsMatch(line, @"(^| )M[345]( |$)")),
+                "Команд шпинделя при выключенном управлении нет");
+        }
+
+        [TestMethod]
+        public void Settings_SpindleDelayWithoutStart_EmitsNoDwell()
+        {
+            var fixture = FixtureCatalog.All.First(item => item.Name == "Drill.Points.Default");
+            var settings = SettingsFixtures.Default();
+            settings.Spindle.SpindleStartEnabled = false;
+            settings.Spindle.SpindleDelayEnabled = true;
+
+            var lines = Generator.Generate(fixture.Operations, settings).Lines;
+
+            Assert.IsFalse(lines.Any(line => Regex.IsMatch(line, @"(^| )G0?4 ")),
+                "Задержка разгона без команды пуска шпинделя не имеет действия");
+        }
+
+        [TestMethod]
         public void Settings_WcsG55_EmitsG55AtProgramStart()
         {
             var fixture = FixtureCatalog.All.First(f => f.Name == "Multi.Operation.WcsG55");
