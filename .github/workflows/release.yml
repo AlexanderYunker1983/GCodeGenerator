@@ -208,6 +208,60 @@ jobs:
           Compress-Archive -Path 'artifacts/publish/GCodeGenerator/*' -DestinationPath $zip
           Write-Host "Portable: $zip"
 
+      # Обновление проверяется не повторной установкой того же файла, а
+      # переходом с последнего опубликованного выпуска на текущий кандидат.
+      - name: Download previous release installer
+        if: steps.tag.outputs.skip == 'false'
+        id: previous
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $releases = gh release list `
+            --repo $env:GITHUB_REPOSITORY `
+            --limit 100 `
+            --json tagName,isDraft,publishedAt | ConvertFrom-Json
+          $candidates = @($releases |
+            Where-Object { -not $_.isDraft -and $_.tagName -ne $env:TAG_NAME } |
+            Sort-Object publishedAt -Descending)
+          if ($candidates.Count -eq 0) {
+            throw 'No previous published release is available for upgrade smoke testing.'
+          }
+
+          $downloadRoot = Join-Path $env:RUNNER_TEMP 'gcodegen-previous-release'
+          New-Item -ItemType Directory -Path $downloadRoot | Out-Null
+          $previousInstaller = $null
+          $candidateIndex = 0
+          foreach ($candidate in $candidates) {
+            $release = gh release view $candidate.tagName `
+              --repo $env:GITHUB_REPOSITORY `
+              --json assets | ConvertFrom-Json
+            $installerAssets = @($release.assets |
+              Where-Object { $_.name -match '^GCodeGenerator-Setup-.+\.exe$' })
+            if ($installerAssets.Count -ne 1) {
+              continue
+            }
+
+            $candidateIndex++
+            $downloadDirectory = Join-Path $downloadRoot $candidateIndex
+            New-Item -ItemType Directory -Path $downloadDirectory | Out-Null
+            gh release download $candidate.tagName `
+              --repo $env:GITHUB_REPOSITORY `
+              --pattern $installerAssets[0].name `
+              --dir $downloadDirectory `
+              --clobber
+            if ($LASTEXITCODE -ne 0) {
+              throw "Downloading the previous installer from $($candidate.tagName) failed."
+            }
+            $previousInstaller = Join-Path $downloadDirectory $installerAssets[0].name
+            Write-Host "Previous release for upgrade: $($candidate.tagName)"
+            break
+          }
+          if ($null -eq $previousInstaller) {
+            throw 'No previous release contains exactly one installer asset.'
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "path=$previousInstaller"
+
       # Проверяется именно упакованный продукт: тихая установка, запуск,
       # повторная установка с тем же AppId, portable и деинсталляция.
       - name: Smoke-test packaged artifacts
@@ -221,6 +275,7 @@ jobs:
           $work = Join-Path $env:RUNNER_TEMP "gcodegen-package-smoke-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
           $smoke = @{
             InstallerPath = $installer
+            PreviousInstallerPath = '${{ steps.previous.outputs.path }}'
             PortableExePath = 'artifacts/publish/GCodeGenerator/GCodeGenerator.exe'
             WorkRoot = $work
             OutputLog = 'artifacts/installer/packaged-artifact-smoke.log'

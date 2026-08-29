@@ -209,10 +209,10 @@ namespace GCodeGenerator.Tests
                 "Диагностический лог потеряется при падении smoke-теста");
             foreach (var stage in new[]
                      {
-                         "'Install'",
-                         "'Start installed application'",
-                         "'Upgrade over existing installation'",
-                         "'Start upgraded application'",
+                         "'Install previous release'",
+                         "'Start previous release'",
+                         "'Upgrade previous release to candidate'",
+                         "'Start upgraded candidate'",
                          "'Start portable application'",
                          "'Uninstall'"
                      })
@@ -224,14 +224,17 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(script, "CloseMainWindow()",
                 "Приложение принудительно убивается вместо проверки штатного закрытия");
             StringAssert.Contains(script, "Installed executable remains after uninstall");
+            StringAssert.Contains(workflow, "gh release list");
+            StringAssert.Contains(workflow, "gh release download");
+            StringAssert.Contains(workflow, "PreviousInstallerPath = '${{ steps.previous.outputs.path }}'");
             StringAssert.Contains(script, "RequireAuthenticodeSignature");
             StringAssert.Contains(script, "Assert-AuthenticodeSignature.ps1");
-            StringAssert.Contains(script, "Upgraded uninstaller");
+            StringAssert.Contains(script, "'Upgraded payload'");
             StringAssert.Contains(workflow, "SIGNER_THUMBPRINT");
             StringAssert.Contains(workflow, "smoke.RequireAuthenticodeSignature = $true");
 
-            var install = script.IndexOf("'Install'", StringComparison.Ordinal);
-            var upgrade = script.IndexOf("'Upgrade over existing installation'", StringComparison.Ordinal);
+            var install = script.IndexOf("'Install previous release'", StringComparison.Ordinal);
+            var upgrade = script.IndexOf("'Upgrade previous release to candidate'", StringComparison.Ordinal);
             var uninstall = script.IndexOf("'Uninstall'", StringComparison.Ordinal);
             Assert.IsTrue(install < upgrade && upgrade < uninstall, "Этапы жизненного цикла перепутаны");
         }

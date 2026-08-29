@@ -12,6 +12,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$OutputLog,
 
+    [string]$PreviousInstallerPath = '',
+
     [switch]$RequireAuthenticodeSignature,
 
     [string]$ExpectedSignerThumbprint = ''
@@ -22,6 +24,12 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $installer = (Resolve-Path -LiteralPath $InstallerPath).Path
+$previousInstaller = if ([string]::IsNullOrWhiteSpace($PreviousInstallerPath)) {
+    $null
+}
+else {
+    (Resolve-Path -LiteralPath $PreviousInstallerPath).Path
+}
 $portableExe = (Resolve-Path -LiteralPath $PortableExePath).Path
 $workDirectory = [System.IO.Path]::GetFullPath($WorkRoot)
 $logPath = [System.IO.Path]::GetFullPath($OutputLog)
@@ -117,7 +125,9 @@ try {
         "/LOG=`"$installLog`""
     )
 
-    Invoke-CheckedProcess $installer $installArguments 'Install'
+    $initialInstaller = if ($null -ne $previousInstaller) { $previousInstaller } else { $installer }
+    $installStage = if ($null -ne $previousInstaller) { 'Install previous release' } else { 'Install candidate' }
+    Invoke-CheckedProcess $initialInstaller $installArguments $installStage
     $installedExe = Join-Path $installDirectory 'GCodeGenerator.exe'
     $uninstaller = Join-Path $installDirectory 'unins000.exe'
     if (-not (Test-Path -LiteralPath $installedExe)) {
@@ -126,20 +136,39 @@ try {
     if (-not (Test-Path -LiteralPath $uninstaller)) {
         throw "Uninstaller is missing: '$uninstaller'."
     }
+    if ($null -eq $previousInstaller) {
+        foreach ($signedFile in @(
+            $installedExe,
+            (Join-Path $installDirectory 'GCodeGenerator.dll'),
+            (Join-Path $installDirectory 'GCodeGenerator.Core.dll'),
+            $uninstaller)) {
+            Assert-PackagedSignature $signedFile 'Installed payload'
+        }
+    }
+    $startStage = if ($null -ne $previousInstaller) {
+        'Start previous release'
+    }
+    else {
+        'Start installed candidate'
+    }
+    Test-ApplicationStart $installedExe $startStage
+
+    $installArguments[-1] = "/LOG=`"$upgradeLog`""
+    $upgradeStage = if ($null -ne $previousInstaller) {
+        'Upgrade previous release to candidate'
+    }
+    else {
+        'Reinstall candidate over existing installation'
+    }
+    Invoke-CheckedProcess $installer $installArguments $upgradeStage
     foreach ($signedFile in @(
         $installedExe,
         (Join-Path $installDirectory 'GCodeGenerator.dll'),
         (Join-Path $installDirectory 'GCodeGenerator.Core.dll'),
         $uninstaller)) {
-        Assert-PackagedSignature $signedFile 'Installed payload'
+        Assert-PackagedSignature $signedFile 'Upgraded payload'
     }
-    Test-ApplicationStart $installedExe 'Start installed application'
-
-    $installArguments[-1] = "/LOG=`"$upgradeLog`""
-    Invoke-CheckedProcess $installer $installArguments 'Upgrade over existing installation'
-    Assert-PackagedSignature $installedExe 'Upgraded executable'
-    Assert-PackagedSignature $uninstaller 'Upgraded uninstaller'
-    Test-ApplicationStart $installedExe 'Start upgraded application'
+    Test-ApplicationStart $installedExe 'Start upgraded candidate'
 
     Test-ApplicationStart $portableExe 'Start portable application'
 
