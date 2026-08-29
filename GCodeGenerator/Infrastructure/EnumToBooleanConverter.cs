@@ -21,11 +21,10 @@ namespace GCodeGenerator.Infrastructure
             if (value == null || parameter == null)
                 return Binding.DoNothing;
 
-            if ((bool)value)
+            if (value is true)
                 return parameter;
 
             return Binding.DoNothing;
         }
     }
 }
-
