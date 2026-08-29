@@ -186,6 +186,42 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
+        /// Почти вертикальная винтовая дуга может схлопнуться в одну и ту же
+        /// пару XY после округления. G2/G3 с совпавшими концами означает для
+        /// ряда стоек полный круг, поэтому такой кадр должен стать G1.
+        /// </summary>
+        [TestMethod]
+        public void RoundedCoincidentHelixEndpoint_IsWrittenAsLinearMove()
+        {
+            var operation = Circle();
+            operation.TotalDepth = 0.001;
+            operation.StepDepth = 0.001;
+            operation.RetractHeight = 0;
+            operation.EntryAngle = 89.9;
+            operation.Decimals = 3;
+
+            var path = Build(operation);
+            Assert.AreEqual(0, path.Moves().OfType<ArcMove>().Count(arc => arc.EndZ.HasValue),
+                "Вырожденной после округления винтовой дуги в траектории быть не должно");
+            Assert.IsTrue(path.Moves().Any(move =>
+                    move.Kind == ToolMoveKind.Linear
+                    && move.X.HasValue
+                    && move.Y.HasValue
+                    && move.Z.HasValue
+                    && Math.Abs(move.Z.Value + operation.TotalDepth) <= Tolerance),
+                "Заглубление сохраняется как линейный XYZ-кадр");
+
+            var program = new SimpleGCodeGenerator().Generate(
+                new OperationBase?[] { operation },
+                new GCodeSettings());
+            var descent = program.Lines.Single(line => line.Contains(" Z-0.001")
+                && (line.Contains(" X") || line.Contains(" Y")));
+            StringAssert.Contains(descent, "G1 ");
+            Assert.IsFalse(descent.Contains("G2 ") || descent.Contains("G3 "),
+                "Совпавшие XY не должны получить семантику полного круга");
+        }
+
+        /// <summary>
         /// На последующих слоях безопасное начало считается от верха именно
         /// этого слоя, а не остаётся на поверхности заготовки.
         /// </summary>

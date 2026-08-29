@@ -123,7 +123,14 @@ namespace GCodeGenerator.GCodeGenerators
                 var i = center.x - currentX;
                 var j = center.y - currentY;
 
-                if (clockwise)
+                // После округления для постпроцессора очень короткая дуга
+                // может иметь одинаковые начало и конец. Кадр G2/G3 с I/J
+                // и совпавшими XY некоторые стойки исполняют как полный круг,
+                // хотя здесь требовалось почти вертикальное заглубление.
+                // G1 сохраняет конечные XYZ и не имеет такой семантики.
+                if (SameFormattedPoint(currentX, currentY, x, y, op.Decimals))
+                    builder.LinearTo(x: x, y: y, z: z, feed: feed);
+                else if (clockwise)
                     builder.ArcCW(x, y, i, j, feed, z);
                 else
                     builder.ArcCCW(x, y, i, j, feed, z);
@@ -131,6 +138,17 @@ namespace GCodeGenerator.GCodeGenerators
                 currentX = x;
                 currentY = y;
             }
+        }
+
+        private static bool SameFormattedPoint(
+            double firstX,
+            double firstY,
+            double secondX,
+            double secondY,
+            int decimals)
+        {
+            return Math.Round(firstX, decimals) == Math.Round(secondX, decimals)
+                && Math.Round(firstY, decimals) == Math.Round(secondY, decimals);
         }
 
         private static void EmitSegments(
