@@ -184,6 +184,20 @@ namespace GCodeGenerator.Tests
                 "После отмены показана новая траектория");
         }
 
+        [TestMethod]
+        public void ClosingPreview_CancelsSceneComputation()
+        {
+            var viewModel = new BlockingPreviewViewModel();
+            viewModel.ToolPath = PathWithMoves(100);
+            Assert.IsTrue(viewModel.FirstBuildStarted.Wait(TimeSpan.FromSeconds(2)));
+
+            viewModel.OnClosed();
+
+            Assert.IsTrue(viewModel.FirstBuildCancelled.Wait(TimeSpan.FromSeconds(2)),
+                "Закрытое окно не должно оставлять сборку сцены в фоне");
+            Assert.IsFalse(viewModel.IsBuilding, "Закрытая модель окна больше не занята");
+        }
+
         /// <summary>
         /// Сбой построения не теряется. Прежде задача запускалась без
         /// наблюдения за результатом: исключение уходило в

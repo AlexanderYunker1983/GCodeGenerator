@@ -232,6 +232,21 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
+        /// Останавливает фоновую сборку сцены вместе с закрытием окна.
+        /// Источник отмены освобождает завершившаяся задача: преждевременный
+        /// Dispose здесь создал бы гонку с читающим токен построителем.
+        /// </summary>
+        public override void OnClosed()
+        {
+            var cancellation = _sceneBuildCancellation;
+            _sceneBuildCancellation = null;
+            _sceneBuildRevision++;
+            cancellation?.Cancel();
+            IsBuilding = false;
+            base.OnClosed();
+        }
+
+        /// <summary>
         /// Собирает сцену в фоне и показывает её, если траектория за это
         /// время не сменилась.
         ///
