@@ -170,7 +170,6 @@ namespace GCodeGenerator.ViewModels
             var previousCancellation = _sceneBuildCancellation;
             _sceneBuildCancellation = null;
             previousCancellation?.Cancel();
-            previousCancellation?.Dispose();
             var revision = ++_sceneBuildRevision;
 
             var program = _program;

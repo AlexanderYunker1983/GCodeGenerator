@@ -17,6 +17,7 @@ namespace GCodeGenerator.Services
         private readonly ISettingsStore? _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
+        private readonly IDocumentRecoveryService? _recovery;
 
         public ProjectWorkflowFactory(
             ILocalizationManager? localizationManager,
@@ -24,7 +25,8 @@ namespace GCodeGenerator.Services
             IFileDialogService fileDialogService,
             ISettingsStore? settingsStore,
             IProjectFileService projectFileService,
-            IAppLogger? logger = null)
+            IAppLogger? logger = null,
+            IDocumentRecoveryService? recovery = null)
         {
             _localizationManager = localizationManager;
             _messageService = messageService ?? throw new ArgumentNullException(nameof(messageService));
@@ -32,6 +34,7 @@ namespace GCodeGenerator.Services
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
             _logger = logger ?? NullAppLogger.Instance;
+            _recovery = recovery;
         }
 
         public ProjectWorkflowViewModel Create(
@@ -45,6 +48,7 @@ namespace GCodeGenerator.Services
                 _fileDialogService,
                 _settingsStore,
                 _projectFileService,
-                _logger);
+                _logger,
+                _recovery);
     }
 }

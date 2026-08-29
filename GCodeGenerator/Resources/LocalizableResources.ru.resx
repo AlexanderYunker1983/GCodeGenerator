@@ -1035,4 +1035,10 @@
   <data name="CancelGeneration" xml:space="preserve">
     <value>Прервать генерацию</value>
   </data>
+  <data name="RecoverAutosaveTitle" xml:space="preserve">
+    <value>Восстановление проекта</value>
+  </data>
+  <data name="RecoverAutosaveMessage" xml:space="preserve">
+    <value>Найден автоматически сохранённый проект из предыдущего сеанса. Восстановить его как новый несохранённый проект?&#xD;&#xA;&#xD;&#xA;{0}</value>
+  </data>
 </root>

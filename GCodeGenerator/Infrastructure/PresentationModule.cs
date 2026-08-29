@@ -33,6 +33,12 @@ namespace GCodeGenerator.Infrastructure
             // а кнопка в окне «О программе» — уже действие человека.
             builder.RegisterType<GitHubUpdateService>().As<IUpdateService>().SingleInstance();
 
+            // Сервис создаётся на UI-потоке вместе с первой view-model и
+            // запоминает SynchronizationContext для безопасного снимка документа.
+            builder.RegisterType<DocumentRecoveryService>()
+                .As<IDocumentRecoveryService>()
+                .SingleInstance();
+
             // Пункт 7.3 плана: фабрика диалогов редактора операций (реестр
             // «тип операции → VM диалога»; сверление — по режиму шаблона).
             builder.RegisterType<OperationEditorFactory>()

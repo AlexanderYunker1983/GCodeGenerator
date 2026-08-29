@@ -16,6 +16,9 @@ namespace GCodeGenerator.Services
             Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
+        public bool ShowConfirmation(string message, string title = "")
+            => Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
+
         public SaveConfirmation ShowSaveConfirmation(string message, string title = "")
         {
             var answer = Show(message, title, MessageBoxButton.YesNoCancel, MessageBoxImage.Warning);

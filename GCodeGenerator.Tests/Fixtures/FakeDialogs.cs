@@ -73,6 +73,19 @@ namespace GCodeGenerator.Tests.Fixtures
             OnError?.Invoke(message);
         }
 
+        public bool ConfirmationResult { get; set; }
+
+        public string LastConfirmationMessage { get; private set; }
+
+        public string LastConfirmationTitle { get; private set; }
+
+        public bool ShowConfirmation(string message, string title = "")
+        {
+            LastConfirmationMessage = message;
+            LastConfirmationTitle = title;
+            return ConfirmationResult;
+        }
+
         public SaveConfirmation ShowSaveConfirmation(string message, string title = "")
         {
             SaveConfirmationCount++;

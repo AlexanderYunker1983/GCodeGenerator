@@ -32,6 +32,9 @@ namespace GCodeGenerator.Services
         /// <summary>Сообщение об ошибке (кнопка OK, иконка ошибки).</summary>
         void ShowError(string message, string title = "");
 
+        /// <summary>Обычный вопрос Да/Нет.</summary>
+        bool ShowConfirmation(string message, string title = "");
+
         /// <summary>
         /// Вопрос о несохранённых изменениях (Да/Нет/Отмена): сохранить,
         /// потерять изменения или отменить само действие.

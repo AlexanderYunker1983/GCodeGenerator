@@ -1035,4 +1035,10 @@
   <data name="CancelGeneration" xml:space="preserve">
     <value>Stop generating</value>
   </data>
+  <data name="RecoverAutosaveTitle" xml:space="preserve">
+    <value>Project recovery</value>
+  </data>
+  <data name="RecoverAutosaveMessage" xml:space="preserve">
+    <value>An automatically saved project from the previous session was found. Recover it as a new unsaved project?&#xD;&#xA;&#xD;&#xA;{0}</value>
+  </data>
 </root>

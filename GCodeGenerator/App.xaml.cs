@@ -162,8 +162,41 @@ namespace GCodeGenerator
 
             // Проект открывается после показа окна: чтение и разбор идут
             // в фоне, а сообщение об ошибке требует окна-владельца.
+            _ = OpenStartupDocumentAsync(projectFile);
+        }
+
+        private async Task OpenStartupDocumentAsync(string? projectFile)
+        {
+            if (_mainViewModel == null || _container == null)
+                return;
+
+            // Явно открытый из проводника файл имеет приоритет. Recovery не
+            // удаляется: при следующем обычном запуске его снова предложат.
             if (projectFile != null)
-                _ = _mainViewModel.OpenProjectAsync(projectFile);
+            {
+                await _mainViewModel.OpenProjectAsync(projectFile);
+                return;
+            }
+
+            var recovery = _container.Resolve<IDocumentRecoveryService>();
+            if (!recovery.Exists)
+                return;
+
+            var messages = _container.Resolve<IMessageService>();
+            var template = _localizationManager?.GetString("RecoverAutosaveMessage")
+                           ?? "Recover automatically saved project?\n{0}";
+            var title = _localizationManager?.GetString("RecoverAutosaveTitle")
+                        ?? "Project recovery";
+            if (messages.ShowConfirmation(
+                    string.Format(System.Globalization.CultureInfo.CurrentCulture, template, recovery.RecoveryPath),
+                    title))
+            {
+                await _mainViewModel.ProjectWorkflow.OpenRecoveryAsync(recovery.RecoveryPath);
+            }
+            else
+            {
+                recovery.Clear();
+            }
         }
 
         /// <summary>

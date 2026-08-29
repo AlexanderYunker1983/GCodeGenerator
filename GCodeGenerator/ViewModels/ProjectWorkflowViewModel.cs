@@ -34,6 +34,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ISettingsStore? _settingsStore;
         private readonly IProjectFileService _projectFileService;
         private readonly IAppLogger _logger;
+        private readonly IDocumentRecoveryService? _recovery;
         private readonly SemaphoreSlim _workflowGate = new SemaphoreSlim(1, 1);
         private readonly SemaphoreSlim _fileIoGate = new SemaphoreSlim(1, 1);
 
@@ -62,7 +63,8 @@ namespace GCodeGenerator.ViewModels
             IFileDialogService fileDialogService,
             ISettingsStore? settingsStore,
             IProjectFileService projectFileService,
-            IAppLogger? logger = null)
+            IAppLogger? logger = null,
+            IDocumentRecoveryService? recovery = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             _gCodeWorkflow = gCodeWorkflow ?? throw new ArgumentNullException(nameof(gCodeWorkflow));
@@ -72,6 +74,7 @@ namespace GCodeGenerator.ViewModels
             _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
             _projectFileService = projectFileService ?? throw new ArgumentNullException(nameof(projectFileService));
             _logger = logger ?? NullAppLogger.Instance;
+            _recovery = recovery;
 
             // Команды асинхронны: чтение, разбор и запись файла уходят в фон,
             // окно остаётся живым. К документу фон не прикасается — слепок
@@ -160,6 +163,10 @@ namespace GCodeGenerator.ViewModels
                 return;
             unchecked { _documentRevision++; }
             IsDirty = true;
+            if (_operations.Count > 0)
+                _recovery?.Schedule(SerializeProject);
+            else
+                _recovery?.Clear();
         }
 
         /// <summary>
@@ -179,6 +186,7 @@ namespace GCodeGenerator.ViewModels
                     // исходное действие тоже отменяется.
                     return SaveToFile(CurrentPath ?? AskFileName());
                 case SaveConfirmation.Discard:
+                    _recovery?.Clear();
                     return true;
                 default:
                     return false;
@@ -370,7 +378,10 @@ namespace GCodeGenerator.ViewModels
             // редактирование. Такой файл сохранён успешно, но текущий
             // документ уже новее его и потому остаётся несохранённым.
             if (_documentRevision == savedRevision)
+            {
                 IsDirty = false;
+                _recovery?.Clear();
+            }
             _logger.Info($"Project saved: {fileName} ({operationCount} operation(s))");
 
             // Файл старого формата после сохранения стал файлом текущей
@@ -455,12 +466,43 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
+        /// Загружает автоматический снимок как новый несохранённый проект.
+        /// Путь recovery не становится CurrentPath: обычное Ctrl+S обязано
+        /// спросить имя и не перезаписать единственную спасённую копию.
+        /// </summary>
+        public async Task<bool> OpenRecoveryAsync(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+                return false;
+
+            await _workflowGate.WaitAsync();
+            try
+            {
+                if (!await ConfirmDiscardChangesAsync())
+                    return false;
+
+                var opened = await LoadProjectAsync(fileName!, asRecovery: true);
+                if (opened)
+                    MarkDirty();
+                return opened;
+            }
+            finally
+            {
+                _workflowGate.Release();
+            }
+        }
+
+        /// <summary>
         /// Читает файл и заменяет им документ. Вопрос о несохранённых
         /// изменениях к этому моменту уже задан.
         /// </summary>
         /// <param name="fileName">Путь к файлу проекта.</param>
+        /// <param name="asRecovery">
+        /// Не связывать документ с recovery-файлом и не удалять этот файл
+        /// после загрузки.
+        /// </param>
         /// <returns><c>true</c>, если проект открыт.</returns>
-        private async Task<bool> LoadProjectAsync(string fileName)
+        private async Task<bool> LoadProjectAsync(string fileName, bool asRecovery = false)
         {
             var title = Localize("OpenProjectTitle");
 
@@ -483,9 +525,9 @@ namespace GCodeGenerator.ViewModels
                     ResetOperations();
                     foreach (var operation in data.Operations)
                         _operations.Add(operation);
-                    CurrentPath = fileName;
+                    CurrentPath = asRecovery ? null : fileName;
                     _loadedFileVersion = data.Version;
-                });
+                }, clearRecovery: !asRecovery);
                 _logger.Info($"Project opened: {fileName} ({data.Operations.Count} operation(s))");
                 return true;
             }
@@ -504,7 +546,7 @@ namespace GCodeGenerator.ViewModels
         /// только при успехе. Сбой на полпути возвращает прежние операции:
         /// документ либо заменён целиком, либо остался прежним.
         /// </summary>
-        private void ApplyDocument(Action apply)
+        private void ApplyDocument(Action apply, bool clearRecovery = true)
         {
             _isApplyingDocument = true;
             var previousOperations = new List<OperationBase>(_operations);
@@ -552,6 +594,8 @@ namespace GCodeGenerator.ViewModels
             // проектом или только что открытым файлом.
             unchecked { _documentRevision++; }
             IsDirty = false;
+            if (clearRecovery)
+                _recovery?.Clear();
 
             void RestoreDocument()
             {

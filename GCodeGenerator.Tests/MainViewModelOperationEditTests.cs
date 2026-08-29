@@ -38,7 +38,8 @@ namespace GCodeGenerator.Tests
             FakeEditorIndex editors = null,
             GCodeGenerator.Localization.ILocalizationManager localizationManager = null,
             GCodeGenerator.Services.IUpdateService updates = null,
-            bool checkForUpdates = false)
+            bool checkForUpdates = false,
+            IDocumentRecoveryService recovery = null)
         {
             var dialogs = new FakeDialogs();
             var factory = new OperationEditorFactory(editors ?? new FakeEditorIndex(), dialogs);
@@ -62,7 +63,8 @@ namespace GCodeGenerator.Tests
                 dialogs,
                 dialogs,
                 settingsStore,
-                projectFileService ?? new ProjectFileService());
+                projectFileService ?? new ProjectFileService(),
+                recovery: recovery);
             var operationsWorkspace = new OperationsWorkspaceViewModel(
                 null,
                 factory,
