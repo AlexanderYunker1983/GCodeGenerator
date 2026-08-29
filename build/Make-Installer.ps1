@@ -26,7 +26,7 @@
 # version fails unless -AllowUnsignedStable is passed deliberately for a local
 # diagnostic build; the release workflow never passes that escape hatch.
 #
-# Requires: .NET 10 SDK, git, Inno Setup 6 (ISCC.exe) - or -IsccPath.
+# Requires: .NET 10 SDK, git, 64-bit Inno Setup 7 (ISCC.exe) - or -IsccPath.
 # ASCII-only on purpose: Windows PowerShell 5.1 reads BOM-less .ps1 as ANSI.
 # Compatible with Windows PowerShell 5.1 (no PS7 syntax).
 #
@@ -187,11 +187,11 @@ if ($IsccPath -eq '') {
         $IsccPath = $cmd.Source
     }
     else {
-        $IsccPath = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+        $IsccPath = 'C:\Program Files\Inno Setup 7\ISCC.exe'
     }
 }
 if (-not (Test-Path $IsccPath)) {
-    throw "ISCC not found ('$IsccPath'). Install Inno Setup 6 (https://jrsoftware.org/isdl.php) or pass -IsccPath."
+    throw "ISCC not found ('$IsccPath'). Install 64-bit Inno Setup 7 (https://jrsoftware.org/isdl.php) or pass -IsccPath."
 }
 
 $installerDir = Join-Path $repoRoot 'artifacts\installer'

@@ -156,7 +156,7 @@ Get-FileHash .\GCodeGenerator-Setup-<версия>.exe
 
 ### Сборка инсталлятора локально
 
-Требования: **.NET 10 SDK**, **git**, **Inno Setup 6** ([скачать](https://jrsoftware.org/isdl.php)).
+Требования: **.NET 10 SDK**, **git**, **64-битный Inno Setup 7** ([скачать](https://jrsoftware.org/isdl.php)).
 
 ```powershell
 build\Make-Installer.ps1

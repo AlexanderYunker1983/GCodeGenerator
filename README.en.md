@@ -155,7 +155,7 @@ During an update, Windows Restart Manager identifies the installed instance by t
 
 ### Building the installer locally
 
-Requirements: the **.NET 10 SDK**, **git** and **Inno Setup 6** ([download](https://jrsoftware.org/isdl.php)).
+Requirements: the **.NET 10 SDK**, **git** and **64-bit Inno Setup 7** ([download](https://jrsoftware.org/isdl.php)).
 
 ```powershell
 build\Make-Installer.ps1

@@ -177,13 +177,30 @@ namespace GCodeGenerator.Tests
                 Root, ".github", "workflows", "release.yml"));
 
             StringAssert.Contains(workflow,
-                "9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732",
-                "SHA-256 официального Inno Setup 6.7.3 не закреплён");
+                "https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe");
+            StringAssert.Contains(workflow,
+                "0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f",
+                "SHA-256 официального Inno Setup 7.1.0 x64 не закреплён");
             StringAssert.Contains(workflow, "Get-FileHash -Algorithm SHA256",
                 "Загруженный exe запускается без вычисления хеша");
-            Assert.IsTrue(workflow.IndexOf("Get-FileHash -Algorithm SHA256", StringComparison.Ordinal)
-                          < workflow.IndexOf("& $installer /VERYSILENT", StringComparison.Ordinal),
-                "Проверка хеша должна предшествовать запуску загруженного exe");
+            foreach (var verification in new[]
+                     {
+                         "Get-FileHash -Algorithm SHA256",
+                         "Get-AuthenticodeSignature -LiteralPath $installer",
+                         "O=Pyrsys B\\.V\\.",
+                         "gh release verify-asset $installer --repo jrsoftware/issrc"
+                     })
+            {
+                StringAssert.Contains(workflow, verification);
+                Assert.IsTrue(workflow.IndexOf(verification, StringComparison.Ordinal)
+                              < workflow.IndexOf("& $installer /VERYSILENT", StringComparison.Ordinal),
+                    $"Проверка '{verification}' должна предшествовать запуску загруженного exe");
+            }
+
+            StringAssert.Contains(workflow, @"C:\Program Files\Inno Setup 7\ISCC.exe");
+            StringAssert.Contains(BuildScript, @"C:\Program Files\Inno Setup 7\ISCC.exe");
+            StringAssert.Contains(InstallerScript, "SetupArchitecture=x64",
+                "Установщик приложения остался 32-битным");
         }
 
         /// <summary>

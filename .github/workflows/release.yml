@@ -161,21 +161,34 @@ jobs:
 
       # Inno Setup удалён из образа windows-2025 (windows-latest) — ставим
       # официальный инсталлятор с закреплённой версией (immutable GitHub release).
-      - name: Install Inno Setup 6.7.3
+      - name: Install Inno Setup 7.1.0 (x64)
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          $url = 'https://github.com/jrsoftware/issrc/releases/download/is-6_7_3/innosetup-6.7.3.exe'
-          $installer = Join-Path $env:RUNNER_TEMP 'innosetup-6.7.3.exe'
-          $expectedSha256 = '9c73c3bae7ed48d44112a0f48e66742c00090bdb5bef71d9d3c056c66e97b732'
-          Invoke-WebRequest -Uri $url -OutFile $installer
+          $url = 'https://github.com/jrsoftware/issrc/releases/download/is-7_1_0/innosetup-7.1.0-x64.exe'
+          $installer = Join-Path $env:RUNNER_TEMP 'innosetup-7.1.0-x64.exe'
+          $expectedSha256 = '0362a383ed217d4c4239b5933866dd96d3eb2102737da92f80f6057a4b40df2f'
+          Invoke-WebRequest -Uri $url -OutFile $installer -MaximumRetryCount 3 -RetryIntervalSec 5
           $actualSha256 = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer).Hash.ToLowerInvariant()
           if ($actualSha256 -ne $expectedSha256) {
             Remove-Item -LiteralPath $installer -Force
             throw "Inno Setup SHA-256 mismatch: expected $expectedSha256, got $actualSha256"
           }
-          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-          $iscc = 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
+
+          $authenticode = Get-AuthenticodeSignature -LiteralPath $installer
+          if ($authenticode.Status -ne 'Valid' -or
+              $authenticode.SignerCertificate.Subject -notmatch '(^|,\s*)O=Pyrsys B\.V\.(,|$)' -or
+              $null -eq $authenticode.TimeStamperCertificate) {
+            throw "Inno Setup Authenticode verification failed: $($authenticode.Status); $($authenticode.SignerCertificate.Subject)"
+          }
+          gh release verify-asset $installer --repo jrsoftware/issrc
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup GitHub release attestation is invalid.' }
+
+          & $installer /VERYSILENT /SUPPRESSMSGBOXES /NORESTART /ALLUSERS
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed with exit code $LASTEXITCODE" }
+          $iscc = 'C:\Program Files\Inno Setup 7\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "Inno Setup installation failed: $iscc not found" }
           Write-Host "ISCC ready: $iscc"
 

@@ -1,5 +1,5 @@
 ﻿; ---------------------------------------------------------------------------
-; GCodeGenerator.iss - Inno Setup 6.x script for the GCodeGenerator app.
+; GCodeGenerator.iss - Inno Setup 7.x script for the GCodeGenerator app.
 ;
 ; The version is NOT hardcoded here - it is passed on the ISCC command line:
 ;   /DAppVersionNumeric=0.0.1  /DAppVersionSuffix=-rc5
@@ -31,8 +31,8 @@
 ;     that choice through the "auto" constants and HKA.
 ;   - This file is UTF-8 WITH BOM: [CustomMessages] carries Russian text, and
 ;     Inno Setup reads a BOM-less .iss as ANSI.
-;   - Inno Setup 6.3+ (x64compatible values); Russian: official in 6.7+
-;     (Languages\Russian.isl), unofficial in older 6.x (Languages\Unofficial).
+;   - Inno Setup 7.0+ is required for a native 64-bit Setup executable.
+;     The official Russian translation is Languages\Russian.isl.
 ; ---------------------------------------------------------------------------
 
 ; Publisher, product name and copyright come from Directory.Build.props via
@@ -66,13 +66,15 @@ AppCopyright={#AppCopyright}
 LicenseFile=..\LICENSE
 ; AppVersion = the full git tag (e.g. 0.0.1-rc5): displayed in the wizard
 ; and written to the uninstall registry (DisplayVersion, a string).
-; Inno Setup 6 has no separate suffix directive - the full tag is the display
+; Inno Setup has no separate suffix directive - the full tag is the display
 ; version; the numeric part is used for the PE version resource below.
 AppVersion={#AppVersionNumeric}{#AppVersionSuffix}
 DefaultDirName={autopf}\GCodeGenerator
 DefaultGroupName=GCodeGenerator
 DisableProgramGroupPage=yes
 ; 64-bit app (win-x64 publish): install on x64 only, into 64-bit Program Files.
+; A native x64 Setup avoids a WOW64 dependency and enables high-entropy ASLR.
+SetupArchitecture=x64
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; Minimum supported OS per README: Windows 11 24H2.
@@ -137,17 +139,9 @@ SignTool={#SignToolName}
 SignedUninstaller=yes
 #endif
 
-; Russian: official in Inno Setup 6.7+, unofficial (Languages\Unofficial) in
-; older 6.x - pick whichever exists.
-#if FileExists("compiler:Languages\Russian.isl")
-  #define RussianIsl "compiler:Languages\Russian.isl"
-#else
-  #define RussianIsl "compiler:Languages\Unofficial\Russian.isl"
-#endif
-
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
-Name: "russian"; MessagesFile: "{#RussianIsl}"
+Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 ; Own messages of the [Code] section. The wizard itself picks its language by
 ; system locale; these lines used to be English-only, so a Russian user met
