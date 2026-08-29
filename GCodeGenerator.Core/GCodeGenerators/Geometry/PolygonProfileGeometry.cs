@@ -57,19 +57,26 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 vertices.Add((x, y));
             }
 
-            // Возвращаем все вершины в нужном направлении
+            // Оба направления начинаются в одной и той же точке, которую
+            // возвращает GetStartPoint и в которой заканчивается вход.
+            // Прежний CW-обход начинался с последней вершины, но замыкался
+            // первой CCW-вершиной: общий генератор сначала резал ребро от
+            // точки входа к последней вершине, а после обхода повторял его.
+            yield return vertices[0];
+
             if (direction == MillingDirection.Clockwise)
             {
-                // По часовой стрелке: от последней к первой
-                for (int i = _operation.NumberOfSides - 1; i >= 0; i--)
+                // По часовой стрелке: после общей стартовой точки идём от
+                // последней вершины ко второй.
+                for (int i = _operation.NumberOfSides - 1; i >= 1; i--)
                 {
                     yield return vertices[i];
                 }
             }
             else
             {
-                // Против часовой стрелки: от первой к последней
-                for (int i = 0; i < _operation.NumberOfSides; i++)
+                // Против часовой стрелки: от второй к последней.
+                for (int i = 1; i < _operation.NumberOfSides; i++)
                 {
                     yield return vertices[i];
                 }
@@ -132,4 +139,3 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
         }
     }
 }
-
