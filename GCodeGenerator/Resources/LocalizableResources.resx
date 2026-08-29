@@ -1029,6 +1029,9 @@
   <data name="UpdateUpToDate" xml:space="preserve">
     <value>The installed version is the latest one.</value>
   </data>
+  <data name="UpdateNoCompatibleRelease" xml:space="preserve">
+    <value>No suitable release was found in the selected update channel.</value>
+  </data>
   <data name="UpdateCheckFailedBecause" xml:space="preserve">
     <value>Could not check for updates: {0}</value>
   </data>

@@ -169,7 +169,9 @@ namespace GCodeGenerator.ViewModels
 
                 if (answer.Release == null)
                 {
-                    UpdateStatus = Describe(answer);
+                    UpdateStatus = answer.NoCompatibleRelease
+                        ? Localize("UpdateNoCompatibleRelease")
+                        : Describe(answer);
                     return;
                 }
 

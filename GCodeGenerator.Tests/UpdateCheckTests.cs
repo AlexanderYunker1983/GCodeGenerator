@@ -203,7 +203,6 @@ namespace GCodeGenerator.Tests
         [DataRow(HttpStatusCode.NotFound, @"{ ""tag_name"": ""9.9.9"" }", DisplayName = "отказ GitHub")]
         [DataRow(HttpStatusCode.OK, "не JSON вовсе", DisplayName = "ответ не разбирается")]
         [DataRow(HttpStatusCode.OK, @"{ ""tag_name"": ""nightly-2026-08-28"" }", DisplayName = "тег вне формата")]
-        [DataRow(HttpStatusCode.OK, "[]", DisplayName = "ответ не об одном выпуске")]
         public async Task Service_StaysSilentOnAnythingUnexpected(HttpStatusCode status, string body)
         {
             using var service = Service(status, body);
@@ -213,6 +212,29 @@ namespace GCodeGenerator.Tests
             Assert.IsNull(answer.Release, "Выпуск не должен был найтись");
             Assert.AreNotEqual(string.Empty, answer.Detail,
                 "Отказ без причины отправляет читать журнал");
+        }
+
+        [TestMethod]
+        public async Task Service_EmptyOrPrereleaseOnlyList_IsAValidNoReleaseResult()
+        {
+            var responses = new[]
+            {
+                "[]",
+                @"[{ ""tag_name"": ""0.6.0-rc1"", ""prerelease"": true }]",
+            };
+
+            foreach (var response in responses)
+            {
+                using var service = Service(HttpStatusCode.OK, response);
+
+                var answer = await service.Service.GetLatestReleaseAsync(ProductVersion.Parse("0.5.0"));
+
+                Assert.IsNull(answer.Release);
+                Assert.IsTrue(answer.NoCompatibleRelease, response);
+                Assert.AreEqual(string.Empty, answer.Detail,
+                    "Корректный ответ не является сетевой ошибкой");
+                Assert.IsFalse(answer.IsRateLimited);
+            }
         }
 
         /// <summary>Отказ сети не выходит наружу исключением.</summary>
@@ -364,6 +386,18 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(about.OpenUpdatePageCommand.CanExecute(null));
         }
 
+        [TestMethod]
+        public async Task About_ExplainsWhenChannelHasNoSuitableRelease()
+        {
+            var about = new AboutViewModelBuilder("1.0.0", new NoReleaseUpdateService()).Build();
+
+            await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)about.CheckUpdatesCommand).ExecuteAsync(null);
+
+            StringAssert.Contains(about.UpdateStatus, "подходящих выпусков");
+            Assert.IsFalse(about.UpdateStatus.Contains("Array", StringComparison.Ordinal));
+            Assert.IsFalse(about.HasNewerVersion);
+        }
+
         /// <summary>
         /// Проверка не удалась — окно называет причину, а не отправляет
         /// в журнал. Прежде оно писало «причина — в журнале работы», и ради
@@ -404,6 +438,12 @@ namespace GCodeGenerator.Tests
         {
             public Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
                 => Task.FromResult(UpdateCheckResult.RateLimited());
+        }
+
+        private sealed class NoReleaseUpdateService : IUpdateService
+        {
+            public Task<UpdateCheckResult> GetLatestReleaseAsync(CancellationToken cancellation = default)
+                => Task.FromResult(UpdateCheckResult.None());
         }
 
         // ------------------------------------------------------------------

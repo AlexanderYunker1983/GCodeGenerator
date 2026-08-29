@@ -67,19 +67,30 @@ namespace GCodeGenerator.Services
     /// GitHub ограничил число запросов. Единственная причина, названная
     /// отдельно: она проходит сама и объясняется человеку иначе, чем сбой.
     /// </param>
-    public sealed record UpdateCheckResult(UpdateInfo? Release, string Detail, bool IsRateLimited)
+    /// <param name="NoCompatibleRelease">
+    /// Ответ корректен, но в выбранном канале нет подходящего выпуска.
+    /// </param>
+    public sealed record UpdateCheckResult(
+        UpdateInfo? Release,
+        string Detail,
+        bool IsRateLimited,
+        bool NoCompatibleRelease)
     {
         /// <summary>Выпуск найден.</summary>
         public static UpdateCheckResult Found(UpdateInfo release)
-            => new UpdateCheckResult(release, string.Empty, false);
+            => new UpdateCheckResult(release, string.Empty, false, false);
+
+        /// <summary>Ответ корректен, но в канале нет подходящего выпуска.</summary>
+        public static UpdateCheckResult None()
+            => new UpdateCheckResult(null, string.Empty, false, true);
 
         /// <summary>Узнать не удалось; причина — текстом.</summary>
         public static UpdateCheckResult Failed(string detail)
-            => new UpdateCheckResult(null, detail, false);
+            => new UpdateCheckResult(null, detail, false, false);
 
         /// <summary>GitHub ограничил число запросов.</summary>
         public static UpdateCheckResult RateLimited()
-            => new UpdateCheckResult(null, string.Empty, true);
+            => new UpdateCheckResult(null, string.Empty, true, false);
     }
 
     /// <summary>
@@ -259,17 +270,31 @@ namespace GCodeGenerator.Services
         private UpdateCheckResult Read(JsonElement root, ProductVersion? installedVersion)
         {
             UpdateInfo? newest = null;
+            var malformedRelease = false;
             var includePrereleases = installedVersion != null && installedVersion.ClassRank < 4;
-            var releases = root.ValueKind switch
+            JsonElement[] releases;
+            switch (root.ValueKind)
             {
-                JsonValueKind.Array => root.EnumerateArray().ToArray(),
-                JsonValueKind.Object => new[] { root },
-                _ => Array.Empty<JsonElement>(),
-            };
+                case JsonValueKind.Array:
+                    releases = root.EnumerateArray().ToArray();
+                    break;
+                case JsonValueKind.Object:
+                    releases = new[] { root };
+                    break;
+                default:
+                    return UpdateCheckResult.Failed(
+                        $"unexpected JSON root {root.ValueKind}");
+            }
 
             foreach (var release in releases)
             {
-                if (release.ValueKind != JsonValueKind.Object || Boolean(release, "draft"))
+                if (release.ValueKind != JsonValueKind.Object)
+                {
+                    malformedRelease = true;
+                    continue;
+                }
+
+                if (Boolean(release, "draft"))
                     continue;
 
                 var tag = Text(release, "tag_name");
@@ -277,6 +302,7 @@ namespace GCodeGenerator.Services
                 if (version == null)
                 {
                     _logger.Warning($"Update check: tag '{tag}' is not a product version");
+                    malformedRelease = true;
                     continue;
                 }
 
@@ -290,9 +316,12 @@ namespace GCodeGenerator.Services
                     newest = new UpdateInfo(version, Text(release, "html_url"));
             }
 
-            return newest == null
-                ? UpdateCheckResult.Failed(root.ValueKind.ToString())
-                : UpdateCheckResult.Found(newest);
+            if (newest != null)
+                return UpdateCheckResult.Found(newest);
+
+            return malformedRelease
+                ? UpdateCheckResult.Failed("the response contains no valid product release tag")
+                : UpdateCheckResult.None();
         }
 
         private static string? Text(JsonElement element, string name)

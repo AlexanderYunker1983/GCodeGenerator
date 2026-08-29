@@ -1029,6 +1029,9 @@
   <data name="UpdateUpToDate" xml:space="preserve">
     <value>Установлена последняя версия.</value>
   </data>
+  <data name="UpdateNoCompatibleRelease" xml:space="preserve">
+    <value>В выбранном канале обновлений подходящих выпусков не найдено.</value>
+  </data>
   <data name="UpdateCheckFailedBecause" xml:space="preserve">
     <value>Проверить обновления не удалось: {0}</value>
   </data>
