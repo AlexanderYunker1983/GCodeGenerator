@@ -31,6 +31,7 @@ namespace GCodeGenerator.ViewModels
         private readonly IGCodeFileService _gCodeFileService;
         private readonly IAppLogger _logger;
         private Toolpath.ToolPath? _generatedToolPath;
+        private GCodeProgram? _generatedProgram;
 
         /// <summary>
         /// Отмена текущей генерации. Документ мог измениться, пока строилась
@@ -133,8 +134,8 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// Траектория последней успешной генерации: её показывают оба
-        /// предпросмотра — трёхмерный целиком, двумерный видом сверху.
+        /// Траектория последней успешной генерации: нужна для связи кадров
+        /// с исходными операциями и внутренних представлений.
         /// </summary>
         public Toolpath.ToolPath? GeneratedToolPath
         {
@@ -143,6 +144,22 @@ namespace GCodeGenerator.ViewModels
             {
                 if (ReferenceEquals(value, _generatedToolPath)) return;
                 _generatedToolPath = value;
+                OnPropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Структурированная программа последней генерации. Именно её
+        /// показывают предпросмотры: в ней уже есть G92, округление выбранной
+        /// точности и служебные перемещения постпроцессора.
+        /// </summary>
+        public GCodeProgram? GeneratedProgram
+        {
+            get => _generatedProgram;
+            private set
+            {
+                if (ReferenceEquals(value, _generatedProgram)) return;
+                _generatedProgram = value;
                 OnPropertyChanged();
             }
         }
@@ -182,6 +199,7 @@ namespace GCodeGenerator.ViewModels
             Interlocked.Increment(ref _documentRevision);
             _generationCancellation?.Cancel();
             GeneratedToolPath = null;
+            GeneratedProgram = null;
             ProgramLines = null;
             ((IRelayCommand)GenerateGCodeCommand).NotifyCanExecuteChanged();
         }
@@ -195,6 +213,7 @@ namespace GCodeGenerator.ViewModels
             ProgressPercent = 0;
             _cancelledByUser = false;
             GeneratedToolPath = null;
+            GeneratedProgram = null;
             ProgramLines = null;
             var generationRevision = Volatile.Read(ref _documentRevision);
             var generationCompleted = false;
@@ -221,8 +240,8 @@ namespace GCodeGenerator.ViewModels
                 // Пустая операция в снимке возможна: файл проекта, написанный
                 // вручную, способен принести и такую. Отклоняет её проверка
                 // перед генерацией, поэтому список передаётся как есть.
-                // Траектория строится один раз: постпроцессор делает из неё
-                // программу, а трёхмерный предпросмотр показывает её саму.
+                // Траектория строится один раз, постпроцессор делает из неё
+                // программу, а предпросмотр показывает уже результат стойки.
                 // Стойку выбирает настройка; проверка внутри BuildToolPath
                 // уже отказала бы на неизвестном ключе.
                 var (toolPath, program) = await Task.Run(() =>
@@ -241,6 +260,7 @@ namespace GCodeGenerator.ViewModels
                 }
 
                 GeneratedToolPath = toolPath;
+                GeneratedProgram = program;
 
                 // Программа хранится строками, как её и построил генератор:
                 // предпросмотр показывает их виртуализированным списком, а
@@ -261,6 +281,7 @@ namespace GCodeGenerator.ViewModels
             catch (Exception ex)
             {
                 GeneratedToolPath = null;
+                GeneratedProgram = null;
                 ProgramLines = null;
                 ProgressPercent = 0;
                 _logger.Error("G-code generation failed", ex);
@@ -317,7 +338,10 @@ namespace GCodeGenerator.ViewModels
                 return;
 
             var viewModel = _createPreview();
-            viewModel.ToolPath = GeneratedToolPath;
+            if (GeneratedProgram != null)
+                viewModel.Program = GeneratedProgram;
+            else
+                viewModel.ToolPath = GeneratedToolPath;
             _dialogHost.ShowDialog(viewModel);
         }
     }

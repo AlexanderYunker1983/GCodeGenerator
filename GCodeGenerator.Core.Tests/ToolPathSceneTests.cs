@@ -3,26 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using GCodeGenerator.GCodeGenerators;
 using GCodeGenerator.Models;
+using GCodeGenerator.Preview;
 using GCodeGenerator.Tests.Fixtures;
+using GCodeGenerator.Toolpath;
 using GCodeGenerator.Trajectory;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace GCodeGenerator.Tests
 {
     /// <summary>
-    /// Трёхмерный предпросмотр строится из траектории, а не разбором готовой
-    /// программы.
-    ///
-    /// Раньше окно читало G-слова и восстанавливало по ним, чем было каждое
-    /// движение, в какой плоскости лежит дуга и где ноль детали, — то есть
-    /// программа интерпретировала собственный вывод, и расхождение между
-    /// показанным и выполненным было ничем не защищено. Здесь проверяется,
-    /// что новый путь даёт ту же траекторию, что и прежний разбор.
+    /// Сцены промежуточной траектории и готовой программы. Рабочее окно
+    /// показывает программу: только в ней есть координатный пролог, эпилог
+    /// и округление выбранной точности. Прямой построитель ToolPath остаётся
+    /// для внутренних геометрических проверок.
     /// </summary>
     [TestClass]
     public class ToolPathSceneTests
     {
-        private const double Tolerance = 1e-6;
+        private const double Tolerance = 1e-3;
 
         private static IEnumerable<OperationBase[]> ReferenceCases()
         {
@@ -41,9 +39,8 @@ namespace GCodeGenerator.Tests
         }
 
         /// <summary>
-        /// Главная проверка волны: сцена из траектории совпадает со сценой,
-        /// полученной прежним разбором программы, — на всех типах операций,
-        /// включая дуги и контуры из чертежа.
+        /// Без координатного пролога и парковки две сцены совпадают с точностью
+        /// вывода: программа намеренно округляет исходный ToolPath.
         /// </summary>
         [TestMethod]
         public void SceneFromToolPath_MatchesSceneFromProgram()
@@ -103,6 +100,46 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(arc.ArcRadius > 0, "У дуги есть радиус");
             Assert.IsTrue(arc.InterpolatedPoints != null && arc.InterpolatedPoints.Count >= 4,
                 "Дуга разложена на точки для отрисовки");
+        }
+
+        [TestMethod]
+        public void ProgramScene_HonorsG92RoundingAndFooterParking()
+        {
+            var source = OperationFixtures.ProfileCircle();
+            var operation = new ToolPathOperation("profile", "profile", 3, source);
+            var builder = new ToolPathBuilder(operation);
+            builder.RapidTo(x: 0.0006, y: 2.0, z: 1.0, feed: 1000);
+            var path = new ToolPath();
+            path.AddOperation(operation);
+
+            var settings = new GCodeSettings();
+            settings.WorkCoordinate.AddStartPosition = true;
+            settings.WorkCoordinate.StartX = 100;
+            settings.WorkCoordinate.StartY = 200;
+            settings.WorkCoordinate.StartZ = 10;
+            settings.WorkCoordinate.AddEndPosition = true;
+            settings.WorkCoordinate.EndX = 50;
+            settings.WorkCoordinate.EndY = 60;
+            settings.WorkCoordinate.EndZ = 3;
+
+            var program = new GenericPostProcessor().Build(path, settings);
+            var scene = SceneBuilder.Build(program);
+
+            Assert.AreEqual(new Vec3(100, 200, 10), scene.Segments[0].Start,
+                "G92 задаёт исходную позицию без фантомного хода от нуля");
+            Assert.AreEqual(new Vec3(0.001, 2, 1), scene.Segments[0].End,
+                "предпросмотр видит округлённое слово X0.001");
+            Assert.AreSame(source, scene.Segments[0].Source);
+            Assert.IsTrue(scene.Segments.Any(segment =>
+                    segment.End == new Vec3(50, 60, 3)),
+                "парковка эпилога входит в сцену");
+            Assert.IsTrue(scene.Segments.Any(segment => segment.Source == null),
+                "служебные перемещения не приписываются операции");
+
+            var top = ProgramSceneProjection.Build(program);
+            Assert.IsTrue(top.Shapes.Any(shape => ReferenceEquals(shape.Operation, source)));
+            Assert.IsTrue(top.Shapes.Any(shape => shape.Operation == null
+                                                  && shape.Kind == OperationShapeKind.RapidMove));
         }
 
         [TestMethod]

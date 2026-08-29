@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Threading.Tasks;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
+using GCodeGenerator.Models;
 using GCodeGenerator.Services;
 using GCodeGenerator.Trajectory;
 
@@ -11,7 +12,7 @@ namespace GCodeGenerator.ViewModels
 {
     /// <summary>
     /// ViewModel of the 3D G-code preview dialog (plan item 6.1).
-    /// Получает траекторию инструмента и отдаёт чистую сцену
+    /// Получает структурированную программу и отдаёт чистую сцену
     /// (<see cref="TrajectoryScene"/>) — без разбора G-кода и без типов
     /// <c>System.Windows.Media.*</c>. Трёхмерную модель строит
     /// <see cref="Views.SceneRenderer"/> в code-behind окна.
@@ -21,6 +22,7 @@ namespace GCodeGenerator.ViewModels
         private readonly ILocalizationManager? _localizationManager;
         private readonly IAppLogger _logger;
         private Toolpath.ToolPath? _toolPath;
+        private GCodeProgram? _program;
         private TrajectoryScene? _scene;
         private TrajectoryScene _fullScene = TrajectoryScene.Empty;
         private bool _isBuilding;
@@ -49,12 +51,8 @@ namespace GCodeGenerator.ViewModels
         }
 
         /// <summary>
-        /// Траектория, которую показывает окно. Задание её пересобирает
-        /// <see cref="Scene"/>.
-        ///
-        /// Раньше окно получало готовую программу и разбирало её обратно,
-        /// восстанавливая по G-словам, чем было каждое движение. Теперь
-        /// показывается ровно то, из чего программа сделана.
+        /// Промежуточная траектория для внутренних тестов и совместимости.
+        /// Рабочий поток задаёт <see cref="Program"/>.
         /// </summary>
         public Toolpath.ToolPath? ToolPath
         {
@@ -63,6 +61,24 @@ namespace GCodeGenerator.ViewModels
             {
                 if (ReferenceEquals(value, _toolPath)) return;
                 _toolPath = value;
+                OnPropertyChanged();
+                _fullScene = TrajectoryScene.Empty;
+                ResetPrimitiveRange();
+                StartSceneRebuild();
+            }
+        }
+
+        /// <summary>
+        /// Готовая структурированная программа. В рабочем потоке имеет
+        /// приоритет над ToolPath, поскольку содержит кадры постпроцессора.
+        /// </summary>
+        public GCodeProgram? Program
+        {
+            get => _program;
+            set
+            {
+                if (ReferenceEquals(value, _program)) return;
+                _program = value;
                 OnPropertyChanged();
                 _fullScene = TrajectoryScene.Empty;
                 ResetPrimitiveRange();
@@ -225,12 +241,13 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         private void StartSceneRebuild()
         {
+            var program = _program;
             var toolPath = _toolPath;
             var revision = ++_sceneBuildRevision;
 
             SceneError = string.Empty;
 
-            if (toolPath == null || toolPath.Operations.Count == 0)
+            if (program == null && (toolPath == null || toolPath.Operations.Count == 0))
             {
                 _fullScene = TrajectoryScene.Empty;
                 ResetPrimitiveRange();
@@ -242,21 +259,26 @@ namespace GCodeGenerator.ViewModels
             // Задача запускается без ожидания намеренно: присваивание
             // траектории синхронно, а окно должно открыться сразу. Сбой при
             // этом не теряется — его ловит сама задача.
-            _ = RebuildSceneAsync(toolPath, revision);
+            _ = RebuildSceneAsync(program, toolPath, revision);
         }
 
         private async Task RebuildSceneAsync(
-            Toolpath.ToolPath toolPath,
+            GCodeProgram? program,
+            Toolpath.ToolPath? toolPath,
             int revision)
         {
             IsBuilding = true;
             try
             {
-                var scene = await Task.Run(() => BuildScene(toolPath));
+                var scene = await Task.Run(() => program != null
+                    ? BuildScene(program)
+                    : BuildScene(toolPath!));
 
                 // Пока строили, могли показать другую траекторию: поздний
                 // результат затирать новую сцену не должен.
-                if (revision != _sceneBuildRevision || !ReferenceEquals(toolPath, _toolPath))
+                if (revision != _sceneBuildRevision
+                    || !ReferenceEquals(program, _program)
+                    || !ReferenceEquals(toolPath, _toolPath))
                     return;
 
                 _fullScene = scene;
@@ -270,7 +292,9 @@ namespace GCodeGenerator.ViewModels
                 // сохраняется: не показывается только её трёхмерный вид.
                 _logger.Error("Building the 3D preview scene failed", ex);
 
-                if (revision != _sceneBuildRevision || !ReferenceEquals(toolPath, _toolPath))
+                if (revision != _sceneBuildRevision
+                    || !ReferenceEquals(program, _program)
+                    || !ReferenceEquals(toolPath, _toolPath))
                     return;
 
                 _fullScene = TrajectoryScene.Empty;
@@ -281,7 +305,9 @@ namespace GCodeGenerator.ViewModels
             }
             finally
             {
-                if (revision == _sceneBuildRevision && ReferenceEquals(toolPath, _toolPath))
+                if (revision == _sceneBuildRevision
+                    && ReferenceEquals(program, _program)
+                    && ReferenceEquals(toolPath, _toolPath))
                     IsBuilding = false;
             }
         }
@@ -297,6 +323,10 @@ namespace GCodeGenerator.ViewModels
         /// <param name="toolPath">Траектория, которую нужно показать.</param>
         protected virtual TrajectoryScene BuildScene(Toolpath.ToolPath toolPath)
             => ToolPathSceneBuilder.Build(toolPath);
+
+        /// <summary>Строит сцену из уже постпроцессированной программы.</summary>
+        protected virtual TrajectoryScene BuildScene(GCodeProgram program)
+            => SceneBuilder.Build(program);
 
         /// <summary>Строка словаря; без словаря — сам ключ, как и всюду в окнах.</summary>
         private string Localize(string key) => _localizationManager?.GetString(key) ?? key;

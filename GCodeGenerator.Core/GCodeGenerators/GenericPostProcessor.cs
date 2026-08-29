@@ -110,6 +110,7 @@ namespace GCodeGenerator.GCodeGenerators
             foreach (var operation in toolPath.Operations)
             {
                 cancellation.ThrowIfCancellationRequested();
+                builder.Source = operation.Source;
                 builder.Comment(ProgramComments.Operation(operation.Name, operation.Description));
 
                 foreach (var item in operation.Items)
@@ -126,6 +127,8 @@ namespace GCodeGenerator.GCodeGenerators
                     }
                 }
             }
+
+            builder.Source = null;
         }
 
         private static void WriteMove(ProgramBuilder builder, ToolMove move, int decimals)

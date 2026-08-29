@@ -10,11 +10,9 @@ namespace GCodeGenerator.Trajectory
     /// <summary>
     /// Собирает сцену разбором готовой программы.
     ///
-    /// Собственную программу так разбирать больше не нужно: предпросмотр
-    /// строится прямо из траектории (<see cref="ToolPathSceneBuilder"/>),
-    /// из которой она и сделана. Этот разбор остаётся ради чужих файлов —
-    /// когда программа научится открывать G-код, написанный не ею, — и
-    /// служит проверкой: сцены, полученные обоими путями, обязаны совпадать.
+    /// Рабочий предпросмотр использует именно структурированную программу,
+    /// а не промежуточный ToolPath: постпроцессор добавляет G92 и парковку,
+    /// а формат операции округляет координаты до того, что получит станок.
     ///
     /// Builds a <see cref="TrajectoryScene"/> from a structured
     /// <see cref="GCodeProgram"/> (plan items 6.1/6.2). Replaces the
@@ -24,7 +22,7 @@ namespace GCodeGenerator.Trajectory
     /// M30/M2 program end) but works on blocks instead of rendered text,
     /// so the preview consumes structure, not a re-parsed string.
     ///
-    /// Deliberate difference from the old text parser: a G92 start
+    /// G92 start
     /// position updates the tracked position WITHOUT creating a segment
     /// (the old parser drew a phantom move from the origin to the G92
     /// position).
@@ -115,7 +113,8 @@ namespace GCodeGenerator.Trajectory
                 {
                     Start = currentPos,
                     End = newPos,
-                    MoveType = currentMoveType
+                    MoveType = currentMoveType,
+                    Source = block.Source
                 };
 
                 // Handle arcs.
@@ -205,7 +204,13 @@ namespace GCodeGenerator.Trajectory
             {
                 if (word.Text == null && char.ToUpperInvariant(word.Letter) == axis)
                 {
-                    value = word.Number;
+                    // Станок получает форматированное число, а не исходный
+                    // double. Превью обязано повторять округление вывода.
+                    value = word.Decimals >= 0
+                        ? double.Parse(
+                            word.Number.ToString("F" + word.Decimals, CultureInfo.InvariantCulture),
+                            CultureInfo.InvariantCulture)
+                        : word.Number;
                     return true;
                 }
             }

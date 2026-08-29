@@ -9,6 +9,9 @@ namespace GCodeGenerator.Trajectory
     /// </summary>
     public sealed class TrajectorySegment
     {
+        /// <summary>Операция исходного документа; null у служебного перемещения.</summary>
+        public object? Source { get; set; }
+
         /// <summary>Start point of the move.</summary>
         public Vec3 Start { get; set; }
 

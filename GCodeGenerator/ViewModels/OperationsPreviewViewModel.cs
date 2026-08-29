@@ -27,6 +27,7 @@ namespace GCodeGenerator.ViewModels
         private OperationScene? _scene;
         private OperationBase? _selectedOperation;
         private Toolpath.ToolPath? _toolPath;
+        private GCodeProgram? _program;
         private bool _showToolPath;
 
         public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService? themeService)
@@ -118,8 +119,24 @@ namespace GCodeGenerator.ViewModels
             }
         }
 
+        /// <summary>Готовая программа с координатным прологом и парковкой.</summary>
+        public GCodeProgram? Program
+        {
+            get => _program;
+            set
+            {
+                if (ReferenceEquals(value, _program)) return;
+                _program = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasToolPath));
+                if (ShowToolPath)
+                    RebuildScene();
+            }
+        }
+
         /// <summary>Есть ли что показывать в режиме траектории.</summary>
-        public bool HasToolPath => _toolPath != null && !_toolPath.IsEmpty;
+        public bool HasToolPath => (_program != null && _program.Blocks.Count > 0)
+                                   || (_toolPath != null && !_toolPath.IsEmpty);
 
         /// <summary>Вписать все контуры или траекторию в область предпросмотра.</summary>
         public ICommand ShowAllCommand { get; }
@@ -127,9 +144,11 @@ namespace GCodeGenerator.ViewModels
         /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
         public void RebuildScene()
         {
-            Scene = ShowToolPath && _toolPath != null
-                ? ResolveToDocumentOperations(ToolPathSceneProjection.Build(_toolPath))
-                : OperationSceneBuilder.Build(_operations);
+            Scene = ShowToolPath && _program != null
+                ? ResolveToDocumentOperations(ProgramSceneProjection.Build(_program))
+                : ShowToolPath && _toolPath != null
+                    ? ResolveToDocumentOperations(ToolPathSceneProjection.Build(_toolPath))
+                    : OperationSceneBuilder.Build(_operations);
         }
 
         /// <summary>
@@ -154,7 +173,8 @@ namespace GCodeGenerator.ViewModels
             var shapes = new List<OperationShape>(scene.Shapes.Count);
             foreach (var shape in scene.Shapes)
             {
-                shapes.Add(byId.TryGetValue(shape.Operation.Id, out var document)
+                shapes.Add(shape.Operation != null
+                           && byId.TryGetValue(shape.Operation.Id, out var document)
                            && !ReferenceEquals(document, shape.Operation)
                     ? new OperationShape(document, shape.Kind, shape.Points, shape.IsClosed, shape.IsFilled)
                     : shape);

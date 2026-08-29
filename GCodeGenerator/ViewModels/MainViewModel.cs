@@ -253,6 +253,8 @@ namespace GCodeGenerator.ViewModels
             // по идентификатору операции.
             if (e.PropertyName == nameof(GCodeWorkflowViewModel.GeneratedToolPath))
                 _operationsWorkspace.OperationsPreview.ToolPath = _gCodeWorkflow.GeneratedToolPath;
+            else if (e.PropertyName == nameof(GCodeWorkflowViewModel.GeneratedProgram))
+                _operationsWorkspace.OperationsPreview.Program = _gCodeWorkflow.GeneratedProgram;
         }
 
         private void OnOperationsWorkspaceContentChanged(object? sender, EventArgs e)

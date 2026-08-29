@@ -29,10 +29,10 @@ namespace GCodeGenerator.Preview
     /// </summary>
     public sealed class OperationShape
     {
-        public OperationShape(OperationBase operation, OperationShapeKind kind,
+        public OperationShape(OperationBase? operation, OperationShapeKind kind,
             IReadOnlyList<(double X, double Y)> points, bool isClosed, bool isFilled)
         {
-            Operation = operation ?? throw new ArgumentNullException(nameof(operation));
+            Operation = operation;
             Kind = kind;
             Points = points ?? throw new ArgumentNullException(nameof(points));
             IsClosed = isClosed;
@@ -40,7 +40,7 @@ namespace GCodeGenerator.Preview
         }
 
         /// <summary>The operation this shape belongs to (selection, hover, tooltip).</summary>
-        public OperationBase Operation { get; }
+        public OperationBase? Operation { get; }
 
         public OperationShapeKind Kind { get; }
 

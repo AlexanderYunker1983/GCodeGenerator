@@ -26,6 +26,9 @@ namespace GCodeGenerator.GCodeGenerators
 
         public GCodeProgram Program => _program;
 
+        /// <summary>Источник добавляемых кадров; задаётся постпроцессором на время операции.</summary>
+        internal object? Source { get; set; }
+
         // --- Comments ------------------------------------------------------
 
         /// <summary>
@@ -35,7 +38,7 @@ namespace GCodeGenerator.GCodeGenerators
         public void Comment(string text)
         {
             // Строка-комментарий: слов в ней нет, только текст в скобках.
-            _program.Blocks.Add(new GCodeBlock(System.Array.Empty<GCodeWord>(), text));
+            _program.Blocks.Add(new GCodeBlock(System.Array.Empty<GCodeWord>(), text, Source));
         }
 
         /// <summary>
@@ -45,7 +48,7 @@ namespace GCodeGenerator.GCodeGenerators
         /// </summary>
         public void RawLine(string line)
         {
-            _program.Blocks.Add(new GCodeBlock(new[] { GCodeWord.Raw(line) }));
+            _program.Blocks.Add(new GCodeBlock(new[] { GCodeWord.Raw(line) }, source: Source));
         }
 
         // --- Moves ----------------------------------------------------------
@@ -75,7 +78,7 @@ namespace GCodeGenerator.GCodeGenerators
             if (i.HasValue) words.Add(GCodeWord.I(i.Value, decimals));
             if (j.HasValue) words.Add(GCodeWord.J(j.Value, decimals));
             if (feed.HasValue) words.Add(GCodeWord.F(feed.Value, decimals));
-            _program.Blocks.Add(new GCodeBlock(words));
+            _program.Blocks.Add(new GCodeBlock(words, source: Source));
         }
 
         // --- Dwell / spindle / coolant --------------------------------------
@@ -199,7 +202,7 @@ namespace GCodeGenerator.GCodeGenerators
 
         private void AddCode(params GCodeWord[] words)
         {
-            _program.Blocks.Add(new GCodeBlock(words));
+            _program.Blocks.Add(new GCodeBlock(words, source: Source));
         }
     }
 }
