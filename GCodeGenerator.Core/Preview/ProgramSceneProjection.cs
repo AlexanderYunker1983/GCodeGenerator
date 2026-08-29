@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GCodeGenerator.Models;
 using GCodeGenerator.Trajectory;
 
@@ -14,7 +15,7 @@ namespace GCodeGenerator.Preview
     /// </summary>
     public static class ProgramSceneProjection
     {
-        public static OperationScene Build(GCodeProgram program)
+        public static OperationScene Build(GCodeProgram program, CancellationToken cancellationToken = default)
         {
             if (program == null)
                 return OperationScene.Empty;
@@ -37,8 +38,9 @@ namespace GCodeGenerator.Preview
                 currentSource = null;
             }
 
-            foreach (var segment in SceneBuilder.Build(program).Segments)
+            foreach (var segment in SceneBuilder.Build(program, cancellationToken).Segments)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var points = Project(segment);
                 if (points.Count < 2)
                     continue;

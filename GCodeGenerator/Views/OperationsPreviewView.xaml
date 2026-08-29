@@ -22,6 +22,13 @@
                     PreviewMouseLeftButtonDown="PreviewCanvas_OnMouseLeftButtonDown"
                     SizeChanged="PreviewCanvas_OnSizeChanged"/>
 
+            <TextBlock Text="{loc:Loc BuildingPreview}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       FontSize="16"
+                       Opacity="0.7"
+                       Visibility="{Binding IsBuilding, Converter={StaticResource BoolToVis}}"/>
+
             <!-- Контуры показывают замысел, траектория — то, что проделает
                  станок. Переключатель доступен, когда программа построена. -->
             <!-- Обе команды принадлежат одному верхнему блоку. Раньше

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Input;
 using GCodeGenerator.GCodeGenerators;
@@ -138,6 +140,7 @@ namespace GCodeGenerator.Tests
 
             var preview = main.OperationsWorkspace.OperationsPreview;
             preview.ShowToolPath = true;
+            await WaitUntilBuilt(preview);
 
             Assert.IsTrue(preview.Scene.Shapes.Count > 0, "сцена траектории не пуста");
             Assert.IsTrue(preview.Scene.Shapes.All(s => ReferenceEquals(s.Operation, pocket)),
@@ -150,7 +153,7 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
-        public void PreviewViewModel_SwitchesBetweenContoursAndToolPath()
+        public async Task PreviewViewModel_SwitchesBetweenContoursAndToolPath()
         {
             var (main, _, _, _) = MainViewModelOperationEditTests.CreateMain();
             var pocket = OperationFixtures.PocketCircle();
@@ -164,12 +167,23 @@ namespace GCodeGenerator.Tests
                 "По умолчанию показываются контуры");
 
             preview.ShowToolPath = true;
+            await WaitUntilBuilt(preview);
             Assert.IsTrue(preview.Scene.Shapes.Any(s => s.Kind == OperationShapeKind.CuttingMove),
                 "Переключение показывает траекторию");
 
             preview.ShowToolPath = false;
             Assert.IsTrue(preview.Scene.Shapes.All(s => s.Kind == OperationShapeKind.Contour),
                 "Обратное переключение возвращает контуры");
+        }
+
+        [TestMethod]
+        public void Projection_ObservesCancellation()
+        {
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            Assert.Throws<OperationCanceledException>(() =>
+                ToolPathSceneProjection.Build(BuildPath(OperationFixtures.PocketCircle()), cancellation.Token));
         }
 
         [TestMethod]
@@ -185,6 +199,18 @@ namespace GCodeGenerator.Tests
             Assert.IsTrue(requested);
             Assert.AreSame(preview.ShowAllCommand, main.OperationsWorkspace.ShowAllPreviewCommand,
                 "команда рабочей области и кнопка предпросмотра используют один запрос");
+        }
+
+        private static async Task WaitUntilBuilt(ViewModels.OperationsPreviewViewModel preview)
+        {
+            for (var attempt = 0; attempt < 300; attempt++)
+            {
+                if (!preview.IsBuilding)
+                    return;
+                await Task.Delay(10);
+            }
+
+            Assert.Fail("2D-сцена так и не построена");
         }
     }
 }

@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 
@@ -43,7 +44,7 @@ namespace GCodeGenerator.Trajectory
         /// Builds the trajectory scene for the given program. A null program
         /// yields an empty scene.
         /// </summary>
-        public static TrajectoryScene Build(GCodeProgram program)
+        public static TrajectoryScene Build(GCodeProgram program, CancellationToken cancellationToken = default)
         {
             var segments = new List<TrajectorySegment>();
             if (program == null)
@@ -55,6 +56,7 @@ namespace GCodeGenerator.Trajectory
 
             foreach (var block in program.Blocks)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (block.Words.Count == 0)
                     continue; // comment-only line
 

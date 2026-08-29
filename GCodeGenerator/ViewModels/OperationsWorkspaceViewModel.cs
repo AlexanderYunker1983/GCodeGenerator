@@ -1,5 +1,6 @@
 ﻿#nullable enable
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
 using GCodeGenerator.Models;
 using GCodeGenerator.Services;
@@ -30,7 +31,8 @@ namespace GCodeGenerator.ViewModels
         public OperationsWorkspaceViewModel(
             ILocalizationManager? localizationManager,
             IOperationEditorFactory operationEditorFactory,
-            IThemeService? themeService)
+            IThemeService? themeService,
+            IAppLogger? logger = null)
         {
             _operationEditorFactory = operationEditorFactory
                 ?? throw new ArgumentNullException(nameof(operationEditorFactory));
@@ -59,7 +61,7 @@ namespace GCodeGenerator.ViewModels
                 AllOperations);
             PocketOperations.OperationAdded += OnCategoryOperationAdded;
 
-            OperationsPreview = new OperationsPreviewViewModel(AllOperations, themeService);
+            OperationsPreview = new OperationsPreviewViewModel(AllOperations, themeService, logger);
             OperationsPreview.SelectionChanged += OnPreviewSelectionChanged;
             OperationsPreview.EditRequested += OnPreviewEditRequested;
 

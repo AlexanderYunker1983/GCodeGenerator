@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GCodeGenerator.Models;
 using GCodeGenerator.Toolpath;
 
@@ -24,7 +25,7 @@ namespace GCodeGenerator.Preview
         /// <summary>
         /// Строит сцену из траектории. Пустая траектория даёт пустую сцену.
         /// </summary>
-        public static OperationScene Build(ToolPath toolPath)
+        public static OperationScene Build(ToolPath toolPath, CancellationToken cancellationToken = default)
         {
             var shapes = new List<OperationShape>();
             if (toolPath == null)
@@ -34,12 +35,14 @@ namespace GCodeGenerator.Preview
 
             foreach (var operation in toolPath.Operations)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var source = operation.Source as OperationBase;
                 var current = new List<(double X, double Y)>();
                 var currentIsRapid = false;
 
                 foreach (var item in operation.Items)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (!(item is ToolMove move))
                         continue;
 
@@ -71,7 +74,7 @@ namespace GCodeGenerator.Preview
                     }
 
                     currentIsRapid = isRapid;
-                    AppendMove(current, position, target, move);
+                    AppendMove(current, position, target, move, cancellationToken);
                     position = target;
                 }
 
@@ -86,7 +89,8 @@ namespace GCodeGenerator.Preview
             List<(double X, double Y)> points,
             (double x, double y, double z) start,
             (double x, double y, double z) end,
-            ToolMove move)
+            ToolMove move,
+            CancellationToken cancellationToken)
         {
             // Тип ArcMove гарантирует величины дуги: пустоту проверять не нужно.
             if (!(move is ArcMove arc))
@@ -104,6 +108,7 @@ namespace GCodeGenerator.Preview
                          start.x, start.y, end.x, end.y, centerX, centerY,
                          move.Kind == ToolMoveKind.ArcClockwise, includeStart: false))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 points.Add((a, b));
             }
         }

@@ -2,8 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
+using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Models;
 using GCodeGenerator.Preview;
 using GCodeGenerator.Services;
@@ -24,18 +27,26 @@ namespace GCodeGenerator.ViewModels
     {
         private readonly ObservableCollection<OperationBase> _operations;
         private readonly IThemeService? _themeService;
+        private readonly IAppLogger _logger;
         private OperationScene? _scene;
         private OperationBase? _selectedOperation;
         private Toolpath.ToolPath? _toolPath;
         private GCodeProgram? _program;
         private bool _showToolPath;
+        private bool _isBuilding;
+        private int _sceneBuildRevision;
+        private CancellationTokenSource? _sceneBuildCancellation;
 
-        public OperationsPreviewViewModel(ObservableCollection<OperationBase> operations, IThemeService? themeService)
+        public OperationsPreviewViewModel(
+            ObservableCollection<OperationBase> operations,
+            IThemeService? themeService,
+            IAppLogger? logger = null)
         {
             _operations = operations ?? throw new ArgumentNullException(nameof(operations));
             // Пункт 7.5 плана: тема через IoC (ранее code-behind подписывался
             // на статический ThemeHelper.ThemeChanged).
             _themeService = themeService ?? throw new ArgumentNullException(nameof(themeService));
+            _logger = logger ?? NullAppLogger.Instance;
             _scene = OperationSceneBuilder.Build(_operations);
             _themeService.ThemeChanged += OnThemeServiceChanged;
             ShowAllCommand = new RelayCommand(RaiseShowAll);
@@ -138,18 +149,96 @@ namespace GCodeGenerator.ViewModels
         public bool HasToolPath => (_program != null && _program.Blocks.Count > 0)
                                    || (_toolPath != null && !_toolPath.IsEmpty);
 
+        /// <summary>Тяжёлая проекция готовой траектории строится в фоне.</summary>
+        public bool IsBuilding
+        {
+            get => _isBuilding;
+            private set
+            {
+                if (value == _isBuilding) return;
+                _isBuilding = value;
+                OnPropertyChanged();
+            }
+        }
+
         /// <summary>Вписать все контуры или траекторию в область предпросмотра.</summary>
         public ICommand ShowAllCommand { get; }
 
         /// <summary>Пересобирает сцену (вызывается из MainViewModel при любом изменении операций).</summary>
         public void RebuildScene()
         {
-            Scene = ShowToolPath && _program != null
-                ? ResolveToDocumentOperations(ProgramSceneProjection.Build(_program))
-                : ShowToolPath && _toolPath != null
-                    ? ResolveToDocumentOperations(ToolPathSceneProjection.Build(_toolPath))
-                    : OperationSceneBuilder.Build(_operations);
+            var previousCancellation = _sceneBuildCancellation;
+            _sceneBuildCancellation = null;
+            previousCancellation?.Cancel();
+            previousCancellation?.Dispose();
+            var revision = ++_sceneBuildRevision;
+
+            var program = _program;
+            var toolPath = _toolPath;
+            if (!ShowToolPath || (program == null && toolPath == null))
+            {
+                Scene = OperationSceneBuilder.Build(_operations);
+                IsBuilding = false;
+                return;
+            }
+
+            var cancellation = new CancellationTokenSource();
+            _sceneBuildCancellation = cancellation;
+            IsBuilding = true;
+            _ = RebuildToolPathSceneAsync(program, toolPath, revision, cancellation);
         }
+
+        private async Task RebuildToolPathSceneAsync(
+            GCodeProgram? program,
+            Toolpath.ToolPath? toolPath,
+            int revision,
+            CancellationTokenSource cancellation)
+        {
+            try
+            {
+                var scene = await Task.Run(
+                    () => program != null
+                        ? BuildScene(program, cancellation.Token)
+                        : BuildScene(toolPath!, cancellation.Token),
+                    cancellation.Token);
+
+                if (revision != _sceneBuildRevision || cancellation.IsCancellationRequested)
+                    return;
+
+                Scene = ResolveToDocumentOperations(scene);
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                // A newer mode/program owns the preview now.
+            }
+            catch (Exception ex)
+            {
+                _logger.Error("Building the 2D tool-path preview failed", ex);
+                if (revision == _sceneBuildRevision)
+                    Scene = OperationScene.Empty;
+            }
+            finally
+            {
+                if (revision == _sceneBuildRevision)
+                {
+                    _sceneBuildCancellation = null;
+                    IsBuilding = false;
+                }
+                cancellation.Dispose();
+            }
+        }
+
+        /// <summary>Точка подмены для проверки фонового построения и отмены.</summary>
+        protected virtual OperationScene BuildScene(
+            GCodeProgram program,
+            CancellationToken cancellationToken)
+            => ProgramSceneProjection.Build(program, cancellationToken);
+
+        /// <summary>Промежуточная траектория для редактора и тестов.</summary>
+        protected virtual OperationScene BuildScene(
+            Toolpath.ToolPath toolPath,
+            CancellationToken cancellationToken)
+            => ToolPathSceneProjection.Build(toolPath, cancellationToken);
 
         /// <summary>
         /// Заменяет в фигурах сцены клоны слепка на операции документа —
