@@ -227,6 +227,19 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow, "gh release list");
             StringAssert.Contains(workflow, "gh release download");
             StringAssert.Contains(workflow, "PreviousInstallerPath = '${{ steps.previous.outputs.path }}'");
+            StringAssert.Contains(workflow,
+                "55c92678f32d500d103f40a777cc93c182d030b63fbf776acffe8a067cdaac6f",
+                "SHA-256 предыдущего legacy-инсталлятора не закреплён");
+            StringAssert.Contains(workflow, "Get-FileHash -LiteralPath $previousInstaller -Algorithm SHA256",
+                "Скачанный legacy-инсталлятор запускается без проверки SHA-256");
+            StringAssert.Contains(workflow, "$installerAssets[0].name -cne $legacyTrust.Name",
+                "Имя legacy-инсталлятора не закреплено вместе с хэшем");
+            StringAssert.Contains(workflow, "--json assets,isImmutable",
+                "Следующие источники обновления не обязаны быть immutable");
+            StringAssert.Contains(workflow, "gh release verify $candidate.tagName");
+            StringAssert.Contains(workflow,
+                "gh release verify-asset $candidate.tagName $previousInstaller",
+                "Артефакт следующего immutable-выпуска не проверяется по release attestation");
             StringAssert.Contains(workflow, "build/Make-Installer.ps1 -SigningMode Unsigned",
                 "Активная политика unsigned-выпуска не задана явно");
             Assert.IsFalse(workflow.Contains("secrets.SIGN_COMMAND", StringComparison.Ordinal),
@@ -242,6 +255,13 @@ namespace GCodeGenerator.Tests
             var install = script.IndexOf("'Install previous release'", StringComparison.Ordinal);
             var upgrade = script.IndexOf("'Upgrade previous release to candidate'", StringComparison.Ordinal);
             var uninstall = script.IndexOf("'Uninstall'", StringComparison.Ordinal);
+            var legacyDigest = workflow.IndexOf("Get-FileHash -LiteralPath $previousInstaller", StringComparison.Ordinal);
+            var exposePreviousPath = workflow.IndexOf(
+                "Add-Content -Path $env:GITHUB_OUTPUT",
+                legacyDigest,
+                StringComparison.Ordinal);
+            Assert.IsTrue(legacyDigest < exposePreviousPath,
+                "Путь к legacy-инсталлятору публикуется для запуска до проверки хэша");
             Assert.IsTrue(install < upgrade && upgrade < uninstall, "Этапы жизненного цикла перепутаны");
         }
 

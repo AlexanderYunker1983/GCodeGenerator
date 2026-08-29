@@ -231,12 +231,23 @@ jobs:
 
           $downloadRoot = Join-Path $env:RUNNER_TEMP 'gcodegen-previous-release'
           New-Item -ItemType Directory -Path $downloadRoot | Out-Null
+          # 0.4.1-rc1 опубликован до включения immutable releases и не имеет
+          # release attestation. Это единственное legacy-исключение: имя и
+          # digest сняты с уже проверенного публичного артефакта и закреплены
+          # в workflow. Все последующие источники обновления обязаны быть
+          # immutable и проходить криптографическую проверку GitHub.
+          $trustedLegacyInstallers = @{
+            '0.4.1-rc1' = @{
+              Name = 'GCodeGenerator-Setup-0.4.1-rc1.exe'
+              Sha256 = '55c92678f32d500d103f40a777cc93c182d030b63fbf776acffe8a067cdaac6f'
+            }
+          }
           $previousInstaller = $null
           $candidateIndex = 0
           foreach ($candidate in $candidates) {
             $release = gh release view $candidate.tagName `
               --repo $env:GITHUB_REPOSITORY `
-              --json assets | ConvertFrom-Json
+              --json assets,isImmutable | ConvertFrom-Json
             $installerAssets = @($release.assets |
               Where-Object { $_.name -match '^GCodeGenerator-Setup-.+\.exe$' })
             if ($installerAssets.Count -ne 1) {
@@ -255,7 +266,31 @@ jobs:
               throw "Downloading the previous installer from $($candidate.tagName) failed."
             }
             $previousInstaller = Join-Path $downloadDirectory $installerAssets[0].name
-            Write-Host "Previous release for upgrade: $($candidate.tagName)"
+            $legacyTrust = $trustedLegacyInstallers[$candidate.tagName]
+            if ($null -ne $legacyTrust) {
+              if ($installerAssets[0].name -cne $legacyTrust.Name) {
+                throw "Legacy installer name for $($candidate.tagName) is not pinned: $($installerAssets[0].name)"
+              }
+              $actualSha256 = (Get-FileHash -LiteralPath $previousInstaller -Algorithm SHA256).Hash.ToLowerInvariant()
+              if ($actualSha256 -cne $legacyTrust.Sha256) {
+                throw "Legacy installer SHA-256 mismatch for $($candidate.tagName): expected $($legacyTrust.Sha256), got $actualSha256"
+              }
+              Write-Host "Previous legacy release verified by pinned SHA-256: $($candidate.tagName)"
+            }
+            elseif ($release.isImmutable) {
+              gh release verify $candidate.tagName --repo $env:GITHUB_REPOSITORY
+              if ($LASTEXITCODE -ne 0) {
+                throw "Release attestation is invalid for $($candidate.tagName)."
+              }
+              gh release verify-asset $candidate.tagName $previousInstaller --repo $env:GITHUB_REPOSITORY
+              if ($LASTEXITCODE -ne 0) {
+                throw "Release asset attestation is invalid for $($candidate.tagName)."
+              }
+              Write-Host "Previous immutable release and installer verified: $($candidate.tagName)"
+            }
+            else {
+              throw "Previous release $($candidate.tagName) is mutable and has no pinned legacy installer digest."
+            }
             break
           }
           if ($null -eq $previousInstaller) {
