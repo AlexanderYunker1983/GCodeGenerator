@@ -71,6 +71,9 @@ namespace GCodeGenerator.Models
         /// <summary>В чертеже не заданы линейные единицы.</summary>
         public const string DxfUnitsNotSpecified = "DxfUnitsNotSpecified";
 
+        /// <summary>Версия DXF старше минимально поддерживаемой AutoCAD 2000.</summary>
+        public const string DxfUnsupportedVersion = "DxfUnsupportedVersion";
+
         /// <summary>Файл DXF превышает безопасный предел размера.</summary>
         public const string DxfFileTooLarge = "DxfFileTooLarge";
 

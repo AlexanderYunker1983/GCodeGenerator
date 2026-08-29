@@ -7,6 +7,8 @@ using GCodeGenerator.Geometry;
 using GCodeGenerator.Models;
 using netDxf;
 using netDxf.Entities;
+using netDxf.Header;
+using netDxf.IO;
 using netDxf.Units;
 // В netDxf есть собственный Polyline2D — сущность чертежа. Наша ломаная
 // описывает уже разобранную геометрию, поэтому имена разводятся явно.
@@ -79,7 +81,30 @@ namespace GCodeGenerator.Import
                     GenerationLimits.MaxDxfFileBytes / (1024 * 1024));
             }
 
-            var document = DxfDocument.Load(stream);
+            DxfDocument? document;
+            try
+            {
+                document = DxfDocument.Load(stream);
+            }
+            catch (DxfVersionNotSupportedException failure)
+            {
+                // netDxf одним типом сообщает и о настоящем старом DXF,
+                // и о файле, в котором вообще не удалось распознать версию.
+                // Для пользователя это разные действия: старый чертёж нужно
+                // пересохранить, случайный файл — выбрать заново.
+                if (failure.Version == DxfVersion.Unknown)
+                {
+                    throw new CoreException(
+                        CoreErrorCodes.DxfNotADrawing,
+                        "The file is not a DXF drawing: {0}.",
+                        path);
+                }
+
+                throw new CoreException(
+                    CoreErrorCodes.DxfUnsupportedVersion,
+                    "DXF version {0} is not supported. Re-save the drawing as DXF 2000 or newer and import it again.",
+                    failure.Version);
+            }
             cancellation.ThrowIfCancellationRequested();
             if (document == null)
                 throw new CoreException(CoreErrorCodes.DxfNotADrawing,

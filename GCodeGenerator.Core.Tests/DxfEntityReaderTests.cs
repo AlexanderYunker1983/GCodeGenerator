@@ -273,8 +273,30 @@ namespace GCodeGenerator.Tests
         {
             File.WriteAllText(_path, "это не DXF-файл");
 
-            Assert.Throws<netDxf.IO.DxfVersionNotSupportedException>(
-                () => DxfImportServiceProbe.ReadProfile(_path));
+            var failure = Assert.Throws<CoreException>(() => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(CoreErrorCodes.DxfNotADrawing, failure.Code);
+            Assert.IsFalse(failure.Message.Contains("Unknown", StringComparison.OrdinalIgnoreCase),
+                "пользователь не видит внутренний диагноз версии netDxf");
+        }
+
+        /// <summary>
+        /// R12 остаётся частым обменным форматом станочных чертежей, но
+        /// текущая netDxf читает только AutoCAD 2000+. Сырой английский
+        /// exception не объяснял, что файл можно просто пересохранить.
+        /// </summary>
+        [TestMethod]
+        public void AutoCadR12_IsRejectedWithActionableCoreError()
+        {
+            File.WriteAllText(
+                _path,
+                "0\r\nSECTION\r\n2\r\nHEADER\r\n9\r\n$ACADVER\r\n1\r\nAC1009\r\n"
+                + "0\r\nENDSEC\r\n0\r\nEOF\r\n");
+
+            var failure = Assert.Throws<CoreException>(() => DxfImportServiceProbe.ReadProfile(_path));
+
+            Assert.AreEqual(CoreErrorCodes.DxfUnsupportedVersion, failure.Code);
+            StringAssert.Contains(failure.Message, "DXF 2000");
         }
 
         [TestMethod]

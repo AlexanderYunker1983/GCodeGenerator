@@ -450,6 +450,9 @@
   <data name="CoreError_DxfUnitsNotSpecified" xml:space="preserve">
     <value>В чертеже DXF не заданы линейные единицы. Укажите INSUNITS в исходном чертеже (например, миллиметры) и повторите импорт.</value>
   </data>
+  <data name="CoreError_DxfUnsupportedVersion" xml:space="preserve">
+    <value>Версия DXF {0} не поддерживается. Пересохраните чертёж как DXF 2000 или новее и повторите импорт.</value>
+  </data>
   <data name="CoreError_DxfFileTooLarge" xml:space="preserve">
     <value>Файл DXF превышает безопасный предел {0} МБ. Упростите или разделите чертёж перед импортом.</value>
   </data>
