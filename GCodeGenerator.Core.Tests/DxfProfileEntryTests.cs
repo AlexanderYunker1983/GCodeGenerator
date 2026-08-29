@@ -143,6 +143,58 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(moves[0].Y, moves[moves.Count - 1].Y);
         }
 
+        /// <summary>
+        /// Рампа относится к первому контуру. Плоский список точек двух
+        /// квадратов создавал между ними вымышленное ребро, и часть спуска
+        /// шла через заготовку по диагонали в сто миллиметров до второй
+        /// области. Переход ко второму контуру допустим только через SafeZ.
+        /// </summary>
+        [TestMethod]
+        public void AngledEntry_WithDisconnectedContours_StaysOnFirstContour()
+        {
+            var operation = Square(ToolPathMode.OnLine);
+            operation.Polylines.Add(new Polyline2D
+            {
+                Points =
+                {
+                    new Point2D { X = 100.0, Y = 0.0 },
+                    new Point2D { X = 120.0, Y = 0.0 },
+                    new Point2D { X = 120.0, Y = 20.0 },
+                    new Point2D { X = 100.0, Y = 20.0 },
+                    new Point2D { X = 100.0, Y = 0.0 },
+                },
+            });
+            operation.EntryMode = EntryMode.Angled;
+            operation.EntryAngle = 1.0;
+            operation.TotalDepth = 1.0;
+            operation.StepDepth = 1.0;
+
+            var path = OperationToolPath.Build(
+                new UnifiedProfileGenerator(), operation, new GCodeSettings());
+            var firstDrawing = operation.Polylines[0].Points;
+            var previousZ = 0.0;
+            var rampPoints = 0;
+
+            foreach (var move in path.Moves())
+            {
+                var targetZ = move.Z ?? previousZ;
+                if (move.Kind == ToolMoveKind.Linear
+                    && move.X.HasValue
+                    && move.Y.HasValue
+                    && targetZ < previousZ - GeometryTolerances.Degenerate)
+                {
+                    Assert.IsTrue(
+                        DistanceToDrawing(move.X.Value, move.Y.Value, firstDrawing) < 1e-6,
+                        $"точка рампы ({move.X.Value:0.###}; {move.Y.Value:0.###}) ушла с первого контура");
+                    rampPoints++;
+                }
+
+                previousZ = targetZ;
+            }
+
+            Assert.IsTrue(rampPoints > 0, "наклонный вход содержит рабочие точки спуска");
+        }
+
         private static double DistanceToDrawing(double x, double y, IReadOnlyList<Point2D> drawing)
         {
             var distance = double.MaxValue;

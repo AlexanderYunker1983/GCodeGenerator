@@ -55,30 +55,14 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
             }
         }
 
-        // Кеш смещённой геометрии, по образцу DxfPocketGeometry. Рампа
-        // запрашивает точку контура на каждый свой сегмент, и без кеша
-        // каждый запрос заново гонял смещение всех полилиний через Clipper —
-        // тысячи полных прогонов на один вход в слой. Смещение зависит
-        // только от режима траектории операции и за время жизни экземпляра
-        // не меняется; цепочки контуров дополнительно зависят от допуска
-        // стыковки, поэтому их кеш хранит свой ключ.
-        private List<(double x, double y)>? _cachedContourPoints;
-        private MillingDirection _cachedContourDirection;
+        // Кеш смещённой геометрии, по образцу DxfPocketGeometry. Цепочки
+        // контуров зависят от допуска стыковки, поэтому кеш хранит его ключ.
+        // Рампа использует первую готовую цепочку из этого же кеша: собирать
+        // для неё плоский список всех полилиний нельзя, потому что между
+        // раздельными контурами нет режущего сегмента.
         private IReadOnlyList<IReadOnlyList<(double x, double y)>>? _cachedOrderedContours;
         private HashSet<IReadOnlyList<(double x, double y)>>? _cachedClosedOrderedContours;
         private double _cachedOrderedTolerance;
-
-        /// <summary>Точки контура в направлении обхода — материализованные один раз.</summary>
-        private List<(double x, double y)> CachedContourPoints(MillingDirection direction)
-        {
-            if (_cachedContourPoints == null || _cachedContourDirection != direction)
-            {
-                _cachedContourPoints = GetContourPoints(ToolOffset, direction).ToList();
-                _cachedContourDirection = direction;
-            }
-
-            return _cachedContourPoints;
-        }
 
         public IEnumerable<(double x, double y)> GetContourPoints(
             double toolOffset,
@@ -458,22 +442,26 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
 
         public (double x, double y) GetPointOnContour(double distance, double toolOffset)
         {
-            var points = CachedContourPoints(_operation.Direction);
-            if (points.Count == 0)
+            var path = FirstEntryPath();
+            if (path.Count == 0)
                 return (0, 0);
 
-            var perimeter = GetPerimeter(toolOffset);
+            var perimeter = PathLength(path);
+            if (perimeter <= GeometryTolerances.Degenerate)
+                return path[0];
+
             var normalizedDistance = distance % perimeter;
             if (normalizedDistance < 0) normalizedDistance += perimeter;
 
             double accumulated = 0.0;
-            for (int i = 0; i < points.Count - 1; i++)
+            for (int i = 0; i < path.Count - 1; i++)
             {
-                var p1 = points[i];
-                var p2 = points[i + 1];
+                var p1 = path[i];
+                var p2 = path[i + 1];
                 var segmentLength = Math.Sqrt(Math.Pow(p2.x - p1.x, 2) + Math.Pow(p2.y - p1.y, 2));
 
-                if (accumulated + segmentLength >= normalizedDistance)
+                if (segmentLength > GeometryTolerances.Degenerate
+                    && accumulated + segmentLength >= normalizedDistance)
                 {
                     var t = (normalizedDistance - accumulated) / segmentLength;
                     return (p1.x + t * (p2.x - p1.x), p1.y + t * (p2.y - p1.y));
@@ -482,37 +470,58 @@ namespace GCodeGenerator.GCodeGenerators.Geometry
                 accumulated += segmentLength;
             }
 
-            return points[0];
+            return path[0];
         }
 
         /// <inheritdoc />
         public IReadOnlyList<double> GetCornerDistances(double toolOffset)
-            => ContourCornerDistances.FromPolyline(CachedContourPoints(_operation.Direction));
+            => ContourCornerDistances.FromPolyline(FirstEntryPath());
 
         public double GetPerimeter(double toolOffset)
         {
-            if (_operation.Polylines == null || _operation.Polylines.Count == 0)
-                return 0.0;
+            return PathLength(FirstEntryPath());
+        }
 
-            var perimeter = 0.0;
-            foreach (var polyline in _operation.Polylines)
+        /// <summary>
+        /// Реальный путь рампы по первому готовому контуру. Замкнутый контур
+        /// дополняется последним ребром к старту; открытый проходится туда и
+        /// обратно, чтобы повторение пути не телепортировало инструмент от
+        /// конца линии к её началу. Другие контуры сюда не попадают: к ним
+        /// рабочий генератор переходит отдельно через SafeZ.
+        /// </summary>
+        private List<(double x, double y)> FirstEntryPath()
+        {
+            var contours = GetOrderedContours(GeometryTolerances.Vertex);
+            if (contours.Count == 0 || contours[0].Count == 0)
+                return new List<(double x, double y)>();
+
+            var contour = contours[0];
+            var path = _operation.Direction == MillingDirection.Clockwise
+                ? contour.Reverse().ToList()
+                : contour.ToList();
+
+            if (path.Count < 2)
+                return path;
+
+            if (IsOrderedContourClosed(contour))
             {
-                if (polyline?.Points == null || polyline.Points.Count < 2)
-                    continue;
-
-                for (int i = 0; i < polyline.Points.Count; i++)
-                {
-                    var p1 = polyline.Points[i];
-                    var p2 = polyline.Points[(i + 1) % polyline.Points.Count];
-                    var dx = p2.X - p1.X;
-                    var dy = p2.Y - p1.Y;
-                    perimeter += Math.Sqrt(dx * dx + dy * dy);
-                }
+                path.Add(path[0]);
+            }
+            else
+            {
+                for (int i = path.Count - 2; i >= 0; i--)
+                    path.Add(path[i]);
             }
 
-            // Упрощенная коррекция периметра с учетом смещения
-            // В реальности нужно учитывать смещение по нормали, но для упрощения используем линейную аппроксимацию
-            return perimeter + ToolOffset * 2 * Math.PI; // Примерная коррекция
+            return path;
+        }
+
+        private static double PathLength(IReadOnlyList<(double x, double y)> path)
+        {
+            double length = 0.0;
+            for (int i = 0; i < path.Count - 1; i++)
+                length += Geometry2D.Distance(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+            return length;
         }
 
         public IEnumerable<IArcSegment> GetArcSegments(double toolOffset)
