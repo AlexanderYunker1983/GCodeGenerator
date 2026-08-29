@@ -226,33 +226,71 @@ namespace GCodeGenerator
             if (_mainViewModel == null || _container == null)
                 return;
 
-            // Явно открытый из проводника файл имеет приоритет. Recovery не
-            // удаляется: при следующем обычном запуске его снова предложат.
-            if (projectFile != null)
-            {
-                await _mainViewModel.OpenProjectAsync(projectFile);
-                return;
-            }
-
             var recovery = _container.Resolve<IDocumentRecoveryService>();
-            if (!recovery.Exists)
-                return;
-
             var messages = _container.Resolve<IMessageService>();
             var template = _localizationManager?.GetString("RecoverAutosaveMessage")
                            ?? "Recover automatically saved project?\n{0}";
             var title = _localizationManager?.GetString("RecoverAutosaveTitle")
                         ?? "Project recovery";
-            if (messages.ShowConfirmation(
-                    string.Format(System.Globalization.CultureInfo.CurrentCulture, template, recovery.RecoveryPath),
-                    title))
+
+            await OpenStartupDocumentCoreAsync(
+                projectFile,
+                recovery,
+                messages,
+                path => _mainViewModel.OpenProjectAsync(path),
+                path => _mainViewModel.ProjectWorkflow.OpenRecoveryAsync(path),
+                template,
+                title);
+        }
+
+        /// <summary>
+        /// Выбирает стартовый документ. Автоснимок всегда рассматривается
+        /// раньше файла командной строки: двойной щелчок по старому проекту
+        /// не должен удалить единственную более свежую копию после сбоя.
+        /// </summary>
+        internal static async Task OpenStartupDocumentCoreAsync(
+            string? projectFile,
+            IDocumentRecoveryService recovery,
+            IMessageService messages,
+            Func<string, Task<bool>> openProject,
+            Func<string, Task<bool>> openRecovery,
+            string recoveryMessageTemplate,
+            string recoveryTitle)
+        {
+            if (recovery == null)
+                throw new ArgumentNullException(nameof(recovery));
+            if (messages == null)
+                throw new ArgumentNullException(nameof(messages));
+            if (openProject == null)
+                throw new ArgumentNullException(nameof(openProject));
+            if (openRecovery == null)
+                throw new ArgumentNullException(nameof(openRecovery));
+
+            if (recovery.Exists)
             {
-                await _mainViewModel.ProjectWorkflow.OpenRecoveryAsync(recovery.RecoveryPath);
-            }
-            else
-            {
+                var recover = messages.ShowConfirmation(
+                    string.Format(
+                        System.Globalization.CultureInfo.CurrentCulture,
+                        recoveryMessageTemplate,
+                        recovery.RecoveryPath),
+                    recoveryTitle);
+
+                if (recover)
+                {
+                    // Даже если повреждённый снимок открыть не удалось, файл
+                    // командной строки здесь не открываем: обычная загрузка
+                    // сочла бы замену документа успешной и очистила бы recovery
+                    // вместе с резервной копией. Пользователь уже выбрал
+                    // восстановление, а отказ ему показал сам workflow.
+                    await openRecovery(recovery.RecoveryPath);
+                    return;
+                }
+
                 recovery.Clear();
             }
+
+            if (!string.IsNullOrWhiteSpace(projectFile))
+                await openProject(projectFile);
         }
 
         /// <summary>
