@@ -130,6 +130,7 @@ namespace GCodeGenerator.Tests
         [DataRow("Control+Shift", "S", "SaveProjectAsCommand")]
         [DataRow("Control", "Z", "UndoCommand")]
         [DataRow("Control", "Y", "RedoCommand")]
+        [DataRow("Control", "G", "GenerateGCodeCommand")]
         public void MainWindow_BindsTheUsualShortcut(string modifiers, string key, string command)
         {
             var expected = new Regex(

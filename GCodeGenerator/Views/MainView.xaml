@@ -27,6 +27,7 @@
         <KeyBinding Modifiers="Control+Shift" Key="S" Command="{Binding ProjectWorkflow.SaveProjectAsCommand}"/>
         <KeyBinding Modifiers="Control" Key="Z" Command="{Binding OperationsWorkspace.UndoCommand}"/>
         <KeyBinding Modifiers="Control" Key="Y" Command="{Binding OperationsWorkspace.RedoCommand}"/>
+        <KeyBinding Modifiers="Control" Key="G" Command="{Binding GCodeWorkflow.GenerateGCodeCommand}"/>
         <KeyBinding Key="F1" Command="{Binding OpenAboutCommand}"/>
     </Window.InputBindings>
     <Grid Margin="8">
