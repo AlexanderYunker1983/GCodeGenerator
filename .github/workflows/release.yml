@@ -30,7 +30,9 @@ jobs:
   build:
     name: Build Release
     runs-on: windows-latest
-    timeout-minutes: 90
+    # Полный quality gate, self-contained publish и upgrade-smoke занимают
+    # существенно больше обычного CI; вложенные процессы имеют свои таймауты.
+    timeout-minutes: 150
     outputs:
       skip: ${{ steps.tag.outputs.skip }}
       prerelease: ${{ steps.tag.outputs.prerelease }}

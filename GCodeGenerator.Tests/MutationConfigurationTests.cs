@@ -57,6 +57,8 @@ namespace GCodeGenerator.Tests
             StringAssert.Contains(workflow, "dotnet stryker --config-file stryker-config.json --skip-version-check");
             StringAssert.Contains(workflow, "if: always()");
             StringAssert.Contains(workflow, "GCodeGenerator.Core.Tests/StrykerOutput");
+            StringAssert.Contains(workflow, "timeout-minutes: 120",
+                "Расширенный недельный mutation-прогон не должен обрываться на прежних 45 минутах");
         }
     }
 }

@@ -347,6 +347,8 @@ namespace GCodeGenerator.Tests
             Assert.IsFalse(script.Contains("-Wait -PassThru", StringComparison.Ordinal),
                 "Start-Process -Wait не позволяет контролировать тайм-аут");
             StringAssert.Contains(script, "timed out after $ProcessTimeoutSeconds seconds");
+            StringAssert.Contains(workflow, "timeout-minutes: 150",
+                "Полный release build не укладывается в прежний 90-минутный бюджет");
         }
 
         [TestMethod]
