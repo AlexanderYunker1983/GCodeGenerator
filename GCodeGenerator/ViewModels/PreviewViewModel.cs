@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Globalization;
+using System.Threading;
 using System.Threading.Tasks;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Localization;
@@ -33,6 +34,7 @@ namespace GCodeGenerator.ViewModels
         private int _firstPreviewPrimitive = 1;
         private int _lastPreviewPrimitive = 1;
         private int _sceneBuildRevision;
+        private CancellationTokenSource? _sceneBuildCancellation;
 
         /// <summary>Окно предпросмотра.</summary>
         /// <param name="localizationManager">Словарь интерфейса.</param>
@@ -241,6 +243,11 @@ namespace GCodeGenerator.ViewModels
         /// </summary>
         private void StartSceneRebuild()
         {
+            var previousCancellation = _sceneBuildCancellation;
+            _sceneBuildCancellation = null;
+            previousCancellation?.Cancel();
+            previousCancellation?.Dispose();
+
             var program = _program;
             var toolPath = _toolPath;
             var revision = ++_sceneBuildRevision;
@@ -256,23 +263,26 @@ namespace GCodeGenerator.ViewModels
                 return;
             }
 
+            var cancellation = new CancellationTokenSource();
+            _sceneBuildCancellation = cancellation;
             // Задача запускается без ожидания намеренно: присваивание
             // траектории синхронно, а окно должно открыться сразу. Сбой при
             // этом не теряется — его ловит сама задача.
-            _ = RebuildSceneAsync(program, toolPath, revision);
+            _ = RebuildSceneAsync(program, toolPath, revision, cancellation);
         }
 
         private async Task RebuildSceneAsync(
             GCodeProgram? program,
             Toolpath.ToolPath? toolPath,
-            int revision)
+            int revision,
+            CancellationTokenSource cancellation)
         {
             IsBuilding = true;
             try
             {
                 var scene = await Task.Run(() => program != null
-                    ? BuildScene(program)
-                    : BuildScene(toolPath!));
+                    ? BuildScene(program, cancellation.Token)
+                    : BuildScene(toolPath!, cancellation.Token), cancellation.Token);
 
                 // Пока строили, могли показать другую траекторию: поздний
                 // результат затирать новую сцену не должен.
@@ -283,6 +293,10 @@ namespace GCodeGenerator.ViewModels
 
                 _fullScene = scene;
                 ResetPrimitiveRange();
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                // A newer program owns the preview now.
             }
             catch (Exception ex)
             {
@@ -308,7 +322,11 @@ namespace GCodeGenerator.ViewModels
                 if (revision == _sceneBuildRevision
                     && ReferenceEquals(program, _program)
                     && ReferenceEquals(toolPath, _toolPath))
+                {
+                    _sceneBuildCancellation = null;
                     IsBuilding = false;
+                }
+                cancellation.Dispose();
             }
         }
 
@@ -321,12 +339,19 @@ namespace GCodeGenerator.ViewModels
         /// в себя не принимает.
         /// </summary>
         /// <param name="toolPath">Траектория, которую нужно показать.</param>
-        protected virtual TrajectoryScene BuildScene(Toolpath.ToolPath toolPath)
-            => ToolPathSceneBuilder.Build(toolPath);
+        /// <param name="cancellationToken">Отмена устаревшего построения.</param>
+        protected virtual TrajectoryScene BuildScene(
+            Toolpath.ToolPath toolPath,
+            CancellationToken cancellationToken)
+            => ToolPathSceneBuilder.Build(toolPath, cancellationToken);
 
         /// <summary>Строит сцену из уже постпроцессированной программы.</summary>
-        protected virtual TrajectoryScene BuildScene(GCodeProgram program)
-            => SceneBuilder.Build(program);
+        /// <param name="program">Структурированная программа.</param>
+        /// <param name="cancellationToken">Отмена устаревшего построения.</param>
+        protected virtual TrajectoryScene BuildScene(
+            GCodeProgram program,
+            CancellationToken cancellationToken)
+            => SceneBuilder.Build(program, cancellationToken);
 
         /// <summary>Строка словаря; без словаря — сам ключ, как и всюду в окнах.</summary>
         private string Localize(string key) => _localizationManager?.GetString(key) ?? key;

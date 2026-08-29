@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using GCodeGenerator.Diagnostics;
 using GCodeGenerator.Toolpath;
@@ -125,8 +126,62 @@ namespace GCodeGenerator.Tests
             {
             }
 
-            protected override TrajectoryScene BuildScene(ToolPath toolPath)
+            protected override TrajectoryScene BuildScene(
+                ToolPath toolPath,
+                CancellationToken cancellationToken)
                 => throw new InvalidOperationException("scene failure");
+        }
+
+        private sealed class BlockingPreviewViewModel : PreviewViewModel
+        {
+            private int _calls;
+
+            public BlockingPreviewViewModel()
+                : base(null)
+            {
+            }
+
+            public ManualResetEventSlim FirstBuildStarted { get; } = new ManualResetEventSlim();
+
+            public ManualResetEventSlim FirstBuildCancelled { get; } = new ManualResetEventSlim();
+
+            protected override TrajectoryScene BuildScene(
+                ToolPath toolPath,
+                CancellationToken cancellationToken)
+            {
+                if (Interlocked.Increment(ref _calls) == 1)
+                {
+                    FirstBuildStarted.Set();
+                    try
+                    {
+                        cancellationToken.WaitHandle.WaitOne();
+                        cancellationToken.ThrowIfCancellationRequested();
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        FirstBuildCancelled.Set();
+                        throw;
+                    }
+                }
+
+                return base.BuildScene(toolPath, cancellationToken);
+            }
+        }
+
+        [TestMethod]
+        public async Task NewToolPath_CancelsTheOldSceneComputation()
+        {
+            var viewModel = new BlockingPreviewViewModel();
+            viewModel.ToolPath = PathWithMoves(100);
+            Assert.IsTrue(viewModel.FirstBuildStarted.Wait(TimeSpan.FromSeconds(2)));
+
+            viewModel.ToolPath = PathWithMoves(3, startX: 1000);
+            Assert.IsTrue(viewModel.FirstBuildCancelled.Wait(TimeSpan.FromSeconds(2)),
+                "Старая 3D-сцена получила отмену");
+            await WaitUntilBuilt(viewModel);
+
+            Assert.IsTrue(viewModel.Scene.Bounds.Value.Max.X >= 1000,
+                "После отмены показана новая траектория");
         }
 
         /// <summary>

@@ -1,6 +1,7 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using GCodeGenerator.Geometry;
 using GCodeGenerator.Toolpath;
 
@@ -27,7 +28,7 @@ namespace GCodeGenerator.Trajectory
         /// <summary>
         /// Собирает сцену. Пустая траектория даёт пустую сцену.
         /// </summary>
-        public static TrajectoryScene Build(ToolPath toolPath)
+        public static TrajectoryScene Build(ToolPath toolPath, CancellationToken cancellationToken = default)
         {
             var segments = new List<TrajectorySegment>();
             if (toolPath == null)
@@ -37,11 +38,12 @@ namespace GCodeGenerator.Trajectory
 
             foreach (var move in toolPath.Moves())
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var target = Apply(position, move);
 
                 if (move is ArcMove arc)
                 {
-                    segments.Add(BuildArc(position, target, arc));
+                    segments.Add(BuildArc(position, target, arc, cancellationToken));
                     position = target;
                     continue;
                 }
@@ -73,7 +75,11 @@ namespace GCodeGenerator.Trajectory
         /// в программе словами I и J. Тип ArcMove гарантирует величины:
         /// проверять их на пустоту больше не нужно.
         /// </summary>
-        private static TrajectorySegment BuildArc(Vec3 start, Vec3 end, ArcMove move)
+        private static TrajectorySegment BuildArc(
+            Vec3 start,
+            Vec3 end,
+            ArcMove move,
+            CancellationToken cancellationToken)
         {
             var center = new Vec3(
                 start.X + move.ArcCenterOffsetX,
@@ -81,7 +87,7 @@ namespace GCodeGenerator.Trajectory
                 start.Z);
 
             var clockwise = move.Kind == ToolMoveKind.ArcClockwise;
-            var points = InterpolateArc(start, end, center, clockwise);
+            var points = InterpolateArc(start, end, center, clockwise, cancellationToken);
             var radius = Math.Sqrt(
                 Math.Pow(start.X - center.X, 2) + Math.Pow(start.Y - center.Y, 2));
 
@@ -101,12 +107,18 @@ namespace GCodeGenerator.Trajectory
         /// а разбор чужих программ живёт в <see cref="SceneBuilder"/>.
         /// Формула разбиения общая для всех предпросмотров — <see cref="ArcInterpolation"/>.
         /// </summary>
-        private static List<Vec3> InterpolateArc(Vec3 start, Vec3 end, Vec3 center, bool clockwise)
+        private static List<Vec3> InterpolateArc(
+            Vec3 start,
+            Vec3 end,
+            Vec3 center,
+            bool clockwise,
+            CancellationToken cancellationToken)
         {
             var points = new List<Vec3>();
             foreach (var (a, b, t) in ArcInterpolation.Points(
                          start.X, start.Y, end.X, end.Y, center.X, center.Y, clockwise, includeStart: true))
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 points.Add(new Vec3(a, b, start.Z + t * (end.Z - start.Z)));
             }
 
