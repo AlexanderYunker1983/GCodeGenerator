@@ -246,7 +246,7 @@ dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj -c Release --no-bui
 ```
 
 4. Перед изменением релизно-критичной валидации и генерации запустите
-мутационные тесты (полный прогон занимает несколько минут):
+целевой мутационный срез, используемый release workflow:
 ```bash
 dotnet tool restore
 cd GCodeGenerator.Core.Tests
@@ -254,8 +254,11 @@ dotnet stryker --config-file stryker-config.json --skip-version-check
 ```
 
 Версия инструмента закреплена в `.config/dotnet-tools.json`, а оценка ниже
-70% завершает проверку ошибкой. Тот же прогон выполняется еженедельно и
-вручную workflow `Mutation Tests`; HTML- и JSON-отчёты сохраняются в артефакте.
+75% завершает проверку ошибкой. Расширенный срез `stryker-weekly-config.json`
+дополнительно мутирует генераторы, стратегии карманов, геометрию и DXF-импорт;
+он может занять значительное время и запускается workflow `Mutation Tests`
+для затрагивающих ядро pull request, еженедельно и вручную. HTML- и
+JSON-отчёты обоих прогонов сохраняются в артефакте.
 
 Приложение: `GCodeGenerator\bin\Release\GCodeGenerator.exe` (для запуска требуется .NET 10 Desktop Runtime).
 

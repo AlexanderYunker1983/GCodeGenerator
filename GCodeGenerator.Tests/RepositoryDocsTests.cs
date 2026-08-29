@@ -417,6 +417,32 @@ namespace GCodeGenerator.Tests
                 "Не сказано, как обновлять эталонные файлы");
         }
 
+        /// <summary>
+        /// Команды для участника повторяют фактическую mutation-политику и
+        /// locked restore. Устаревший порог или обычный restore дают зелёный
+        /// локальный прогон, который не совпадает с обязательным CI.
+        /// </summary>
+        [TestMethod]
+        public void ContributorDocs_DescribeTheCurrentQualityGates()
+        {
+            var contributing = Read("CONTRIBUTING.md");
+            var pullRequest = Read(".github", "PULL_REQUEST_TEMPLATE.md");
+
+            foreach (var readme in new[] { Read("README.md"), Read("README.en.md") })
+            {
+                StringAssert.Contains(readme, "stryker-config.json");
+                StringAssert.Contains(readme, "stryker-weekly-config.json");
+                StringAssert.Contains(readme, "75%");
+                Assert.IsFalse(Regex.IsMatch(readme, @"\b70%"),
+                    "README сохранил устаревший mutation-порог 70%");
+            }
+
+            StringAssert.Contains(contributing, "stryker-weekly-config.json");
+            StringAssert.Contains(contributing, "75%");
+            StringAssert.Contains(pullRequest,
+                "dotnet restore GCodeGenerator.sln --locked-mode");
+        }
+
         // ------------------------------------------------------------------
         // Ограничения текущей версии
         // ------------------------------------------------------------------

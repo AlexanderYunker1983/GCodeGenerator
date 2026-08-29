@@ -9,6 +9,7 @@ Project rules are in CONTRIBUTING.md.
 
 ## Проверено
 
+- [ ] `dotnet restore GCodeGenerator.sln --locked-mode` — замки актуальны
 - [ ] `dotnet build GCodeGenerator.sln -c Release` — без предупреждений
 - [ ] `dotnet test GCodeGenerator.sln -c Release` — все тесты зелёные
 - [ ] Новая проверка прогнана на неисправленном коде и падает

@@ -20,7 +20,8 @@
 
 ## Собрать и проверить
 
-Нужен **.NET 10 SDK**; точная версия закреплена в `global.json`.
+Нужен **.NET 10 SDK 10.0.302**; точная версия закреплена в `global.json` без
+перехода на другой patch или feature band.
 
 ```bash
 dotnet restore GCodeGenerator.sln --locked-mode
@@ -72,8 +73,9 @@ build\Test-VulnerablePackages.ps1
   во view-моделях нет: всё, что видит пользователь, лежит в
   `Resources/LocalizableResources.resx` и `.ru.resx`, и наборы ключей в них
   обязаны совпадать.
-- **Ядро не зависит от интерфейса.** `GCodeGenerator.Core` — чистый BCL:
-  ни WPF, ни MahApps, ни Autofac.
+- **Ядро не зависит от интерфейса.** `GCodeGenerator.Core` —
+  платформонезависимая библиотека .NET: в ней нет WPF, MahApps и контейнера
+  приложения. NuGet-зависимости ядра разрешены и закреплены lock-файлом.
 
 ## Эталонные файлы
 
@@ -85,9 +87,11 @@ build\Test-VulnerablePackages.ps1
 ```powershell
 $env:GCG_WRITE_GOLDEN = "1"
 dotnet test GCodeGenerator.Core.Tests -c Release --filter Write_Golden_Files
+Remove-Item Env:GCG_WRITE_GOLDEN
 
 $env:GCG_WRITE_REFERENCE = "1"
 dotnet test GCodeGenerator.Core.Tests -c Release --filter Write_Reference_Set
+Remove-Item Env:GCG_WRITE_REFERENCE
 ```
 
 ## Тесты
@@ -98,6 +102,21 @@ dotnet test GCodeGenerator.Core.Tests -c Release --filter Write_Reference_Set
 
 Есть и ручной прогон — [docs/SMOKE_CHECKLIST.md](docs/SMOKE_CHECKLIST.md):
 в нём то, чего автотесты не видят, — как выглядит и ведёт себя окно.
+
+Для релизно-критичной валидации и генерации запустите закреплённый
+мутационный инструмент:
+
+```powershell
+dotnet tool restore
+Set-Location GCodeGenerator.Core.Tests
+dotnet stryker --config-file stryker-config.json --skip-version-check
+```
+
+`stryker-config.json` — предсказуемый целевой срез release workflow.
+`stryker-weekly-config.json` дополнительно проверяет генераторы, стратегии
+карманов, геометрию и DXF-импорт; расширенный прогон выполняется на
+затрагивающих ядро pull request, еженедельно и вручную. Оба конфига работают
+fail-closed: mutation score ниже 75% завершает проверку ошибкой.
 
 ## Pull request
 
@@ -113,10 +132,10 @@ dotnet test GCodeGenerator.Core.Tests -c Release --filter Write_Reference_Set
 Выпуск делает владелец репозитория: push тега `X.Y.Z` (или `X.Y.Z-rc5`)
 запускает рабочий процесс [Release](.github/workflows/release.yml) — сборка,
 тесты, установщик и GitHub Release. Перед тегом раздел «Не выпущено» в
-CHANGELOG переименовывается в номер версии: описание выпуска берётся именно
-из него.
+CHANGELOG переносится в раздел номера версии, а пустой раздел «Не выпущено»
+сохраняется: описание выпуска берётся именно из раздела версии.
 
-До первого тега в настройках репозитория должна быть включена опция
+До тега в настройках репозитория должна быть включена опция
 **Releases → Immutable releases**. Workflow сначала заполняет draft всеми
 артефактами, публикует его и затем проверяет release attestation и каждый
 asset; отсутствие immutability считается ошибкой выпуска. Повторная загрузка
@@ -129,6 +148,11 @@ tag, а не заменяет уже опубликованный.
 появления сертификата отдельное изменение должно подключить защищённый key
 store, закрепить ожидаемый thumbprint и переключить workflow на
 `-SigningMode Required`; смешивать эту миграцию с выпуском нельзя.
+
+Перед тегом вручную запустите `Release` через `workflow_dispatch`: версия
+должна совпадать с `build/NEXT_VERSION` и разделом CHANGELOG. Репетиция
+проходит тот же build/package/smoke-контур на hosted runner, но не выполняет
+attestation и не публикует GitHub Release.
 
 После завершения job скачайте `SHA256SUMS.txt` и хотя бы один исполняемый
 asset, затем независимо выполните `gh release verify <tag>` и
