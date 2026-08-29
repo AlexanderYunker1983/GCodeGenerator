@@ -156,5 +156,26 @@ namespace GCodeGenerator.Tests
             Assert.AreEqual(0, found.Count,
                 "Чек-лист ссылается на план рефакторинга: " + string.Join(", ", found));
         }
+
+        /// <summary>
+        /// Ручной прогон проверяет текущую область действия клавиш и политику
+        /// ASCII-комментариев. Эти свойства видны только в живом интерфейсе и
+        /// готовом файле, поэтому одной XAML- или unit-проверки недостаточно.
+        /// </summary>
+        [TestMethod]
+        public void Checklist_CoversCurrentKeyboardAndCommentPolicies()
+        {
+            var checklist = Checklist;
+
+            StringAssert.Contains(checklist, "Ctrl+G");
+            StringAssert.Contains(checklist, "Delete удаляет выделенную операцию");
+            Assert.IsTrue(Regex.IsMatch(checklist, @"русское\s+имя в файл не попадает"),
+                "Чек-лист не проверяет исключение русского имени из G-code");
+            StringAssert.Contains(checklist, "проверяется вместе с L8");
+            Assert.IsFalse(checklist.Contains(
+                    "Переименование операции сохраняется и видно в комментарии G-кода",
+                    StringComparison.Ordinal),
+                "Чек-лист требует устаревший вывод любого имени операции в G-code");
+        }
     }
 }
