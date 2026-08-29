@@ -161,6 +161,34 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ReleaseWorkflow_DiagnosticUploadsWaitForTheirProducerSteps()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+
+            foreach (var required in new[]
+                     {
+                         "id: core_tests",
+                         "id: app_tests",
+                         "steps.core_tests.outcome != 'skipped'",
+                         "steps.app_tests.outcome != 'skipped'",
+                         "id: mutation_tests",
+                         "if: always() && steps.mutation_tests.outcome != 'skipped'",
+                         "steps.mutation_tests.outcome == 'success' && 'error' || 'warn'",
+                         "id: packaged_smoke",
+                         "if: always() && steps.packaged_smoke.outcome != 'skipped'",
+                         "steps.packaged_smoke.outcome == 'success' && 'error' || 'warn'"
+                     })
+            {
+                StringAssert.Contains(workflow, required);
+            }
+
+            Assert.IsFalse(Regex.IsMatch(
+                    workflow,
+                    @"if: always\(\) && steps\.tag\.outputs\.skip == 'false'\r?\n\s+uses: actions/upload-artifact"),
+                "Диагностический upload запускается после любой ранней ошибки job");
+        }
+
+        [TestMethod]
         public void SbomScript_ListsApplicationAndTransitivePackages()
         {
             var outputPath = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName() + ".cdx.json");

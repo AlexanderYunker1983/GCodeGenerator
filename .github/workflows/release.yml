@@ -95,6 +95,7 @@ jobs:
       # commit, который затем будет упакован. Один лишь факт существования
       # отдельного CI-run недостаточен: его можно отменить или обойти тегом.
       - name: Run core tests
+        id: core_tests
         if: steps.tag.outputs.skip == 'false'
         run: >
           dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj
@@ -104,6 +105,7 @@ jobs:
           --results-directory TestResults/core
 
       - name: Run application tests
+        id: app_tests
         if: steps.tag.outputs.skip == 'false'
         run: >
           dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj
@@ -113,11 +115,14 @@ jobs:
           --results-directory TestResults/app
 
       - name: Upload test results
-        if: always() && steps.tag.outputs.skip == 'false'
+        if: >-
+          always() && steps.tag.outputs.skip == 'false' &&
+          (steps.core_tests.outcome != 'skipped' || steps.app_tests.outcome != 'skipped')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-test-results
           path: TestResults
+          if-no-files-found: ${{ steps.core_tests.outcome == 'success' && steps.app_tests.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 14
 
       - name: Enforce coverage thresholds
@@ -145,17 +150,18 @@ jobs:
         run: dotnet tool restore
 
       - name: Run mutation tests
+        id: mutation_tests
         if: steps.tag.outputs.skip == 'false'
         working-directory: GCodeGenerator.Core.Tests
         run: dotnet stryker --config-file stryker-config.json --skip-version-check
 
       - name: Upload mutation report
-        if: always() && steps.tag.outputs.skip == 'false'
+        if: always() && steps.mutation_tests.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-mutation-report
           path: GCodeGenerator.Core.Tests/StrykerOutput
-          if-no-files-found: error
+          if-no-files-found: ${{ steps.mutation_tests.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 30
 
       # Inno Setup удалён из образа windows-2025 (windows-latest) — ставим
@@ -328,6 +334,7 @@ jobs:
       # Проверяется именно упакованный продукт: тихая установка, запуск,
       # повторная установка с тем же AppId, portable и деинсталляция.
       - name: Smoke-test packaged artifacts
+        id: packaged_smoke
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
         run: |
@@ -346,12 +353,12 @@ jobs:
       # Диагностика сохраняется и при падении smoke-теста; общий release
       # bundle ниже создаётся лишь после полностью успешной сборки.
       - name: Upload packaged artifact smoke log
-        if: always() && steps.tag.outputs.skip == 'false'
+        if: always() && steps.packaged_smoke.outcome != 'skipped'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: packaged-artifact-smoke
           path: artifacts/installer/packaged-artifact-smoke.log
-          if-no-files-found: error
+          if-no-files-found: ${{ steps.packaged_smoke.outcome == 'success' && 'error' || 'warn' }}
           retention-days: 14
 
       - name: Create CycloneDX SBOM
