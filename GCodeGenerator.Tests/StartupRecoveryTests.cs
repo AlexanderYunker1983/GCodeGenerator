@@ -29,7 +29,7 @@ namespace GCodeGenerator.Tests
                 messages,
                 path => Record(opened, "project:" + path),
                 path => Record(opened, "recovery:" + path),
-                "Recover? {0}",
+                "Recover? {0}; snapshot: {1}",
                 "Recovery");
 
             CollectionAssert.AreEqual(
@@ -38,6 +38,9 @@ namespace GCodeGenerator.Tests
                 "выбор восстановления не продолжается открытием старого проекта");
             Assert.AreEqual(0, recovery.ClearCount, "единственный снимок сохранён");
             StringAssert.Contains(messages.LastConfirmationMessage, recovery.RecoveryPath);
+            StringAssert.Contains(
+                messages.LastConfirmationMessage,
+                recovery.SnapshotTimeUtc!.Value.ToLocalTime().ToString("g", System.Globalization.CultureInfo.CurrentCulture));
         }
 
         [TestMethod]
@@ -126,6 +129,8 @@ namespace GCodeGenerator.Tests
             public string BackupPath { get; } = "autosave.ygc.bak";
             public bool Exists { get; }
             public bool BackupExists { get; }
+            public DateTimeOffset? SnapshotTimeUtc { get; } =
+                new DateTimeOffset(2026, 8, 29, 12, 34, 0, TimeSpan.Zero);
             public int ClearCount { get; private set; }
             public int QuarantineCount { get; private set; }
 

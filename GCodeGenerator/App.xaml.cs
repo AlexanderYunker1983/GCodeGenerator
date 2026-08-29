@@ -229,7 +229,7 @@ namespace GCodeGenerator
             var recovery = _container.Resolve<IDocumentRecoveryService>();
             var messages = _container.Resolve<IMessageService>();
             var template = _localizationManager?.GetString("RecoverAutosaveMessage")
-                           ?? "Recover automatically saved project?\n{0}";
+                           ?? "Recover automatically saved project?\nSnapshot time: {1}\n{0}";
             var title = _localizationManager?.GetString("RecoverAutosaveTitle")
                         ?? "Project recovery";
 
@@ -272,7 +272,11 @@ namespace GCodeGenerator
                     string.Format(
                         System.Globalization.CultureInfo.CurrentCulture,
                         recoveryMessageTemplate,
-                        recovery.RecoveryPath),
+                        recovery.RecoveryPath,
+                        recovery.SnapshotTimeUtc?.ToLocalTime().ToString(
+                            "g",
+                            System.Globalization.CultureInfo.CurrentCulture)
+                        ?? "—"),
                     recoveryTitle);
 
                 if (recover)

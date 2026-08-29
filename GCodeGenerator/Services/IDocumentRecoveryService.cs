@@ -19,6 +19,9 @@ namespace GCodeGenerator.Services
         /// <summary>Существует ли резервная версия автоснимка.</summary>
         bool BackupExists { get; }
 
+        /// <summary>UTC-время последней записи основного снимка.</summary>
+        DateTimeOffset? SnapshotTimeUtc { get; }
+
         /// <summary>
         /// Убирает повреждённый основной снимок из стартового пути, сохраняя
         /// его рядом для диагностики. Возвращает новый путь или null.

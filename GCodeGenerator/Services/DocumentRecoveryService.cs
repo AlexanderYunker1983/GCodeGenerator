@@ -62,6 +62,26 @@ namespace GCodeGenerator.Services
 
         public bool BackupExists => File.Exists(BackupPath);
 
+        public DateTimeOffset? SnapshotTimeUtc
+        {
+            get
+            {
+                try
+                {
+                    return File.Exists(RecoveryPath)
+                        ? new DateTimeOffset(File.GetLastWriteTimeUtc(RecoveryPath))
+                        : null;
+                }
+                catch
+                {
+                    // Время — пояснение в диалоге, а не условие доступа к
+                    // снимку. Само открытие даст полную ошибку, если файл
+                    // исчез или стал недоступен между проверками.
+                    return null;
+                }
+            }
+        }
+
         public string? QuarantineCorruptSnapshot()
         {
             _writeGate.Wait();

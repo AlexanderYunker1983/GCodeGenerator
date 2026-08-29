@@ -1081,6 +1081,6 @@
     <value>Project recovery</value>
   </data>
   <data name="RecoverAutosaveMessage" xml:space="preserve">
-    <value>An automatically saved project from the previous session was found. Recover it as a new unsaved project?&#xD;&#xA;&#xD;&#xA;{0}</value>
+    <value>An automatically saved project from the previous session was found. Recover it as a new unsaved project?&#xD;&#xA;&#xD;&#xA;Snapshot time: {1}&#xD;&#xA;File: {0}</value>
   </data>
 </root>

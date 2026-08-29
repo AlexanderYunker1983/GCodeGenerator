@@ -53,6 +53,7 @@ namespace GCodeGenerator.Tests
                 Assert.AreEqual(1, captures, "Первая правка отменена до сериализации");
                 Assert.IsTrue(context.PostCount > 0, "Снимок запрошен через UI-контекст");
                 Assert.AreEqual("new", files.Load(path).Operations[0].Name);
+                Assert.IsNotNull(recovery.SnapshotTimeUtc, "Для диалога доступно время записанного снимка");
             }
             finally
             {
