@@ -41,13 +41,20 @@ namespace GCodeGenerator.Services
         /// и может уйти под него. До первого окна (сбой на запуске) владельца
         /// нет — тогда сообщение показывается как раньше.
         /// </summary>
-        private static MessageBoxResult Show(
+        internal static MessageBoxResult Show(
             string message, string title, MessageBoxButton button, MessageBoxImage image)
         {
-            var owner = Application.Current?.MainWindow;
-            return owner is { IsLoaded: true }
+            var owner = FindOwner();
+            return owner != null
                 ? MessageBox.Show(owner, message, title, button, image)
                 : MessageBox.Show(message, title, button, image);
+        }
+
+        /// <summary>Загруженное главное окно, пригодное как владелец сообщения.</summary>
+        internal static Window? FindOwner()
+        {
+            var owner = Application.Current?.MainWindow;
+            return owner is { IsLoaded: true } ? owner : null;
         }
     }
 }

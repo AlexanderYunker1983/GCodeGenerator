@@ -396,7 +396,11 @@ namespace GCodeGenerator
                     "\n\n",
                     new[] { exception?.Message, snapshotPath, logPath }
                         .Where(part => !string.IsNullOrEmpty(part)));
-                MessageBox.Show($"{message}\n\n{details}", title, MessageBoxButton.OK, MessageBoxImage.Error);
+                WpfMessageService.Show(
+                    $"{message}\n\n{details}",
+                    title,
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
             catch (Exception reportingFailure)
             {
