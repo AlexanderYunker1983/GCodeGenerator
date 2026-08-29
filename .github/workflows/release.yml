@@ -21,6 +21,7 @@ jobs:
   build:
     name: Build Release
     runs-on: windows-latest
+    timeout-minutes: 90
     outputs:
       skip: ${{ steps.tag.outputs.skip }}
       prerelease: ${{ steps.tag.outputs.prerelease }}
@@ -350,6 +351,7 @@ jobs:
     needs: build
     if: needs.build.outputs.skip == 'false'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
@@ -373,6 +375,7 @@ jobs:
     needs: [build, attest]
     if: needs.build.outputs.skip == 'false'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: write
     steps:

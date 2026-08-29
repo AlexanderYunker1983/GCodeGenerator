@@ -240,6 +240,27 @@ namespace GCodeGenerator.Tests
         }
 
         [TestMethod]
+        public void ReleaseWorkflow_AndPackagedProcesses_HaveExplicitTimeouts()
+        {
+            var workflow = File.ReadAllText(Path.Combine(Root, ".github", "workflows", "release.yml"));
+            var script = File.ReadAllText(Path.Combine(Root, "build", "Test-PackagedArtifacts.ps1"));
+
+            Assert.AreEqual(3,
+                System.Text.RegularExpressions.Regex.Matches(
+                    workflow,
+                    @"(?m)^    timeout-minutes: \d+$").Count,
+                "Каждый release job должен иметь верхнюю границу времени");
+            StringAssert.Contains(script, "[int]$ProcessTimeoutSeconds = 300");
+            StringAssert.Contains(script, "$process.WaitForExit($processTimeoutMilliseconds)",
+                "Установщик или деинсталлятор может зависнуть навсегда");
+            StringAssert.Contains(script, "$process.WaitForExit($closeTimeoutMilliseconds)",
+                "Закрытие приложения должно быть ограничено по времени");
+            Assert.IsFalse(script.Contains("-Wait -PassThru", StringComparison.Ordinal),
+                "Start-Process -Wait не позволяет контролировать тайм-аут");
+            StringAssert.Contains(script, "timed out after $ProcessTimeoutSeconds seconds");
+        }
+
+        [TestMethod]
         public void ReleaseNotices_AreCopiedIntoTheSharedPublishDirectory()
         {
             var publish = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());

@@ -16,7 +16,16 @@ param(
 
     [switch]$RequireAuthenticodeSignature,
 
-    [string]$ExpectedSignerThumbprint = ''
+    [string]$ExpectedSignerThumbprint = '',
+
+    [ValidateRange(1, 3600)]
+    [int]$ProcessTimeoutSeconds = 300,
+
+    [ValidateRange(1, 60)]
+    [int]$ApplicationStartupSeconds = 5,
+
+    [ValidateRange(1, 300)]
+    [int]$ApplicationCloseTimeoutSeconds = 10
 )
 
 # ASCII-only: Windows PowerShell 5.1 reads a BOM-less script as ANSI.
@@ -71,18 +80,30 @@ function Assert-PackagedSignature([string]$FilePath, [string]$Stage) {
 function Invoke-CheckedProcess([string]$FilePath, [string[]]$Arguments, [string]$Stage) {
     Write-SmokeLog "${Stage}: starting"
     $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments `
-        -WindowStyle Hidden -Wait -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "$Stage failed with exit code $($process.ExitCode)."
+        -WindowStyle Hidden -PassThru
+    try {
+        $processTimeoutMilliseconds = $ProcessTimeoutSeconds * 1000
+        if (-not $process.WaitForExit($processTimeoutMilliseconds)) {
+            throw "$Stage timed out after $ProcessTimeoutSeconds seconds."
+        }
+        if ($process.ExitCode -ne 0) {
+            throw "$Stage failed with exit code $($process.ExitCode)."
+        }
+        Write-SmokeLog "${Stage}: passed"
     }
-    Write-SmokeLog "${Stage}: passed"
+    finally {
+        if (-not $process.HasExited) {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+        }
+        $process.Dispose()
+    }
 }
 
 function Test-ApplicationStart([string]$Executable, [string]$Stage) {
     Write-SmokeLog "${Stage}: starting"
     $process = Start-Process -FilePath $Executable -WindowStyle Hidden -PassThru
     try {
-        Start-Sleep -Seconds 5
+        Start-Sleep -Seconds $ApplicationStartupSeconds
         if ($process.HasExited) {
             throw "$Stage exited during startup with code $($process.ExitCode)."
         }
@@ -91,8 +112,9 @@ function Test-ApplicationStart([string]$Executable, [string]$Stage) {
         if (-not $process.CloseMainWindow()) {
             throw "$Stage has no closable main window."
         }
-        if (-not $process.WaitForExit(10000)) {
-            throw "$Stage ignored a normal window close request."
+        $closeTimeoutMilliseconds = $ApplicationCloseTimeoutSeconds * 1000
+        if (-not $process.WaitForExit($closeTimeoutMilliseconds)) {
+            throw "$Stage ignored a normal window close request for $ApplicationCloseTimeoutSeconds seconds."
         }
         if ($process.ExitCode -ne 0) {
             throw "$Stage closed with exit code $($process.ExitCode)."
