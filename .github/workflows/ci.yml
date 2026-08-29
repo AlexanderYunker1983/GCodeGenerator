@@ -75,16 +75,32 @@ jobs:
           dotnet test GCodeGenerator.Core.Tests/GCodeGenerator.Core.Tests.csproj
           -c Release --no-build
           --logger "trx;LogFileName=core-tests.trx"
-          --collect "Code Coverage"
-          --results-directory TestResults
+          --collect "Code Coverage;Format=cobertura"
+          --results-directory TestResults/core
 
       - name: Run application tests
         run: >
           dotnet test GCodeGenerator.Tests/GCodeGenerator.Tests.csproj
           -c Release --no-build
           --logger "trx;LogFileName=app-tests.trx"
-          --collect "Code Coverage"
-          --results-directory TestResults
+          --collect "Code Coverage;Format=cobertura"
+          --results-directory TestResults/app
+
+      # Порог считается отдельно по продуктовым сборкам: тестовые DLL и
+      # встроенный код Toolkit не могут искусственно поднять или уронить его.
+      - name: Enforce coverage thresholds
+        shell: pwsh
+        run: |
+          build/Assert-Coverage.ps1 `
+            -ResultsDirectory TestResults/core `
+            -Assembly GCodeGenerator.Core `
+            -MinimumLinePercent 80 `
+            -MinimumBranchPercent 65
+          build/Assert-Coverage.ps1 `
+            -ResultsDirectory TestResults/app `
+            -Assembly GCodeGenerator `
+            -MinimumLinePercent 80 `
+            -MinimumBranchPercent 65
 
       # Отчёты выгружаются и при падении тестов — ради него они и нужны.
       - name: Upload test results
