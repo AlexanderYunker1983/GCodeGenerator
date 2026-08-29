@@ -105,10 +105,15 @@ Write-Host "Publishing ($Configuration, $Runtime, self-contained: $selfContained
 # a RID restore would be rejected as a mismatch with the lock (NU1004).
 & dotnet publish (Join-Path $repoRoot 'GCodeGenerator\GCodeGenerator.csproj') `
     -c $Configuration -r $Runtime --self-contained $selfContainedArg `
-    -p:RestoreLockedMode=true -o $publishDir
+    -p:RestoreLockedMode=true -p:DebugSymbols=false -p:DebugType=None `
+    -o $publishDir
 if ($LASTEXITCODE -ne 0) { throw 'dotnet publish failed' }
 if (-not (Test-Path (Join-Path $publishDir 'GCodeGenerator.exe'))) {
     throw "Publish output is missing GCodeGenerator.exe: $publishDir"
+}
+$publishedSymbols = @(Get-ChildItem -LiteralPath $publishDir -Filter '*.pdb' -File -Recurse)
+if ($publishedSymbols.Count -ne 0) {
+    throw "Publish output contains debug symbols: $($publishedSymbols.Name -join ', ')"
 }
 
 # The installer and portable archive ship the same publish directory. Copy

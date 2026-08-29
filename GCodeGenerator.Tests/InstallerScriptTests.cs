@@ -146,6 +146,23 @@ namespace GCodeGenerator.Tests
                 "install/GCodeGenerator.iss: деинсталлятор остаётся неподписанным");
         }
 
+        /// <summary>
+        /// Символы нужны для локальной диагностики, но не в установщике:
+        /// publish-каталог целиком копируется также в portable ZIP и иначе
+        /// раскрывает внутренние пути/имена, одновременно раздувая выпуск.
+        /// </summary>
+        [TestMethod]
+        public void Build_DoesNotPackageDebugSymbols()
+        {
+            var build = BuildScript;
+
+            StringAssert.Contains(build, "-p:DebugSymbols=false");
+            StringAssert.Contains(build, "-p:DebugType=None");
+            StringAssert.Contains(build, "-Filter '*.pdb' -File -Recurse",
+                "После publish нет fail-closed проверки фактического содержимого");
+            StringAssert.Contains(build, "Publish output contains debug symbols");
+        }
+
         [TestMethod]
         public void Release_VerifiesDownloadedInnoSetupBeforeExecution()
         {
