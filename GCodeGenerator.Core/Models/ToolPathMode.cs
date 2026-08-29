@@ -9,17 +9,16 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Tool moves along the contour line.
         /// </summary>
-        OnLine,
+        OnLine = 0,
         
         /// <summary>
         /// Tool moves outside the contour.
         /// </summary>
-        Outside,
+        Outside = 1,
         
         /// <summary>
         /// Tool moves inside the contour.
         /// </summary>
-        Inside
+        Inside = 2
     }
 }
-

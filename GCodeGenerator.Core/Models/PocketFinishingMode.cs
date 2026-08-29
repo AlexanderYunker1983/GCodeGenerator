@@ -6,10 +6,9 @@ namespace GCodeGenerator.Models
     /// </summary>
     public enum PocketFinishingMode
     {
-        Walls,
-        Bottom,
-        All
+        Walls = 0,
+        Bottom = 1,
+        All = 2
     }
 }
-
 

@@ -5,9 +5,9 @@ namespace GCodeGenerator.Models
     public enum PocketEntryMode
     {
         /// <summary>Вертикальное врезание в точке входа.</summary>
-        Vertical,
+        Vertical = 0,
 
         /// <summary>Винтовой спуск по окружности заданного диаметра.</summary>
-        Helical
+        Helical = 1
     }
 }

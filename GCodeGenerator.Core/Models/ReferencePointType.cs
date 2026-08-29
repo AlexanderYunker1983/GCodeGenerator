@@ -9,27 +9,26 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Center of rectangle.
         /// </summary>
-        Center,
+        Center = 0,
         
         /// <summary>
         /// Top-left corner.
         /// </summary>
-        TopLeft,
+        TopLeft = 1,
         
         /// <summary>
         /// Top-right corner.
         /// </summary>
-        TopRight,
+        TopRight = 2,
         
         /// <summary>
         /// Bottom-left corner.
         /// </summary>
-        BottomLeft,
+        BottomLeft = 3,
         
         /// <summary>
         /// Bottom-right corner.
         /// </summary>
-        BottomRight
+        BottomRight = 4
     }
 }
-

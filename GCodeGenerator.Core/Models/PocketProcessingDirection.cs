@@ -5,9 +5,9 @@ namespace GCodeGenerator.Models
     public enum PocketProcessingDirection
     {
         /// <summary>От центральной части области к её внешней границе.</summary>
-        CenterOutward,
+        CenterOutward = 0,
 
         /// <summary>От внешней границы области к центральной части.</summary>
-        OutsideIn,
+        OutsideIn = 1,
     }
 }

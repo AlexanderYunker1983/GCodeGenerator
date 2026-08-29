@@ -9,12 +9,11 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Vertical entry (plunge).
         /// </summary>
-        Vertical,
+        Vertical = 0,
         
         /// <summary>
         /// Angled entry (ramp).
         /// </summary>
-        Angled
+        Angled = 1
     }
 }
-

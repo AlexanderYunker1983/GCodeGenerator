@@ -7,12 +7,12 @@ namespace GCodeGenerator.Models
     public enum PocketMode
     {
         /// <summary>Область выбирается инструментом.</summary>
-        Machining,
+        Machining = 0,
 
         /// <summary>
         /// Область остаётся необработанной и вычитается из всех обычных
         /// операций карманов проекта.
         /// </summary>
-        Island,
+        Island = 1,
     }
 }

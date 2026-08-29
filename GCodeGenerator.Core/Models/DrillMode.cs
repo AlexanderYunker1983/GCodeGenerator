@@ -9,30 +9,30 @@ namespace GCodeGenerator.Models
     public enum DrillMode
     {
         /// <summary>Individual holes from the <see cref="DrillPointsOperation.Holes"/> list.</summary>
-        Points,
+        Points = 0,
 
         /// <summary>Holes along a straight line.</summary>
-        Line,
+        Line = 1,
 
         /// <summary>Rectangular grid of holes (all grid points).</summary>
-        Array,
+        Array = 2,
 
         /// <summary>Holes along the rectangle border only.</summary>
-        Rect,
+        Rect = 3,
 
         /// <summary>Holes evenly spaced on a circle.</summary>
-        Circle,
+        Circle = 4,
 
         /// <summary>Holes along a circular arc.</summary>
-        Arc,
+        Arc = 5,
 
         /// <summary>Holes along the sides of a regular polygon.</summary>
-        Polygon,
+        Polygon = 6,
 
         /// <summary>Holes evenly spaced on an ellipse.</summary>
-        Ellipse,
+        Ellipse = 7,
 
         /// <summary>Holes for a component package (DIP / TO / SOIC templates).</summary>
-        Package
+        Package = 8
     }
 }

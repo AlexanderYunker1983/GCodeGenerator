@@ -6,8 +6,7 @@ namespace GCodeGenerator.Models
     /// </summary>
     public enum OuterBoundaryType
     {
-        Rectangle,
-        Ellipse
+        Rectangle = 0,
+        Ellipse = 1
     }
 }
-

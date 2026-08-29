@@ -3,10 +3,10 @@
 {
     public enum PocketStrategy
     {
-        Concentric,
-        Spiral,
-        Radial,
-        ZigZag,
-        Lines,
+        Concentric = 0,
+        Spiral = 1,
+        Radial = 2,
+        ZigZag = 3,
+        Lines = 4,
     }
 }

@@ -9,12 +9,11 @@ namespace GCodeGenerator.Models
         /// <summary>
         /// Clockwise direction.
         /// </summary>
-        Clockwise,
+        Clockwise = 0,
         
         /// <summary>
         /// Counter-clockwise direction.
         /// </summary>
-        CounterClockwise
+        CounterClockwise = 1
     }
 }
-
