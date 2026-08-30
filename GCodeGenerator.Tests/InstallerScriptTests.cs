@@ -211,9 +211,34 @@ namespace GCodeGenerator.Tests
             }
 
             StringAssert.Contains(workflow, @"C:\Program Files\Inno Setup 7\ISCC.exe");
+            StringAssert.Contains(workflow,
+                "Add-Content -Path $env:GITHUB_ENV -Value \"GCODEGEN_ISCC_PATH=$iscc\"");
+            StringAssert.Contains(workflow,
+                "build/Make-Installer.ps1 -SigningMode Unsigned -IsccPath $env:GCODEGEN_ISCC_PATH");
             StringAssert.Contains(BuildScript, @"C:\Program Files\Inno Setup 7\ISCC.exe");
             StringAssert.Contains(InstallerScript, "SetupArchitecture=x64",
                 "Установщик приложения остался 32-битным");
+        }
+
+        [TestMethod]
+        public void Build_PrefersAndRequiresInnoSetup7()
+        {
+            var build = BuildScript;
+            var knownVersion = build.IndexOf(
+                "Test-Path -LiteralPath $defaultIsccPath",
+                StringComparison.Ordinal);
+            var pathFallback = build.IndexOf(
+                "Get-Command iscc.exe",
+                StringComparison.Ordinal);
+
+            Assert.IsTrue(knownVersion >= 0 && knownVersion < pathFallback,
+                "PATH с устаревшим ISCC не должен перекрывать установленный Inno Setup 7");
+            StringAssert.Contains(build,
+                "Inno Setup (?<major>\\d+) Command-Line Compiler");
+            StringAssert.Contains(build,
+                "[int]$isccVersion.Groups['major'].Value -lt 7");
+            StringAssert.Contains(build,
+                "Inno Setup 7.x or newer is required");
         }
 
         /// <summary>

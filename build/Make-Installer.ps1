@@ -97,6 +97,34 @@ $productName = Get-BuildProperty 'Product'
 $copyright = Get-BuildProperty 'Copyright'
 Write-Host "Publisher: $publisher; product: $productName"
 
+# --- 1b) Inno Setup 7 compiler ---------------------------------------------
+# Prefer the known 64-bit Inno Setup 7 location over PATH. Hosted Windows
+# images may expose an older Chocolatey ISCC shim even after 7.x is installed,
+# and SetupArchitecture is intentionally unavailable in Inno Setup 6.
+$defaultIsccPath = 'C:\Program Files\Inno Setup 7\ISCC.exe'
+if ($IsccPath -eq '') {
+    if (Test-Path -LiteralPath $defaultIsccPath) {
+        $IsccPath = $defaultIsccPath
+    }
+    else {
+        $cmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
+        if ($cmd) { $IsccPath = $cmd.Source }
+    }
+}
+if ($IsccPath -eq '' -or -not (Test-Path -LiteralPath $IsccPath)) {
+    throw "ISCC not found ('$IsccPath'). Install 64-bit Inno Setup 7 (https://jrsoftware.org/isdl.php) or pass -IsccPath."
+}
+
+$isccBanner = ((& $IsccPath '/?' 2>&1) | Out-String)
+$isccVersion = [regex]::Match(
+    $isccBanner,
+    'Inno Setup (?<major>\d+) Command-Line Compiler',
+    [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+if (-not $isccVersion.Success -or [int]$isccVersion.Groups['major'].Value -lt 7) {
+    throw "Inno Setup 7.x or newer is required; selected compiler: '$IsccPath'."
+}
+Write-Host "Inno Setup compiler: $IsccPath (major $($isccVersion.Groups['major'].Value))"
+
 # --- 2) Publish --------------------------------------------------------------
 $publishDir = Join-Path $repoRoot 'artifacts\publish\GCodeGenerator'
 if (Test-Path $publishDir) { Remove-Item $publishDir -Recurse -Force }
@@ -195,19 +223,6 @@ else {
 }
 
 # --- 4) Compile the installer ------------------------------------------------
-if ($IsccPath -eq '') {
-    $cmd = Get-Command iscc.exe -ErrorAction SilentlyContinue
-    if ($cmd) {
-        $IsccPath = $cmd.Source
-    }
-    else {
-        $IsccPath = 'C:\Program Files\Inno Setup 7\ISCC.exe'
-    }
-}
-if (-not (Test-Path $IsccPath)) {
-    throw "ISCC not found ('$IsccPath'). Install 64-bit Inno Setup 7 (https://jrsoftware.org/isdl.php) or pass -IsccPath."
-}
-
 $installerDir = Join-Path $repoRoot 'artifacts\installer'
 if (Test-Path $installerDir) { Remove-Item $installerDir -Recurse -Force }
 New-Item -ItemType Directory -Path $installerDir | Out-Null

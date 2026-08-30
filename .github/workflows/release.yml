@@ -211,6 +211,7 @@ jobs:
           }
           $iscc = 'C:\Program Files\Inno Setup 7\ISCC.exe'
           if (-not (Test-Path $iscc)) { throw "Inno Setup installation failed: $iscc not found" }
+          Add-Content -Path $env:GITHUB_ENV -Value "GCODEGEN_ISCC_PATH=$iscc"
           Write-Host "ISCC ready: $iscc"
 
       # До появления публично доверенного сертификата политика выпуска явно
@@ -220,7 +221,7 @@ jobs:
       - name: Build installer
         if: steps.tag.outputs.skip == 'false'
         shell: pwsh
-        run: build/Make-Installer.ps1 -SigningMode Unsigned
+        run: build/Make-Installer.ps1 -SigningMode Unsigned -IsccPath $env:GCODEGEN_ISCC_PATH
 
       # Портативная версия (без инсталлятора) — тот же publish-каталог.
       - name: Build portable zip
