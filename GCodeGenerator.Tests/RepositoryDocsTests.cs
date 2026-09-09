@@ -57,23 +57,34 @@ namespace GCodeGenerator.Tests
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// В журнале есть раздел очередной версии, и он не пуст. Пустой
-        /// раздел означает выпуск без описания — то самое, ради чего журнал
-        /// и заводился.
+        /// Накопитель «Не выпущено» обязателен: в него попадает заметное для
+        /// пользователя изменение, и уже перед тегом он переносится в раздел
+        /// номера версии (CONTRIBUTING, «Выпуск»). Поэтому сразу после
+        /// выпуска раздела следующей версии ещё нет и быть не должно —
+        /// требовать его с первого коммита после тега значило бы запретить
+        /// сборку ветки, в которой пока нечего описывать.
+        ///
+        /// Существующий, но пустой раздел — ошибка: он выглядит как готовое
+        /// описание. Выпуск без описания останавливает сам
+        /// build/Get-ReleaseNotes.ps1 — fail-closed и на отсутствующем, и на
+        /// пустом разделе, то есть ровно в тот момент, когда это связывает.
         /// </summary>
         [TestMethod]
-        public void Changelog_HasANonEmptySectionForTheNextRelease()
+        public void Changelog_KeepsTheAccumulatorAndForbidsAnEmptyNextSection()
         {
             var changelog = Read("CHANGELOG.md");
             var nextVersion = Read("build", "NEXT_VERSION").Trim();
-            var unreleased = ExtractSection(changelog, "Не выпущено");
             var section = ExtractSection(changelog, nextVersion);
 
             Assert.IsTrue(Regex.IsMatch(nextVersion, @"^\d+\.\d+\.\d+(-[A-Za-z][A-Za-z0-9]*)?$"),
                 "build/NEXT_VERSION содержит некорректную версию");
-            Assert.IsNotNull(unreleased, "В журнале нет раздела «Не выпущено»");
-            Assert.IsNotNull(section, $"В журнале нет раздела следующей версии {nextVersion}");
-            Assert.IsTrue(section.Contains("- "), "Раздел очередной версии пуст");
+            Assert.IsNotNull(ExtractSection(changelog, "Не выпущено"),
+                "В журнале нет раздела «Не выпущено»");
+            if (section != null)
+            {
+                StringAssert.Contains(section, "- ",
+                    $"Раздел версии {nextVersion} заведён, но пуст");
+            }
         }
 
         /// <summary>
@@ -94,6 +105,22 @@ namespace GCodeGenerator.Tests
                 "В release workflow не найдено значение по умолчанию ручной репетиции");
             Assert.AreEqual(nextVersion, versionInput.Groups["version"].Value,
                 "Ручная репетиция release workflow собирает не build/NEXT_VERSION");
+        }
+
+        /// <summary>
+        /// Выпуск заканчивается обновлением плана. Пока build/NEXT_VERSION
+        /// называет уже опубликованную версию, останавливается каждая сборка
+        /// после тега: dev-версия повторяла бы выпущенную. Шаг стоит один раз
+        /// в год и потому забывается — в правилах он должен быть написан.
+        /// </summary>
+        [TestMethod]
+        public void Contributing_TellsToAdvanceThePlanAfterTheTag()
+        {
+            var contributing = Read("CONTRIBUTING.md");
+
+            StringAssert.Contains(contributing, "build/NEXT_VERSION");
+            StringAssert.Contains(contributing, "После публикации тега",
+                "В правилах выпуска нет шага обновления плана следующей версии");
         }
 
         /// <summary>
