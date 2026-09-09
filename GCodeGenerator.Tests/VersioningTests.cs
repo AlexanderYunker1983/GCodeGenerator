@@ -110,6 +110,9 @@ namespace GCodeGenerator.Tests
             return result.Stdout;
         }
 
+        /// <summary>Текст без пробелов и переносов — для сравнения вывода консоли.</summary>
+        private static string Squeeze(string text) => Regex.Replace(text, @"\s+", string.Empty);
+
         private static void CheckSelection(string name, string[] tags, string expected)
         {
             var dir = NewRepo(name);
@@ -222,6 +225,32 @@ namespace GCodeGenerator.Tests
 
             Assert.AreNotEqual(0, result.ExitCode, "Устаревший план версии принят");
             StringAssert.Contains(result.Stderr, "must be newer than the nearest tag '0.5.0'");
+        }
+
+        /// <summary>
+        /// План, равный уже опубликованному тегу, — обычное состояние
+        /// репозитория сразу после выпуска: остановиться должна каждая
+        /// следующая сборка, иначе ветка разработки выдавала бы себя за
+        /// выпущенную версию. Сообщение называет файл плана: читают его
+        /// в логе CI, где причины отказа больше взять неоткуда.
+        /// </summary>
+        [TestMethod]
+        public void NextVersionFile_EqualToTheReleasedTag_NamesTheFileToAdvance()
+        {
+            var dir = NewRepo("released-next-version");
+            RunGit(dir, "tag 1.0.0");
+            Commit(dir, "NEXT_VERSION", "1.0.0");
+            var planFile = Path.Combine(dir, "NEXT_VERSION");
+
+            var result = ExecuteVersionScript(dir, planFile);
+
+            Assert.AreNotEqual(0, result.ExitCode, "План выпущенной версии принят");
+            StringAssert.Contains(result.Stderr, "must be newer than the nearest tag '1.0.0'");
+            // PowerShell переносит длинные строки ошибки по ширине консоли и
+            // разрывает путь посередине: сравнивается текст без пробелов,
+            // иначе тест падал бы от ширины окна, а не от содержания.
+            StringAssert.Contains(Squeeze(result.Stderr), Squeeze(planFile),
+                "Сообщение не называет файл, который нужно обновить");
         }
 
         [TestMethod]

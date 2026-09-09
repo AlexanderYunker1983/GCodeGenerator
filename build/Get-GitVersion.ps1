@@ -13,6 +13,8 @@
 #   2. Otherwise - the version in -NextVersionFile, when supplied, plus the
 #      distance from the nearest valid tag and SHA. It must be newer than the
 #      nearest tag, so a stale release plan fails instead of going unnoticed.
+#      A published release therefore ends with advancing the plan: while it
+#      still names the tagged version, every build past that tag stops here.
 #   3. Without -NextVersionFile - the nearest valid tag plus distance/SHA.
 #   4. Otherwise, in a git repository - 0.1.0-alphadev<count>g<sha>.
 #   5. No git / not a repository - 0.1.0-alpha (or <next>-dev0 when a valid
@@ -167,7 +169,12 @@ elseif ($commit.Count -gt 0 -and $commit[0] -match '^[0-9a-fA-F]+$') {
             [string]::CompareOrdinal(
                 (Get-VersionRank $nextVersion),
                 (Get-VersionRank $baseVersion)) -le 0) {
-            throw "Next version '$nextVersion' must be newer than the nearest tag '$baseVersion'."
+            # The build log is the only place this is read, so it names the
+            # file and the required action: the usual cause is a released
+            # plan that nobody advanced, not a typo in the version.
+            throw ("Next version '$nextVersion' must be newer than the nearest tag " +
+                "'$baseVersion'. Update the plan file '$NextVersionFile' to the version " +
+                "planned after '$baseVersion'.")
         }
         $baseVersion = $nextVersion
     }
