@@ -420,7 +420,7 @@ jobs:
       # Подписанная Sigstore/SLSA provenance связывает точные хеши из файла
       # с этим workflow, commit и репозиторием. Сборочный job OIDC не получает.
       - name: Attest release files
-        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: release-assets/SHA256SUMS.txt
 
@@ -444,7 +444,7 @@ jobs:
       # загруженных файлов запрещена: повторный запуск не может тихо подменить
       # артефакт с тем же именем.
       - name: Create complete draft release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           name: ${{ github.ref_name }}
           files: |
