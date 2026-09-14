@@ -34,9 +34,9 @@
       },
       "Microsoft.Xaml.Behaviors.Wpf": {
         "type": "Direct",
-        "requested": "[1.1.142, )",
-        "resolved": "1.1.142",
-        "contentHash": "c47wA/8GHiQ9w+O6+mdqrZhZrxHogx2/fSZyRKL9tz0k+ypoTiwOx6fID0X3jr5LnCazJbCk7KiAcL0zVnNgNA=="
+        "requested": "[1.1.158, )",
+        "resolved": "1.1.158",
+        "contentHash": "TPQyXvLV/p4/RUeSqaEOUE2pBipFlvNVdrAsTd1qgNzBoIEN2UMJHwH0SrcUFVuDWqpZbphjXiZ/fGA9WnmbTg=="
       },
       "Clipper2": {
         "type": "Transitive",
