@@ -75,7 +75,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="9.3.2" />
+    <PackageReference Include="Autofac" Version="9.3.4" />
     <!-- Оформление окон: MahApps.Metro и ControlzEx, откуда взят ThemeManager.
          Ссылка на ControlzEx прямая, потому что программа обращается к нему
          сама (Services/WpfThemeService.cs), а не только через MahApps.
@@ -87,7 +87,7 @@
          кроссплатформенность. Подробности — в CONTRIBUTING.md. -->
     <PackageReference Include="ControlzEx" Version="4.4.0" />
     <PackageReference Include="MahApps.Metro" Version="2.4.11" />
-    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.142" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.161" />
     <!-- Пункт 1.3: MVVM-фреймворк (замена MugenMvvmToolkit). -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
