@@ -34,7 +34,7 @@ jobs:
       # Пункт 1.5: TFM net10.0-windows — нужен .NET 10 SDK (включает Windows Desktop runtime).
       # setup-dotnet ставит точную версию независимо от содержимого образа раннера.
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6
         with:
           # Версия пакета разработки берётся из global.json: раннер собирает
           # тем же набором инструментов, что и разработчик.
@@ -109,7 +109,7 @@ jobs:
       # Отчёты выгружаются и при падении тестов — ради него они и нужны.
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: test-results
           path: TestResults
