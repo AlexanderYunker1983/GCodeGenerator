@@ -4,9 +4,9 @@
     "net10.0-windows7.0": {
       "Autofac": {
         "type": "Direct",
-        "requested": "[9.3.2, )",
-        "resolved": "9.3.2",
-        "contentHash": "an3dLpmXWvb2aBP5qyA7GVEcXhoG+W/EtFRa3sBYzJdXSNDnB0aoeo4MgOQru0G5sjNDGYM3D3CnBzNFXEVOOA=="
+        "requested": "[9.3.4, )",
+        "resolved": "9.3.4",
+        "contentHash": "sKldkrIDjhic/BtE6KBl50VjwnuVVOXMnJgh9CsG5uHa8IsGR1BkvjyF6UifPfXPfnkauPqJrAF0QF+JhhRTsw=="
       },
       "CommunityToolkit.Mvvm": {
         "type": "Direct",
@@ -34,9 +34,9 @@
       },
       "Microsoft.Xaml.Behaviors.Wpf": {
         "type": "Direct",
-        "requested": "[1.1.142, )",
-        "resolved": "1.1.142",
-        "contentHash": "c47wA/8GHiQ9w+O6+mdqrZhZrxHogx2/fSZyRKL9tz0k+ypoTiwOx6fID0X3jr5LnCazJbCk7KiAcL0zVnNgNA=="
+        "requested": "[1.1.161, )",
+        "resolved": "1.1.161",
+        "contentHash": "V20pH5zYDm6RPjqASdDiidUckWreGntPwDx1YUEMXiRqMVSHvypAiwSeET3ZwoJbFLMTsXXxqsoyhkNOB3Vp4Q=="
       },
       "Clipper2": {
         "type": "Transitive",
